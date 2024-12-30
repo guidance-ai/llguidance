@@ -13,4 +13,5 @@ log = "0.4.21"
 hashbrown = "0.15.2"
 
 [features]
-default = ["tokenizers/http"]
+default = ["http"]
+http = ["tokenizers/http"]
