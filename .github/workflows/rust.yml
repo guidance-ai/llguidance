@@ -17,8 +17,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - run: sudo apt-get install pkg-config libssl-dev
-  
     - name: Build parser
       run: cargo build --verbose
       working-directory: parser

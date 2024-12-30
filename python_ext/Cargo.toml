@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 llguidance = { workspace = true }
-toktrie_hf_tokenizers = { workspace = true }
+toktrie_hf_tokenizers = { workspace = true, default-features = false }
 bytemuck = "1.19.0"
 pyo3 = {version = "0.21.2", features = ["extension-module", "abi3-py39"]}
 serde = { version = "1.0.210", features = ["derive"] }

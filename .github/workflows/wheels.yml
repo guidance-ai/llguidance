@@ -21,8 +21,6 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - run: sudo apt-get install pkg-config libssl-dev
-
       - name: Install python test dependencies
         run: ./scripts/install-deps.sh
     

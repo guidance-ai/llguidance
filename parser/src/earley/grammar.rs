@@ -612,6 +612,7 @@ pub struct CSymbol {
     pub props: SymbolProps,
     pub gen_grammar: Option<GenGrammarOptions>,
     // this points to the first element of rhs of each rule
+    // note that null rules (with rhs == epsilon) are not stored
     pub rules: Vec<RhsPtr>,
     pub sym_flags: SymFlags,
     pub lexeme: Option<LexemeIdx>,
