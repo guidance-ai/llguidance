@@ -9,7 +9,7 @@ use crate::{
     toktrie::{SimpleVob, TokEnv, TokTrie, TokenId},
 };
 
-use super::parser::ITEM_TRACE;
+use super::{parser::ITEM_TRACE, ParserMetrics};
 
 struct TokenizerSlice {
     idx: usize,
@@ -187,6 +187,7 @@ impl BiasComputer for SlicedBiasComputer {
     fn compute_bias<'b>(&self, rec: &mut ParserRecognizer<'b>, start: &[u8]) -> SimpleVob {
         let mut set = self.trie().alloc_token_set();
         let lexer_state = rec.lexer_state();
+
         if self.slices.len() > 0
             && start.is_empty()
             && rec.lexer_mut().subsume_possible(lexer_state)
@@ -208,9 +209,11 @@ impl BiasComputer for SlicedBiasComputer {
             if slice_matches.iter().all(|&x| x == false) {
                 // if nothing matches, just run the full trie
                 self.wildcard_slice.add_bias(rec, &mut set, start);
+                apply_metrics(rec.metrics_mut(), &set);
                 debug!("no slice matches; {} tokens", set.num_set());
             } else {
                 // otherwise, apply the matching slices, and compute the rest
+                let mut acc = self.trie().alloc_token_set();
                 for (i, slice) in self.slices.iter().enumerate() {
                     if slice_matches[i] {
                         rec.stats_mut().slices_applied += 1;
@@ -219,7 +222,8 @@ impl BiasComputer for SlicedBiasComputer {
                         // assert!(slice.regex == "");
                         let c0 = if DEBUG { set.num_set() } else { 0 };
                         let t0 = std::time::Instant::now();
-                        slice.trie.add_bias(rec, &mut set, start);
+                        slice.trie.add_bias(rec, &mut acc, start);
+                        set.or(&acc);
                         let us = t0.elapsed().as_micros() as usize;
                         rec.metrics_mut().slicer_leftover_us += us;
                         debug!("slice matches #{}; {} tokens", i, set.num_set() - c0);
@@ -234,9 +238,11 @@ impl BiasComputer for SlicedBiasComputer {
                         // }
                     }
                 }
+                apply_metrics(rec.metrics_mut(), &acc);
             }
         } else {
             self.wildcard_slice.add_bias(rec, &mut set, start);
+            apply_metrics(rec.metrics_mut(), &set);
             debug!("slicer disabled; {} tokens", set.num_set());
         }
 
@@ -248,4 +254,49 @@ impl BiasComputer for SlicedBiasComputer {
     fn trie(&self) -> &TokTrie {
         self.tok_env.tok_trie()
     }
+}
+
+fn apply_metrics(parser_metrics: &mut ParserMetrics, mask: &SimpleVob) {
+    //let size = compress_mask(&mask).len();
+    let size = std::cmp::min(mask.num_set() * 2, mask.len() / 8);
+    parser_metrics.compressed_mask_size += size;
+}
+
+fn compress_mask(s: &SimpleVob) -> Vec<u8> {
+    let mut res: Vec<u8> = vec![];
+    let mut num_zero = 0;
+    for &d in s.as_slice() {
+        let num_bits = d.count_ones();
+        if num_bits == 0 {
+            if num_zero < 32 {
+                num_zero += 1;
+                continue;
+            }
+        }
+        if num_zero > 0 {
+            res.push(num_zero + 32);
+            num_zero = 0;
+        }
+        if num_bits == 1 {
+            res.push(d.leading_zeros() as u8);
+        } else if num_bits == 2 {
+            res.push(d.leading_zeros() as u8);
+            res.push(d.leading_zeros() as u8);
+        } else if num_bits == 3 {
+            res.push(d.leading_zeros() as u8);
+            res.push(d.leading_zeros() as u8);
+            res.push(d.leading_zeros() as u8);
+        } else if false && num_bits == 31 {
+            res.push(d.leading_ones() as u8);
+        } else if num_bits == 32 {
+            res.push(60);
+        } else {
+            res.push(61);
+            res.push(d as u8);
+            res.push((d >> 8) as u8);
+            res.push((d >> 16) as u8);
+            res.push((d >> 24) as u8);
+        }
+    }
+    res
 }
