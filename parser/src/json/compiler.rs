@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-use derivre::RegexAst;
+use derivre::{JsonQuoteOptions, RegexAst};
 use hashbrown::HashMap;
 use indexmap::IndexMap;
 use serde_json::{json, Value};
@@ -81,16 +81,17 @@ struct Compiler {
     pending_definitions: Vec<(String, NodeRef)>,
 
     any_cache: Option<NodeRef>,
-    lexeme_cache: HashMap<(String, bool), NodeRef>,
+    string_cache: Option<NodeRef>,
+    lexeme_cache: HashMap<String, NodeRef>,
 }
 
 macro_rules! cache {
-    ($field:expr, $gen:expr) => {
+    ($field:expr, $gen:expr) => {{
         if $field.is_none() {
             $field = Some($gen);
-        }
-        return Ok($field.unwrap());
-    };
+        };
+        return ($field).unwrap();
+    }};
 }
 
 impl Default for JsonCompileOptions {
@@ -137,6 +138,7 @@ impl Compiler {
             pending_definitions: vec![],
             lexeme_cache: HashMap::new(),
             any_cache: None,
+            string_cache: None,
         }
     }
 
@@ -167,13 +169,15 @@ impl Compiler {
     }
 
     fn gen_json(&mut self, json_schema: &Schema) -> Result<NodeRef> {
+        if let Some(ast) = self.regex_compile(json_schema)? {
+            let id = self.builder.regex.add_ast(ast)?;
+            return Ok(self.builder.lexeme(RegexSpec::RegexId(id)));
+        }
         match json_schema {
-            Schema::Any => self.gen_json_any(),
+            Schema::Any => Ok(self.gen_json_any()),
             Schema::Unsatisfiable { reason } => Err(anyhow!(UnsatisfiableSchemaError {
                 message: reason.to_string(),
             })),
-            Schema::Null => Ok(self.builder.string("null")),
-            Schema::Boolean => Ok(self.lexeme(r"true|false", false)),
             Schema::Number {
                 minimum,
                 maximum,
@@ -211,11 +215,7 @@ impl Compiler {
                     self.json_number(minimum, maximum, exclusive_minimum, exclusive_maximum)
                 }
             }
-            Schema::String {
-                min_length,
-                max_length,
-                regex,
-            } => self.gen_json_string(*min_length, *max_length, regex.clone()),
+
             Schema::Array {
                 min_items,
                 max_items,
@@ -236,12 +236,13 @@ impl Compiler {
                 additional_properties.as_deref().unwrap_or(&Schema::Any),
                 required.iter().cloned().collect(),
             ),
-            Schema::LiteralBool { value } => {
-                Ok(self.builder.string(if *value { "true" } else { "false" }))
-            }
+
             Schema::AnyOf { options } => self.process_any_of(options.clone()),
             Schema::OneOf { options } => self.process_one_of(options.clone()),
             Schema::Ref { uri, .. } => self.get_definition(uri),
+            Schema::Null | Schema::Boolean | Schema::LiteralBool { .. } | Schema::String { .. } => {
+                unreachable!("should be handled in const_compile()")
+            }
         }
     }
 
@@ -253,37 +254,42 @@ impl Compiler {
         }
     }
 
-    fn process_any_of(&mut self, mut options: Vec<Schema>) -> Result<NodeRef> {
-        let mut consts = vec![];
-        options.retain(|schema| match schema.const_compile() {
-            Some(c) => {
-                let id = self.builder.regex.add_node(c);
-                consts.push(id);
-                false
-            }
-            None => true,
-        });
+    fn process_option(
+        &mut self,
+        option: Schema,
+        regex_nodes: &mut Vec<RegexAst>,
+        cfg_nodes: &mut Vec<NodeRef>,
+    ) -> Result<()> {
+        match self.regex_compile(&option)? {
+            Some(c) => regex_nodes.push(c),
+            None => cfg_nodes.push(self.gen_json(&option)?),
+        }
+        Ok(())
+    }
 
-        let mut nodes = vec![];
+    fn process_any_of(&mut self, options: Vec<Schema>) -> Result<NodeRef> {
+        let mut regex_nodes = vec![];
+        let mut cfg_nodes = vec![];
         let mut errors = vec![];
+
         for option in options.into_iter() {
-            match self.gen_json(&option) {
-                Ok(node) => nodes.push(node),
-                Err(err) => match err.downcast_ref::<UnsatisfiableSchemaError>() {
+            if let Err(err) = self.process_option(option, &mut regex_nodes, &mut cfg_nodes) {
+                match err.downcast_ref::<UnsatisfiableSchemaError>() {
                     Some(_) => errors.push(err),
                     None => return Err(err),
-                },
+                }
             }
         }
 
-        if !consts.is_empty() {
-            let rx = self.builder.regex.or(consts);
-            let lex = self.builder.lexeme(RegexSpec::RegexId(rx), false);
-            nodes.push(lex);
+        if !regex_nodes.is_empty() {
+            let node = RegexAst::Or(regex_nodes);
+            let rx = self.builder.regex.add_ast(node)?;
+            let lex = self.builder.lexeme(RegexSpec::RegexId(rx));
+            cfg_nodes.push(lex);
         }
 
-        if !nodes.is_empty() {
-            Ok(self.builder.select(&nodes))
+        if !cfg_nodes.is_empty() {
+            Ok(self.builder.select(&cfg_nodes))
         } else if let Some(e) = errors.pop() {
             Err(anyhow!(UnsatisfiableSchemaError {
                 message: format!("All options in anyOf are unsatisfiable",),
@@ -296,11 +302,11 @@ impl Compiler {
         }
     }
 
-    fn lexeme(&mut self, rx: &str, json_quoted: bool) -> NodeRef {
-        let key = (rx.to_string(), json_quoted);
+    fn lexeme(&mut self, rx: &str) -> NodeRef {
+        let key = rx.to_string();
         self.lexeme_cache
             .entry(key)
-            .or_insert_with(|| self.builder.lexeme(mk_regex(rx), json_quoted))
+            .or_insert_with(|| self.builder.lexeme(mk_regex(rx)))
             .clone()
     }
 
@@ -343,7 +349,7 @@ impl Compiler {
                 minimum, maximum
             )
         })?;
-        Ok(self.lexeme(&rx, false))
+        Ok(self.lexeme(&rx))
     }
 
     fn json_number(
@@ -362,11 +368,15 @@ impl Compiler {
                     minimum, maximum
                 )
             })?;
-        Ok(self.lexeme(&rx, false))
+        Ok(self.lexeme(&rx))
     }
 
     fn json_simple_string(&mut self) -> NodeRef {
-        self.lexeme("(?s:.*)", true)
+        cache!(self.string_cache, {
+            let ast = self.json_quote(RegexAst::Regex("(?s:.*)".to_string()));
+            let id = self.builder.regex.add_ast(ast).unwrap();
+            self.builder.lexeme(RegexSpec::RegexId(id))
+        })
     }
 
     fn get_definition(&mut self, reference: &str) -> Result<NodeRef> {
@@ -379,22 +389,23 @@ impl Compiler {
         Ok(r)
     }
 
-    fn gen_json_any(&mut self) -> Result<NodeRef> {
+    fn gen_json_any(&mut self) -> NodeRef {
         cache!(self.any_cache, {
             let json_any = self.builder.placeholder();
             self.any_cache = Some(json_any); // avoid infinite recursion
             let options = vec![
                 self.builder.string("null"),
-                self.builder.lexeme(mk_regex(r"true|false"), false),
-                self.json_number(None, None, false, false)?,
+                self.builder.lexeme(mk_regex(r"true|false")),
+                self.json_number(None, None, false, false).unwrap(),
                 self.json_simple_string(),
-                self.gen_json_array(&[], &Schema::Any, 0, None)?,
-                self.gen_json_object(&IndexMap::new(), &Schema::Any, vec![])?,
+                self.gen_json_array(&[], &Schema::Any, 0, None).unwrap(),
+                self.gen_json_object(&IndexMap::new(), &Schema::Any, vec![])
+                    .unwrap(),
             ];
             let inner = self.builder.select(&options);
             self.builder.set_placeholder(json_any, inner);
             json_any
-        });
+        })
     }
 
     fn gen_json_object(
@@ -460,7 +471,7 @@ impl Compiler {
                     let valid = self.builder.regex.regex(format!("\"({})*\"", CHAR_REGEX));
                     let valid_and_not_taken = self.builder.regex.and(vec![valid, not_taken]);
                     let rx = RegexSpec::RegexId(valid_and_not_taken);
-                    self.builder.lexeme(rx, false)
+                    self.builder.lexeme(rx)
                 };
                 let colon = self.builder.string(&self.options.key_separator);
                 let item = self.builder.join(&[name, colon, property]);
@@ -531,12 +542,52 @@ impl Compiler {
         self.builder.join(&[item_comma_star, item])
     }
 
+    fn json_quote(&self, ast: RegexAst) -> RegexAst {
+        RegexAst::JsonQuote(Box::new(ast), JsonQuoteOptions::with_unicode())
+    }
+
+    fn regex_compile(&self, schema: &Schema) -> Result<Option<RegexAst>> {
+        fn literal_regex(rx: &str) -> Option<RegexAst> {
+            Some(RegexAst::Literal(rx.to_string()))
+        }
+
+        let r = match schema {
+            Schema::Null => literal_regex("null"),
+            Schema::Boolean => Some(RegexAst::Regex("true|false".to_string())),
+            Schema::Number {
+                minimum: Some(x),
+                maximum: Some(y),
+                ..
+            } if x == y => Some(RegexAst::Literal(x.to_string())),
+            Schema::String {
+                min_length,
+                max_length,
+                regex,
+            } => {
+                return self
+                    .gen_json_string(*min_length, *max_length, regex.clone())
+                    .map(Some)
+            }
+            Schema::LiteralBool { value } => literal_regex(if *value { "true" } else { "false" }),
+
+            Schema::Any
+            | Schema::Number { .. }
+            | Schema::Unsatisfiable { .. }
+            | Schema::Array { .. }
+            | Schema::Object { .. }
+            | Schema::AnyOf { .. }
+            | Schema::OneOf { .. }
+            | Schema::Ref { .. } => None,
+        };
+        Ok(r)
+    }
+
     fn gen_json_string(
-        &mut self,
+        &self,
         min_length: u64,
         max_length: Option<u64>,
         regex: Option<RegexAst>,
-    ) -> Result<NodeRef> {
+    ) -> Result<RegexAst> {
         if let Some(max_length) = max_length {
             if min_length > max_length {
                 return Err(anyhow!(UnsatisfiableSchemaError {
@@ -548,7 +599,7 @@ impl Compiler {
             }
         }
         if min_length == 0 && max_length.is_none() && regex.is_none() {
-            return Ok(self.json_simple_string());
+            return Ok(self.json_quote(RegexAst::Regex("(?s:.*)".to_string())));
         }
         if let Some(mut ast) = regex {
             if min_length != 0 || max_length.is_some() {
@@ -580,18 +631,13 @@ impl Compiler {
                     message: format!("Regex is empty: {}", mk_rx_repr(&ast))
                 }));
             }
-            let id = self.builder.regex.add_ast(ast)?;
-            let node = self.builder.lexeme(RegexSpec::RegexId(id), true);
-            Ok(node)
+            Ok(ast)
         } else {
-            Ok(self.lexeme(
-                &format!(
-                    "(?s:.{{{},{}}})",
-                    min_length,
-                    max_length.map_or("".to_string(), |v| v.to_string())
-                ),
-                true,
-            ))
+            Ok(self.json_quote(RegexAst::Regex(format!(
+                "(?s:.{{{},{}}})",
+                min_length,
+                max_length.map_or("".to_string(), |v| v.to_string())
+            ))))
         }
     }
 

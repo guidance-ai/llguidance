@@ -189,7 +189,7 @@ impl Compiler {
     }
 
     fn lift_regex(&mut self, rx_id: RegexId) -> Result<NodeRef> {
-        Ok(self.builder.lexeme(RegexSpec::RegexId(rx_id), false))
+        Ok(self.builder.lexeme(RegexSpec::RegexId(rx_id)))
     }
 
     fn get_grammar_id(g: &str) -> GrammarId {

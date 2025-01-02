@@ -74,6 +74,17 @@ impl RegexBuilder {
             RegexAst::ByteLiteral(bytes) => self.add_node(RegexNode::ByteLiteral(bytes)),
             RegexAst::Byte(b) => self.add_node(RegexNode::Byte(b)),
             RegexAst::ByteSet(bs) => self.add_node(RegexNode::ByteSet(bs)),
+            RegexAst::JsonQuote(ast, opts) => {
+                let regex = self.add_ast(*ast)?;
+                self.add_node(RegexNode::JsonQuote {
+                    regex,
+                    raw_mode: opts.raw_mode,
+                    allowed_escapes: Some(opts.allowed_escapes.clone()),
+                })
+            }
+            RegexAst::MultipleOf(_) => {
+                bail!("MultipleOf not supported")
+            }
             RegexAst::ExprRef(_) => {
                 bail!("ExprRef not supported")
             }
@@ -283,12 +294,12 @@ impl GrammarBuilder {
         self.add_node(Node::Gen { data, props })
     }
 
-    pub fn lexeme(&mut self, rx: RegexSpec, json_quoted: bool) -> NodeRef {
+    pub fn lexeme(&mut self, rx: RegexSpec) -> NodeRef {
         self.add_node(Node::Lexeme {
             rx,
             contextual: None,
             temperature: None,
-            json_string: Some(json_quoted),
+            json_string: None,
             json_raw: None,
             json_allowed_escapes: None,
             props: NodeProps::default(),

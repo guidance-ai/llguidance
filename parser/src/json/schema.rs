@@ -8,8 +8,6 @@ use std::{cell::RefCell, mem, rc::Rc};
 
 use super::formats::lookup_format;
 
-use crate::api::RegexNode;
-
 const DEFAULT_ROOT_URI: &str = "json-schema:///";
 const DEFAULT_DRAFT: Draft = Draft::Draft202012;
 const TYPES: [&str; 6] = ["null", "boolean", "number", "string", "array", "object"];
@@ -126,43 +124,6 @@ impl Schema {
         Schema::Unsatisfiable {
             reason: "schema is false".to_string(),
         }
-    }
-
-    pub fn const_compile(&self) -> Option<RegexNode> {
-        let str = match self {
-            Schema::Null => "null",
-            Schema::Boolean => return Some(RegexNode::Regex("true|false".to_string())),
-            Schema::Number {
-                minimum: Some(x),
-                maximum: Some(y),
-                ..
-            } if x == y => return Some(RegexNode::Literal(x.to_string())),
-            Schema::String {
-                // TODO: check that min/max don't break the literal and all the other constraints
-                // or just convert this whole node to a regex
-                min_length: 0,
-                max_length: None,
-                regex: Some(RegexAst::Literal(s)),
-            } => &regex_syntax::escape(&serde_json::to_string(s).unwrap()),
-            Schema::LiteralBool { value } => {
-                if *value {
-                    "true"
-                } else {
-                    "false"
-                }
-            }
-
-            Schema::Any
-            | Schema::Number { .. }
-            | Schema::String { .. }
-            | Schema::Unsatisfiable { .. }
-            | Schema::Array { .. }
-            | Schema::Object { .. }
-            | Schema::AnyOf { .. }
-            | Schema::OneOf { .. }
-            | Schema::Ref { .. } => return None,
-        };
-        Some(RegexNode::Literal(str.to_string()))
     }
 
     /// Shallowly normalize the schema, removing any unnecessary nesting or empty options.
