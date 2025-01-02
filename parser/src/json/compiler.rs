@@ -316,7 +316,6 @@ impl Compiler {
         exclusive_maximum: bool,
     ) -> Result<RegexAst> {
         check_number_bounds(minimum, maximum, exclusive_minimum, exclusive_maximum)?;
-        // TODO: handle errors in rx_float_range; currently it just panics
         let rx = rx_float_range(minimum, maximum, !exclusive_minimum, !exclusive_maximum)
             .with_context(|| {
                 format!(
