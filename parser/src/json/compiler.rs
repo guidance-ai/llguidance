@@ -197,8 +197,8 @@ impl Compiler {
                 required.iter().cloned().collect(),
             ),
 
-            Schema::AnyOf { options } => self.process_any_of(options.clone()),
-            Schema::OneOf { options } => self.process_one_of(options.clone()),
+            Schema::AnyOf { options } => self.process_any_of(options),
+            Schema::OneOf { options } => self.process_one_of(options),
             Schema::Ref { uri, .. } => self.get_definition(uri),
 
             Schema::Null
@@ -211,7 +211,7 @@ impl Compiler {
         }
     }
 
-    fn process_one_of(&mut self, options: Vec<Schema>) -> Result<NodeRef> {
+    fn process_one_of(&mut self, options: &Vec<Schema>) -> Result<NodeRef> {
         if self.options.coerce_one_of {
             self.process_any_of(options)
         } else {
@@ -221,23 +221,23 @@ impl Compiler {
 
     fn process_option(
         &mut self,
-        option: Schema,
+        option: &Schema,
         regex_nodes: &mut Vec<RegexAst>,
         cfg_nodes: &mut Vec<NodeRef>,
     ) -> Result<()> {
-        match self.regex_compile(&option)? {
+        match self.regex_compile(option)? {
             Some(c) => regex_nodes.push(c),
-            None => cfg_nodes.push(self.gen_json(&option)?),
+            None => cfg_nodes.push(self.gen_json(option)?),
         }
         Ok(())
     }
 
-    fn process_any_of(&mut self, options: Vec<Schema>) -> Result<NodeRef> {
+    fn process_any_of(&mut self, options: &Vec<Schema>) -> Result<NodeRef> {
         let mut regex_nodes = vec![];
         let mut cfg_nodes = vec![];
         let mut errors = vec![];
 
-        for option in options.into_iter() {
+        for option in options.iter() {
             if let Err(err) = self.process_option(option, &mut regex_nodes, &mut cfg_nodes) {
                 match err.downcast_ref::<UnsatisfiableSchemaError>() {
                     Some(_) => errors.push(err),
