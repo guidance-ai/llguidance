@@ -543,7 +543,13 @@ impl Compiler {
     }
 
     fn json_quote(&self, ast: RegexAst) -> RegexAst {
-        RegexAst::JsonQuote(Box::new(ast), JsonQuoteOptions::with_unicode())
+        RegexAst::JsonQuote(
+            Box::new(ast),
+            JsonQuoteOptions {
+                allowed_escapes: "nrbtf\\\"u".to_string(),
+                raw_mode: false,
+            },
+        )
     }
 
     fn regex_compile(&self, schema: &Schema) -> Result<Option<RegexAst>> {
@@ -612,6 +618,7 @@ impl Compiler {
                     )),
                 ]);
             }
+            ast = self.json_quote(ast);
             // Check if the regex is empty
             let mut builder = derivre::RegexBuilder::new();
             let expr = builder.mk(&ast)?;
