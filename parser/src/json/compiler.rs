@@ -82,7 +82,6 @@ struct Compiler {
 
     any_cache: Option<NodeRef>,
     string_cache: Option<NodeRef>,
-    lexeme_cache: HashMap<String, NodeRef>,
 }
 
 macro_rules! cache {
@@ -136,7 +135,6 @@ impl Compiler {
             options,
             definitions: HashMap::new(),
             pending_definitions: vec![],
-            lexeme_cache: HashMap::new(),
             any_cache: None,
             string_cache: None,
         }
@@ -170,51 +168,13 @@ impl Compiler {
 
     fn gen_json(&mut self, json_schema: &Schema) -> Result<NodeRef> {
         if let Some(ast) = self.regex_compile(json_schema)? {
-            let id = self.builder.regex.add_ast(ast)?;
-            return Ok(self.builder.lexeme(RegexSpec::RegexId(id)));
+            return self.ast_lexeme(ast);
         }
         match json_schema {
             Schema::Any => Ok(self.gen_json_any()),
             Schema::Unsatisfiable { reason } => Err(anyhow!(UnsatisfiableSchemaError {
                 message: reason.to_string(),
             })),
-            Schema::Number {
-                minimum,
-                maximum,
-                exclusive_minimum,
-                exclusive_maximum,
-                integer,
-            } => {
-                let (minimum, exclusive_minimum) = match (minimum, exclusive_minimum) {
-                    (Some(min), Some(xmin)) => {
-                        if xmin >= min {
-                            (Some(*xmin), true)
-                        } else {
-                            (Some(*min), false)
-                        }
-                    }
-                    (Some(min), None) => (Some(*min), false),
-                    (None, Some(xmin)) => (Some(*xmin), true),
-                    (None, None) => (None, false),
-                };
-                let (maximum, exclusive_maximum) = match (maximum, exclusive_maximum) {
-                    (Some(max), Some(xmax)) => {
-                        if xmax <= max {
-                            (Some(*xmax), true)
-                        } else {
-                            (Some(*max), false)
-                        }
-                    }
-                    (Some(max), None) => (Some(*max), false),
-                    (None, Some(xmax)) => (Some(*xmax), true),
-                    (None, None) => (None, false),
-                };
-                if *integer {
-                    self.json_int(minimum, maximum, exclusive_minimum, exclusive_maximum)
-                } else {
-                    self.json_number(minimum, maximum, exclusive_minimum, exclusive_maximum)
-                }
-            }
 
             Schema::Array {
                 min_items,
@@ -240,8 +200,13 @@ impl Compiler {
             Schema::AnyOf { options } => self.process_any_of(options.clone()),
             Schema::OneOf { options } => self.process_one_of(options.clone()),
             Schema::Ref { uri, .. } => self.get_definition(uri),
-            Schema::Null | Schema::Boolean | Schema::LiteralBool { .. } | Schema::String { .. } => {
-                unreachable!("should be handled in const_compile()")
+
+            Schema::Null
+            | Schema::Boolean
+            | Schema::LiteralBool { .. }
+            | Schema::String { .. }
+            | Schema::Number { .. } => {
+                unreachable!("should be handled in regex_compile()")
             }
         }
     }
@@ -283,8 +248,7 @@ impl Compiler {
 
         if !regex_nodes.is_empty() {
             let node = RegexAst::Or(regex_nodes);
-            let rx = self.builder.regex.add_ast(node)?;
-            let lex = self.builder.lexeme(RegexSpec::RegexId(rx));
+            let lex = self.ast_lexeme(node)?;
             cfg_nodes.push(lex);
         }
 
@@ -302,21 +266,13 @@ impl Compiler {
         }
     }
 
-    fn lexeme(&mut self, rx: &str) -> NodeRef {
-        let key = rx.to_string();
-        self.lexeme_cache
-            .entry(key)
-            .or_insert_with(|| self.builder.lexeme(mk_regex(rx)))
-            .clone()
-    }
-
     fn json_int(
         &mut self,
         minimum: Option<f64>,
         maximum: Option<f64>,
         exclusive_minimum: bool,
         exclusive_maximum: bool,
-    ) -> Result<NodeRef> {
+    ) -> Result<RegexAst> {
         check_number_bounds(minimum, maximum, exclusive_minimum, exclusive_maximum)?;
         let minimum = match (minimum, exclusive_minimum) {
             (Some(min_val), true) => {
@@ -349,7 +305,7 @@ impl Compiler {
                 minimum, maximum
             )
         })?;
-        Ok(self.lexeme(&rx))
+        Ok(RegexAst::Regex(rx))
     }
 
     fn json_number(
@@ -358,7 +314,7 @@ impl Compiler {
         maximum: Option<f64>,
         exclusive_minimum: bool,
         exclusive_maximum: bool,
-    ) -> Result<NodeRef> {
+    ) -> Result<RegexAst> {
         check_number_bounds(minimum, maximum, exclusive_minimum, exclusive_maximum)?;
         // TODO: handle errors in rx_float_range; currently it just panics
         let rx = rx_float_range(minimum, maximum, !exclusive_minimum, !exclusive_maximum)
@@ -368,14 +324,18 @@ impl Compiler {
                     minimum, maximum
                 )
             })?;
-        Ok(self.lexeme(&rx))
+        Ok(RegexAst::Regex(rx))
+    }
+
+    fn ast_lexeme(&mut self, ast: RegexAst) -> Result<NodeRef> {
+        let id = self.builder.regex.add_ast(ast)?;
+        Ok(self.builder.lexeme(RegexSpec::RegexId(id)))
     }
 
     fn json_simple_string(&mut self) -> NodeRef {
         cache!(self.string_cache, {
             let ast = self.json_quote(RegexAst::Regex("(?s:.*)".to_string()));
-            let id = self.builder.regex.add_ast(ast).unwrap();
-            self.builder.lexeme(RegexSpec::RegexId(id))
+            self.ast_lexeme(ast).unwrap()
         })
     }
 
@@ -393,10 +353,11 @@ impl Compiler {
         cache!(self.any_cache, {
             let json_any = self.builder.placeholder();
             self.any_cache = Some(json_any); // avoid infinite recursion
+            let num = self.json_number(None, None, false, false).unwrap();
             let options = vec![
                 self.builder.string("null"),
                 self.builder.lexeme(mk_regex(r"true|false")),
-                self.json_number(None, None, false, false).unwrap(),
+                self.ast_lexeme(num).unwrap(),
                 self.json_simple_string(),
                 self.gen_json_array(&[], &Schema::Any, 0, None).unwrap(),
                 self.gen_json_object(&IndexMap::new(), &Schema::Any, vec![])
@@ -552,7 +513,7 @@ impl Compiler {
         )
     }
 
-    fn regex_compile(&self, schema: &Schema) -> Result<Option<RegexAst>> {
+    fn regex_compile(&mut self, schema: &Schema) -> Result<Option<RegexAst>> {
         fn literal_regex(rx: &str) -> Option<RegexAst> {
             Some(RegexAst::Literal(rx.to_string()))
         }
@@ -560,11 +521,53 @@ impl Compiler {
         let r = match schema {
             Schema::Null => literal_regex("null"),
             Schema::Boolean => Some(RegexAst::Regex("true|false".to_string())),
+            Schema::LiteralBool { value } => literal_regex(if *value { "true" } else { "false" }),
+
+            // TODO: is this special case needed?
             Schema::Number {
                 minimum: Some(x),
                 maximum: Some(y),
                 ..
             } if x == y => Some(RegexAst::Literal(x.to_string())),
+
+            Schema::Number {
+                minimum,
+                maximum,
+                exclusive_minimum,
+                exclusive_maximum,
+                integer,
+            } => {
+                let (minimum, exclusive_minimum) = match (minimum, exclusive_minimum) {
+                    (Some(min), Some(xmin)) => {
+                        if xmin >= min {
+                            (Some(*xmin), true)
+                        } else {
+                            (Some(*min), false)
+                        }
+                    }
+                    (Some(min), None) => (Some(*min), false),
+                    (None, Some(xmin)) => (Some(*xmin), true),
+                    (None, None) => (None, false),
+                };
+                let (maximum, exclusive_maximum) = match (maximum, exclusive_maximum) {
+                    (Some(max), Some(xmax)) => {
+                        if xmax <= max {
+                            (Some(*xmax), true)
+                        } else {
+                            (Some(*max), false)
+                        }
+                    }
+                    (Some(max), None) => (Some(*max), false),
+                    (None, Some(xmax)) => (Some(*xmax), true),
+                    (None, None) => (None, false),
+                };
+                Some(if *integer {
+                    self.json_int(minimum, maximum, exclusive_minimum, exclusive_maximum)?
+                } else {
+                    self.json_number(minimum, maximum, exclusive_minimum, exclusive_maximum)?
+                })
+            }
+
             Schema::String {
                 min_length,
                 max_length,
@@ -574,10 +577,8 @@ impl Compiler {
                     .gen_json_string(*min_length, *max_length, regex.clone())
                     .map(Some)
             }
-            Schema::LiteralBool { value } => literal_regex(if *value { "true" } else { "false" }),
 
             Schema::Any
-            | Schema::Number { .. }
             | Schema::Unsatisfiable { .. }
             | Schema::Array { .. }
             | Schema::Object { .. }
