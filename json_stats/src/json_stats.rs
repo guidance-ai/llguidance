@@ -713,6 +713,7 @@ fn main() {
     let mut llg_totals = json!({});
     let mut all_masks_us = vec![];
     let mut all_ttfm_us = vec![];
+    let mut validation_errors = vec![];
 
     for (file, s) in files.iter().zip(results.into_iter()) {
         all_stats.insert(file.clone(), s.clone());
@@ -748,11 +749,13 @@ fn main() {
                     total.llg.num_parser_limits += 1;
                 } else if msg.contains("incorrect accept") {
                     total.llg.num_invalidation_error += 1;
+                    validation_errors.push(format!("{}: POS {}", s.file_name, msg));
                     if log_err {
                         eprintln!("{} Error Invalidation: {}", s.file_name, msg);
                     }
                 } else {
                     total.llg.num_validation_error += 1;
+                    validation_errors.push(format!("{}: NEG {}", s.file_name, msg));
                     if log_err {
                         eprintln!("{} Error Validation: {}", s.file_name, msg);
                     }
@@ -837,6 +840,7 @@ fn main() {
     );
     eprintln!("Total time: {}ms", t0.elapsed().as_millis());
 
+    save_text_to_file("tmp/validation_errors.txt", &validation_errors.join("\n"));
     save_text_to_file("tmp/mask_histogram.csv", &histogram_csv);
     save_text_to_file(
         "tmp/llg_masks_us.csv",
