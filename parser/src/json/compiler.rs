@@ -608,6 +608,14 @@ impl Compiler {
             return Ok(self.json_quote(RegexAst::Regex("(?s:.*)".to_string())));
         }
         if let Some(mut ast) = regex {
+            let mut positive = false;
+
+            fn mk_rx_repr(ast: &RegexAst) -> String {
+                let mut rx_repr = String::new();
+                ast.write_to_str(&mut rx_repr, 1_000, None);
+                rx_repr
+            }
+
             if min_length != 0 || max_length.is_some() {
                 ast = RegexAst::And(vec![
                     ast,
@@ -617,27 +625,33 @@ impl Compiler {
                         max_length.map_or("".to_string(), |v| v.to_string())
                     )),
                 ]);
+            } else {
+                positive = always_non_empty(&ast);
+                // eprintln!("positive:{} {}", positive, mk_rx_repr(&ast));
             }
+
             ast = self.json_quote(ast);
-            // Check if the regex is empty
-            let mut builder = derivre::RegexBuilder::new();
-            let expr = builder.mk(&ast)?;
-            fn mk_rx_repr(ast: &RegexAst) -> String {
-                let mut rx_repr = String::new();
-                ast.write_to_str(&mut rx_repr, 1_000, None);
-                rx_repr
+
+            if !positive {
+                // Check if the regex is empty
+                let mut builder = derivre::RegexBuilder::new();
+                let expr = builder.mk(&ast)?;
+                // if regex is not positive, do the more expensive non-emptiness check
+                if !builder.exprset().is_positive(expr) {
+                    let mut regex = builder.to_regex_limited(expr, 10_000).map_err(|_| {
+                        anyhow!(
+                            "Unable to determine if regex is empty: {}",
+                            mk_rx_repr(&ast)
+                        )
+                    })?;
+                    if regex.always_empty() {
+                        return Err(anyhow!(UnsatisfiableSchemaError {
+                            message: format!("Regex is empty: {}", mk_rx_repr(&ast))
+                        }));
+                    }
+                }
             }
-            let mut regex = builder.to_regex_limited(expr, 10_000).map_err(|_| {
-                anyhow!(
-                    "Unable to determine if regex is empty: {}",
-                    mk_rx_repr(&ast)
-                )
-            })?;
-            if regex.always_empty() {
-                return Err(anyhow!(UnsatisfiableSchemaError {
-                    message: format!("Regex is empty: {}", mk_rx_repr(&ast))
-                }));
-            }
+
             Ok(ast)
         } else {
             Ok(self.json_quote(RegexAst::Regex(format!(
@@ -768,5 +782,28 @@ impl Compiler {
 
         grammars.push(self.builder.string("]"));
         Ok(self.builder.join(&grammars))
+    }
+}
+
+fn always_non_empty(ast: &RegexAst) -> bool {
+    match ast {
+        RegexAst::Or(asts) => asts.iter().any(always_non_empty),
+        RegexAst::Concat(asts) => asts.iter().all(always_non_empty),
+        RegexAst::Repeat(ast, _, _) | RegexAst::JsonQuote(ast, _) | RegexAst::LookAhead(ast) => {
+            always_non_empty(ast)
+        }
+
+        RegexAst::EmptyString
+        | RegexAst::Literal(_)
+        | RegexAst::ByteLiteral(_)
+        | RegexAst::Byte(_)
+        | RegexAst::ByteSet(_)
+        | RegexAst::MultipleOf(_) => true,
+
+        RegexAst::And(_)
+        | RegexAst::Not(_)
+        | RegexAst::NoMatch
+        | RegexAst::Regex(_)
+        | RegexAst::ExprRef(_) => false,
     }
 }
