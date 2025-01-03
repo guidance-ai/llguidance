@@ -144,6 +144,32 @@ fn test_ll_json() {
 }
 
 #[test]
+fn test_ll_enum_json() {
+    // check for proper quoting of the enum value
+    check_lark_json(
+        r#"start: "JSON" @sub
+    "#,
+        json!({
+            "type": "object",
+            "properties": {
+                "a": {
+                    // the list of values is so weird so that no tokens are forced
+                    "enum": [
+                        "https://example.com",
+                        "https://example.co.pl",
+                        "https://exampleco.pl",
+                        "https://foo.com.pl",
+                        "https1://example.org",
+                        "ftp://example.org"
+                    ]
+                }
+            }
+        }),
+        &["JSON", "{\"‧a‧\":‧ ‧\"‧https‧://‧example‧.‧com‧\"‧}"],
+    );
+}
+
+#[test]
 fn test_ll_subgrammar_max_tokens() {
     // TODO test this - should return an error from prompt processing
     // check_lark_grammar(
