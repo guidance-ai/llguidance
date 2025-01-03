@@ -112,6 +112,11 @@ def main():
         f.write(log_fraction_plot(ttfm_us))
     with open("tmp/xgr_masks_us.csv", "w") as f:
         f.write(log_fraction_plot(all_masks_us))
+    
+    all_masks_us.sort()
+    for p in [25, 50, 75, 90, 95, 99, 99.9, 99.99]:
+        print(f"{'p' + str(p):7}, {all_masks_us[int(len(all_masks_us) * p / 100)]}")
+
     num_masks = sum(histogram_num)
     h_csv = "above us,frac\n"
     for i in range(10)[1:]:

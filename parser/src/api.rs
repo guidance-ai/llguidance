@@ -239,6 +239,24 @@ pub enum RegexNode {
     /// Matches any byte in the set, expressed as bitset.
     /// Can lead to invalid utf8 if the set is not a subset of 0..127
     ByteSet(Vec<u32>),
+    /// Quote the regex as a JSON string.
+    JsonQuote {
+        regex: RegexId,
+
+        /// It lists the allowed escape sequences, typically one of:
+        /// "nrbtf\\\"u" - to allow all JSON escapes, including \u00XX for control characters
+        ///     this is the default
+        /// "nrbtf\\\"" - to disallow \u00XX control characters
+        /// "nrt\\\"" - to also disallow unusual escapes (\f and \b)
+        /// "" - to disallow all escapes
+        /// Note that \uXXXX for non-control characters (code points above U+001F) are never allowed,
+        /// as they never have to be quoted in JSON.
+        allowed_escapes: Option<String>,
+
+        /// When set "..." will *not* be added around the regular expression.
+        #[serde(default)]
+        raw_mode: bool,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

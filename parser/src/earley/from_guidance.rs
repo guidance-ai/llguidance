@@ -76,6 +76,17 @@ fn map_rx_nodes(
             RegexNode::Concat(lst) => Ok(RegexAst::Concat(map_rx_refs(rx_refs, lst)?)),
             RegexNode::Or(lst) => Ok(RegexAst::Or(map_rx_refs(rx_refs, lst)?)),
             RegexNode::LookAhead(id) => Ok(RegexAst::LookAhead(Box::new(map_rx_ref(rx_refs, id)?))),
+            RegexNode::JsonQuote {
+                regex,
+                allowed_escapes,
+                raw_mode,
+            } => Ok(RegexAst::JsonQuote(
+                Box::new(map_rx_ref(rx_refs, regex)?),
+                JsonQuoteOptions {
+                    allowed_escapes: allowed_escapes.unwrap_or("nrbtf\\\"u".to_string()),
+                    raw_mode,
+                },
+            )),
         }
     }
 }
