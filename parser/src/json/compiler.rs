@@ -522,13 +522,6 @@ impl Compiler {
             Schema::Boolean => Some(RegexAst::Regex("true|false".to_string())),
             Schema::LiteralBool { value } => literal_regex(if *value { "true" } else { "false" }),
 
-            // TODO: is this special case needed?
-            Schema::Number {
-                minimum: Some(x),
-                maximum: Some(y),
-                ..
-            } if x == y => Some(RegexAst::Literal(x.to_string())),
-
             Schema::Number {
                 minimum,
                 maximum,
