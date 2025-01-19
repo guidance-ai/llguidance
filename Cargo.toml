@@ -6,6 +6,7 @@ members = [
     "json_stats",
     "toktrie",
     "toktrie_hf_tokenizers",
+    "json_test_suite",
 ]
 # just exclude python_ext since it doesn't build without maturin
 default-members = [
