@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Token {
     KwIgnore,
     KwImport,
@@ -22,7 +22,7 @@ pub enum Token {
     KwJson,
     KwLLGuidance,
     Colon,
-    ColonColonEq,
+    GbnfColonColonEq,
     Equals,
     Comma,
     Dot,
@@ -40,12 +40,15 @@ pub enum Token {
     String,
     Regexp,
     Rule,
+    GbnfRule,
     Token,
     Number,
     Newline,
     VBar,
     SpecialToken, // <something>
     GrammarRef,   // @grammar_id or @7
+    // GBNF
+    GbnfCharRange,
     // special
     SKIP,
     EOF,
@@ -82,7 +85,7 @@ impl Token {
     const LITERAL_TOKENS: &'static [(Token, &'static str)] = &[
         (Token::Arrow, "->"),
         (Token::Colon, ":"),
-        (Token::ColonColonEq, "::="),
+        (Token::GbnfColonColonEq, "::="),
         (Token::Comma, ","),
         (Token::Dot, "."),
         (Token::DotDot, ".."),
@@ -106,6 +109,7 @@ impl Token {
     const REGEX_TOKENS: &'static [(Token, &'static str)] = &[
         (Token::Op, r"[+*?]"),
         (Token::Rule, r"!?[_?]?[a-z][_a-z0-9\-]*"),
+        (Token::GbnfRule, r"[_]?[a-z][_A-Za-z0-9\-]*"),
         (Token::Token, r"_?[A-Z][_A-Z0-9\-]*"),
         // use JSON string syntax
         (
@@ -113,6 +117,7 @@ impl Token {
             r#""(\\([\"\\\/bfnrt]|u[a-fA-F0-9]{4})|[^\"\\\x00-\x1F\x7F])*"(i|)"#,
         ),
         (Token::Regexp, r#"/(\\.|[^/\\])+/[imslux]*"#),
+        (Token::GbnfCharRange, r#"\[(\\.|[^\\\[\]])+\]"#),
         (Token::Number, r#"[+-]?[0-9]+(\.[0-9]*)?"#),
         (Token::Newline, r"(\r?\n)+[ \t]*"),
         (Token::SpecialToken, r"<[^<>\s]+>"),
@@ -146,10 +151,23 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
             .unwrap();
         lexeme_idx_to_token.insert(l, *token);
     }
+    let token_to_lexeme_idx = lexeme_idx_to_token
+        .iter()
+        .map(|(idx, token)| (*token, *idx))
+        .collect::<HashMap<_, _>>();
     let mut limits = ParserLimits::default();
     let mut lexer = Lexer::from(&spec, &mut limits, false).unwrap();
-    let all_lexemes = spec.all_lexemes();
-    let state0 = lexer.start_state(&all_lexemes);
+    
+    let mut all_lexemes = spec.all_lexemes();
+    all_lexemes.remove(token_to_lexeme_idx[&Token::GbnfCharRange]);
+    all_lexemes.remove(token_to_lexeme_idx[&Token::GbnfRule]);
+    let mut state0 = lexer.start_state(&all_lexemes);
+    
+    all_lexemes = spec.all_lexemes();
+    all_lexemes.remove(token_to_lexeme_idx[&Token::Rule]);
+    all_lexemes.remove(token_to_lexeme_idx[&Token::LBracket]);
+    let state0_gbnf = lexer.start_state(&all_lexemes);
+    
     let mut line_no = 1;
     let mut column_no = 1;
     let mut curr_lexeme = Lexeme {
@@ -189,13 +207,20 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
             LexerResult::Lexeme(p) => {
                 let transition_byte = if p.byte_next_row { p.byte } else { None };
 
-                let token = lexeme_idx_to_token[&p.idx];
-                curr_lexeme.token = token;
+                let mut token = lexeme_idx_to_token[&p.idx];
                 let mut end_idx = if p.byte_next_row || p.byte.is_none() {
                     idx
                 } else {
                     idx + 1
                 };
+
+                if token == Token::GbnfColonColonEq {
+                    state0 = state0_gbnf;
+                } else if token == Token::GbnfRule {
+                    token = Token::Rule;
+                }
+
+                curr_lexeme.token = token;
 
                 if token == Token::KwJson || token == Token::KwLLGuidance {
                     let (_, n_bytes) = parse_json_prefix(&input_bytes[end_idx..])?;
@@ -223,7 +248,7 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
                     lexemes.push(curr_lexeme.clone());
                 }
 
-                state = lexer.start_state(&all_lexemes);
+                state = state0;
                 state = lexer.transition_start_state(state, transition_byte);
 
                 curr_lexeme.value.clear();

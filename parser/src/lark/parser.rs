@@ -110,12 +110,12 @@ impl Parser {
     fn expect_colon(&mut self) -> Result<()> {
         if let Some(gbnf) = self.gbnf_mode {
             let exp_token = if gbnf {
-                Token::ColonColonEq
+                Token::GbnfColonColonEq
             } else {
                 Token::Colon
             };
             let nexp_token = if !gbnf {
-                Token::ColonColonEq
+                Token::GbnfColonColonEq
             } else {
                 Token::Colon
             };
@@ -123,8 +123,11 @@ impl Parser {
                 bail!("can't mix '::=' and ':'")
             }
             self.expect_token(exp_token)?;
+            if self.has_token(Token::Newline) {
+                self.advance();
+            }
         } else {
-            if self.has_token(Token::ColonColonEq) {
+            if self.has_token(Token::GbnfColonColonEq) {
                 self.gbnf_mode = Some(true);
                 self.advance();
             } else if self.has_token(Token::Colon) {
@@ -426,6 +429,9 @@ impl Parser {
             let flags = inner[last_slash_idx + 1..].to_string();
             let regex = inner[1..last_slash_idx].to_string();
             Ok(Value::LiteralRegex(regex, flags))
+        } else if let Some(range) = self.match_token_with_value(Token::GbnfCharRange) {
+            let inner = range.value;
+            Ok(Value::LiteralRegex(inner, String::new()))
         } else if let Some(grammar_ref) = self.match_token_with_value(Token::GrammarRef) {
             Ok(Value::GrammarRef(grammar_ref.value))
         } else if let Some(special_token) = self.match_token_with_value(Token::SpecialToken) {
