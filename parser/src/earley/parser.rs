@@ -134,6 +134,7 @@ pub struct ParserMetrics {
     pub rand: XorShift,
     pub message: String,
     pub slicer_leftover_us: usize,
+    pub compressed_mask_size: usize,
 }
 
 impl ParserStats {

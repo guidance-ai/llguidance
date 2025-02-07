@@ -166,6 +166,8 @@ struct LlgResult {
     max_ttfm_us: usize,
     max_mask_us: usize,
     slicer_leftover_us: usize,
+    #[serde(skip_serializing_if = "is_zero")]
+    compressed_mask_size: usize,
 
     one: usize,
 
@@ -529,6 +531,7 @@ impl TestEnv {
 
         let m = parser.parser.metrics_mut();
         stats.slicer_leftover_us += m.slicer_leftover_us;
+        stats.compressed_mask_size += m.compressed_mask_size;
 
         let lx = parser.parser.lexer_stats();
         stats.max_lexer_states = std::cmp::max(stats.max_lexer_states, lx.num_states);
