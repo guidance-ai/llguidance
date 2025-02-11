@@ -2,7 +2,7 @@ use crate::{HashMap, HashSet};
 use anyhow::{anyhow, bail, Result};
 use derivre::RegexAst;
 use indexmap::{IndexMap, IndexSet};
-use referencing::{Draft, Registry, Resolver, Resource, ResourceRef, Retrieve};
+use super::referencing::{Draft, Registry, Resolver, Resource, ResourceRef, Retrieve};
 use serde_json::Value;
 use std::{any::type_name_of_val, cell::RefCell, mem, rc::Rc};
 
@@ -596,7 +596,7 @@ pub fn build_schema(
             Registry::try_from_resources(std::iter::empty::<(String, Resource)>())?;
         empty_registry.try_with_resources_and_retriever(
             vec![(&base_uri, resource)],
-            retriever.unwrap_or(&referencing::DefaultRetriever),
+            retriever.unwrap_or(&super::referencing::DefaultRetriever),
             draft,
         )?
     };

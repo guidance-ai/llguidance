@@ -2,7 +2,7 @@ use crate::HashMap;
 use anyhow::{anyhow, Context, Result};
 use derivre::{JsonQuoteOptions, RegexAst};
 use indexmap::IndexMap;
-use referencing::Retrieve;
+use super::referencing::Retrieve;
 use serde_json::{json, Value};
 
 use super::numeric::{check_number_bounds, rx_float_range, rx_int_range, Decimal};

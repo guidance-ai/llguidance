@@ -1049,12 +1049,12 @@ version = "0.6.24"
 dependencies = [
  "anyhow",
  "derivre",
+ "fluent-uri",
  "indexmap",
  "instant",
  "jsonschema",
  "lazy_static",
  "rayon",
- "referencing",
  "regex",
  "regex-syntax",
  "serde",
