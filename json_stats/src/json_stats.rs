@@ -25,7 +25,7 @@ struct DummyResolver {}
 impl jsonschema::Retrieve for DummyResolver {
     fn retrieve(
         &self,
-        uri: &jsonschema::Uri<&str>,
+        uri: &jsonschema::Uri<String>,
     ) -> std::result::Result<Value, Box<dyn std::error::Error + Send + Sync>> {
         Err(anyhow!("external resolver disabled (url: {})", uri).into())
     }

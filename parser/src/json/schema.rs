@@ -594,10 +594,10 @@ pub fn build_schema(
         // make an empty one and then add the retriever + resource that may depend on said retriever
         let empty_registry =
             Registry::try_from_resources(std::iter::empty::<(String, Resource)>())?;
-        empty_registry.try_with_resource_and_retriever(
-            &base_uri,
-            resource,
+        empty_registry.try_with_resources_and_retriever(
+            vec![(&base_uri, resource)],
             retriever.unwrap_or(&referencing::DefaultRetriever),
+            draft,
         )?
     };
 
@@ -1230,7 +1230,7 @@ mod test_retriever {
     impl Retrieve for TestRetriever {
         fn retrieve(
             &self,
-            uri: &Uri<&str>,
+            uri: &Uri<String>,
         ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
             let key = uri.as_str();
             match self.schemas.get(key) {

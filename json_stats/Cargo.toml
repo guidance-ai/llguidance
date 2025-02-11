@@ -12,7 +12,7 @@ lazy_static = "1.5.0"
 serde_json = { version = "1.0.138", features = ["preserve_order"] }
 serde = { version = "1.0.217", features = ["derive"] }
 rayon = "1.10.0"
-jsonschema = "0.28.3"
+jsonschema = "0.29.0"
 clap = { version = "4.5.28", features = ["derive"] }
 regex = "1.11.1"
 ahash = "0.8.11"
