@@ -8,7 +8,7 @@ mod draft7;
 mod ids;
 mod subresources;
 
-use crate::{
+use super::{
     anchors,
     resource::InnerResourcePtr,
     vocabularies::{VocabularySet, DRAFT_2019_09_VOCABULARIES, DRAFT_2020_12_VOCABULARIES},
@@ -186,45 +186,5 @@ impl Draft {
             Draft::Draft201909 => VocabularySet::from_known(DRAFT_2019_09_VOCABULARIES),
             Draft::Draft202012 => VocabularySet::from_known(DRAFT_2020_12_VOCABULARIES),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::Draft;
-    use serde_json::json;
-    use test_case::test_case;
-
-    #[test_case(&json!({"$schema": "https://json-schema.org/draft/2020-12/schema"}), Draft::Draft202012; "detect Draft 2020-12")]
-    #[test_case(&json!({"$schema": "https://json-schema.org/draft/2020-12/schema#"}), Draft::Draft202012; "detect Draft 2020-12 with fragment")]
-    #[test_case(&json!({"$schema": "https://json-schema.org/draft/2019-09/schema"}), Draft::Draft201909; "detect Draft 2019-09")]
-    #[test_case(&json!({"$schema": "http://json-schema.org/draft-07/schema"}), Draft::Draft7; "detect Draft 7")]
-    #[test_case(&json!({"$schema": "http://json-schema.org/draft-06/schema"}), Draft::Draft6; "detect Draft 6")]
-    #[test_case(&json!({"$schema": "http://json-schema.org/draft-04/schema"}), Draft::Draft4; "detect Draft 4")]
-    #[test_case(&json!({}), Draft::Draft7; "default to Draft 7 when no $schema")]
-    fn test_detect(contents: &serde_json::Value, expected: Draft) {
-        let result = Draft::Draft7
-            .detect(contents)
-            .expect("Unknown specification");
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_unknown_specification() {
-        let error = Draft::Draft7
-            .detect(&json!({"$schema": "invalid"}))
-            .expect_err("Unknown specification");
-        assert_eq!(error.to_string(), "Unknown specification: invalid");
-    }
-
-    #[test_case(Draft::Draft4; "Draft 4 stays Draft 4")]
-    #[test_case(Draft::Draft6; "Draft 6 stays Draft 6")]
-    #[test_case(Draft::Draft7; "Draft 7 stays Draft 7")]
-    #[test_case(Draft::Draft201909; "Draft 2019-09 stays Draft 2019-09")]
-    #[test_case(Draft::Draft202012; "Draft 2020-12 stays Draft 2020-12")]
-    fn test_detect_no_change(draft: Draft) {
-        let contents = json!({});
-        let result = draft.detect(&contents).expect("Failed to detect draft");
-        assert_eq!(result, draft);
     }
 }

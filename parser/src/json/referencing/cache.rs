@@ -7,7 +7,7 @@ use std::{
 use ahash::AHasher;
 use fluent_uri::Uri;
 
-use crate::{hasher::BuildNoHashHasher, uri, Error};
+use super::{hasher::BuildNoHashHasher, uri, Error};
 
 #[derive(Debug, Clone)]
 pub(crate) struct UriCache {

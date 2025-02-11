@@ -6,7 +6,7 @@ use serde_json::Value;
 /// Trait for retrieving resources from external sources.
 ///
 /// Implementors of this trait can be used to fetch resources that are not
-/// initially present in a [`crate::Registry`].
+/// initially present in a [`super::Registry`].
 pub trait Retrieve: Send + Sync {
     /// Attempt to retrieve a resource from the given URI.
     ///

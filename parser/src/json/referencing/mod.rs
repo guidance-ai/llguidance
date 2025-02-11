@@ -20,7 +20,7 @@ pub(crate) use anchors::Anchor;
 pub use error::{Error, UriError};
 pub use fluent_uri::{Iri, IriRef, Uri, UriRef};
 pub use list::List;
-pub use registry::{Registry, RegistryOptions, SPECIFICATIONS};
+pub use registry::{Registry, RegistryOptions, };
 pub use resolver::{Resolved, Resolver};
 pub use resource::{Resource, ResourceRef};
 pub use retriever::{DefaultRetriever, Retrieve};

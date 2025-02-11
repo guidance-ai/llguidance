@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::{resource::InnerResourcePtr, Error, Resolver, Segments};
+use super::super::{resource::InnerResourcePtr, Error, Resolver, Segments};
 
 use super::subresources::{self, SubresourceIteratorInner};
 

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use fluent_uri::Uri;
 use serde_json::Value;
 
-use crate::{list::List, resource::JsonSchemaResource, Draft, Error, Registry, ResourceRef};
+use super::{list::List, resource::JsonSchemaResource, Draft, Error, Registry, ResourceRef};
 
 /// A reference resolver.
 ///

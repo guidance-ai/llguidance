@@ -5,7 +5,7 @@ use fluent_uri::{
 };
 use once_cell::sync::Lazy;
 
-use crate::Error;
+use super::Error;
 pub use fluent_uri::encoding::encoder::Path;
 
 /// Resolves the URI reference against the given base URI and returns the target URI.
@@ -24,7 +24,7 @@ pub fn resolve_against(base: &Uri<&str>, uri: &str) -> Result<Uri<String>, Error
         .normalize())
 }
 
-/// Parses a URI reference from a string into a [`crate::Uri`].
+/// Parses a URI reference from a string into a [`super::Uri`].
 ///
 /// # Errors
 ///
