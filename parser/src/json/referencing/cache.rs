@@ -21,12 +21,6 @@ impl UriCache {
         }
     }
 
-    pub(crate) fn with_capacity(capacity: usize) -> Self {
-        Self {
-            cache: HashMap::with_capacity_and_hasher(capacity, BuildHasherDefault::default()),
-        }
-    }
-
     pub(crate) fn resolve_against(
         &mut self,
         base: &Uri<&str>,
