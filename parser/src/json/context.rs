@@ -1,50 +1,30 @@
-use crate::{HashMap, HashSet};
-use anyhow::{bail, Result};
+use anyhow::Result;
 use referencing::{Registry, Resolver, Resource};
 use serde_json::Value;
 use std::{cell::RefCell, rc::Rc};
 
-use super::{
-    schema::{Schema, SchemaBuilderOptions, IMPLEMENTED, META_AND_ANNOTATIONS},
-    RetrieveWrapper,
-};
+use super::{schema::SchemaBuilderOptions, shared_context::SharedContext, RetrieveWrapper};
 
 const DEFAULT_DRAFT: Draft = Draft::Draft202012;
 const DEFAULT_ROOT_URI: &str = "json-schema:///";
 
 pub use referencing::{Draft, ResourceRef};
 
-struct SharedContext {
-    defs: HashMap<String, Schema>,
-    seen: HashSet<String>,
-    n_compiled: usize,
-}
-
-impl SharedContext {
-    fn new() -> Self {
-        SharedContext {
-            defs: HashMap::default(),
-            seen: HashSet::default(),
-            n_compiled: 0,
-        }
-    }
-}
-
 fn draft_for(value: &Value) -> Draft {
     DEFAULT_DRAFT.detect(value).unwrap_or(DEFAULT_DRAFT)
 }
 
 pub struct PreContext {
-    pub registry: Registry,
-    pub draft: Draft,
+    registry: Registry,
+    draft: Draft,
     pub base_uri: String,
 }
 
 pub struct Context<'a> {
     resolver: Resolver<'a>,
     pub draft: Draft,
-    shared: Rc<RefCell<SharedContext>>,
-    options: SchemaBuilderOptions,
+    pub shared: Rc<RefCell<SharedContext>>,
+    pub options: SchemaBuilderOptions,
 }
 
 impl PreContext {
@@ -120,48 +100,6 @@ impl<'a> Context<'a> {
     pub fn lookup_resource(&'a self, reference: &str) -> Result<ResourceRef<'a>> {
         let resolved = self.resolver.lookup(reference)?;
         Ok(self.as_resource_ref(&resolved.contents()))
-    }
-
-    pub fn insert_ref(&self, uri: &str, schema: Schema) {
-        self.shared
-            .borrow_mut()
-            .defs
-            .insert(uri.to_string(), schema);
-    }
-
-    pub fn get_ref_cloned(&self, uri: &str) -> Option<Schema> {
-        self.shared.borrow().defs.get(uri).cloned()
-    }
-
-    pub fn mark_seen(&self, uri: &str) {
-        self.shared.borrow_mut().seen.insert(uri.to_string());
-    }
-
-    pub fn been_seen(&self, uri: &str) -> bool {
-        self.shared.borrow().seen.contains(uri)
-    }
-
-    pub fn is_valid_keyword(&self, keyword: &str) -> bool {
-        if !self.draft.is_known_keyword(keyword)
-            || IMPLEMENTED.contains(&keyword)
-            || META_AND_ANNOTATIONS.contains(&keyword)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    pub fn increment(&self) -> Result<()> {
-        let mut shared = self.shared.borrow_mut();
-        shared.n_compiled += 1;
-        if shared.n_compiled > self.options.max_size {
-            bail!("schema too large");
-        }
-        Ok(())
-    }
-
-    pub fn take_defs(&self) -> HashMap<String, Schema> {
-        std::mem::take(&mut self.shared.borrow_mut().defs)
     }
 }
 

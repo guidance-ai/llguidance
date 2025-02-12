@@ -1,5 +1,6 @@
 pub mod compiler;
 mod context;
+mod shared_context;
 mod formats;
 mod numeric;
 mod schema;
@@ -29,12 +30,7 @@ impl RetrieveWrapper {
         RetrieveWrapper(retrieve)
     }
 }
-impl std::ops::Deref for RetrieveWrapper {
-    type Target = dyn Retrieve;
-    fn deref(&self) -> &Self::Target {
-        self.0.as_ref()
-    }
-}
+
 impl std::fmt::Debug for RetrieveWrapper {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", type_name_of_val(&self.0))
