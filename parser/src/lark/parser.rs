@@ -137,9 +137,6 @@ impl Parser {
         while !self.has_token(Token::RBracket) {
             let key = self.expect_token(Token::Rule)?.value;
             match key.as_str() {
-                "capture" => {
-                    rule.capture_name = Some(rule.name.clone());
-                }
                 "lazy" => {
                     if rule.stop.is_none() {
                         rule.stop = Some(Value::LiteralString("".to_string(), "".to_string()));
@@ -159,6 +156,11 @@ impl Parser {
                         "temperature" => {
                             let value = self.expect_token(Token::Number)?.value.parse::<f32>()?;
                             rule.temperature = Some(value);
+                        }
+                        "capture_name" => {
+                            let value = self.expect_token(Token::String)?.value;
+                            let inner = serde_json::from_str(&value).map_err(|e| anyhow!("error parsing string: {e}"))?;
+                            rule.capture_name = Some(inner);
                         }
                         _ => bail!("Unknown attribute: {}", key),
                     }
