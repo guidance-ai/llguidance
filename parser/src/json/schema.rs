@@ -2,11 +2,10 @@ use crate::HashMap;
 use anyhow::{anyhow, bail, Result};
 use derivre::RegexAst;
 use indexmap::{IndexMap, IndexSet};
-use referencing::{Draft, ResourceRef, Retrieve};
 use serde_json::Value;
 use std::mem;
 
-use super::context::{Context, PreContext};
+use super::context::{Context, Draft, PreContext, ResourceRef, Retrieve};
 use super::formats::lookup_format;
 use super::numeric::Decimal;
 

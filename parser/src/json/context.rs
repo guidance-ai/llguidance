@@ -1,6 +1,6 @@
 use crate::{HashMap, HashSet};
-use anyhow::{bail, Ok, Result};
-use referencing::{Draft, Registry, Resolver, Resource, ResourceRef, Retrieve};
+use anyhow::{bail, Result};
+use referencing::{Registry, Resolver, Resource};
 use serde_json::Value;
 use std::{any::type_name_of_val, cell::RefCell, rc::Rc};
 
@@ -8,6 +8,8 @@ use super::schema::{Schema, SchemaBuilderOptions, IMPLEMENTED, META_AND_ANNOTATI
 
 const DEFAULT_DRAFT: Draft = Draft::Draft202012;
 const DEFAULT_ROOT_URI: &str = "json-schema:///";
+
+pub use referencing::{Draft, ResourceRef, Retrieve};
 
 struct SharedContext {
     defs: HashMap<String, Schema>,
