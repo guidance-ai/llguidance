@@ -111,6 +111,11 @@ for example: `mygen[stop="\n", max_tokens=10, temperature=0.7]: /.*/`
 
 If `stop` is specified (possibly as `""`) the rule is treated as `gen()` in Guidance
 (the lexeme is lazy); otherwise it is treated as `lexeme()` (greedy).
+You can also use `lazy` in place of `stop=""`.
+
+Additionally `foo[capture]: ...` will generate a capture group named `foo` in the output,
+while `foo[capture="bar"]: ...` will generate a capture group named `bar`.
+The body of the rule can be any expression, not just a token.
 
 ### Extended %regex
 
