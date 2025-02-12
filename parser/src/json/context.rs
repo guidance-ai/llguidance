@@ -9,7 +9,7 @@ use super::schema::{Schema, SchemaBuilderOptions, IMPLEMENTED, META_AND_ANNOTATI
 const DEFAULT_DRAFT: Draft = Draft::Draft202012;
 const DEFAULT_ROOT_URI: &str = "json-schema:///";
 
-pub struct SharedContext {
+struct SharedContext {
     defs: HashMap<String, Schema>,
     seen: HashSet<String>,
     n_compiled: usize,
@@ -25,7 +25,7 @@ impl SharedContext {
     }
 }
 
-pub fn draft_for(value: &Value) -> Draft {
+fn draft_for(value: &Value) -> Draft {
     DEFAULT_DRAFT.detect(value).unwrap_or(DEFAULT_DRAFT)
 }
 
