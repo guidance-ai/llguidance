@@ -138,7 +138,12 @@ impl Parser {
             let key = self.expect_token(Token::Rule)?.value;
             match key.as_str() {
                 "capture" => {
-                    if rule.capture_name.is_none() {
+                    if self.has_token(Token::Equals) {
+                        self.expect_token(Token::Equals)?;
+                        let lexeme = self.expect_token(Token::String)?;
+                        let string = self.parse_simple_string(&lexeme)?;
+                        rule.capture_name = Some(string);
+                    } else if rule.capture_name.is_none() {
                         rule.capture_name = Some(rule.name.clone());
                     }
                 }
@@ -161,11 +166,6 @@ impl Parser {
                         "temperature" => {
                             let value = self.expect_token(Token::Number)?.value.parse::<f32>()?;
                             rule.temperature = Some(value);
-                        }
-                        "capture_name" => {
-                            let lexeme = self.expect_token(Token::String)?;
-                            let string = self.parse_simple_string(&lexeme)?;
-                            rule.capture_name = Some(string);
                         }
                         _ => bail!("Unknown attribute: {}", key),
                     }
