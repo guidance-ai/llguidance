@@ -158,9 +158,9 @@ impl Parser {
                             rule.temperature = Some(value);
                         }
                         "capture_name" => {
-                            let value = self.expect_token(Token::String)?.value;
-                            let inner = serde_json::from_str(&value).map_err(|e| anyhow!("error parsing string: {e}"))?;
-                            rule.capture_name = Some(inner);
+                            let lexeme = self.expect_token(Token::String)?;
+                            let string = self.parse_simple_string(&lexeme)?;
+                            rule.capture_name = Some(string);
                         }
                         _ => bail!("Unknown attribute: {}", key),
                     }
