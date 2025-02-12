@@ -4,6 +4,8 @@ mod formats;
 mod numeric;
 mod schema;
 
+use std::{any::type_name_of_val, sync::Arc};
+
 use serde_json::Value;
 pub fn json_merge(a: &mut Value, b: &Value) {
     match (a, b) {
@@ -13,5 +15,28 @@ pub fn json_merge(a: &mut Value, b: &Value) {
             }
         }
         (a, b) => *a = b.clone(),
+    }
+}
+
+pub trait Retrieve: Send + Sync {
+    fn retrieve(&self, uri: &str) -> Result<Value, Box<dyn std::error::Error + Send + Sync>>;
+}
+
+#[derive(Clone)]
+pub struct RetrieveWrapper(pub Arc<dyn Retrieve>);
+impl RetrieveWrapper {
+    pub fn new(retrieve: Arc<dyn Retrieve>) -> Self {
+        RetrieveWrapper(retrieve)
+    }
+}
+impl std::ops::Deref for RetrieveWrapper {
+    type Target = dyn Retrieve;
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+impl std::fmt::Debug for RetrieveWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", type_name_of_val(&self.0))
     }
 }

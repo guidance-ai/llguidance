@@ -5,8 +5,8 @@ use indexmap::IndexMap;
 use serde_json::{json, Value};
 
 use super::numeric::{check_number_bounds, rx_float_range, rx_int_range, Decimal};
-use super::schema::{build_schema, RetrieveWrapper, Schema};
-use super::context::Retrieve;
+use super::schema::{build_schema, Schema};
+use super::RetrieveWrapper;
 
 use crate::{
     api::{GrammarWithLexer, RegexSpec, TopLevelGrammar},
@@ -80,14 +80,14 @@ impl JsonCompileOptions {
         key_separator: String,
         whitespace_flexible: bool,
         coerce_one_of: bool,
-        retriever: Option<std::rc::Rc<dyn Retrieve>>,
+        retriever: Option<RetrieveWrapper>,
     ) -> Self {
         Self {
             item_separator,
             key_separator,
             whitespace_flexible,
             coerce_one_of,
-            retriever: retriever.map(RetrieveWrapper::new),
+            retriever,
         }
     }
 
@@ -137,7 +137,7 @@ impl Compiler {
         });
 
         let (compiled_schema, definitions) =
-            build_schema(schema, self.options.retriever.as_deref())?;
+            build_schema(schema, self.options.retriever.clone())?;
 
         let root = self.gen_json(&compiled_schema)?;
         self.builder.set_start_node(root);

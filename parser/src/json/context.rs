@@ -2,14 +2,17 @@ use crate::{HashMap, HashSet};
 use anyhow::{bail, Result};
 use referencing::{Registry, Resolver, Resource};
 use serde_json::Value;
-use std::{any::type_name_of_val, cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
-use super::schema::{Schema, SchemaBuilderOptions, IMPLEMENTED, META_AND_ANNOTATIONS};
+use super::{
+    schema::{Schema, SchemaBuilderOptions, IMPLEMENTED, META_AND_ANNOTATIONS},
+    RetrieveWrapper,
+};
 
 const DEFAULT_DRAFT: Draft = Draft::Draft202012;
 const DEFAULT_ROOT_URI: &str = "json-schema:///";
 
-pub use referencing::{Draft, ResourceRef, Retrieve};
+pub use referencing::{Draft, ResourceRef};
 
 struct SharedContext {
     defs: HashMap<String, Schema>,
@@ -45,10 +48,16 @@ pub struct Context<'a> {
 }
 
 impl PreContext {
-    pub fn new(contents: Value, retriever: Option<&dyn Retrieve>) -> Result<Self> {
+    pub fn new(contents: Value, retriever: Option<RetrieveWrapper>) -> Result<Self> {
         let draft = draft_for(&contents);
         let resource = draft.create_resource(contents);
         let base_uri = resource.id().unwrap_or(DEFAULT_ROOT_URI).to_string();
+
+        let retriever: &dyn referencing::Retrieve = if let Some(retriever) = retriever.as_ref() {
+            retriever
+        } else {
+            &referencing::DefaultRetriever
+        };
 
         let registry = {
             // Weirdly no apparent way to instantiate a new registry with a retriever, so we need to
@@ -57,7 +66,7 @@ impl PreContext {
                 Registry::try_from_resources(std::iter::empty::<(String, Resource)>())?;
             empty_registry.try_with_resources_and_retriever(
                 vec![(&base_uri, resource)],
-                retriever.unwrap_or(&referencing::DefaultRetriever),
+                retriever,
                 draft,
             )?
         };
@@ -156,21 +165,12 @@ impl<'a> Context<'a> {
     }
 }
 
-#[derive(Clone)]
-pub struct RetrieveWrapper(pub Rc<dyn Retrieve>);
-impl RetrieveWrapper {
-    pub fn new(retrieve: Rc<dyn Retrieve>) -> Self {
-        RetrieveWrapper(retrieve)
-    }
-}
-impl std::ops::Deref for RetrieveWrapper {
-    type Target = dyn Retrieve;
-    fn deref(&self) -> &Self::Target {
-        self.0.as_ref()
-    }
-}
-impl std::fmt::Debug for RetrieveWrapper {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", type_name_of_val(&self.0))
+impl referencing::Retrieve for RetrieveWrapper {
+    fn retrieve(
+        &self,
+        uri: &referencing::Uri<String>,
+    ) -> std::result::Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+        let value = self.0.retrieve(uri.as_str())?;
+        Ok(value)
     }
 }

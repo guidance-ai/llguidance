@@ -5,11 +5,10 @@ use indexmap::{IndexMap, IndexSet};
 use serde_json::Value;
 use std::mem;
 
-use super::context::{Context, Draft, PreContext, ResourceRef, Retrieve};
+use super::context::{Context, Draft, PreContext, ResourceRef};
 use super::formats::lookup_format;
 use super::numeric::Decimal;
-
-pub use super::context::RetrieveWrapper;
+use super::RetrieveWrapper;
 
 const TYPES: [&str; 6] = ["null", "boolean", "number", "string", "array", "object"];
 
@@ -459,7 +458,7 @@ impl Default for SchemaBuilderOptions {
 
 pub fn build_schema(
     contents: Value,
-    retriever: Option<&dyn Retrieve>,
+    retriever: Option<RetrieveWrapper>,
 ) -> Result<(Schema, HashMap<String, Schema>)> {
     if let Some(b) = contents.as_bool() {
         if b {
@@ -1072,10 +1071,11 @@ fn opt_min<T: PartialOrd>(a: Option<T>, b: Option<T>) -> Option<T> {
 
 #[cfg(test)]
 mod test_retriever {
+    use crate::json::{Retrieve, RetrieveWrapper};
+
     use super::{build_schema, Schema};
-    use referencing::{Retrieve, Uri};
     use serde_json::{json, Value};
-    use std::fmt;
+    use std::{fmt, sync::Arc};
 
     #[derive(Debug, Clone)]
     struct TestRetrieverError(String);
@@ -1090,11 +1090,8 @@ mod test_retriever {
         schemas: std::collections::HashMap<String, serde_json::Value>,
     }
     impl Retrieve for TestRetriever {
-        fn retrieve(
-            &self,
-            uri: &Uri<String>,
-        ) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-            let key = uri.as_str();
+        fn retrieve(&self, uri: &str) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+            let key = uri;
             match self.schemas.get(key) {
                 Some(schema) => Ok(schema.clone()),
                 None => Err(Box::new(TestRetrieverError(key.to_string()))),
@@ -1119,7 +1116,8 @@ mod test_retriever {
             .into_iter()
             .collect(),
         };
-        let (schema, defs) = build_schema(schema, Some(&retriever)).unwrap();
+        let wrapper = RetrieveWrapper::new(Arc::new(retriever));
+        let (schema, defs) = build_schema(schema, Some(wrapper)).unwrap();
         match schema {
             Schema::Ref { uri } => {
                 assert_eq!(uri, key);
