@@ -136,8 +136,7 @@ impl Compiler {
             ..GrammarWithLexer::default()
         });
 
-        let (compiled_schema, definitions) =
-            build_schema(schema, self.options.retriever.clone())?;
+        let (compiled_schema, definitions) = build_schema(schema, self.options.retriever.clone())?;
 
         let root = self.gen_json(&compiled_schema)?;
         self.builder.set_start_node(root);

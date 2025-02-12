@@ -13,7 +13,7 @@ use super::RetrieveWrapper;
 const TYPES: [&str; 6] = ["null", "boolean", "number", "string", "array", "object"];
 
 // Keywords that are implemented in this module
-pub const IMPLEMENTED: [&str; 24] = [
+pub(crate) const IMPLEMENTED: [&str; 24] = [
     // Core
     "anyOf",
     "oneOf",
@@ -48,7 +48,7 @@ pub const IMPLEMENTED: [&str; 24] = [
 // Keywords that are used for metadata or annotations, not directly driving validation.
 // Note that some keywords like $id and $schema affect the behavior of other keywords, but
 // they can safely be ignored if other keywords aren't present
-pub const META_AND_ANNOTATIONS: [&str; 15] = [
+pub(crate) const META_AND_ANNOTATIONS: [&str; 15] = [
     "$anchor",
     "$defs",
     "definitions",
@@ -1069,7 +1069,7 @@ fn opt_min<T: PartialOrd>(a: Option<T>, b: Option<T>) -> Option<T> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "referencing"))]
 mod test_retriever {
     use crate::json::{Retrieve, RetrieveWrapper};
 
