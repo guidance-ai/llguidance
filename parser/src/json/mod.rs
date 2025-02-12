@@ -1,9 +1,14 @@
 pub mod compiler;
-mod context;
-mod shared_context;
+mod context_ref;
+mod context_simple;
 mod formats;
 mod numeric;
 mod schema;
+mod shared_context;
+
+pub mod context {
+    pub use super::context_ref::*;
+}
 
 use std::{any::type_name_of_val, sync::Arc};
 
