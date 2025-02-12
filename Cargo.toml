@@ -27,7 +27,7 @@ inherits = "release"
 debug = 1
 opt-level = 3
 
-# [patch.'https://github.com/microsoft/derivre']
+# [patch.crates-io]
 # derivre = { path = "../derivre" }
 
 [workspace.dependencies]
