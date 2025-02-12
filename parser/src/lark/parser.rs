@@ -137,6 +137,11 @@ impl Parser {
         while !self.has_token(Token::RBracket) {
             let key = self.expect_token(Token::Rule)?.value;
             match key.as_str() {
+                "capture" => {
+                    if rule.capture_name.is_none() {
+                        rule.capture_name = Some(rule.name.clone());
+                    }
+                }
                 "lazy" => {
                     if rule.stop.is_none() {
                         rule.stop = Some(Value::LiteralString("".to_string(), "".to_string()));
