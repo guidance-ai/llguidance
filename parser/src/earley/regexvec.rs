@@ -37,6 +37,7 @@ pub struct LexerStats {
 pub enum MatchingLexemes {
     None,
     One(LexemeIdx),
+    Two([LexemeIdx; 2]),
     Many(Vec<LexemeIdx>),
 }
 
@@ -47,14 +48,59 @@ impl MatchingLexemes {
             _ => true,
         }
     }
+
     pub fn is_none(&self) -> bool {
         !self.is_some()
     }
+
+    pub fn first(&self) -> Option<LexemeIdx> {
+        match self {
+            MatchingLexemes::None => None,
+            MatchingLexemes::One(idx) => Some(*idx),
+            MatchingLexemes::Two([idx, _]) => Some(*idx),
+            MatchingLexemes::Many(v) => v.first().copied(),
+        }
+    }
+
     pub fn contains(&self, idx: LexemeIdx) -> bool {
         match self {
             MatchingLexemes::None => false,
             MatchingLexemes::One(idx2) => *idx2 == idx,
+            MatchingLexemes::Two([idx1, idx2]) => *idx1 == idx || *idx2 == idx,
             MatchingLexemes::Many(v) => v.contains(&idx),
+        }
+    }
+
+    pub fn add(&mut self, idx: LexemeIdx) {
+        match self {
+            MatchingLexemes::None => *self = MatchingLexemes::One(idx),
+            MatchingLexemes::One(idx2) => {
+                *self = MatchingLexemes::Two([*idx2, idx]);
+            }
+            MatchingLexemes::Two([idx1, idx2]) => {
+                *self = MatchingLexemes::Many(vec![*idx1, *idx2, idx]);
+            }
+            MatchingLexemes::Many(v) => {
+                v.push(idx);
+            }
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            MatchingLexemes::None => 0,
+            MatchingLexemes::One(_) => 1,
+            MatchingLexemes::Two(_) => 2,
+            MatchingLexemes::Many(v) => v.len(),
+        }
+    }
+
+    pub fn as_slice(&self) -> &[LexemeIdx] {
+        match self {
+            MatchingLexemes::None => &[],
+            MatchingLexemes::One(idx) => std::slice::from_ref(idx),
+            MatchingLexemes::Two(v) => v,
+            MatchingLexemes::Many(v) => v.as_slice(),
         }
     }
 }
@@ -64,6 +110,9 @@ impl Debug for MatchingLexemes {
         match self {
             MatchingLexemes::None => write!(f, "Lex:[]"),
             MatchingLexemes::One(idx) => write!(f, "Lex:[{}]", idx.as_usize()),
+            MatchingLexemes::Two([idx1, idx2]) => {
+                write!(f, "Lex:[{},{}]", idx1.as_usize(), idx2.as_usize())
+            }
             MatchingLexemes::Many(v) => write!(
                 f,
                 "Lex:[{}]",
@@ -158,6 +207,7 @@ pub struct RegexVec {
     next_byte: NextByteCache,
     relevance: RelevanceCache,
     alpha: AlphabetInfo,
+    #[allow(dead_code)]
     rx_lexemes: Vec<RxLexeme>,
     lazy: LexemeSet,
     rx_list: Vec<ExprRef>,
@@ -342,7 +392,7 @@ impl RegexVec {
     // If there is no lazy regex, and all greedy lexemes have reached the end of
     // the lexeme, then it is the first greedy lexeme.  If neither of these
     // criteria produce a choice for "best", 'None' is returned.
-    fn lowest_match_inner(&mut self, state: StateID) -> Option<(LexemeIdx, u32)> {
+    fn lowest_match_inner(&mut self, state: StateID) -> (MatchingLexemes, u32) {
         // 'all_eoi' is true if all greedy lexemes match, that is, if we are at
         // the end of lexeme for all of them.  End of lexeme is called
         // "end of input" or EOI for consistency with the regex package.
@@ -351,8 +401,9 @@ impl RegexVec {
 
         // 'eoi_candidate' tracks the lowest (aka first or best) greedy match.
         // Initially, there is none.
-        let mut eoi_candidate = None;
+        let mut eois = MatchingLexemes::None;
 
+        let mut lazies = MatchingLexemes::None;
 
         // For every regex in this state
         for (idx, e) in iter_state(&self.rx_sets, state) {
@@ -362,16 +413,19 @@ impl RegexVec {
                 // No match, so not at end of lexeme
                 all_eoi = false;
                 continue;
+            } else if Some(e) == self.special_token_rx {
+                // the regex is /\xFF\[[0-9]+\]/ so it's guaranteed not to conflict with anything
+                // else (starts with non-unicode byte); thus we ignore the rest of processing
+                return (MatchingLexemes::One(idx), 0);
             }
 
             // If this is the first lazy lexeme, we can cut things short.  The first
             // lazy lexeme is our lowest, or best, match.  We return it and are done.
             if self.lazy.contains(idx) {
-                let len = self.exprs.possible_lookahead_len(e);
-                return Some((idx, len as u32));
+                lazies.add(idx);
+                all_eoi = false;
+                continue;
             }
-
-            // If we are here, we are greedy matching.
 
             // If all the greedy lexemes so far are matches.
             if all_eoi {
@@ -379,9 +433,7 @@ impl RegexVec {
                 if self.next_byte.next_byte(&self.exprs, e) == NextByte::ForcedEOI {
                     // then, if we have not yet found a matching greedy lexeme, set
                     // this one to be our lowest match ...
-                    if eoi_candidate.is_none() {
-                        eoi_candidate = Some((idx, self.exprs.possible_lookahead_len(e) as u32));
-                    }
+                    eois.add(idx);
                 } else {
                     // ... otherwise, if this greedy lexeme is not yet a match, then indicate
                     // that not all greedy lexemes are matches at this point.
@@ -390,17 +442,20 @@ impl RegexVec {
             }
         }
 
-        if all_eoi {
-            // At this point all lexemes are greedy, and are the end of lexeme,
-            // so there are no further possibilities for greediness.
-            // We tracked our lowest greedy lexeme in 'eoi_candidate', which we
-            // now return.
-            eoi_candidate
+        let res_set = if lazies.is_some() {
+            lazies
+        } else if all_eoi {
+            eois
         } else {
-            // For the greedy lexeme finding strategy, possibilities remain,
-            // so we have not yet settled on a lexeme, and return 'None'.
-            None
+            MatchingLexemes::None
+        };
+
+        let mut len = 0;
+        if let Some(idx) = res_set.first() {
+            len = self.exprs.possible_lookahead_len(self.get_rx(idx)) as u32;
         }
+
+        (res_set, len)
     }
 
     /// Return index of lowest matching regex if any.
@@ -669,19 +724,12 @@ impl RegexVec {
             lowest_match: (MatchingLexemes::None, 0),
             has_special_token: false,
         };
-        let mut num_accepting = 0;
         for (idx, e) in iter_state(&self.rx_sets, state) {
             res.possible.add(idx);
             if self.exprs.is_nullable(e) {
                 res.accepting.add(idx);
-                num_accepting += 1;
+                res.lowest_accepting.add(idx);
             }
-        }
-
-        if num_accepting == 1 {
-            res.lowest_accepting = MatchingLexemes::One(res.accepting.first().unwrap());
-        } else if num_accepting > 1 {
-            res.lowest_accepting = MatchingLexemes::Many(res.accepting.iter().collect());
         }
 
         if res.possible.is_empty() {
@@ -689,7 +737,8 @@ impl RegexVec {
         }
 
         res.lowest_match = self.lowest_match_inner(state);
-        if let Some((idx, _)) = res.lowest_match {
+
+        if let Some(idx) = res.lowest_match.0.first() {
             if Some(self.get_rx(idx)) == self.special_token_rx {
                 res.has_special_token = true;
             }

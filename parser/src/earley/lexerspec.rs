@@ -1,14 +1,14 @@
 use anyhow::Result;
 use derivre::{raw::ExprSet, ExprRef, JsonQuoteOptions, RegexAst, RegexBuilder};
 use std::{fmt::Debug, hash::Hash, ops::RangeInclusive};
-use toktrie::{
-    bytes::{limit_bytes, limit_str},
-    SimpleVob, TokTrie, TokenId,
-};
+use toktrie::{bytes::limit_bytes, SimpleVob, TokTrie, TokenId};
 
 use crate::{api::ParserLimits, id32_type};
 
-use super::regexvec::{LexemeSet, RegexVec, RxLexeme};
+use super::{
+    lexer::MatchingLexemesIdx,
+    regexvec::{LexemeSet, MatchingLexemes, RegexVec, RxLexeme},
+};
 
 #[derive(Clone)]
 pub struct LexerSpec {
@@ -40,6 +40,7 @@ impl LexemeClass {
 #[derive(Clone)]
 pub struct LexemeSpec {
     pub(crate) idx: LexemeIdx,
+    pub(crate) single_set: MatchingLexemes,
     name: String,
     pub(crate) rx: RegexAst,
     class: LexemeClass,
@@ -258,6 +259,7 @@ impl LexerSpec {
         }
         let idx = LexemeIdx::new(self.lexemes.len());
         spec.idx = idx;
+        spec.single_set = MatchingLexemes::One(idx);
         spec.compiled_rx = compiled;
         self.lexemes.push(spec);
         Ok(idx)
@@ -270,6 +272,7 @@ impl LexerSpec {
         );
         LexemeSpec {
             idx: LexemeIdx(0),
+            single_set: MatchingLexemes::One(LexemeIdx(0)),
             name: "".to_string(),
             rx: RegexAst::NoMatch,
             compiled_rx: ExprRef::INVALID,
@@ -374,21 +377,6 @@ impl LexerSpec {
         self.lexemes[self.lexemes.len() - self.num_extra_lexemes + idx].idx
     }
 
-    pub fn dbg_lexeme(&self, lex: &Lexeme) -> String {
-        let str = String::from_utf8_lossy(&lex.bytes).to_string();
-        let info = &self.lexemes[lex.idx.as_usize()];
-        if matches!(info.rx, RegexAst::Literal(_)) && lex.hidden_len == 0 {
-            format!("[{}]", info.name)
-        } else {
-            format!(
-                "[{}] match={:?} hidden={}",
-                info.name,
-                limit_str(&str, 32),
-                lex.hidden_len
-            )
-        }
-    }
-
     pub fn dbg_lexeme_set(&self, vob: &LexemeSet) -> String {
         format!(
             "Lexemes( {} )",
@@ -439,7 +427,7 @@ impl Debug for LexerSpec {
 
 #[derive(Clone)]
 pub struct Lexeme {
-    pub idx: LexemeIdx,
+    pub idx: MatchingLexemesIdx,
     bytes: Vec<u8>,
     hidden_len: u32,
     is_suffix: bool,
@@ -449,8 +437,8 @@ impl Debug for Lexeme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Lexeme([{}], {:?} + {:?}{})",
-            self.idx.0,
+            "Lexeme({:?}, {:?} + {:?}{})",
+            self.idx,
             limit_bytes(self.visible_bytes(), 100),
             limit_bytes(self.hidden_bytes(), 100),
             if self.is_suffix { " suffix" } else { "" }
@@ -459,7 +447,7 @@ impl Debug for Lexeme {
 }
 
 impl Lexeme {
-    pub fn new(idx: LexemeIdx, bytes: Vec<u8>, hidden_len: u32, is_suffix: bool) -> Self {
+    pub fn new(idx: MatchingLexemesIdx, bytes: Vec<u8>, hidden_len: u32, is_suffix: bool) -> Self {
         Lexeme {
             idx,
             bytes,
@@ -468,7 +456,7 @@ impl Lexeme {
         }
     }
 
-    pub fn just_idx(idx: LexemeIdx) -> Self {
+    pub fn just_idx(idx: MatchingLexemesIdx) -> Self {
         Lexeme {
             idx,
             hidden_len: 0,
@@ -477,13 +465,19 @@ impl Lexeme {
         }
     }
 
+    pub fn single_idx(idx: LexemeIdx) -> Self {
+        Self::just_idx(MatchingLexemesIdx::Single(idx))
+    }
+
     pub fn bogus() -> Self {
-        Lexeme::just_idx(LexemeIdx(0))
+        Self::single_idx(LexemeIdx(0))
     }
 
     pub fn is_bogus(&self) -> bool {
-        // TODO?
-        self.idx.0 == 0 && self.bytes.is_empty()
+        match self.idx {
+            MatchingLexemesIdx::Single(LexemeIdx(0)) if self.bytes.is_empty() => true,
+            _ => false,
+        }
     }
 
     pub fn is_suffix(&self) -> bool {

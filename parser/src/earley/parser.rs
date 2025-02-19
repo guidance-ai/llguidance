@@ -11,7 +11,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{HashMap, HashSet, Instant};
+use crate::{earley::lexer::MatchingLexemesIdx, HashMap, HashSet, Instant};
 use anyhow::{bail, ensure, Result};
 use derivre::{AlphabetInfo, NextByte, RegexAst, StateID};
 use serde::{Deserialize, Serialize};
@@ -203,7 +203,7 @@ struct Row {
     // which can lead to a successful parse.
     lexer_start_state: StateID,
 
-    lexeme_idx: LexemeIdx,
+    lexeme_idx: MatchingLexemesIdx,
 }
 
 impl Row {
@@ -270,7 +270,7 @@ struct Scratch {
     push_allowed_grammar_ids: SimpleVob,
     push_allowed_lexemes: LexemeSet,
     push_grm_top: GrammarStackPtr,
-    push_lexeme_idx: LexemeIdx,
+    push_lexeme_idx: MatchingLexemesIdx,
 
     // Is this Earley table in "definitive" mode?
     // 'definitive' is set when the new lexeme is being 'defined',
@@ -301,13 +301,13 @@ impl RowInfo {
         self.token_idx_stop = idx;
     }
 
-    fn dbg(&self, lexspec: &LexerSpec) -> String {
+    fn dbg(&self, lexer: &Lexer) -> String {
         format!(
             "token_idx: {}-{}; b:{}; {}",
             self.token_idx_start,
             self.token_idx_stop,
             self.start_byte_idx,
-            lexspec.dbg_lexeme(&self.lexeme),
+            lexer.dbg_lexeme(&self.lexeme),
         )
     }
 }
@@ -436,7 +436,7 @@ impl Scratch {
             push_allowed_lexemes: grammar.lexer_spec().alloc_lexeme_set(),
             push_allowed_grammar_ids: grammar.lexer_spec().alloc_grammar_set(),
             push_grm_top: GrammarStackPtr::new(0),
-            push_lexeme_idx: LexemeIdx::new(0),
+            push_lexeme_idx: MatchingLexemesIdx::Single(LexemeIdx::new(0)),
             grammar,
             row_start: 0,
             row_end: 0,
@@ -793,8 +793,7 @@ impl ParserState {
         self.scratch.item_to_string(idx)
     }
 
-    #[allow(dead_code)]
-    pub fn print_row(&self, row_idx: usize) {
+    fn print_row(&self, row_idx: usize) {
         let row = &self.rows[row_idx];
         println!(
             "row {}; lexer_stack={} top_state={:?}",
@@ -813,7 +812,7 @@ impl ParserState {
             if info.lexeme.is_bogus() {
                 println!("  lexeme: placeholder");
             } else {
-                println!("  lexeme: {}", self.lexer_spec().dbg_lexeme(&info.lexeme));
+                println!("  lexeme: {}", self.lexer().dbg_lexeme(&info.lexeme));
             }
         } else {
             println!("  speculative");
@@ -991,7 +990,7 @@ impl ParserState {
 
     fn add_numeric_token(&mut self, idx: LexemeIdx, tok_bytes: &[u8]) -> Result<()> {
         self.add_bytes_ignoring_lexer(tok_bytes);
-        let ok = self.advance_parser(PreLexeme::just_idx(idx));
+        let ok = self.advance_parser(PreLexeme::just_idx(MatchingLexemesIdx::Single(idx)));
         ensure!(
             ok,
             "failed to advance parser after adding bytes ignoring lexer"
@@ -1141,7 +1140,7 @@ impl ParserState {
                     // let max_tokens = *info.max_tokens.get(&lex).unwrap_or(&usize::MAX);
                     debug!(
                         "  max_tokens: {} max={} info={} class_ok={}",
-                        self.lexer_spec().dbg_lexeme(&Lexeme::just_idx(lex)),
+                        self.lexer().dbg_lexeme(&Lexeme::single_idx(lex)),
                         max_tokens,
                         info_tokens,
                         class_ok
@@ -1182,7 +1181,9 @@ impl ParserState {
             );
         }
 
-        // self.print_row(self.num_rows() - 1);
+        if false {
+            self.print_row(self.num_rows() - 1);
+        }
 
         return Ok(0);
     }
@@ -1293,10 +1294,9 @@ impl ParserState {
             debug!("  >> tok_id={} idx={:?}", tok_id, idx);
             if let Some(idx) = idx {
                 let pre = PreLexeme {
-                    idx: specs[idx].idx,
+                    idx: MatchingLexemesIdx::Single(specs[idx].idx),
                     byte: Some(b']'),
                     byte_next_row: false,
-                    hidden_len: 0,
                 };
                 self.advance_parser(pre)
             } else {
@@ -1592,6 +1592,15 @@ impl ParserState {
     // lexeme body only used for captures (in definitive mode)
     // and debugging (lexeme.idx used always)
     fn scan(&mut self, lexeme: &Lexeme) -> bool {
+        let set = self.shared_box.lexer().lexemes_from_idx(lexeme.idx);
+
+        let lex_spec = self.lexer_spec();
+        for lx in set.as_slice() {
+            if lex_spec.lexeme_spec(*lx).is_skip {
+                return self.scan_skip_lexeme(lexeme);
+            }
+        }
+
         let row_idx = self.num_rows() - 1;
         let items = self.rows[row_idx].item_indices();
         self.scratch.ensure_items(items.end + items.len() + 10);
@@ -1600,11 +1609,10 @@ impl ParserState {
 
         if self.scratch.definitive {
             debug!(
-                "  scan: {} at row={} token={} (spec: {:?})",
-                self.lexer_spec().dbg_lexeme(&lexeme),
+                "  scan: {} at row={} token={}",
+                self.lexer().dbg_lexeme(&lexeme),
                 row_idx,
                 self.token_idx,
-                self.lexer_spec().lexeme_spec(lexeme.idx),
             );
         }
 
@@ -1616,8 +1624,10 @@ impl ParserState {
         for i in items {
             let item = self.scratch.items[i];
             let sym = self.grammar.sym_data_dot(item.rhs_ptr());
-            if sym.lexeme == Some(lexeme.idx) {
-                self.scratch.just_add(item.advance_dot(), i, "scan");
+            if let Some(idx) = sym.lexeme {
+                if set.contains(idx) {
+                    self.scratch.just_add(item.advance_dot(), i, "scan");
+                }
             }
         }
 
@@ -1932,8 +1942,17 @@ impl ParserState {
 
     // when this is called, the current row has only rules with lx at the dot
     #[inline(always)]
-    fn maybe_pop_grammar_stack(&mut self, lx: LexemeIdx) -> (LexemeClass, Option<GrammarStackPtr>) {
-        let grammar_id = self.lexer_spec().lexeme_spec(lx).class();
+    fn maybe_pop_grammar_stack(
+        &mut self,
+        lx: MatchingLexemesIdx,
+    ) -> (LexemeClass, Option<GrammarStackPtr>) {
+        let set = self.lexer().lexemes_from_idx(lx);
+        let lex_spec = &self.lexer_spec();
+        let grammar_ids = HashSet::from_iter(
+            set.as_slice()
+                .iter()
+                .map(|&e| lex_spec.lexeme_spec(e).class()),
+        );
         let mut max_token_ptr = None;
 
         let mut grm_stack_top = if self.rows.len() > 0 {
@@ -1947,10 +1966,10 @@ impl ParserState {
             if self.scratch.definitive {
                 debug!(
                     "  pop grammar_stack: top={:?}, curr={:?}, #{}",
-                    grm_top.grammar_id, grammar_id, self.token_idx
+                    grm_top.grammar_id, grammar_ids, self.token_idx
                 );
             }
-            if grm_top.grammar_id == grammar_id {
+            if grammar_ids.contains(&grm_top.grammar_id) {
                 // token_idx is one behind
                 if grm_top.token_horizon <= self.token_idx as u32 {
                     // mark that we need to do the max_token processing
@@ -1973,15 +1992,16 @@ impl ParserState {
 
         if grm_stack_top.as_usize() == 0 {
             assert!(
-                grammar_id == LexemeClass::ROOT,
+                grammar_ids.contains(&LexemeClass::ROOT),
                 "grammar stack empty for non-root grammar: {:?}",
-                grammar_id
+                grammar_ids
             );
         }
 
         self.scratch.push_grm_top = grm_stack_top;
 
-        (grammar_id, max_token_ptr)
+        let top_id = self.scratch.grammar_stack[grm_stack_top.as_usize()].grammar_id;
+        (top_id, max_token_ptr)
     }
 
     // curr_row_bytes() looks in the lexer stack, and returns
@@ -2020,8 +2040,8 @@ impl ParserState {
             bytes.push(byte.unwrap());
         }
 
-        let is_suffix = self.is_suffix_pre_lexeme(&pre_lexeme);
-        Lexeme::new(pre_lexeme.idx, bytes, pre_lexeme.hidden_len, is_suffix)
+        let (hidden, is_suffix) = self.lexer().lexeme_props(pre_lexeme.idx);
+        Lexeme::new(pre_lexeme.idx, bytes, hidden, is_suffix)
     }
 
     fn has_forced_bytes(&self, allowed_lexemes: &LexemeSet, bytes: &[u8]) -> bool {
@@ -2101,7 +2121,6 @@ impl ParserState {
         let lexeme = self.mk_lexeme(lexeme_byte, pre_lexeme);
 
         let hidden_bytes = lexeme.hidden_bytes();
-        assert!(hidden_bytes.len() == pre_lexeme.hidden_len as usize);
 
         let trace_here = self.scratch.definitive;
 
@@ -2207,11 +2226,6 @@ impl ParserState {
         String::from_utf8_lossy(&self.trace_byte_stack).to_string()
     }
 
-    #[inline(always)]
-    fn is_suffix_pre_lexeme(&self, pre_lexeme: &PreLexeme) -> bool {
-        pre_lexeme.hidden_len > 0 && self.lexer_spec().lexeme_spec(pre_lexeme.idx).is_suffix
-    }
-
     /// Advance the parser with given 'pre_lexeme'.
     /// On return, the lexer_state will be the state *after* consuming
     /// 'pre_lexeme'.  As a special case, a following single byte lexeme
@@ -2256,15 +2270,9 @@ impl ParserState {
             self.stats.cached_rows += 1;
             true
         } else {
-            let lex_spec = self.lexer_spec().lexeme_spec(lexeme.idx);
-            let scan_res = if lex_spec.is_skip {
-                // If this is the SKIP lexeme, then skip it
-                self.scan_skip_lexeme(&lexeme)
-            } else {
-                // For all but the SKIP lexeme, process this lexeme
-                // with the parser
-                self.scan(&lexeme)
-            };
+            // Process this lexeme with the parser
+            let scan_res = self.scan(&lexeme);
+
             if scan_res && ITEM_TRACE {
                 let added_row = self.num_rows();
                 let row = &self.rows[added_row];
@@ -2278,13 +2286,15 @@ impl ParserState {
                     panic!("max items exceeded");
                 }
             }
+
             scan_res
         };
 
         if scan_res {
             let mut no_hidden = self.lexer_state_for_added_row(lexeme, transition_byte);
 
-            if pre_lexeme.hidden_len > 0 && !self.is_suffix_pre_lexeme(&pre_lexeme) {
+            let (hidden, is_suffix) = self.lexer().lexeme_props(lexeme_idx);
+            if hidden > 0 && !is_suffix {
                 return self.handle_hidden_bytes(no_hidden, lexeme_byte, pre_lexeme);
             } else {
                 if pre_lexeme.byte_next_row && no_hidden.lexer_state.is_dead() {
@@ -2638,17 +2648,19 @@ impl Parser {
         })
     }
 
-    pub fn log_row_infos(&self, label: &str) {
-        debug!(
-            "row infos {}: token_idx: {}; applied bytes: {}/{}",
-            label,
-            self.state.token_idx,
-            self.state.byte_to_token_idx.len(),
-            self.state.bytes.len()
-        );
-        for infos in self.state.row_infos.iter() {
-            debug!("  {}", infos.dbg(self.state.lexer_spec()));
-        }
+    pub fn log_row_infos(&mut self, label: &str) {
+        self.with_shared(|state| {
+            debug!(
+                "row infos {}: token_idx: {}; applied bytes: {}/{}",
+                label,
+                state.token_idx,
+                state.byte_to_token_idx.len(),
+                state.bytes.len()
+            );
+            for infos in state.row_infos.iter() {
+                debug!("  {}", infos.dbg(state.lexer()));
+            }
+        })
     }
 
     pub fn is_accepting(&mut self) -> bool {

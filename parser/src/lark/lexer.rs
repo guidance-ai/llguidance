@@ -188,8 +188,9 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
             }
             LexerResult::Lexeme(p) => {
                 let transition_byte = if p.byte_next_row { p.byte } else { None };
+                let lx_idx = lexer.lexemes_from_idx(p.idx).first().unwrap();
 
-                let token = lexeme_idx_to_token[&p.idx];
+                let token = lexeme_idx_to_token[&lx_idx];
                 curr_lexeme.token = token;
                 let mut end_idx = if p.byte_next_row || p.byte.is_none() {
                     idx
