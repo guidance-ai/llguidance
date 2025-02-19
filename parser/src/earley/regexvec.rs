@@ -227,7 +227,12 @@ pub struct StateDesc {
     pub lowest_accepting: MatchingLexemes,
     pub accepting: LexemeSet,
     pub possible: LexemeSet,
+
+    /// Index of lowest matching regex if any.
+    /// Lazy regexes match as soon as they accept, while greedy only
+    /// if they accept and force EOI.
     pub lowest_match: (MatchingLexemes, u32),
+
     pub has_special_token: bool,
 
     possible_lookahead_len: Option<usize>,
@@ -456,15 +461,6 @@ impl RegexVec {
         }
 
         (res_set, len)
-    }
-
-    /// Return index of lowest matching regex if any.
-    /// Lazy regexes match as soon as they accept, while greedy only
-    /// if they accept and force EOI.
-    #[inline(always)]
-    pub fn lowest_match(&mut self, state: StateID) -> (&MatchingLexemes, u32) {
-        let (m, v) = &self.state_descs[state.as_usize()].lowest_match;
-        (m, *v)
     }
 
     /// Check if the there is only one transition out of state.
