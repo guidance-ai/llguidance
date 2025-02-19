@@ -1107,6 +1107,10 @@ fn main() {
 
         if num_err > 0 {
             eprintln!("FAILED: {} errors, {} warnings", num_err, num_warn);
+            eprintln!(
+                "MISMATCH: {} {}",
+                "tmp/llg_sem_results.json", expected_file_name
+            );
             std::process::exit(1);
         } else if num_warn > 0 {
             eprintln!("SOFT FAIL: {} warnings", num_warn);

@@ -173,3 +173,26 @@ fn test_ff_json3() {
         }),
     );
 }
+
+#[test]
+fn test_ff_json4() {
+    let schema = json!({
+        "anyOf":[{
+            "type": "object",
+            "properties": {
+                "foo": { "type": "number" }
+            },
+            // "required": ["foo"], -> with required it passes
+            "additionalProperties": { "type": "string" },
+        }, {
+            "type": "object",
+            "properties": {
+                "bar": { "type": "number" }
+            },
+            "additionalProperties": false,
+        }]
+    });
+
+    json_fwd_test(schema.clone(), json!({ "foo": 123, "baz": "hello" }));
+    json_fwd_test(schema.clone(), json!({ "bar": 123 }));
+}

@@ -590,3 +590,14 @@ fn test_large_substring_chars() {
     let no_mtch = format!("{}{}", mtch, "XXX");
     lark_str_test_many_quiet(&grm, &[&mtch], &[&no_mtch]);
 }
+
+#[test]
+fn test_lexer_amb() {
+    lark_str_test_many(
+        r#"start: "'foo'" /a+/ | STRING /b+/
+           STRING: /'[^']*'/
+        "#,
+        &["'foo'a", "'foo'aaa", "'bar'b", "'bar'bbb", "'foo'bb"],
+        &["'bar'a", "'bar'c"],
+    );
+}

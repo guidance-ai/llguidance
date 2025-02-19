@@ -4988,9 +4988,7 @@
   "Github_medium---o25692.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o25695.json": {
-    "validation_error": "test #0: token not accepted at ⟦\",\"‧type‧\":\"‧file‧\"},{\"‧name‧\":\"‧example‧-link‧\",\"‧package‧_name‧\":\"‧example‧-package‧\",\"‧package‧_version‧\":\"‧1‧.‧0‧.‧0‧\",\"‧status‧\":\"‧changed‧\",\"‧changes‧\":[\"‧mode‧\",\"‧link‧_path‧\"],\"‧mode‧\":\"‧755‧\",\"‧user‧\":\"‧root‧\",\"‧group‧\":\"‧root‧\",\"‧type‧\":\"⟧ * ⟦link⟧ * ⟦\",\"‧target‧\":\"/‧path⟧ mask: TokenSet: 7/128256; ⟨d⟩ ⟨f⟩ ⟨file⟩ ⟨dir⟩ ⟨di⟩ ⟨fi⟩ ⟨fil⟩"
-  },
+  "Github_medium---o25695.json": {},
   "Github_medium---o25763.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -13344,7 +13342,7 @@
     "validation_error": "test #0: token not accepted at ⟦{\"‧failure‧\":{\"‧messages‧\":[{\"⟧ * ⟦field⟧ * ⟦\":\"‧event‧\",\"‧error⟧ mask: TokenSet: 9/128256; ⟨e⟩ ⟨s⟩ ⟨er⟩ ⟨err⟩ ⟨error⟩ ⟨sc⟩ ⟨schema⟩ ⟨sch⟩ ⟨erro⟩"
   },
   "Snowplow---sp_343_Normalized.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧failure‧\":{\"‧messages‧\":[{\"‧error‧\":\"‧Json‧ parsing‧ issue‧\",\"‧field‧\":\"‧event‧\",\"‧value‧\":\"‧Invalid‧ JSON‧\"},{\"‧error‧\":\"‧INVALID‧_SCHEMA‧VER‧\",\"⟧ * ⟦json⟧ * ⟦\":{\"‧schema‧\":\"‧ig⟧ forced tokens \"⟦field⟧\" != \"⟦json⟧\""
+    "validation_error": "test #0: token not accepted at ⟦0‧\",\"‧data‧\":{\"‧event‧\":\"‧Invalid‧ JSON‧\"}}‧}‧},{\"‧schema‧Criterion‧\":\"‧required‧\",\"‧schema‧Key‧\":\"‧ig‧lu‧:‧com‧.s‧now‧pl‧ow‧analytics‧.s‧now‧pl‧ow‧/un‧struct‧_event‧/json‧schema‧/‧1‧-‧0‧-‧0‧\"},{\"‧error‧\":{\"‧error‧\":\"‧ValidationError‧\",\"⟧ * ⟦data⟧ * ⟦Reports‧\":[{\"‧keyword‧\":\"⟧ forced tokens \"⟦schema‧Issues⟧\" != \"⟦data‧Reports⟧\""
   },
   "Snowplow---sp_344_Normalized.json": {},
   "Snowplow---sp_345_Normalized.json": {},
