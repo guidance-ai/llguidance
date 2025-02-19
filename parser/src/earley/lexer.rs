@@ -110,8 +110,8 @@ impl Lexer {
 
     pub fn allows_eos(&mut self, state: StateID) -> bool {
         let l = self.spec.eos_ending_lexemes();
-        for lexeme in self.state_info(state).accepting.iter() {
-            if l.contains(lexeme) {
+        for lexeme in self.state_info(state).greedy_accepting.as_slice() {
+            if l.contains(*lexeme) {
                 return true;
             }
         }
@@ -135,8 +135,8 @@ impl Lexer {
     }
 
     pub fn try_lexeme_end(&mut self, prev: StateID) -> LexerResult {
-        if self.state_info(prev).lowest_accepting.is_some() {
-            LexerResult::Lexeme(PreLexeme::just_idx(MatchingLexemesIdx::LowestAccepting(
+        if self.state_info(prev).greedy_accepting.is_some() {
+            LexerResult::Lexeme(PreLexeme::just_idx(MatchingLexemesIdx::GreedyAccepting(
                 prev,
             )))
         } else {
@@ -147,7 +147,7 @@ impl Lexer {
     pub fn check_for_single_byte_lexeme(&mut self, state: StateID, b: u8) -> Option<PreLexeme> {
         if self.dfa.next_byte(state) == NextByte::ForcedEOI {
             Some(PreLexeme {
-                idx: MatchingLexemesIdx::LowestAccepting(state),
+                idx: MatchingLexemesIdx::GreedyAccepting(state),
                 byte: Some(b),
                 byte_next_row: false,
             })
@@ -173,7 +173,7 @@ impl Lexer {
         let mut forced = self.dfa.next_byte(state);
 
         let info = self.dfa.state_desc(state);
-        if info.lowest_accepting.is_some() {
+        if info.greedy_accepting.is_some() {
             // with lowest accepting present, any transition to DEAD state
             // (of which they are likely many) would generate a lexeme
             forced = forced.make_fuzzy();
@@ -190,7 +190,7 @@ impl Lexer {
             let info = self.state_info(state);
             debug!(
                 "lex: {:?} -{:?}-> {:?}, acpt={:?}",
-                prev, byte as char, state, info.lowest_accepting
+                prev, byte as char, state, info.greedy_accepting
             );
         }
 
@@ -202,9 +202,9 @@ impl Lexer {
             let info = self.dfa.state_desc(prev);
             // we take the first token that matched
             // (eg., "while" will match both keyword and identifier, but keyword is first)
-            if info.lowest_accepting.is_some() {
+            if info.greedy_accepting.is_some() {
                 LexerResult::Lexeme(PreLexeme {
-                    idx: MatchingLexemesIdx::LowestAccepting(prev),
+                    idx: MatchingLexemesIdx::GreedyAccepting(prev),
                     byte: Some(byte),
                     byte_next_row: true,
                 })
@@ -213,12 +213,12 @@ impl Lexer {
             }
         } else if state.has_lowest_match() {
             let info = self.dfa.state_desc(state);
-            assert!(info.lowest_match.0.is_some());
+            assert!(info.lazy_accepting.is_some());
             if info.has_special_token {
                 return LexerResult::SpecialToken(state);
             }
             LexerResult::Lexeme(PreLexeme {
-                idx: MatchingLexemesIdx::LowestMatching(state),
+                idx: MatchingLexemesIdx::LazyAccepting(state),
                 byte: Some(byte),
                 byte_next_row: false,
             })
@@ -230,11 +230,11 @@ impl Lexer {
     pub fn lexemes_from_idx(&self, idx: MatchingLexemesIdx) -> &MatchingLexemes {
         match idx {
             MatchingLexemesIdx::Single(idx) => &self.spec.lexeme_spec(idx).single_set,
-            MatchingLexemesIdx::LowestAccepting(state_id) => {
-                &self.dfa.state_desc(state_id).lowest_accepting
+            MatchingLexemesIdx::GreedyAccepting(state_id) => {
+                &self.dfa.state_desc(state_id).greedy_accepting
             }
-            MatchingLexemesIdx::LowestMatching(state_id) => {
-                &self.dfa.state_desc(state_id).lowest_match.0
+            MatchingLexemesIdx::LazyAccepting(state_id) => {
+                &self.dfa.state_desc(state_id).lazy_accepting
             }
         }
     }
@@ -242,12 +242,12 @@ impl Lexer {
     #[inline(always)]
     pub fn lexeme_props(&self, idx: MatchingLexemesIdx) -> (u32, bool) {
         match idx {
-            MatchingLexemesIdx::Single(_) | MatchingLexemesIdx::LowestAccepting(_) => (0, false),
-            MatchingLexemesIdx::LowestMatching(state_id) => {
+            MatchingLexemesIdx::Single(_) | MatchingLexemesIdx::GreedyAccepting(_) => (0, false),
+            MatchingLexemesIdx::LazyAccepting(state_id) => {
                 let info = self.dfa.state_desc(state_id);
-                let hidden = info.lowest_match.1;
+                let hidden = info.lazy_hidden_len;
                 if hidden > 0 {
-                    let spec = self.spec.lexeme_spec(info.lowest_match.0.first().unwrap());
+                    let spec = self.spec.lexeme_spec(info.lazy_accepting.first().unwrap());
                     (hidden, spec.is_suffix)
                 } else {
                     (0, false)
@@ -278,8 +278,6 @@ impl LexerResult {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MatchingLexemesIdx {
     Single(LexemeIdx),
-    /// Greedy match
-    LowestAccepting(StateID),
-    /// Lazy match
-    LowestMatching(StateID),
+    GreedyAccepting(StateID),
+    LazyAccepting(StateID),
 }

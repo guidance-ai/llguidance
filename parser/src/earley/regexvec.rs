@@ -224,30 +224,20 @@ pub struct RegexVec {
 #[derive(Clone, Debug)]
 pub struct StateDesc {
     pub state: StateID,
-    pub lowest_accepting: MatchingLexemes,
-    pub accepting: LexemeSet,
+    pub greedy_accepting: MatchingLexemes,
     pub possible: LexemeSet,
 
     /// Index of lowest matching regex if any.
     /// Lazy regexes match as soon as they accept, while greedy only
     /// if they accept and force EOI.
-    pub lowest_match: (MatchingLexemes, u32),
+    pub lazy_accepting: MatchingLexemes,
+    pub lazy_hidden_len: u32,
 
     pub has_special_token: bool,
 
     possible_lookahead_len: Option<usize>,
     lookahead_len: Option<Option<usize>>,
     next_byte: Option<NextByte>,
-}
-
-impl StateDesc {
-    pub fn is_accepting(&self) -> bool {
-        self.lowest_accepting.is_some()
-    }
-
-    pub fn is_dead(&self) -> bool {
-        self.possible.is_empty()
-    }
 }
 
 // public implementation
@@ -293,7 +283,7 @@ impl RegexVec {
 
     pub fn lookahead_len_for_state(&mut self, state: StateID) -> Option<usize> {
         let desc = &mut self.state_descs[state.as_usize()];
-        if desc.lowest_accepting.is_none() {
+        if desc.greedy_accepting.is_none() {
             return None;
         }
         if let Some(len) = desc.lookahead_len {
@@ -303,7 +293,7 @@ impl RegexVec {
         let exprs = &self.exprs;
         for (idx2, e) in iter_state(&self.rx_sets, state) {
             if res.is_none() && exprs.is_nullable(e) {
-                assert!(desc.lowest_accepting.contains(idx2));
+                assert!(desc.greedy_accepting.contains(idx2));
                 res = Some(exprs.lookahead_len(e).unwrap_or(0));
             }
         }
@@ -397,7 +387,7 @@ impl RegexVec {
     // If there is no lazy regex, and all greedy lexemes have reached the end of
     // the lexeme, then it is the first greedy lexeme.  If neither of these
     // criteria produce a choice for "best", 'None' is returned.
-    fn lowest_match_inner(&mut self, state: StateID) -> (MatchingLexemes, u32) {
+    fn lowest_match_inner(&mut self, desc: &mut StateDesc) {
         // 'all_eoi' is true if all greedy lexemes match, that is, if we are at
         // the end of lexeme for all of them.  End of lexeme is called
         // "end of input" or EOI for consistency with the regex package.
@@ -413,7 +403,7 @@ impl RegexVec {
         let mut hidden_len = 0;
 
         // For every regex in this state
-        for (idx, e) in iter_state(&self.rx_sets, state) {
+        for (idx, e) in iter_state(&self.rx_sets, desc.state) {
             // If this lexeme is not a match.  (If the derivative at this point is nullable,
             // there is a match, so if it is not nullable, there is no match.)
             if !self.exprs.is_nullable(e) {
@@ -423,15 +413,21 @@ impl RegexVec {
             } else if Some(e) == self.special_token_rx {
                 // the regex is /\xFF\[[0-9]+\]/ so it's guaranteed not to conflict with anything
                 // else (starts with non-unicode byte); thus we ignore the rest of processing
-                return (MatchingLexemes::One(idx), 0);
+                desc.lazy_accepting = MatchingLexemes::One(idx);
+                return;
             }
 
             // If this is the first lazy lexeme, we can cut things short.  The first
             // lazy lexeme is our lowest, or best, match.  We return it and are done.
             if self.lazy.contains(idx) {
+                if lazies.is_none() {
+                    all_eoi = false;
+                    hidden_len = self.exprs.possible_lookahead_len(e) as u32;
+                    if Some(self.get_rx(idx)) == self.special_token_rx {
+                        desc.has_special_token = true;
+                    }
+                }
                 lazies.add(idx);
-                all_eoi = false;
-                hidden_len = self.exprs.possible_lookahead_len(e) as u32;
                 continue;
             }
 
@@ -450,15 +446,13 @@ impl RegexVec {
             }
         }
 
-        let res_set = if lazies.is_some() {
-            lazies
+        if lazies.is_some() {
+            desc.lazy_accepting = lazies;
+            desc.lazy_hidden_len = hidden_len;
         } else if all_eoi {
-            eois
-        } else {
-            MatchingLexemes::None
-        };
-
-        (res_set, hidden_len)
+            desc.lazy_accepting = eois;
+            // no hidden len
+        }
     }
 
     /// Check if the there is only one transition out of state.
@@ -699,7 +693,7 @@ impl RegexVec {
             let state_desc = self.compute_state_desc(id);
             self.append_state(state_desc);
         }
-        if self.state_desc(id).lowest_match.0.is_some() {
+        if self.state_desc(id).lazy_accepting.is_some() {
             id._set_lowest_match()
         } else {
             id
@@ -709,20 +703,19 @@ impl RegexVec {
     fn compute_state_desc(&mut self, state: StateID) -> StateDesc {
         let mut res = StateDesc {
             state,
-            lowest_accepting: MatchingLexemes::None,
-            accepting: LexemeSet::new(self.rx_list.len()),
+            greedy_accepting: MatchingLexemes::None,
             possible: LexemeSet::new(self.rx_list.len()),
             possible_lookahead_len: None,
             lookahead_len: None,
             next_byte: None,
-            lowest_match: (MatchingLexemes::None, 0),
+            lazy_accepting: MatchingLexemes::None,
+            lazy_hidden_len: 0,
             has_special_token: false,
         };
         for (idx, e) in iter_state(&self.rx_sets, state) {
             res.possible.add(idx);
             if self.exprs.is_nullable(e) {
-                res.accepting.add(idx);
-                res.lowest_accepting.add(idx);
+                res.greedy_accepting.add(idx);
             }
         }
 
@@ -730,13 +723,7 @@ impl RegexVec {
             assert!(state == StateID::DEAD);
         }
 
-        res.lowest_match = self.lowest_match_inner(state);
-
-        if let Some(idx) = res.lowest_match.0.first() {
-            if Some(self.get_rx(idx)) == self.special_token_rx {
-                res.has_special_token = true;
-            }
-        }
+        self.lowest_match_inner(&mut res);
 
         // debug!("state {:?} desc: {:?}", state, res);
         res
