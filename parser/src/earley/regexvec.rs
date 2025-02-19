@@ -410,6 +410,8 @@ impl RegexVec {
 
         let mut lazies = MatchingLexemes::None;
 
+        let mut hidden_len = 0;
+
         // For every regex in this state
         for (idx, e) in iter_state(&self.rx_sets, state) {
             // If this lexeme is not a match.  (If the derivative at this point is nullable,
@@ -429,6 +431,7 @@ impl RegexVec {
             if self.lazy.contains(idx) {
                 lazies.add(idx);
                 all_eoi = false;
+                hidden_len = self.exprs.possible_lookahead_len(e) as u32;
                 continue;
             }
 
@@ -455,12 +458,7 @@ impl RegexVec {
             MatchingLexemes::None
         };
 
-        let mut len = 0;
-        if let Some(idx) = res_set.first() {
-            len = self.exprs.possible_lookahead_len(self.get_rx(idx)) as u32;
-        }
-
-        (res_set, len)
+        (res_set, hidden_len)
     }
 
     /// Check if the there is only one transition out of state.
