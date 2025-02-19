@@ -33,6 +33,49 @@ pub struct LexerStats {
     pub error: bool,
 }
 
+#[derive(Clone)]
+pub enum MatchingLexemes {
+    None,
+    One(LexemeIdx),
+    Many(Vec<LexemeIdx>),
+}
+
+impl MatchingLexemes {
+    pub fn is_some(&self) -> bool {
+        match self {
+            MatchingLexemes::None => false,
+            _ => true,
+        }
+    }
+    pub fn is_none(&self) -> bool {
+        !self.is_some()
+    }
+    pub fn contains(&self, idx: LexemeIdx) -> bool {
+        match self {
+            MatchingLexemes::None => false,
+            MatchingLexemes::One(idx2) => *idx2 == idx,
+            MatchingLexemes::Many(v) => v.contains(&idx),
+        }
+    }
+}
+
+impl Debug for MatchingLexemes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MatchingLexemes::None => write!(f, "Lex:[]"),
+            MatchingLexemes::One(idx) => write!(f, "Lex:[{}]", idx.as_usize()),
+            MatchingLexemes::Many(v) => write!(
+                f,
+                "Lex:[{}]",
+                v.iter()
+                    .map(|idx| idx.as_usize().to_string())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ),
+        }
+    }
+}
+
 impl Display for LexerStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -115,6 +158,7 @@ pub struct RegexVec {
     next_byte: NextByteCache,
     relevance: RelevanceCache,
     alpha: AlphabetInfo,
+    rx_lexemes: Vec<RxLexeme>,
     lazy: LexemeSet,
     rx_list: Vec<ExprRef>,
     special_token_rx: Option<ExprRef>,
@@ -130,10 +174,10 @@ pub struct RegexVec {
 #[derive(Clone, Debug)]
 pub struct StateDesc {
     pub state: StateID,
-    pub lowest_accepting: Option<LexemeIdx>,
+    pub lowest_accepting: MatchingLexemes,
     pub accepting: LexemeSet,
     pub possible: LexemeSet,
-    pub lowest_match: Option<(LexemeIdx, u32)>,
+    pub lowest_match: (MatchingLexemes, u32),
     pub has_special_token: bool,
 
     possible_lookahead_len: Option<usize>,
@@ -197,7 +241,6 @@ impl RegexVec {
         if desc.lowest_accepting.is_none() {
             return None;
         }
-        let idx = desc.lowest_accepting.unwrap();
         if let Some(len) = desc.lookahead_len {
             return len;
         }
@@ -205,7 +248,7 @@ impl RegexVec {
         let exprs = &self.exprs;
         for (idx2, e) in iter_state(&self.rx_sets, state) {
             if res.is_none() && exprs.is_nullable(e) {
-                assert!(idx == idx2);
+                assert!(desc.lowest_accepting.contains(idx2));
                 res = Some(exprs.lookahead_len(e).unwrap_or(0));
             }
         }
@@ -310,6 +353,7 @@ impl RegexVec {
         // Initially, there is none.
         let mut eoi_candidate = None;
 
+
         // For every regex in this state
         for (idx, e) in iter_state(&self.rx_sets, state) {
             // If this lexeme is not a match.  (If the derivative at this point is nullable,
@@ -363,8 +407,9 @@ impl RegexVec {
     /// Lazy regexes match as soon as they accept, while greedy only
     /// if they accept and force EOI.
     #[inline(always)]
-    pub fn lowest_match(&mut self, state: StateID) -> Option<(LexemeIdx, u32)> {
-        self.state_descs[state.as_usize()].lowest_match
+    pub fn lowest_match(&mut self, state: StateID) -> (&MatchingLexemes, u32) {
+        let (m, v) = &self.state_descs[state.as_usize()].lowest_match;
+        (m, *v)
     }
 
     /// Check if the there is only one transition out of state.
@@ -486,23 +531,37 @@ impl RegexVec {
     }
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct RxLexeme {
+    pub rx: ExprRef,
+    pub lazy: bool,
+    #[allow(dead_code)]
+    pub priority: i32,
+}
+
 // private implementation
 impl RegexVec {
     pub(crate) fn new_with_exprset(
         exprset: &ExprSet,
-        rx_list: &[ExprRef],
-        lazy: Option<LexemeSet>,
+        mut rx_lexemes: Vec<RxLexeme>,
         special_token_rx: Option<ExprRef>,
         limits: &mut ParserLimits,
     ) -> Result<Self> {
         let spec_pos = if let Some(rx) = special_token_rx {
-            rx_list.iter().position(|&r| r == rx)
+            rx_lexemes.iter().position(|r| r.rx == rx)
         } else {
             None
         };
-        let (alpha, mut exprset, mut rx_list) = AlphabetInfo::from_exprset(exprset, rx_list);
+        let (alpha, mut exprset, mut rx_list) = AlphabetInfo::from_exprset(
+            exprset,
+            &rx_lexemes.iter().map(|r| r.rx).collect::<Vec<_>>(),
+        );
         let num_ast_nodes = exprset.len();
         let special_token_rx = spec_pos.map(|pos| rx_list[pos]);
+
+        for idx in 0..rx_lexemes.len() {
+            rx_lexemes[idx].rx = rx_list[idx];
+        }
 
         let fuel0 = limits.initial_lexer_fuel;
         let mut relevance = RelevanceCache::new();
@@ -529,13 +588,21 @@ impl RegexVec {
                 .saturating_sub(exprset.cost() - c0);
         }
 
+        let mut lazy = LexemeSet::new(rx_lexemes.len());
+        for (idx, r) in rx_lexemes.iter().enumerate() {
+            if r.lazy {
+                lazy.add(LexemeIdx::new(idx));
+            }
+        }
+
         let rx_sets = StateID::new_hash_cons();
         let mut r = RegexVec {
             deriv: DerivCache::new(),
             next_byte: NextByteCache::new(),
             special_token_rx,
             relevance,
-            lazy: lazy.unwrap_or_else(|| LexemeSet::new(rx_list.len())),
+            lazy,
+            rx_lexemes,
             exprs: exprset,
             alpha,
             rx_list,
@@ -580,46 +647,54 @@ impl RegexVec {
         assert!(lst.len() % 2 == 0);
         let id = StateID::new(self.rx_sets.insert(&lst));
         if id.as_usize() >= self.state_descs.len() {
-            let mut state_desc = self.compute_state_desc(id);
-            state_desc.lowest_match = self.lowest_match_inner(id);
-            if let Some((idx, _)) = state_desc.lowest_match {
-                if Some(self.get_rx(idx)) == self.special_token_rx {
-                    state_desc.has_special_token = true;
-                }
-            }
+            let state_desc = self.compute_state_desc(id);
             self.append_state(state_desc);
         }
-        if self.state_desc(id).lowest_match.is_some() {
+        if self.state_desc(id).lowest_match.0.is_some() {
             id._set_lowest_match()
         } else {
             id
         }
     }
 
-    fn compute_state_desc(&self, state: StateID) -> StateDesc {
+    fn compute_state_desc(&mut self, state: StateID) -> StateDesc {
         let mut res = StateDesc {
             state,
-            lowest_accepting: None,
+            lowest_accepting: MatchingLexemes::None,
             accepting: LexemeSet::new(self.rx_list.len()),
             possible: LexemeSet::new(self.rx_list.len()),
             possible_lookahead_len: None,
             lookahead_len: None,
             next_byte: None,
-            lowest_match: None,
+            lowest_match: (MatchingLexemes::None, 0),
             has_special_token: false,
         };
+        let mut num_accepting = 0;
         for (idx, e) in iter_state(&self.rx_sets, state) {
             res.possible.add(idx);
             if self.exprs.is_nullable(e) {
                 res.accepting.add(idx);
-                if res.lowest_accepting.is_none() {
-                    res.lowest_accepting = Some(idx);
-                }
+                num_accepting += 1;
             }
         }
+
+        if num_accepting == 1 {
+            res.lowest_accepting = MatchingLexemes::One(res.accepting.first().unwrap());
+        } else if num_accepting > 1 {
+            res.lowest_accepting = MatchingLexemes::Many(res.accepting.iter().collect());
+        }
+
         if res.possible.is_empty() {
             assert!(state == StateID::DEAD);
         }
+
+        res.lowest_match = self.lowest_match_inner(state);
+        if let Some((idx, _)) = res.lowest_match {
+            if Some(self.get_rx(idx)) == self.special_token_rx {
+                res.has_special_token = true;
+            }
+        }
+
         // debug!("state {:?} desc: {:?}", state, res);
         res
     }

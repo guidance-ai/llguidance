@@ -8,7 +8,7 @@ use toktrie::{
 
 use crate::{api::ParserLimits, id32_type};
 
-use super::regexvec::{LexemeSet, RegexVec};
+use super::regexvec::{LexemeSet, RegexVec, RxLexeme};
 
 #[derive(Clone)]
 pub struct LexerSpec {
@@ -209,11 +209,18 @@ impl LexerSpec {
         // For every non literals lexeme, find all keywords that match it.
         // Replace the regex R for the lexeme with (R & ~(K1|K2|...)) where K1...
         // are the conflicting keywords.
-        let rx_list: Vec<_> = self.lexemes.iter().map(|lex| lex.compiled_rx).collect();
+        let rx_list: Vec<_> = self
+            .lexemes
+            .iter()
+            .map(|lex| RxLexeme {
+                rx: lex.compiled_rx,
+                priority: 0,
+                lazy: lex.lazy,
+            })
+            .collect();
         RegexVec::new_with_exprset(
             self.regex_builder.exprset(),
-            &rx_list,
-            Some(self.lazy_lexemes()),
+            rx_list,
             self.special_token_rx,
             limits,
         )
