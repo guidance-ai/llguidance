@@ -330,7 +330,7 @@ impl RowInfo {
 //
 // The stack of lexer states also manages a virtual stack of Earley sets, via the
 // 'row_idx' field.  The current Earley table/stack is rows 0 through 'row_idx'.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct LexerState {
     row_idx: u32,         // Index of corresponding row (Earley set)
     lexer_state: StateID, // state after consuming 'byte'
@@ -1339,6 +1339,19 @@ impl ParserState {
     fn trie_started_inner(&mut self, lbl: &str) {
         // debug!("trie_started: rows={} lexer={}", self.num_rows(), self.lexer_stack.len());
         self.assert_definitive();
+
+        if self.lexer_spec().can_rollback() && self.lexer_stack.len() != self.bytes.len() + 1 {
+            for e in &self.lexer_stack {
+                eprintln!("  {:?}", e);
+            }
+            eprintln!("bytes: {:?}", String::from_utf8_lossy(&self.bytes));
+            panic!(
+                "lexer_stack={} bytes={}",
+                self.lexer_stack.len(),
+                self.bytes.len()
+            );
+        }
+
         self.trie_lexer_stack = self.lexer_stack.len();
         self.trie_grammar_stack = self.scratch.grammar_stack.len();
         self.scratch.definitive = false;
@@ -1428,6 +1441,7 @@ impl ParserState {
             }
             let bt = std::mem::take(&mut self.backtrack_byte_count);
             if bt > 0 {
+                assert!(self.lexer_spec().has_stop);
                 // reset cache in case we hit the same length again in future
                 self.last_force_bytes_len = usize::MAX;
                 self.bytes.truncate(self.bytes.len() - bt);
@@ -2643,10 +2657,7 @@ impl Parser {
     }
 
     pub fn rollback(&mut self, n_bytes: usize) -> Result<()> {
-        ensure!(
-            !self.state.lexer_spec().has_stop,
-            "rollback not supported with stop=... lexemes; suffix=... are supported though"
-        );
+        self.state.lexer_spec().check_rollback()?;
         self.with_shared(|state| state.rollback(n_bytes))
     }
 

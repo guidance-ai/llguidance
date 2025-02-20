@@ -15,4 +15,4 @@ while [ $# -gt 0 ]; do
 done
 
 set -x
-RUST_BACKTRACE=1 cargo test -F llguidance/logging --test test_ll $ARGS $FINAL_ARGS
+RUST_BACKTRACE=1 cargo test -F llguidance/logging $ARGS $FINAL_ARGS

@@ -314,6 +314,9 @@ fn grammar_from_json(
                 if let Some(idx) = local_grammar_mapping.get(&data.grammar) {
                     data.grammar = GrammarId::Index(*idx);
                 }
+                if max_tokens != usize::MAX {
+                    lexer_spec.has_max_tokens = true;
+                }
                 grm.make_gen_grammar(lhs, data.clone())?;
             }
             Node::SpecialToken { token, .. } => {
