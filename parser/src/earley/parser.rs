@@ -978,9 +978,10 @@ impl ParserState {
         })
     }
 
-    fn add_bytes_ignoring_lexer(&mut self, bytes: &[u8]) {
+    fn add_numeric_token(&mut self, idx: LexemeIdx, tok_bytes: &[u8]) -> Result<()> {
         let lexer_state = self.lexer_state();
-        for &b in bytes {
+        // the last lexer state will be pushed by advance_parser() below
+        for &b in &tok_bytes[0..tok_bytes.len() - 1] {
             self.lexer_stack.push(LexerState {
                 byte: Some(b),
                 ..lexer_state
@@ -988,16 +989,12 @@ impl ParserState {
         }
 
         if self.scratch.definitive {
-            self.bytes.extend_from_slice(bytes);
-            for _ in 0..bytes.len() {
+            self.bytes.extend_from_slice(tok_bytes);
+            for _ in 0..tok_bytes.len() {
                 self.byte_to_token_idx
                     .push(self.token_idx.try_into().unwrap());
             }
         }
-    }
-
-    fn add_numeric_token(&mut self, idx: LexemeIdx, tok_bytes: &[u8]) -> Result<()> {
-        self.add_bytes_ignoring_lexer(tok_bytes);
         let ok = self.advance_parser(PreLexeme::just_idx(MatchingLexemesIdx::Single(idx)));
         ensure!(
             ok,
