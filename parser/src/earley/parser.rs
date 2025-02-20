@@ -135,6 +135,22 @@ impl XorShift {
         }
         hash
     }
+
+    pub fn sample_from_vob(&mut self, vob: &SimpleVob) -> u32 {
+        let nset = vob.num_set();
+        assert!(nset > 0);
+        if nset > vob.len() / 10 {
+            loop {
+                let idx = self.from_range(0..vob.len());
+                if vob[idx] {
+                    return idx as u32;
+                }
+            }
+        } else {
+            let choices = vob.to_list();
+            choices[self.from_range(0..choices.len())]
+        }
+    }
 }
 
 impl Default for XorShift {

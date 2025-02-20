@@ -1,15 +1,16 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, ensure, Result};
 use clap::Parser;
 use indexmap::IndexMap;
 use json_stats::SchemaStats;
 use jsonschema::Validator;
 use llguidance::{
+    api::StopReason,
     earley::{
         perf::{num_with_commas, ParserPerfCounters},
         regexvec::LexerStats,
         XorShift,
     },
-    toktrie::{InferenceCapabilities, TokEnv},
+    toktrie::{InferenceCapabilities, SimpleVob, TokEnv},
     Constraint, HashMap, JsonCompileOptions, ParserFactory, TokenParser,
 };
 use serde::{Deserialize, Serialize};
@@ -41,10 +42,10 @@ pub struct CliOptions {
 
     /// Validate each token (only)
     #[arg(long)]
-    llg_test: bool,
+    llg_validate_tokens: bool,
 
-    /// Measure mask computation times (full test)
-    #[arg(long, short = 'm')]
+    /// Measure mask computation times (full test; default)
+    #[arg(long)]
     llg_masks: bool,
 
     /// Disable the slicer optimization
@@ -60,7 +61,7 @@ pub struct CliOptions {
     llg_test_slicer: bool,
 
     /// Use white-space inflexible grammar (force no whitespace in JSON).
-    #[arg(long, default_value_t = false)]
+    #[arg(long)]
     compact: bool,
 
     /// Validate results against known good results; similar to 'diff FILE tmp/llg_sem_results.json'
@@ -68,12 +69,16 @@ pub struct CliOptions {
     expected: Option<String>,
 
     /// Don't report missing or similar results for --expected
-    #[arg(long, default_value_t = false)]
+    #[arg(long)]
     ballpark: bool,
 
     /// Print out CSV mask computation histogram
     #[arg(long)]
     csv: bool,
+
+    /// Test rollback mechanism for speculative decoding
+    #[arg(long)]
+    rollback: bool,
 
     /// Run that many threads; defaults to min(40, cpus())
     #[arg(long)]
@@ -100,11 +105,11 @@ pub struct CliOptions {
     filter: Option<String>,
 
     /// Only process '"valid": true' testcases
-    #[arg(long, default_value_t = false)]
+    #[arg(long)]
     only_valid: bool,
 
     /// Only process '"valid": false' testcases
-    #[arg(long, default_value_t = false)]
+    #[arg(long)]
     only_invalid: bool,
 
     /// Treat all schemas as { "type": "object" }
@@ -194,6 +199,8 @@ struct LlgResult {
 
     all_mask_us: Vec<usize>,
     ff_tokens_us: Vec<usize>,
+
+    rollback_tokens: usize,
 
     #[serde(skip)]
     all_hash: Vec<u64>,
@@ -327,12 +334,19 @@ enum MaskResult {
     Reject { reason: String },
 }
 
+enum RefResult {
+    None,
+    Mask(SimpleVob),
+    Forced(Vec<u32>),
+}
+
 impl TestEnv {
     fn check_mask(
         &self,
         stats: &mut LlgResult,
         parser: &mut TokenParser,
         mut ref_parser: Option<&mut TokenParser>,
+        roll_result: &RefResult,
         tidx: usize,
         tokens: &[u32],
     ) -> Result<MaskResult> {
@@ -347,6 +361,17 @@ impl TestEnv {
                 let us = t0.elapsed().as_micros() as usize;
                 stats.ff_tokens_us.push(us);
                 let endp = std::cmp::min(tokens.len(), tidx + forced.len());
+
+                match roll_result {
+                    RefResult::None => {}
+                    RefResult::Mask(_) => {
+                        bail!("rollback produced mask, but main parser forced tokens")
+                    }
+                    RefResult::Forced(items) => {
+                        ensure!(items == &forced, "forced tokens mismatch (rollback)")
+                    }
+                }
+
                 if &tokens[tidx..endp] == forced.as_slice() {
                     return Ok(MaskResult::Accept {
                         n_tokens: forced.len(),
@@ -442,6 +467,17 @@ impl TestEnv {
         }
 
         stats.max_mask_us = std::cmp::max(stats.max_mask_us, mask_us);
+
+        match roll_result {
+            RefResult::None => {}
+            RefResult::Mask(m2) => {
+                ensure!(m == *m2, "mask mismatch (rollback)")
+            }
+            RefResult::Forced(_) => {
+                bail!("rollback forced tokens, but main parser didn't")
+            }
+        }
+
         if m.is_allowed(token) {
             Ok(MaskResult::Accept { n_tokens: 1 })
         } else {
@@ -449,6 +485,41 @@ impl TestEnv {
                 reason: format!("mask: {}", trie.token_set_dbg(&m)),
             })
         }
+    }
+
+    fn try_rollback(
+        &self,
+        stats: &mut LlgResult,
+        rnd: &mut XorShift,
+        parser: &mut TokenParser,
+    ) -> Result<RefResult> {
+        let mut n_tokens = 0;
+        loop {
+            if rnd.one_in(10) {
+                break;
+            }
+            let m = parser.compute_mask();
+            if m.is_err() && parser.stop_reason() == StopReason::NoExtensionBias {
+                break;
+            }
+            let m = m?;
+            let tok = rnd.sample_from_vob(&m);
+            let bt = parser.consume_token(tok)?;
+            assert!(bt == 0);
+            n_tokens += 1;
+        }
+        parser.rollback(n_tokens)?;
+        stats.rollback_tokens += n_tokens;
+
+        if !self.cli.llg_no_forcing {
+            let forced = parser.compute_ff_tokens();
+            if forced.len() > 0 {
+                return Ok(RefResult::Forced(forced));
+            }
+        }
+
+        let m = parser.compute_mask()?;
+        Ok(RefResult::Mask(m))
     }
 
     fn run_llg_test_inner(
@@ -459,9 +530,16 @@ impl TestEnv {
         t: &JsonTestSequence,
     ) -> Result<()> {
         let dstr = serde_json::to_string(&t.data).unwrap();
+        let mut rnd = XorShift::from_str(&dstr);
         let tokens = self.tok_env.tokenize(&dstr);
         let trie = self.tok_env.tok_trie();
         let masks = self.cli.llg_masks;
+
+        let mut roll_parser = if self.cli.rollback {
+            Some(parser.deep_clone())
+        } else {
+            None
+        };
 
         stats.num_tests += 1;
 
@@ -472,8 +550,21 @@ impl TestEnv {
         while tidx < tokens.len() {
             // eprintln!("WILL TEST {}: {}", tidx, trie.token_dbg(token));
 
+            let roll_result = if let Some(roll_parser) = &mut roll_parser {
+                self.try_rollback(stats, &mut rnd, roll_parser)?
+            } else {
+                RefResult::None
+            };
+
             let mask_res = if masks {
-                self.check_mask(stats, parser, ref_parser.as_mut(), tidx, &tokens)?
+                self.check_mask(
+                    stats,
+                    parser,
+                    ref_parser.as_mut(),
+                    &roll_result,
+                    tidx,
+                    &tokens,
+                )?
             } else {
                 if parser.validate_token(tokens[tidx])? {
                     MaskResult::Accept { n_tokens: 1 }
@@ -513,6 +604,11 @@ impl TestEnv {
 
                 if let Some(ref_parser) = &mut ref_parser {
                     let bt = ref_parser.consume_token(token)?;
+                    assert!(bt == 0);
+                }
+
+                if let Some(roll_parser) = &mut roll_parser {
+                    let bt = roll_parser.consume_token(token)?;
                     assert!(bt == 0);
                 }
 
@@ -641,7 +737,7 @@ impl TestEnv {
 
         let ref_parser = ref_parser.map(|p| p.unwrap());
 
-        if self.cli.llg_test {
+        if self.cli.llg_validate_tokens {
             for (idx, t) in all_tests.iter().enumerate() {
                 if let Err(e) = self.run_llg_test(&mut res, &parser, ref_parser.as_ref(), t) {
                     if res.validation_error.is_none() {
@@ -780,10 +876,14 @@ impl TestEnv {
 
 fn main() {
     let mut options = CliOptions::parse();
-    if options.llg_masks {
-        options.llg_test = true;
+
+    if !options.llg_validate_tokens && !options.llg_masks && !options.llg_compile {
+        options.llg_masks = true;
     }
-    if options.llg_test {
+    if options.llg_masks {
+        options.llg_validate_tokens = true;
+    }
+    if options.llg_validate_tokens {
         options.llg_compile = true;
     }
 
@@ -1256,7 +1356,9 @@ struct TotalStats {
 }
 
 fn read_file_to_string(filename: &str) -> String {
-    let mut file = File::open(filename).expect("Unable to open file");
+    let mut file = File::open(filename)
+        .map_err(|e| format!("Unable to open file {}: {}", filename, e))
+        .unwrap();
     let mut content = String::new();
     file.read_to_string(&mut content)
         .expect("Unable to read file");

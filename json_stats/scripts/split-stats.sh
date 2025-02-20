@@ -23,10 +23,10 @@ for split in $splits; do
         F=""
     fi
     for v in valid invalid ; do
-        ./jstats.sh -m $JSB_DATA/unique_tests/ $F --only-$v
+        ./jstats.sh $JSB_DATA/unique_tests/ $F --only-$v
         mv tmp/test_total.json tmp/splits/$split-$v.json
     done
 
-    ./jstats.sh -m $JSB_DATA/unique_tests/ $F --only-valid --compact
+    ./jstats.sh $JSB_DATA/unique_tests/ $F --only-valid --compact
     mv tmp/test_total.json tmp/splits/$split-valid-compact.json
 done
