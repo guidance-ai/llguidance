@@ -66,7 +66,7 @@ fn check_grammar(
         if can_rollback {
             let mut n_tok = 0;
             loop {
-                if true || step_idx == 0 && had_token_healing {
+                if step_idx == 0 && had_token_healing {
                     break;
                 }
                 eprintln!("\nRollback #{}", n_tok);

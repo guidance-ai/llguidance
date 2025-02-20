@@ -395,6 +395,7 @@ struct ParserState {
     // (when walking the token trie). Otherwise, they represent the full parsing
     // history - items are not popped in definitive mode.
     lexer_stack: Vec<LexerState>,
+    lexer_stack_top_eos: bool,
     rows: Vec<Row>,
     rows_valid_end: usize,
 
@@ -587,6 +588,7 @@ impl ParserState {
             max_all_items: usize::MAX,
             limits,
             backtrack_byte_count: 0,
+            lexer_stack_top_eos: false,
             lexer_stack: vec![LexerState {
                 row_idx: 0,
                 lexer_state,
@@ -924,16 +926,16 @@ impl ParserState {
         );
         self.check_lexer_bytes_invariant();
 
-        self.byte_to_token_idx
-            .truncate(self.byte_to_token_idx.len() - n_bytes);
+        let new_len = self.byte_to_token_idx.len() - n_bytes;
 
-        let bytes_to_pop = self.bytes.len() - self.byte_to_token_idx.len();
-        self.bytes.truncate(self.byte_to_token_idx.len());
-        self.pop_lexer_states(bytes_to_pop);
+        self.byte_to_token_idx.truncate(new_len);
+        self.bytes.truncate(new_len);
+        self.lexer_stack.truncate(new_len + 1);
 
         self.row_infos.truncate(self.num_rows());
         self.token_idx = self.byte_to_token_idx.last().unwrap_or(&0).clone() as usize;
         self.last_force_bytes_len = usize::MAX;
+        self.lexer_stack_top_eos = false;
         self.rows_valid_end = self.num_rows();
 
         self.assert_definitive();
@@ -1370,9 +1372,10 @@ impl ParserState {
     }
 
     fn check_lexer_bytes_invariant(&self) {
-        if self.lexer_stack.len() != self.bytes.len() + 1 {
+        let off = if self.lexer_stack_top_eos { 2 } else { 1 };
+        if self.lexer_stack.len() != self.bytes.len() + off {
             panic!(
-                "lexer_stack={:?} bytes={:?} {}!={}+1",
+                "lexer_stack={:?} bytes={:?} {}!={}+{off}",
                 self.lexer_stack,
                 String::from_utf8_lossy(&self.bytes),
                 self.lexer_stack.len(),
@@ -1580,12 +1583,15 @@ impl ParserState {
 
     pub fn scan_eos(&mut self) -> bool {
         self.assert_definitive(); // ???
+        self.check_lexer_bytes_invariant();
 
         let lexer_eos = self.lexer_allows_eos();
 
         debug!("  scan eos: lexer_eos={}", lexer_eos);
 
+        let prev_stack = self.lexer_stack.len();
         if !self.flush_lexer() {
+            assert_eq!(self.lexer_stack.len(), prev_stack);
             debug!("  flush_lexer() failed");
             return false;
         }
@@ -1601,10 +1607,12 @@ impl ParserState {
         //     return true;
         // }
 
-        // make sure bytes count matches lexer stack
-        //self.bytes.push(b'\xFE');
+        if self.lexer_stack.len() != prev_stack {
+            assert_eq!(self.lexer_stack.len(), prev_stack + 1);
+            self.lexer_stack_top_eos = true;
+        }
 
-        //self.check_lexer_bytes_invariant();
+        self.check_lexer_bytes_invariant();
 
         return false;
     }

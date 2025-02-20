@@ -336,7 +336,8 @@ impl TokenParser {
         let mut bytes_to_drop = 0;
         for tok in &self.llm_tokens[new_len..] {
             if *tok == self.eos_token {
-                bytes_to_drop += 1;
+                // doesn't count; we hope it's last though...
+                bytes_to_drop += 0;
             } else {
                 bytes_to_drop += self.tok_trie().token_len(*tok);
             }
