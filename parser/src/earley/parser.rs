@@ -464,7 +464,6 @@ impl Scratch {
         Row {
             first_item: self.row_start as u32,
             last_item: self.row_end as u32,
-            // TODO convert this to lexer state
             grammar_stack_ptr: self.push_grm_top,
             lexer_start_state,
             lexeme_idx: self.push_lexeme_idx,
@@ -896,6 +895,15 @@ impl ParserState {
         } else {
             Some(temp)
         }
+    }
+
+    pub fn rollback(&mut self, n_bytes: usize) -> Result<()> {
+        self.assert_definitive();
+        ensure!(
+            n_bytes <= self.byte_to_token_idx.len(),
+            "rollback: too many bytes"
+        );
+        todo!();
     }
 
     pub fn validate_tokens(&mut self, tokens: &[TokenId]) -> usize {
@@ -2632,6 +2640,14 @@ impl Parser {
         *shared = std::mem::take(&mut self.state.shared_box);
         assert!(shared.lexer_opt.is_some());
         r
+    }
+
+    pub fn rollback(&mut self, n_bytes: usize) -> Result<()> {
+        ensure!(
+            !self.state.lexer_spec().has_stop,
+            "rollback not supported with stop=... lexemes; suffix=... are supported though"
+        );
+        self.with_shared(|state| state.rollback(n_bytes))
     }
 
     /// Returns how many tokens can be applied.

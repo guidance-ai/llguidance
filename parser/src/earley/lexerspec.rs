@@ -21,6 +21,7 @@ pub struct LexerSpec {
     pub current_class: LexemeClass,
     // regex for \xFF \[ [0-9]+ \]
     pub special_token_rx: Option<ExprRef>,
+    pub has_stop: bool,
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
@@ -130,6 +131,7 @@ impl LexerSpec {
             num_extra_lexemes: 0,
             skip_by_class: Vec::new(),
             current_class: LexemeClass(0),
+            has_stop: false,
         })
     }
 
@@ -243,6 +245,16 @@ impl LexerSpec {
         } else {
             self.regex_builder.mk(&spec.rx)?
         };
+
+        if !self.has_stop && !spec.is_suffix {
+            self.has_stop = match &spec.rx {
+                RegexAst::Concat(parts) => parts.iter().any(|part| match part {
+                    RegexAst::LookAhead(_) => true,
+                    _ => false,
+                }),
+                _ => false,
+            };
+        }
 
         let compiled = if let Some(ref opts) = spec.json_options {
             self.regex_builder.json_quote(compiled, opts)?
