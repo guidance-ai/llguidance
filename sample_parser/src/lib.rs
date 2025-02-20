@@ -1,10 +1,26 @@
 use lazy_static::lazy_static;
 use llguidance::{
-    api::{GrammarWithLexer, TopLevelGrammar},
-    earley::SlicedBiasComputer,
-    toktrie::{InferenceCapabilities, TokEnv, TokenId},
+    api::{GrammarWithLexer, StopReason, TopLevelGrammar},
+    earley::{SlicedBiasComputer, XorShift},
+    toktrie::{InferenceCapabilities, SimpleVob, TokEnv, TokenId},
     Constraint, ParserFactory,
 };
+
+fn sample_from_vob(rnd: &mut XorShift, vob: &SimpleVob) -> u32 {
+    let nset = vob.num_set();
+    assert!(nset > 0);
+    if nset > vob.len() / 10 {
+        loop {
+            let idx = rnd.from_range(0..vob.len());
+            if vob[idx] {
+                return idx as u32;
+            }
+        }
+    } else {
+        let choices = vob.to_list();
+        choices[rnd.from_range(0..choices.len())]
+    }
+}
 
 /// Check that the grammar generates the expected output.
 ///
@@ -24,13 +40,20 @@ fn check_grammar(
     output: &[&str],
     temp: f32,
 ) -> Constraint {
+    let mut rnd = XorShift::from_str(&serde_json::to_string(&grammar).unwrap());
+
     let parser = factory.create_parser(grammar).unwrap();
+    let can_rollback = parser.parser.grammar().lexer_spec().can_rollback();
+    let mut parser2 = parser.deep_clone();
     let mut constraint = Constraint::new(parser);
 
     let tok_env = factory.tok_env();
 
-    let prompt = constraint.process_prompt(tok_env.tokenize(prompt_str));
+    let prompt = tok_env.tokenize(prompt_str);
+    let prompt2 = parser2.process_prompt(prompt.clone());
+    let prompt = constraint.process_prompt(prompt);
     check_eq(tok_env, "prompt", &prompt, output[0]);
+    check_eq(tok_env, "prompt2", &prompt2, output[0]);
 
     let mut idx = 1;
     let mut gen_tokens = tokenize_trace(tok_env, output[idx]);
@@ -38,6 +61,49 @@ fn check_grammar(
 
     for _ in 0..200 {
         let res = constraint.compute_mask().unwrap().clone();
+
+        if can_rollback {
+            let mut n_tok = 0;
+            loop {
+                if parser2.check_stop().unwrap() {
+                    break;
+                }
+                let m = parser2.compute_mask();
+                if m.is_err() && parser2.stop_reason() == StopReason::NoExtensionBias {
+                    break;
+                }
+                let m = m.unwrap();
+                let tok = sample_from_vob(&mut rnd, &m);
+                let bt = parser2.consume_token(tok).unwrap();
+                assert!(bt == 0);
+                n_tok += 1;
+                if rnd.one_in(10) {
+                    if rnd.one_in(2) {
+                        let _ = parser2.compute_ff_tokens();
+                    }
+                    break;
+                }
+                let _ = parser2.compute_ff_tokens();
+            }
+            if n_tok > 0 {
+                parser2.rollback(n_tok).unwrap();
+            }
+            if let Some(m) = &res.sample_mask {
+                eprintln!("\nRollback MASK");
+                let m2 = parser2.compute_mask().unwrap();
+                assert_eq!(m.len(), m2.len());
+                for i in 0..m.len() {
+                    if m[i] != m2[i] {
+                        panic!(
+                            "Mask mismatch at {}: {} rollback={}",
+                            tok_env.tok_trie().token_dbg(i as u32),
+                            m[i],
+                            m2[i]
+                        );
+                    }
+                }
+            }
+        }
 
         if let Some(t) = res.temperature {
             assert!(
@@ -141,6 +207,15 @@ fn check_grammar(
             gen_tokens.remove(0);
 
             let res = constraint.commit_token(Some(tok)).unwrap();
+
+            if can_rollback {
+                let bt = parser2.consume_token(tok).unwrap();
+                assert!(bt == 0);
+                let mut ff = parser2.consume_ff_tokens().unwrap();
+                ff.insert(0, tok);
+                assert_eq!(ff, res.ff_tokens);
+            }
+
             bt = res.backtrack;
             toks = res.ff_tokens.clone();
             if toks.is_empty() || toks[0] != tok {
@@ -171,6 +246,11 @@ fn check_grammar(
             let res = constraint.commit_token(None).unwrap();
             bt = res.backtrack;
             toks = res.ff_tokens.clone();
+
+            if can_rollback {
+                let ff = parser2.consume_ff_tokens().unwrap();
+                assert_eq!(ff, res.ff_tokens);
+            }
         }
 
         // forced byte checking

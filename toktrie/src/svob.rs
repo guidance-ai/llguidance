@@ -393,6 +393,12 @@ impl SimpleVob {
         }
         None
     }
+
+    pub fn to_list(&self) -> Vec<u32> {
+        let mut r = Vec::new();
+        self.iter_set_entries(|x| r.push(x as u32));
+        r
+    }
 }
 
 pub struct SimpleVobIter<'a> {

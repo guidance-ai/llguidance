@@ -93,6 +93,12 @@ impl XorShift {
         XorShift { seed }
     }
 
+    pub fn from_str(s: &str) -> Self {
+        XorShift {
+            seed: XorShift::fnv1a_32(s.as_bytes()),
+        }
+    }
+
     pub fn next(&mut self) -> u32 {
         let mut x = self.seed;
         x ^= x << 13;
@@ -119,6 +125,15 @@ impl XorShift {
         x ^= x << 23;
         self.seed = x;
         x
+    }
+
+    pub fn fnv1a_32(s: &[u8]) -> u32 {
+        let mut hash: u32 = 0x811c9dc5;
+        for byte in s {
+            hash ^= *byte as u32;
+            hash = hash.wrapping_mul(0x01000193);
+        }
+        hash
     }
 }
 
@@ -898,12 +913,29 @@ impl ParserState {
     }
 
     pub fn rollback(&mut self, n_bytes: usize) -> Result<()> {
+        ensure!(self.parser_error.is_none(), "rollback: parser error");
         self.assert_definitive();
         ensure!(
             n_bytes <= self.byte_to_token_idx.len(),
             "rollback: too many bytes"
         );
-        todo!();
+
+        self.byte_to_token_idx
+            .truncate(self.byte_to_token_idx.len() - n_bytes);
+        assert!(self.bytes.len() + 1 == self.lexer_stack.len());
+        let bytes_to_pop = self.bytes.len() - self.byte_to_token_idx.len();
+        self.bytes.truncate(self.byte_to_token_idx.len());
+        self.pop_lexer_states(bytes_to_pop);
+
+        self.row_infos.truncate(self.num_rows());
+        self.token_idx = self.byte_to_token_idx.last().unwrap_or(&0).clone() as usize;
+        self.last_force_bytes_len = usize::MAX;
+        self.rows_valid_end = self.num_rows();
+
+        self.assert_definitive();
+        assert!(self.bytes.len() + 1 == self.lexer_stack.len());
+
+        Ok(())
     }
 
     pub fn validate_tokens(&mut self, tokens: &[TokenId]) -> usize {

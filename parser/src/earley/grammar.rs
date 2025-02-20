@@ -930,6 +930,17 @@ impl CGrammar {
     }
 }
 
+impl Debug for CGrammar {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for s in &self.symbols {
+            for r in &s.rules {
+                writeln!(f, "{}", self.rule_to_string(*r))?;
+            }
+        }
+        Ok(())
+    }
+}
+
 fn rule_to_string(
     lhs: &str,
     mut rhs: Vec<String>,
