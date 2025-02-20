@@ -913,16 +913,20 @@ impl ParserState {
     }
 
     pub fn rollback(&mut self, n_bytes: usize) -> Result<()> {
+        debug!("rollback: {} bytes", n_bytes);
         ensure!(self.parser_error.is_none(), "rollback: parser error");
         self.assert_definitive();
         ensure!(
             n_bytes <= self.byte_to_token_idx.len(),
-            "rollback: too many bytes"
+            "rollback: too many bytes {} > {}",
+            n_bytes,
+            self.byte_to_token_idx.len()
         );
+        self.check_lexer_bytes_invariant();
 
         self.byte_to_token_idx
             .truncate(self.byte_to_token_idx.len() - n_bytes);
-        assert!(self.bytes.len() + 1 == self.lexer_stack.len());
+
         let bytes_to_pop = self.bytes.len() - self.byte_to_token_idx.len();
         self.bytes.truncate(self.byte_to_token_idx.len());
         self.pop_lexer_states(bytes_to_pop);
@@ -933,7 +937,7 @@ impl ParserState {
         self.rows_valid_end = self.num_rows();
 
         self.assert_definitive();
-        assert!(self.bytes.len() + 1 == self.lexer_stack.len());
+        self.check_lexer_bytes_invariant();
 
         Ok(())
     }
@@ -1365,20 +1369,24 @@ impl ParserState {
         }
     }
 
+    fn check_lexer_bytes_invariant(&self) {
+        if self.lexer_stack.len() != self.bytes.len() + 1 {
+            panic!(
+                "lexer_stack={:?} bytes={:?} {}!={}+1",
+                self.lexer_stack,
+                String::from_utf8_lossy(&self.bytes),
+                self.lexer_stack.len(),
+                self.bytes.len()
+            );
+        }
+    }
+
     fn trie_started_inner(&mut self, lbl: &str) {
         // debug!("trie_started: rows={} lexer={}", self.num_rows(), self.lexer_stack.len());
         self.assert_definitive();
 
-        if self.lexer_spec().can_rollback() && self.lexer_stack.len() != self.bytes.len() + 1 {
-            for e in &self.lexer_stack {
-                eprintln!("  {:?}", e);
-            }
-            eprintln!("bytes: {:?}", String::from_utf8_lossy(&self.bytes));
-            panic!(
-                "lexer_stack={} bytes={}",
-                self.lexer_stack.len(),
-                self.bytes.len()
-            );
+        if self.lexer_spec().can_rollback() {
+            self.check_lexer_bytes_invariant();
         }
 
         self.trie_lexer_stack = self.lexer_stack.len();
@@ -1592,6 +1600,11 @@ impl ParserState {
         // if self.is_accepting() {
         //     return true;
         // }
+
+        // make sure bytes count matches lexer stack
+        //self.bytes.push(b'\xFE');
+
+        //self.check_lexer_bytes_invariant();
 
         return false;
     }
@@ -2705,18 +2718,20 @@ impl Parser {
     }
 
     pub fn log_row_infos(&mut self, label: &str) {
-        self.with_shared(|state| {
-            debug!(
-                "row infos {}: token_idx: {}; applied bytes: {}/{}",
-                label,
-                state.token_idx,
-                state.byte_to_token_idx.len(),
-                state.bytes.len()
-            );
-            for infos in state.row_infos.iter() {
-                debug!("  {}", infos.dbg(state.lexer()));
-            }
-        })
+        if cfg!(feature = "logging") && DEBUG {
+            self.with_shared(|state| {
+                debug!(
+                    "row infos {}: token_idx: {}; applied bytes: {}/{}",
+                    label,
+                    state.token_idx,
+                    state.byte_to_token_idx.len(),
+                    state.bytes.len()
+                );
+                for infos in state.row_infos.iter() {
+                    debug!("  {}", infos.dbg(state.lexer()));
+                }
+            })
+        }
     }
 
     pub fn is_accepting(&mut self) -> bool {

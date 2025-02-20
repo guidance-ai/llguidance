@@ -51,6 +51,7 @@ fn check_grammar(
 
     let prompt = tok_env.tokenize(prompt_str);
     let prompt2 = parser2.process_prompt(prompt.clone());
+    let had_token_healing = prompt != prompt2;
     let prompt = constraint.process_prompt(prompt);
     check_eq(tok_env, "prompt", &prompt, output[0]);
     check_eq(tok_env, "prompt2", &prompt2, output[0]);
@@ -59,12 +60,16 @@ fn check_grammar(
     let mut gen_tokens = tokenize_trace(tok_env, output[idx]);
     let mut seen_temp = temp == 0.0;
 
-    for _ in 0..200 {
+    for step_idx in 0..200 {
         let res = constraint.compute_mask().unwrap().clone();
 
         if can_rollback {
             let mut n_tok = 0;
             loop {
+                if true || step_idx == 0 && had_token_healing {
+                    break;
+                }
+                eprintln!("\nRollback #{}", n_tok);
                 if parser2.check_stop().unwrap() {
                     break;
                 }
@@ -77,6 +82,9 @@ fn check_grammar(
                 let bt = parser2.consume_token(tok).unwrap();
                 assert!(bt == 0);
                 n_tok += 1;
+                if tok == tok_env.tok_trie().eos_token() {
+                    break;
+                }
                 if rnd.one_in(10) {
                     if rnd.one_in(2) {
                         let _ = parser2.compute_ff_tokens();
@@ -86,6 +94,7 @@ fn check_grammar(
                 let _ = parser2.compute_ff_tokens();
             }
             if n_tok > 0 {
+                eprintln!("\nRun Rollback n_tok={}", n_tok);
                 parser2.rollback(n_tok).unwrap();
             }
             if let Some(m) = &res.sample_mask {

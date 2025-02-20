@@ -335,7 +335,11 @@ impl TokenParser {
         let new_len = self.llm_tokens.len() - n_tokens;
         let mut bytes_to_drop = 0;
         for tok in &self.llm_tokens[new_len..] {
-            bytes_to_drop += self.tok_trie().token_len(*tok);
+            if *tok == self.eos_token {
+                bytes_to_drop += 1;
+            } else {
+                bytes_to_drop += self.tok_trie().token_len(*tok);
+            }
         }
         ensure!(
             bytes_to_drop <= self.llm_bytes.len(),
@@ -448,7 +452,7 @@ impl TokenParser {
 
         infoln!(
             self,
-            "apply_token: {} {} prefix={}",
+            "consume_token: {} {} prefix={}",
             tok_id,
             trie.token_dbg(tok_id),
             prefix_len
@@ -693,7 +697,8 @@ impl TokenParser {
         if token == self.eos_token {
             if self.parser.scan_eos() {
                 // it got scanned correctly, so we remove it
-                infoln!(self, "scanned eos_token");
+                // this only happens for gen() terminated by EOS
+                infoln!(self, "consume_token: scanned eos_token");
                 // if self.inference_caps.backtrack {
                 //     return Ok(1);
                 // } else {
@@ -704,7 +709,11 @@ impl TokenParser {
                 return Ok(0);
             } else {
                 let accepting = self.is_accepting();
-                infoln!(self, "didn't scan eos_token; accept={}", accepting);
+                infoln!(
+                    self,
+                    "consume_token: eos_token not eaten by parser; accept={}",
+                    accepting
+                );
                 if accepting {
                     self.llm_tokens.push(token);
                     return Ok(0);

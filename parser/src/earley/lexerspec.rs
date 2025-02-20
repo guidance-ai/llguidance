@@ -268,6 +268,9 @@ impl LexerSpec {
                 }),
                 _ => false,
             };
+            if spec.ends_at_eos {
+                self.has_stop = true;
+            }
         }
 
         if spec.max_tokens < usize::MAX {
