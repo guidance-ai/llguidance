@@ -3,6 +3,7 @@ use std::{
     ops::RangeInclusive,
 };
 
+use anyhow::{ensure, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use toktrie::TokenId;
@@ -23,6 +24,18 @@ pub const DEFAULT_CONTEXTUAL: bool = true;
 
 /// In lark syntax, this can be specified as JSON object after '%llguidance' declaration in the grammar.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LarkLLGuidanceOptions {
+    #[serde(flatten)]
+    pub general: LLGuidanceOptions,
+
+    /// Lists pairs of literal lexemes that are to be treated as open/close parens.
+    /// Example: ["(", ")", "[", "]", "{", "}"]
+    /// Defaults to empty; you can also use [open_paren] and [close_paren] annotations on lexeme definitions.
+    #[serde(default)]
+    pub indent_parens: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct LLGuidanceOptions {
     /// Normally, when a sequence of bytes is forced by grammar, it is tokenized
     /// canonically and forced as tokens.
@@ -36,16 +49,45 @@ pub struct LLGuidanceOptions {
     /// Any Unicode regex will cause an error.
     #[serde(default)]
     pub allow_invalid_utf8: bool,
+
+    /// If set (typically to "  " or "    "), the grammar will allow INDENT/DEDENT tokens with given indentation string.
+    #[serde(default)]
+    pub indent: Option<String>,
+
+    /// Defaults to "\r?\n"; only used when indent is set.
+    #[serde(default)]
+    pub indent_newline_rx: Option<String>,
+
+    /// If set, the grammar will allow skip_rx as the first lexeme.
+    #[serde(default)]
+    pub allow_initial_skip: bool,
 }
 
 impl LLGuidanceOptions {
-    pub fn apply(&mut self, other: &LLGuidanceOptions) {
+    pub fn apply(&mut self, other: &LLGuidanceOptions) -> Result<()> {
         if other.no_forcing {
             self.no_forcing = true;
         }
         if other.allow_invalid_utf8 {
             self.allow_invalid_utf8 = true;
         }
+        if other.allow_initial_skip {
+            self.allow_initial_skip = true;
+        }
+        if self.indent.is_none() {
+            self.indent = other.indent.clone();
+        } else {
+            ensure!(self.indent == other.indent, "Incompatible indent options");
+        }
+        if self.indent_newline_rx.is_none() {
+            self.indent_newline_rx = other.indent_newline_rx.clone();
+        } else {
+            ensure!(
+                self.indent_newline_rx == other.indent_newline_rx,
+                "Incompatible indent_newline_rx options"
+            );
+        }
+        Ok(())
     }
 }
 
@@ -85,10 +127,6 @@ pub struct GrammarWithLexer {
     #[serde(default)]
     pub rx_nodes: Vec<RegexNode>,
 
-    /// If set, the grammar will allow skip_rx as the first lexeme.
-    #[serde(default)]
-    pub allow_initial_skip: bool,
-
     #[serde(flatten)]
     pub options: LLGuidanceOptions,
 }
@@ -97,6 +135,19 @@ impl Debug for GrammarWithLexer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "GrammarWithLexer [{} nodes]", self.nodes.len())
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum IndentKind {
+    /// Newline, followed by increase in indentation level.
+    Indent,
+    /// Newline, followed by decrease in indentation level.
+    Dedent,
+    /// Newline, followed by no change in indentation level.
+    Keepdent,
+    /// Similar to Keepdent, but allows additional spaces afterwards, which need to matched with a different lexeme.
+    KeepdentLazy,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
@@ -149,6 +200,9 @@ pub enum Node {
         /// When set and json_string is also set, "..." will not be added around the regular expression.
         json_raw: Option<bool>,
 
+        /// This is 1 for '(' or -1 for ')' - used for INDENT/DEDENT lexemes.
+        paren_balance: Option<i8>,
+
         #[serde(flatten)]
         props: NodeProps,
     },
@@ -170,6 +224,13 @@ pub enum Node {
     /// Used for special tokens.
     TokenRanges {
         token_ranges: Vec<RangeInclusive<TokenId>>,
+
+        #[serde(flatten)]
+        props: NodeProps,
+    },
+    /// Used for INDENT/DEDENT lexemes.
+    Indentation {
+        kind: IndentKind,
 
         #[serde(flatten)]
         props: NodeProps,
@@ -368,6 +429,7 @@ impl Node {
             Node::String { props, .. } => props,
             Node::Gen { props, .. } => props,
             Node::Lexeme { props, .. } => props,
+            Node::Indentation { props, .. } => props,
             Node::GenGrammar { props, .. } => props,
             Node::Select { props, .. } => props,
             Node::Join { props, .. } => props,
@@ -532,6 +594,7 @@ impl GrammarWithLexer {
                 json_string: None,
                 json_allowed_escapes: None,
                 json_raw: None,
+                paren_balance: None,
             }],
             rx_nodes: vec![rx],
             ..Default::default()

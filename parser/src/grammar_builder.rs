@@ -1,4 +1,4 @@
-use crate::HashMap;
+use crate::{api::IndentKind, HashMap};
 use anyhow::{bail, ensure, Result};
 use derivre::RegexAst;
 use std::{ops::RangeInclusive, sync::atomic::AtomicU32};
@@ -305,6 +305,14 @@ impl GrammarBuilder {
             json_string: None,
             json_raw: None,
             json_allowed_escapes: None,
+            paren_balance: None,
+            props: NodeProps::default(),
+        })
+    }
+
+    pub fn indent(&mut self, kind: IndentKind) -> NodeRef {
+        self.add_node(Node::Indentation {
+            kind,
             props: NodeProps::default(),
         })
     }

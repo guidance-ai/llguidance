@@ -91,6 +91,7 @@ impl Parser {
             temperature: None,
             capture_name: None,
             stop_capture_name: None,
+            paren_balance: None,
         };
 
         if self.has_token(Token::LBracket) {
@@ -153,6 +154,12 @@ impl Parser {
                     if !rule.is_lazy() {
                         rule.suffix = Some(Value::LiteralRegex("".to_string(), "".to_string()));
                     }
+                }
+                "open_paren" => {
+                    rule.paren_balance = Some(1);
+                }
+                "close_paren" => {
+                    rule.paren_balance = Some(-1);
                 }
                 _ => {
                     self.expect_token(Token::Equals)?;

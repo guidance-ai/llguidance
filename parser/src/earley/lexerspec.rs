@@ -7,7 +7,7 @@ use crate::{api::ParserLimits, id32_type};
 
 use super::{
     lexer::MatchingLexemesIdx,
-    regexvec::{LexemeSet, MatchingLexemes, RegexVec, RxLexeme},
+    regexvec::{LexemeIndent, LexemeSet, MatchingLexemes, RegexVec, RxLexeme},
 };
 
 #[derive(Clone)]
@@ -44,6 +44,7 @@ pub struct LexemeSpec {
     pub(crate) idx: LexemeIdx,
     pub(crate) single_set: MatchingLexemes,
     name: String,
+    indent: LexemeIndent,
     pub(crate) rx: RegexAst,
     class: LexemeClass,
     compiled_rx: ExprRef,
@@ -233,6 +234,7 @@ impl LexerSpec {
                 rx: lex.compiled_rx,
                 priority: 0,
                 lazy: lex.lazy,
+                indent: lex.indent,
             })
             .collect();
         RegexVec::new_with_exprset(
@@ -287,6 +289,10 @@ impl LexerSpec {
                 && lex.class == spec.class
                 && lex.max_tokens == spec.max_tokens
                 && lex.token_ranges == spec.token_ranges
+                && lex.indent == spec.indent
+                && lex.lazy == spec.lazy
+                && lex.contextual == spec.contextual
+                && lex.ends_at_eos == spec.ends_at_eos
         }) {
             return Ok(LexemeIdx::new(idx));
         }
@@ -306,6 +312,7 @@ impl LexerSpec {
         LexemeSpec {
             idx: LexemeIdx(0),
             single_set: MatchingLexemes::One(LexemeIdx(0)),
+            indent: LexemeIndent::None,
             name: "".to_string(),
             rx: RegexAst::NoMatch,
             compiled_rx: ExprRef::INVALID,
@@ -372,6 +379,10 @@ impl LexerSpec {
         })
     }
 
+    pub fn add_simple_lexeme(&mut self, name: String, rx: RegexAst) -> Result<LexemeIdx> {
+        self.add_greedy_lexeme(name, rx, false, None, usize::MAX, LexemeIndent::None)
+    }
+
     pub fn add_greedy_lexeme(
         &mut self,
         name: String,
@@ -379,6 +390,7 @@ impl LexerSpec {
         contextual: bool,
         json_options: Option<JsonQuoteOptions>,
         max_tokens: usize,
+        indent: LexemeIndent,
     ) -> Result<LexemeIdx> {
         self.add_lexeme_spec(LexemeSpec {
             name,
@@ -386,6 +398,18 @@ impl LexerSpec {
             contextual,
             json_options,
             max_tokens,
+            indent,
+            ..self.empty_spec()
+        })
+    }
+
+    pub fn add_indent_lexeme(&mut self, rx: RegexAst, indent: LexemeIndent) -> Result<LexemeIdx> {
+        let lazy = indent == LexemeIndent::KeepdentLazy;
+        self.add_lexeme_spec(LexemeSpec {
+            name: format!("{:?}", indent),
+            rx,
+            indent,
+            lazy,
             ..self.empty_spec()
         })
     }
@@ -394,14 +418,8 @@ impl LexerSpec {
         assert!(self.num_extra_lexemes == 0);
         self.num_extra_lexemes = extra_lexemes.len();
         for (idx, added) in extra_lexemes.iter().enumerate() {
-            self.add_greedy_lexeme(
-                format!("$extra_{}", idx),
-                RegexAst::Regex(added.clone()),
-                false,
-                None,
-                usize::MAX,
-            )
-            .expect("adding lexeme");
+            self.add_simple_lexeme(format!("$extra_{}", idx), RegexAst::Regex(added.clone()))
+                .expect("adding lexeme");
         }
     }
 

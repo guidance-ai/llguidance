@@ -30,7 +30,7 @@ use super::{
     lexer::{LexerResult, PreLexeme},
     lexerspec::{Lexeme, LexemeIdx, LexemeSpec, LexerSpec},
     perf::ParserPerfCounters,
-    regexvec::{LexemeSet, LexerStats},
+    regexvec::{IndentState, LexemeSet, LexerStats},
 };
 
 const TRACE: bool = false;
@@ -233,6 +233,7 @@ struct Row {
     // will accept in the next row.  They are all and only those lexemes
     // which can lead to a successful parse.
     lexer_start_state: StateID,
+    lexer_indent_state: IndentState,
 
     lexeme_idx: MatchingLexemesIdx,
 }
@@ -302,6 +303,7 @@ struct Scratch {
     push_allowed_lexemes: LexemeSet,
     push_grm_top: GrammarStackPtr,
     push_lexeme_idx: MatchingLexemesIdx,
+    push_lexer_indent_state: IndentState,
 
     // Is this Earley table in "definitive" mode?
     // 'definitive' is set when the new lexeme is being 'defined',
@@ -414,6 +416,7 @@ struct ParserState {
     lexer_stack_top_eos: bool,
     rows: Vec<Row>,
     rows_valid_end: usize,
+    has_indent: bool,
 
     trace_byte_stack: Vec<u8>,
     trace_stats0: ParserStats,
@@ -469,6 +472,7 @@ impl Scratch {
             push_allowed_grammar_ids: grammar.lexer_spec().alloc_grammar_set(),
             push_grm_top: GrammarStackPtr::new(0),
             push_lexeme_idx: MatchingLexemesIdx::Single(LexemeIdx::new(0)),
+            push_lexer_indent_state: IndentState::default(),
             grammar,
             row_start: 0,
             row_end: 0,
@@ -498,6 +502,7 @@ impl Scratch {
             last_item: self.row_end as u32,
             grammar_stack_ptr: self.push_grm_top,
             lexer_start_state,
+            lexer_indent_state: self.push_lexer_indent_state,
             lexeme_idx: self.push_lexeme_idx,
         }
     }
@@ -590,6 +595,7 @@ impl ParserState {
             rows: vec![],
             rows_valid_end: 0,
             row_infos: vec![],
+            has_indent: false, // updated below
             captures: Captures::new(),
             scratch,
             stats: ParserStats::default(),
@@ -639,6 +645,10 @@ impl ParserState {
         );
         assert!(r.lexer_stack.len() == 1);
 
+        // only set it after initial push - we don't want to update indent state
+        // for bogus lexeme
+        r.has_indent = r.lexer().dfa.has_indent();
+
         // Set the correct initial lexer state
 
         if !r.lexer_spec().allow_initial_skip {
@@ -651,7 +661,7 @@ impl ParserState {
                 .possible_lexemes(r.rows[0].lexer_start_state)
                 .clone();
             possible.remove(skip_id);
-            let new_state = r.lexer_mut().start_state(&possible);
+            let new_state = r.lexer_mut().start_state(&possible, IndentState::default());
             r.rows[0].lexer_start_state = new_state;
             debug!(
                 "disallowing initial SKIP; {}",
@@ -1801,6 +1811,13 @@ impl ParserState {
     fn process_agenda(&mut self, curr_idx: usize, lexeme: &Lexeme) {
         let mut agenda_ptr = self.scratch.row_start;
 
+        if self.has_indent {
+            let prev_indent_state = self.curr_row().lexer_indent_state;
+            self.scratch.push_lexer_indent_state = self
+                .lexer_mut()
+                .advance_indent_state(prev_indent_state, lexeme.idx);
+        }
+
         self.scratch.push_allowed_lexemes.clear();
         self.scratch.push_allowed_grammar_ids.set_all(false);
 
@@ -1916,9 +1933,10 @@ impl ParserState {
                     self.scratch.push_allowed_lexemes.add(skip);
                 }
 
-                self.shared_box
-                    .lexer_mut()
-                    .start_state(&self.scratch.push_allowed_lexemes)
+                self.shared_box.lexer_mut().start_state(
+                    &self.scratch.push_allowed_lexemes,
+                    self.scratch.push_lexer_indent_state,
+                )
             };
 
             if self.scratch.definitive {

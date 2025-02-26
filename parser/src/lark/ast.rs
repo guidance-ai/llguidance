@@ -36,6 +36,7 @@ pub struct Rule {
     pub temperature: Option<f32>,
     pub capture_name: Option<String>,
     pub stop_capture_name: Option<String>,
+    pub paren_balance: Option<i8>,
 }
 
 /// Represents a token definition.
