@@ -1,0 +1,45 @@
+%llguidance {
+    "indent": "    ",
+    "indent_parens": ["(", ")"],
+    "allow_initial_skip": true
+}
+
+// based on https://github.com/lark-parser/lark/blob/master/lark/grammars/python.lark
+
+start: file_input
+file_input: (KEEPDENT | stmt)*
+
+stmt: simple_stmt | compound_stmt
+simple_stmt: small_stmt (";" small_stmt)* [";"] KEEPDENT
+small_stmt: assign_stmt | expr_stmt
+
+assign_stmt: NAME "=" expr
+expr_stmt: expr
+
+compound_stmt: if_stmt | while_stmt | try_stmt
+
+if_stmt: "if" expr ":" suite elifs? else_stmt?
+elifs: ("elif" expr ":" suite)+
+else_stmt: "else" ":" suite
+
+while_stmt: "while" expr ":" suite ["else" ":" suite]
+
+try_stmt: "try" ":" suite except_clauses ["else" ":" suite] [finally]
+except_clauses: ("except" [NAME] ":" suite)+
+finally: "finally" ":" suite
+
+suite: simple_stmt | INDENT stmt+ DEDENT
+
+expr: comparison
+comparison: add (comp_op add)*
+comp_op: "<" | ">" | "!=" | "=="
+add: term (("+" | "-") term)*
+term: factor (("*" | "/") factor)*
+factor: NUMBER | NAME | "(" expr ")"
+
+NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+NUMBER: /[0-9]+/
+
+%ignore /[\t \f]+/  // Whitespace
+%ignore /\\[\t \f]*\r?\n/   // Line continuation
+%ignore /#[^\n]*/

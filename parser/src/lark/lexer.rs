@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::HashMap;
+use crate::{earley::regexvec::IndentState, HashMap};
 use anyhow::{bail, Result};
 use derivre::RegexAst;
 use serde_json::{Deserializer, Value};
@@ -136,20 +136,14 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
     }
     for (token, regexp) in Token::REGEX_TOKENS {
         let l = spec
-            .add_greedy_lexeme(
-                format!("{:?}", token),
-                RegexAst::Regex(regexp.to_string()),
-                false,
-                None,
-                usize::MAX,
-            )
+            .add_simple_lexeme(format!("{:?}", token), RegexAst::Regex(regexp.to_string()))
             .unwrap();
         lexeme_idx_to_token.insert(l, *token);
     }
     let mut limits = ParserLimits::default();
     let mut lexer = Lexer::from(&spec, &mut limits, false).unwrap();
     let all_lexemes = spec.all_lexemes();
-    let state0 = lexer.start_state(&all_lexemes);
+    let state0 = lexer.start_state(&all_lexemes, IndentState::default());
     let mut line_no = 1;
     let mut column_no = 1;
     let mut curr_lexeme = Lexeme {
@@ -225,7 +219,7 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
                     lexemes.push(curr_lexeme.clone());
                 }
 
-                state = lexer.start_state(&all_lexemes);
+                state = lexer.start_state(&all_lexemes, IndentState::default());
                 state = lexer.transition_start_state(state, transition_byte);
 
                 curr_lexeme.value.clear();

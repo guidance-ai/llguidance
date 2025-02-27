@@ -6,7 +6,7 @@ use crate::{
     api::ParserLimits,
     earley::{
         lexerspec::LexemeIdx,
-        regexvec::{LexemeSet, RegexVec, RxLexeme},
+        regexvec::{IndentState, LexemeIndent, LexemeSet, RegexVec, RxLexeme},
     },
 };
 
@@ -67,11 +67,12 @@ impl StopController {
                     rx,
                     lazy: true,
                     priority: 0,
+                    indent: LexemeIndent::None,
                 }],
                 None,
                 &mut ParserLimits::default(),
             )?;
-            let initial_state = dfa.initial_state(&all_regex);
+            let initial_state = dfa.initial_state(&all_regex, IndentState::default());
             res.regex = Some(StopRegex {
                 dfa,
                 state: initial_state,

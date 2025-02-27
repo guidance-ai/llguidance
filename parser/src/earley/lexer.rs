@@ -6,7 +6,7 @@ use crate::api::ParserLimits;
 
 use super::{
     lexerspec::{Lexeme, LexemeIdx, LexerSpec},
-    regexvec::{LexemeSet, MatchingLexemes, NextByte, RegexVec, StateDesc},
+    regexvec::{IndentState, LexemeSet, MatchingLexemes, NextByte, RegexVec, StateDesc},
 };
 
 const DEBUG: bool = true;
@@ -67,7 +67,7 @@ impl Lexer {
             debug!("lexer: {:?}\n  ==> dfa: {:?}", spec, dfa);
         }
 
-        let s0 = dfa.initial_state(&spec.all_lexemes());
+        let s0 = dfa.initial_state(&spec.all_lexemes(), IndentState::default());
         let mut allowed_first_byte = SimpleVob::alloc(256);
         for i in 0..=255 {
             if !dfa.transition(s0, i).is_dead() {
@@ -88,8 +88,21 @@ impl Lexer {
         &self.spec
     }
 
-    pub fn start_state(&mut self, allowed_lexemes: &LexemeSet) -> StateID {
-        self.dfa.initial_state(allowed_lexemes)
+    pub fn start_state(
+        &mut self,
+        allowed_lexemes: &LexemeSet,
+        indent_state: IndentState,
+    ) -> StateID {
+        self.dfa.initial_state(allowed_lexemes, indent_state)
+    }
+
+    pub fn advance_indent_state(
+        &mut self,
+        prev: IndentState,
+        lx: MatchingLexemesIdx,
+    ) -> IndentState {
+        self.dfa
+            .advance_indent_state(prev, self.lexemes_from_idx(lx))
     }
 
     pub fn transition_start_state(&mut self, s: StateID, first_byte: Option<u8>) -> StateID {

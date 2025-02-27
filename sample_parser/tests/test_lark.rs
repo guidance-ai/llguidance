@@ -58,13 +58,16 @@ fn lark_str_test(lark: &str, should_accept: bool, s: &str, quiet: bool) {
     let mut p = make_parser(lark, quiet).unwrap();
     // println!("make_parser: {:?}", t0.elapsed());
 
-    for tok in tokens.iter() {
+    for (idx, tok) in tokens.iter().enumerate() {
         let m = p.compute_mask().unwrap();
         if m.is_allowed(*tok) {
             consume(&mut p, *tok);
         } else {
             if should_accept {
-                panic!("unexpected token: {}", trie.token_dbg(*tok));
+                panic!(
+                    "unexpected token (last): {}",
+                    trie.tokens_dbg(&tokens[idx.saturating_sub(100)..=idx])
+                );
             }
             return;
         }
@@ -599,5 +602,238 @@ fn test_lexer_amb() {
         "#,
         &["'foo'a", "'foo'aaa", "'bar'b", "'bar'bbb", "'foo'bb"],
         &["'bar'a", "'bar'c"],
+    );
+}
+
+#[test]
+fn test_lark_syntax_indentation() {
+    for tok in &["INDENT", "DEDENT", "KEEPDENT", "KEEPDENT_LAZY"] {
+        lark_err_test(
+            &format!("start: {} /hello/", tok),
+            "indentation tokens used but %llguidance.indent not set",
+        );
+
+        lark_err_test(
+            &format!("start: /a/\n{}: /hello/", tok),
+            "indentation tokens cannot be defined",
+        );
+    }
+
+    lark_err_test(
+        r#"
+            start: lparen
+            lparen[open_paren]: "("
+        "#,
+        "paren used but %llguidance.indent not set",
+    );
+
+    lark_err_test(
+        r#"
+            start: lparen
+            lparen[close_paren]: ")"
+        "#,
+        "paren used but %llguidance.indent not set",
+    );
+
+    // Test valid configurations with %llguidance.indent set
+    lark_ok(
+        r#"
+            %llguidance { "indent": "  " }
+            start: INDENT "hello" DEDENT
+        "#,
+    );
+
+    lark_err_test(
+        r#"
+            %llguidance { "indent": "  " }
+            start: KEEPDENT_LAZY "hello"
+        "#,
+        "INDENT and DEDENT must both be present",
+    );
+
+    // Test valid paren configurations
+    lark_ok(
+        r#"
+            %llguidance { "indent": "  " }
+            start: block | stmt
+            stmt: /[a-z]+/ lparen stmt rparen
+            lparen[open_paren]: "("
+            rparen[close_paren]: ")"
+            block: INDENT stmt (KEEPDENT stmt)* DEDENT
+        "#,
+    );
+
+    lark_err_test(
+        r#"
+            %llguidance { "indent": "  " }
+            start: foo
+            foo[open_paren]: bar
+            bar: "("
+        "#,
+        "temperature=, max_tokens=, etc. only supported on TERMINALS and @subgrammars",
+    );
+
+    // Test using indentation tokens in terminals
+    lark_err_test(
+        r#"
+            %llguidance { "indent": "  " }
+            start: FOO
+            FOO: INDENT
+        "#,
+        "indentation tokens cannot be used in terminals",
+    );
+
+    // Test custom newline regex
+    lark_ok(
+        r#"
+            %llguidance { 
+                "indent": "  ",
+                "indent_newline_rx": "\n"
+            }
+            start: INDENT "hello" DEDENT
+        "#,
+    );
+
+    // Test invalid %llguidance.indent values
+    lark_err_test(
+        r#"
+            %llguidance { "indent": true }
+            start: INDENT "hello" DEDENT
+        "#,
+        "failed to parse %llguidance declaration",
+    );
+
+    lark_err_test(
+        r#"
+            %llguidance { "indent": "" }
+            start: INDENT "hello" DEDENT
+        "#,
+        "indent option cannot be empty string",
+    );
+
+    lark_err_test(
+        r#"
+            %llguidance { "indent": "  " }
+            start: INDENT "hello"
+        "#,
+        "INDENT and DEDENT must both be present",
+    );
+
+    lark_err_test(
+        r#"
+            %llguidance { "indent": "  " }
+            start: DEDENT "hello"
+        "#,
+        "INDENT and DEDENT must both be present",
+    );
+}
+
+#[test]
+fn test_lark_syntax_indent_parens() {
+    lark_err_test(
+        r#"
+            %llguidance { "indent_parens": ["(", ")"] }
+            start: /a/
+        "#,
+        "%llguidance.indent_parens used but %llguidance.indent not set",
+    );
+
+    lark_err_test(
+        r#"
+            %llguidance { "indent": "  ", "indent_parens": ["("] }
+        "#,
+        "%llguidance.indent_parens must have an even number of elements",
+    );
+
+    // Test valid indent_parens usage
+    lark_ok(
+        r#"
+            %llguidance { "indent": "  ", "indent_parens": ["(", ")", "[", "]"] }
+            start: stmt | block
+            stmt: /[a-z]+/ "(" stmt rparen
+            block: INDENT stmt (KEEPDENT stmt)* DEDENT
+            rparen: ")"
+        "#,
+    );
+
+    // Test defining an indent_parens lexeme elsewhere
+    lark_err_test(
+        r#"
+            %llguidance { "indent": "  ", "indent_parens": ["(", ")"] }
+            start: FOO
+            FOO: "("
+        "#,
+        "\"(\" is in %llguidance.indent_parens and cannot be used here",
+    );
+}
+
+#[test]
+fn test_indent_simple() {
+    let missing_indent = r#"
+if x > 10:
+print("Too high")  # Error: No indentation after colon
+"#;
+
+    let missing_dedent = r#"
+if x > 10:
+    print("Too high")
+  print("Check complete")  # Error: Unexpected dedent
+"#;
+
+    let missing_colon_inline_suite = r#"
+if x > 10:
+    print("Too high")
+elif x > 5:
+    print("Moderate")
+else print("Low")  # Error: Missing colon before block
+"#;
+
+    let missing_colon_while = r#"
+while x < 5  # Error: Missing colon
+    x += 1
+"#;
+
+    let try_without_except_or_finally = r#"
+try:
+    x = 1 / 0  # Error: `except` or `finally` is required
+x = 1
+"#;
+
+    let invalid_assignment_in_if = r#"
+if x := 5:  # Error: `:=` is not supported in this grammar
+    print("Assigned")
+"#;
+
+    let empty_block = r#"
+if x > 10:
+    # No statements inside block
+x = 1
+"#;
+
+    let invalid_programs = &[
+        missing_indent,
+        missing_dedent,
+        missing_colon_inline_suite,
+        missing_colon_while,
+        try_without_except_or_finally,
+        invalid_assignment_in_if,
+        empty_block,
+    ];
+
+    let simple_py = include_str!("py/simple_py.lark");
+
+    lark_str_test_many(
+        &simple_py,
+        &[
+            "if x > 10:\n    x = 2\n    y = 3\nz = 1\n",
+            "",
+            "\n",
+            "# foo",
+            "#foo\n",
+            "x = 5\n",
+            "\nx = 5\n",
+            include_str!("py/ok0.py"),
+        ],
+        invalid_programs,
     );
 }

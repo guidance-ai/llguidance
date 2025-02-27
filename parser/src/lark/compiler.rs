@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::{HashMap, HashSet};
+use crate::{
+    api::{IndentKind, LarkLLGuidanceOptions},
+    HashMap, HashSet,
+};
 use anyhow::{anyhow, bail, ensure, Result};
 
 use crate::{
@@ -20,23 +23,12 @@ use super::{
     parser::{parse_lark, ParsedLark},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Grammar {
     rules: HashMap<String, Rule>,
     tokens: HashMap<String, TokenDef>,
     ignore: Vec<Expansions>,
-    llguidance_options: serde_json::Value,
-}
-
-impl Default for Grammar {
-    fn default() -> Self {
-        Self {
-            rules: HashMap::default(),
-            tokens: HashMap::default(),
-            ignore: vec![],
-            llguidance_options: serde_json::Value::Object(serde_json::Map::new()),
-        }
-    }
+    lark_opts: LarkLLGuidanceOptions,
 }
 
 struct Compiler {
@@ -77,6 +69,9 @@ impl Compiler {
     }
 
     fn do_token(&mut self, name: &str) -> Result<RegexId> {
+        if indent_kind(name).is_some() {
+            bail!("indentation tokens cannot be used in terminals");
+        }
         if let Some(id) = self.regex_ids.get(name) {
             return Ok(*id);
         }
@@ -136,6 +131,12 @@ impl Compiler {
                 }
                 Value::Name(n) => self.do_token(n),
                 Value::LiteralString(val, flags) => {
+                    if self.grammar.lark_opts.indent_parens.contains(val) {
+                        bail!(
+                            "{:?} is in %llguidance.indent_parens and cannot be used here",
+                            val
+                        );
+                    }
                     if flags.contains("i") {
                         self.mk_regex(
                             "string with i-flag",
@@ -242,6 +243,10 @@ impl Compiler {
         }
     }
 
+    fn llg_opts(&self) -> &LLGuidanceOptions {
+        &self.grammar.lark_opts.general
+    }
+
     fn do_atom(&mut self, expr: &Atom) -> Result<NodeRef> {
         match expr {
             Atom::Group(expansions) => self.do_expansions(expansions),
@@ -254,6 +259,12 @@ impl Compiler {
                     Value::Name(n) => {
                         if self.grammar.rules.contains_key(n) {
                             return self.do_rule(n);
+                        } else if let Some(k) = indent_kind(n) {
+                            ensure!(
+                                self.llg_opts().indent.is_some(),
+                                "indentation tokens used but %llguidance.indent not set"
+                            );
+                            return Ok(self.builder.indent(k));
                         } else if self.grammar.tokens.contains_key(n) {
                             // OK -> treat as token
                         } else {
@@ -319,6 +330,30 @@ impl Compiler {
                     }
                     // special case "" literal, so it doesn't pollute grammar with epsilon regex
                     Value::LiteralString(s, _) if s.is_empty() => return Ok(self.builder.empty()),
+
+                    Value::LiteralString(p, f)
+                        if f.is_empty() && self.grammar.lark_opts.indent_parens.contains(p) =>
+                    {
+                        let id = self.builder.regex.literal(p.clone());
+                        let pos = self
+                            .grammar
+                            .lark_opts
+                            .indent_parens
+                            .iter()
+                            .position(|x| x == p)
+                            .unwrap();
+                        return Ok(self.builder.add_node(Node::Lexeme {
+                            rx: RegexSpec::RegexId(id),
+                            contextual: None,
+                            temperature: None,
+                            json_string: None,
+                            json_raw: None,
+                            json_allowed_escapes: None,
+                            paren_balance: if pos % 2 == 0 { Some(1) } else { Some(-1) },
+                            props: NodeProps::default(),
+                        }));
+                    }
+
                     Value::RegexExt(_)
                     | Value::LiteralRange(_, _)
                     | Value::LiteralString(_, _)
@@ -447,9 +482,12 @@ impl Compiler {
                 rule.stop_capture_name.is_none(),
                 "stop_capture_name requires stop= or suffix="
             );
-            if rule.temperature.is_some() || rule.max_tokens.is_some() {
+            if rule.temperature.is_some()
+                || rule.max_tokens.is_some()
+                || rule.paren_balance.is_some()
+            {
                 match rule.expansions.single_atom() {
-                    Some(Atom::Value(Value::GrammarRef(g))) => {
+                    Some(Atom::Value(Value::GrammarRef(g))) if rule.paren_balance.is_none() => {
                         return Ok(self.builder.gen_grammar(
                             GenGrammarOptions {
                                 grammar: Compiler::get_grammar_id(g),
@@ -459,10 +497,16 @@ impl Compiler {
                         ));
                     }
                     _ => {
+                        if rule.paren_balance.is_some() {
+                            ensure!(
+                                self.llg_opts().indent.is_some(),
+                                "paren used but %llguidance.indent not set"
+                            );
+                        }
                         // try as terminal
                         let rx_id = self.do_token_expansions(&rule.expansions).map_err(|e| {
                             anyhow::anyhow!(
-                                "{}; temperature= and max_tokens= only \
+                                "{}; temperature=, max_tokens=, etc. only \
                                 supported on TERMINALS and @subgrammars",
                                 e
                             )
@@ -474,6 +518,7 @@ impl Compiler {
                             json_string: None,
                             json_raw: None,
                             json_allowed_escapes: None,
+                            paren_balance: rule.paren_balance,
                             props,
                         }));
                     }
@@ -502,7 +547,36 @@ impl Compiler {
     }
 
     fn execute(&mut self) -> Result<()> {
+        let mut llg_opts = serde_json::json!({});
+        for item in &self.parsed.items {
+            let loc = item.location().clone();
+            match item {
+                Item::Statement(_, Statement::LLGuidance(json_value)) => {
+                    // first, check if it's valid JSON and all the right types
+                    let _v: LarkLLGuidanceOptions = serde_json::from_str(&json_value)
+                        .map_err(|e| anyhow!("failed to parse %llguidance declaration: {}", e))
+                        .map_err(|e| loc.augment(e))?;
+                    // but in fact, we'll work on JSON object
+                    let v: serde_json::Value = serde_json::from_str(&json_value).unwrap();
+                    json_merge(&mut llg_opts, &v);
+                }
+                _ => {}
+            }
+        }
+
         let mut grm = Grammar::default();
+        grm.lark_opts = serde_json::from_value(llg_opts)
+            .map_err(|e| anyhow!("failed to parse %llguidance declaration: {}", e))?;
+
+        ensure!(
+            grm.lark_opts.indent_parens.is_empty() || grm.lark_opts.general.indent.is_some(),
+            "%llguidance.indent_parens used but %llguidance.indent not set"
+        );
+        ensure!(
+            grm.lark_opts.indent_parens.len() % 2 == 0,
+            "%llguidance.indent_parens must have an even number of elements"
+        );
+
         for item in std::mem::take(&mut self.parsed.items) {
             let loc = item.location().clone();
             grm.process_item(item).map_err(|e| loc.augment(e))?;
@@ -516,11 +590,8 @@ impl Compiler {
         let ignore = std::mem::take(&mut grm.ignore);
         self.grammar = Arc::new(grm);
 
-        let opts: LLGuidanceOptions =
-            serde_json::from_value(self.grammar.llguidance_options.clone())
-                .map_err(|e| anyhow!("failed to parse %llguidance declaration: {}", e))?;
         let mut grm_with_lex = GrammarWithLexer::default();
-        grm_with_lex.options = opts;
+        grm_with_lex.options = self.llg_opts().clone();
         self.builder.add_grammar(grm_with_lex);
 
         let ignore = ignore
@@ -584,13 +655,8 @@ impl Grammar {
                     self.add_token_def(loc, n.to_string(), regex)?;
                 }
             }
-            Statement::LLGuidance(json_value) => {
-                // first, check if it's valid JSON and all the right types
-                let _v: LLGuidanceOptions = serde_json::from_str(&json_value)
-                    .map_err(|e| anyhow!("failed to parse %llguidance declaration: {}", e))?;
-                // but in fact, we'll work on JSON object
-                let v: serde_json::Value = serde_json::from_str(&json_value).unwrap();
-                json_merge(&mut self.llguidance_options, &v);
+            Statement::LLGuidance(_) => {
+                // handled outside in pre-pass
             }
             Statement::OverrideRule(_) => {
                 bail!("override statement not supported yet");
@@ -621,6 +687,10 @@ impl Grammar {
                     !self.tokens.contains_key(&token_def.name),
                     "duplicate token: {:?}",
                     token_def.name
+                );
+                ensure!(
+                    indent_kind(&token_def.name).is_none(),
+                    "indentation tokens cannot be defined"
                 );
                 self.tokens.insert(token_def.name.clone(), token_def);
             }
@@ -662,4 +732,14 @@ fn compile_lark_regex(builder: &mut GrammarBuilder, l: RegexExt) -> Result<Regex
 
     let rx_id = builder.regex.add_node(RegexNode::Substring(chunks));
     Ok(rx_id)
+}
+
+fn indent_kind(s: &str) -> Option<IndentKind> {
+    match s {
+        "INDENT" => Some(IndentKind::Indent),
+        "DEDENT" => Some(IndentKind::Dedent),
+        "KEEPDENT" => Some(IndentKind::Keepdent),
+        "KEEPDENT_LAZY" => Some(IndentKind::KeepdentLazy),
+        _ => None,
+    }
 }

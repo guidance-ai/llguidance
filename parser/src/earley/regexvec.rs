@@ -4,7 +4,7 @@
 /// Regular Expression Derivatives Reexamined".
 /// Journal of Functional Programming 19(2):173-190, March 2009.
 /// https://www.khoury.northeastern.edu/home/turon/re-deriv.pdf (retrieved 15 Nov 2024)
-use anyhow::{bail, Result};
+use anyhow::{bail, ensure, Result};
 use derivre::raw::{DerivCache, ExprSet, NextByteCache, RelevanceCache, VecHashCons};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -18,6 +18,16 @@ pub use derivre::{AlphabetInfo, ExprRef, NextByte, StateID};
 use crate::api::ParserLimits;
 
 use super::lexerspec::LexemeIdx;
+
+// PRTODO DEBUG
+const DEBUG: bool = false;
+macro_rules! debug {
+    ($($arg:tt)*) => {
+        if cfg!(feature = "logging") && DEBUG {
+            eprintln!($($arg)*);
+        }
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize, Default)]
 pub struct LexerStats {
@@ -200,6 +210,12 @@ impl LexemeSet {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct IndentState {
+    indent_level: u8,
+    paren_level: u8,
+}
+
 #[derive(Clone)]
 pub struct RegexVec {
     exprs: ExprSet,
@@ -207,11 +223,12 @@ pub struct RegexVec {
     next_byte: NextByteCache,
     relevance: RelevanceCache,
     alpha: AlphabetInfo,
-    #[allow(dead_code)]
     rx_lexemes: Vec<RxLexeme>,
     lazy: LexemeSet,
     rx_list: Vec<ExprRef>,
     special_token_rx: Option<ExprRef>,
+    one_indent_rx: ExprRef,
+    newline_indent_rx: ExprRef,
     rx_sets: VecHashCons,
     state_table: Vec<StateID>,
     state_descs: Vec<StateDesc>,
@@ -219,6 +236,7 @@ pub struct RegexVec {
     num_ast_nodes: usize,
     max_states: usize,
     fuel: u64,
+    has_indent: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -250,17 +268,105 @@ impl RegexVec {
         &self.lazy
     }
 
+    pub fn has_indent(&self) -> bool {
+        self.has_indent
+    }
+
+    fn indent_rx(&mut self, min_level: usize, max_level: usize) -> ExprRef {
+        debug!("indent_rx: {}-{}", min_level, max_level);
+        let inner = self
+            .exprs
+            .mk_repeat(self.one_indent_rx, min_level as u32, max_level as u32);
+        let inner = if min_level != max_level {
+            self.exprs.mk_lookahead(inner, 0)
+        } else {
+            inner
+        };
+        self.exprs.mk_concat(self.newline_indent_rx, inner)
+    }
+
     /// Create and return the initial state of a DFA for this
     /// regex vector
-    pub fn initial_state(&mut self, selected: &LexemeSet) -> StateID {
+    pub fn initial_state(&mut self, selected: &LexemeSet, indent_state: IndentState) -> StateID {
         let mut vec_desc = vec![];
-        for idx in selected.iter() {
-            let rx = self.get_rx(idx);
-            if rx != ExprRef::NO_MATCH {
-                Self::push_rx(&mut vec_desc, idx, rx);
+        if self.has_indent {
+            for idx in selected.iter() {
+                let spec_ind = self.rx_lexemes[idx.as_usize()].indent;
+                let ind = indent_state.indent_level as usize;
+                let rx = match spec_ind {
+                    LexemeIndent::None | LexemeIndent::OpenParen | LexemeIndent::CloseParen => {
+                        self.get_rx(idx)
+                    }
+                    LexemeIndent::Indent => self.indent_rx(ind + 1, ind + 1),
+                    LexemeIndent::Dedent => {
+                        if ind == 0 {
+                            ExprRef::NO_MATCH
+                        } else {
+                            // this can be many dedents
+                            self.indent_rx(0, ind - 1)
+                        }
+                    }
+                    LexemeIndent::KeepdentNormal | LexemeIndent::KeepdentLazy => {
+                        self.indent_rx(ind, ind)
+                    }
+                };
+                if rx != ExprRef::NO_MATCH {
+                    if spec_ind != LexemeIndent::None {
+                        debug!(
+                            "indent: {:?} {:?} {}",
+                            idx,
+                            spec_ind,
+                            self.exprs.expr_to_string(rx)
+                        );
+                    }
+                    Self::push_rx(&mut vec_desc, idx, rx);
+                }
+            }
+        } else {
+            for idx in selected.iter() {
+                let rx = self.get_rx(idx);
+                if rx != ExprRef::NO_MATCH {
+                    Self::push_rx(&mut vec_desc, idx, rx);
+                }
             }
         }
         self.insert_state(vec_desc)
+    }
+
+    pub fn advance_indent_state(
+        &self,
+        mut prev: IndentState,
+        lxs: &MatchingLexemes,
+    ) -> IndentState {
+        for lx in lxs.as_slice() {
+            let spec = &self.rx_lexemes[lx.as_usize()];
+            // there are break statements here, since if there is an ambiguity
+            // say between different lexemes for opening paren, we want to only
+            // increment by 1
+            // other ambiguities are a sign of an invalid lexer spec
+            match spec.indent {
+                LexemeIndent::None => {}
+                LexemeIndent::Indent => {
+                    prev.indent_level = prev.indent_level.saturating_add(1);
+                    break;
+                }
+                LexemeIndent::Dedent => {
+                    prev.indent_level = prev.indent_level.saturating_sub(1);
+                    break;
+                }
+                LexemeIndent::KeepdentNormal => {}
+                LexemeIndent::KeepdentLazy => {}
+                LexemeIndent::OpenParen => {
+                    prev.paren_level = prev.paren_level.saturating_add(1);
+                    break;
+                }
+                LexemeIndent::CloseParen => {
+                    prev.paren_level = prev.paren_level.saturating_sub(1);
+                    break;
+                }
+            }
+        }
+        prev
     }
 
     #[inline(always)]
@@ -274,8 +380,10 @@ impl RegexVec {
             return len;
         }
         let mut max_len = 0;
-        for (_, e) in iter_state(&self.rx_sets, state) {
-            max_len = max_len.max(self.exprs.possible_lookahead_len(e));
+        for (idx, e) in iter_state(&self.rx_sets, state) {
+            if self.lazy.contains(idx) {
+                max_len = max_len.max(self.exprs.possible_lookahead_len(e));
+            }
         }
         desc.possible_lookahead_len = Some(max_len);
         max_len
@@ -574,10 +682,24 @@ impl RegexVec {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LexemeIndent {
+    None,
+    // 'rx' for this is supposed to be "  " or "\t" or similar
+    Indent,
+    // 'rx' for this is supposed to be just "\n", or say /\r?\n/
+    Dedent,
+    KeepdentNormal,
+    KeepdentLazy,
+    OpenParen,
+    CloseParen,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct RxLexeme {
     pub rx: ExprRef,
     pub lazy: bool,
+    pub indent: LexemeIndent,
     #[allow(dead_code)]
     pub priority: i32,
 }
@@ -587,20 +709,41 @@ impl RegexVec {
     pub(crate) fn new_with_exprset(
         exprset: &ExprSet,
         mut rx_lexemes: Vec<RxLexeme>,
-        special_token_rx: Option<ExprRef>,
+        special_token_rx0: Option<ExprRef>,
         limits: &mut ParserLimits,
     ) -> Result<Self> {
-        let spec_pos = if let Some(rx) = special_token_rx {
-            rx_lexemes.iter().position(|r| r.rx == rx)
-        } else {
-            None
-        };
         let (alpha, mut exprset, mut rx_list) = AlphabetInfo::from_exprset(
             exprset,
             &rx_lexemes.iter().map(|r| r.rx).collect::<Vec<_>>(),
         );
         let num_ast_nodes = exprset.len();
-        let special_token_rx = spec_pos.map(|pos| rx_list[pos]);
+
+        let mut one_indent_rx = ExprRef::NO_MATCH;
+        let mut newline_indent_rx = ExprRef::NO_MATCH;
+        let mut special_token_rx = None;
+        for (spec, rx) in rx_lexemes.iter().zip(rx_list.iter()) {
+            match spec.indent {
+                LexemeIndent::Indent => {
+                    one_indent_rx = *rx;
+                }
+                LexemeIndent::Dedent => {
+                    newline_indent_rx = *rx;
+                }
+                _ => {}
+            }
+            if Some(spec.rx) == special_token_rx0 {
+                special_token_rx = Some(*rx);
+            }
+        }
+
+        let has_indent = rx_lexemes.iter().any(|r| r.indent != LexemeIndent::None);
+
+        if has_indent {
+            ensure!(
+                one_indent_rx != ExprRef::NO_MATCH && newline_indent_rx != ExprRef::NO_MATCH,
+                "INDENT and DEDENT must both be present"
+            );
+        }
 
         for idx in 0..rx_lexemes.len() {
             rx_lexemes[idx].rx = rx_list[idx];
@@ -643,6 +786,8 @@ impl RegexVec {
             deriv: DerivCache::new(),
             next_byte: NextByteCache::new(),
             special_token_rx,
+            newline_indent_rx,
+            one_indent_rx,
             relevance,
             lazy,
             rx_lexemes,
@@ -656,6 +801,7 @@ impl RegexVec {
             num_ast_nodes,
             fuel: u64::MAX,
             max_states: usize::MAX,
+            has_indent,
         };
 
         assert!(r.lazy.len() == r.rx_list.len());
