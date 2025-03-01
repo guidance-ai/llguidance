@@ -1,0 +1,13 @@
+[package]
+name = "json_test_suite"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+llguidance = { workspace = true }
+toktrie_hf_tokenizers = { workspace = true }
+anyhow = "1.0.87"
+serde_json = { version = "1.0.132", features = ["preserve_order"] }
+serde = { version = "1.0.210", features = ["derive"] }
+clap = { version = "4.5.23", features = ["derive"] }
+referencing = "0.26.1"
