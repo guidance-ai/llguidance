@@ -999,6 +999,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "json_test_suite"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "llguidance",
+ "referencing 0.26.1",
+ "serde",
+ "serde_json",
+ "toktrie_hf_tokenizers",
+]
+
+[[package]]
 name = "jsonschema"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
