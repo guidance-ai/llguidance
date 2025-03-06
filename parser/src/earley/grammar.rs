@@ -33,10 +33,8 @@ impl Symbol {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SymbolProps {
     pub max_tokens: usize,
-    pub commit_point: bool,
     pub capture_name: Option<String>,
     pub stop_capture_name: Option<String>,
-    pub hidden: bool,
     pub temperature: f32,
     pub grammar_id: LexemeClass,
     pub is_start: bool,
@@ -45,8 +43,6 @@ pub struct SymbolProps {
 impl Default for SymbolProps {
     fn default() -> Self {
         SymbolProps {
-            commit_point: false,
-            hidden: false,
             max_tokens: usize::MAX,
             capture_name: None,
             stop_capture_name: None,
@@ -60,9 +56,7 @@ impl Default for SymbolProps {
 impl SymbolProps {
     /// Special nodes can't be removed in grammar optimizations
     pub fn is_special(&self) -> bool {
-        self.commit_point
-            || self.hidden
-            || self.max_tokens < usize::MAX
+        self.max_tokens < usize::MAX
             || self.capture_name.is_some()
             || self.stop_capture_name.is_some()
             || self.is_start
@@ -71,8 +65,6 @@ impl SymbolProps {
     // this is used when a rule like 'self -> [self.for_wrapper()]` is added
     pub fn for_wrapper(&self) -> Self {
         SymbolProps {
-            commit_point: false,
-            hidden: self.hidden,
             max_tokens: self.max_tokens,
             capture_name: None,
             stop_capture_name: None,
@@ -86,13 +78,6 @@ impl SymbolProps {
         let props = self;
         let mut outp = String::new();
 
-        if props.commit_point {
-            if props.hidden {
-                outp.push_str(" HIDDEN-COMMIT");
-            } else {
-                outp.push_str(" COMMIT");
-            }
-        }
         if props.capture_name.is_some() {
             outp.push_str(" CAPTURE");
         }
@@ -461,10 +446,6 @@ impl Grammar {
         if props.is_special() {
             assert!(!sym.is_terminal(), "special terminal");
         }
-        assert!(
-            !(!props.commit_point && props.hidden),
-            "hidden on non-commit_point"
-        );
         sym.props = props;
     }
 
@@ -637,21 +618,13 @@ impl CSymbol {
 pub struct SymFlags(u8);
 
 impl SymFlags {
-    const COMMIT_POINT: u8 = 1 << 0;
-    const HIDDEN: u8 = 1 << 2;
-    const CAPTURE: u8 = 1 << 3;
-    const GEN_GRAMMAR: u8 = 1 << 4;
-    const STOP_CAPTURE: u8 = 1 << 5;
-    const HAS_LEXEME: u8 = 1 << 6;
+    const CAPTURE: u8 = 1 << 0;
+    const GEN_GRAMMAR: u8 = 1 << 1;
+    const STOP_CAPTURE: u8 = 1 << 2;
+    const HAS_LEXEME: u8 = 1 << 3;
 
     fn from_csymbol(sym: &CSymbol) -> Self {
         let mut flags = 0;
-        if sym.props.commit_point {
-            flags |= Self::COMMIT_POINT;
-        }
-        if sym.props.hidden {
-            flags |= Self::HIDDEN;
-        }
         if sym.props.capture_name.is_some() {
             flags |= Self::CAPTURE;
         }
@@ -665,17 +638,6 @@ impl SymFlags {
             flags |= Self::HAS_LEXEME;
         }
         SymFlags(flags)
-    }
-
-    #[inline(always)]
-    pub fn commit_point(&self) -> bool {
-        self.0 & Self::COMMIT_POINT != 0
-    }
-
-    #[inline(always)]
-    #[allow(dead_code)]
-    pub fn hidden(&self) -> bool {
-        self.0 & Self::HIDDEN != 0
     }
 
     #[inline(always)]

@@ -212,8 +212,6 @@ fn grammar_from_json(
                 None => format!("n{}", idx),
             };
             let symprops = SymbolProps {
-                commit_point: false,
-                hidden: false,
                 max_tokens: props.max_tokens.unwrap_or(usize::MAX),
                 capture_name: props.capture_name.clone(),
                 temperature: 0.0,
