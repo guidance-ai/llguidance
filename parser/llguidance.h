@@ -13,6 +13,8 @@ typedef struct LlgStopController LlgStopController;
 
 typedef struct LlgTokenizer LlgTokenizer;
 
+typedef struct NodeRef NodeRef;
+
 typedef struct LlgParserLimits {
   /**
    * For non-ambiguous grammars, this is the maximum "branching factor" of the grammar.
@@ -200,6 +202,8 @@ typedef struct LlgTokenizerInit {
    */
   const void *tokenize_user_data;
 } LlgTokenizerInit;
+
+
 
 #ifdef __cplusplus
 extern "C" {
