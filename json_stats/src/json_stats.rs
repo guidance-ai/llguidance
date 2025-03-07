@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use json_stats::SchemaStats;
 use jsonschema::Validator;
 use llguidance::{
-    api::StopReason,
+    api::{GrammarInit, StopReason, TopLevelGrammar},
     earley::{
         perf::{num_with_commas, ParserPerfCounters},
         regexvec::LexerStats,
@@ -685,10 +685,12 @@ impl TestEnv {
         } else {
             test_file.schema.clone()
         };
-        let schema = opts.json_to_llg_no_validate(schema);
+        let g_init = GrammarInit::Serialized(TopLevelGrammar::from_json_schema(schema));
+        let g_init = g_init.to_internal(&self.tok_env, self.factory.limits().clone());
+
         res.json_compile_us = t0.elapsed().as_micros() as usize;
 
-        let mut schema = match schema {
+        let (grm, mut lex_spec) = match g_init {
             Ok(schema) => schema,
             Err(e) => {
                 res.json_error = Some(format!("{e}"));
@@ -699,17 +701,22 @@ impl TestEnv {
         };
 
         if self.cli.llg_no_forcing {
-            schema.grammars[0].options.no_forcing = true;
+            lex_spec.no_forcing = true;
         }
 
+        let g_init = GrammarInit::Internal(grm, lex_spec);
+
         let ref_parser = if self.cli.llg_test_slicer {
-            Some(self.ref_factory.create_parser(schema.clone()))
+            Some(
+                self.ref_factory
+                    .create_parser_from_init_default(g_init.clone()),
+            )
         } else {
             None
         };
 
         let t1 = std::time::Instant::now();
-        let parser = self.factory.create_parser(schema);
+        let parser = self.factory.create_parser_from_init_default(g_init);
         res.parser_create_us = t1.elapsed().as_micros() as usize;
 
         let t2 = std::time::Instant::now();

@@ -1,10 +1,8 @@
 use std::{hint::black_box, panic::AssertUnwindSafe, sync::Arc, time::Duration};
 
 use crate::{
-    api::{ParserLimits, StopReason, TopLevelGrammar},
-    earley::{
-        grammars_from_json, BiasComputer, DefaultBiasComputer, Parser, ParserError, ParserStats,
-    },
+    api::{GrammarInit, ParserLimits, StopReason, TopLevelGrammar},
+    earley::{BiasComputer, DefaultBiasComputer, Parser, ParserError, ParserStats},
     infoln, panic_utils, warn, Instant, Logger,
 };
 use anyhow::{ensure, Result};
@@ -40,18 +38,18 @@ pub struct TokenParser {
 }
 
 impl TokenParser {
-    pub fn from_llguidance_json(
+    pub fn from_init(
         token_env: TokEnv,
-        top_grammar: TopLevelGrammar,
+        grammar_init: GrammarInit,
         logger: Logger,
         inference_caps: InferenceCapabilities,
         limits: ParserLimits,
         extra_lexemes: Vec<String>,
     ) -> Result<Self> {
         panic_utils::catch_unwind(AssertUnwindSafe(|| {
-            Self::from_llguidance_json_inner(
+            Self::init_inner(
+                grammar_init,
                 token_env,
-                top_grammar,
                 logger,
                 inference_caps,
                 limits,
@@ -60,9 +58,27 @@ impl TokenParser {
         }))
     }
 
-    fn from_llguidance_json_inner(
+    pub fn from_grammar(
         token_env: TokEnv,
         top_grammar: TopLevelGrammar,
+        logger: Logger,
+        inference_caps: InferenceCapabilities,
+        limits: ParserLimits,
+        extra_lexemes: Vec<String>,
+    ) -> Result<Self> {
+        Self::from_init(
+            token_env,
+            GrammarInit::Serialized(top_grammar),
+            logger,
+            inference_caps,
+            limits,
+            extra_lexemes,
+        )
+    }
+
+    fn init_inner(
+        grammar_init: GrammarInit,
+        token_env: TokEnv,
         mut logger: Logger,
         inference_caps: InferenceCapabilities,
         limits: ParserLimits,
@@ -78,15 +94,18 @@ impl TokenParser {
         );
 
         let compute_mask_start_time = Instant::now();
-        let test_trace = top_grammar.test_trace;
-        let max_tokens = top_grammar.max_tokens.unwrap_or(usize::MAX);
-        let compiled_grammar = grammars_from_json(
-            top_grammar,
-            &token_env,
-            &mut logger,
-            limits.clone(),
-            extra_lexemes,
-        )?;
+        let test_trace = false; // TODO remove this
+        let mut max_tokens = usize::MAX;
+        match &grammar_init {
+            GrammarInit::Serialized(input) => {
+                if let Some(m) = input.max_tokens {
+                    max_tokens = m;
+                }
+            }
+            _ => {}
+        }
+        let compiled_grammar =
+            grammar_init.to_cgrammar(&token_env, &mut logger, limits.clone(), extra_lexemes)?;
         let parser = Parser::new(token_env.clone(), compiled_grammar, limits.clone())?;
         let eos_token = token_env.tok_trie().eos_token();
 

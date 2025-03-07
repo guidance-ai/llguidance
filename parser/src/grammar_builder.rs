@@ -11,7 +11,7 @@ use derivre::{ExprRef, RegexAst};
 use std::ops::RangeInclusive;
 use toktrie::{bytes::limit_str, TokEnv};
 
-use crate::api::{GenGrammarOptions, GenOptions, Node, NodeProps, TopLevelGrammar};
+use crate::api::{GenGrammarOptions, GenOptions, NodeProps};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct NodeRef {
@@ -29,7 +29,7 @@ impl NodeRef {
 const K: usize = 4;
 
 pub struct GrammarBuilder {
-    grammar: Grammar,
+    pub(crate) grammar: Grammar,
     curr_grammar_id: LexemeClass,
     curr_start_idx: NodeRef,
     pub regex: RegexBuilder,
@@ -64,10 +64,6 @@ impl RegexBuilder {
 
     pub fn add_ast(&mut self, ast: RegexAst) -> Result<RegexId> {
         self.spec.regex_builder.mk(&ast)
-    }
-
-    fn add_asts(&mut self, asts: Vec<RegexAst>) -> Result<Vec<RegexId>> {
-        asts.into_iter().map(|ast| self.add_ast(ast)).collect()
     }
 
     pub fn regex(&mut self, rx: &str) -> Result<RegexId> {
@@ -172,8 +168,14 @@ impl GrammarBuilder {
     fn lexeme_to_node(&mut self, lx_id: LexemeIdx) -> NodeRef {
         let lname = self.regex.spec.lexeme_spec(lx_id).name.clone();
         let r = self.new_node(&lname);
-        self.grammar.make_terminal(r.idx, lx_id, &self.regex.spec);
+        self.grammar
+            .make_terminal(r.idx, lx_id, &self.regex.spec)
+            .unwrap();
         r
+    }
+
+    pub fn size(&self) -> usize {
+        self.grammar.num_symbols()
     }
 
     pub fn string(&mut self, s: &str) -> NodeRef {
@@ -182,7 +184,7 @@ impl GrammarBuilder {
         }
         let r = if s.is_empty() {
             let r = self.new_node("empty");
-            self.grammar.add_rule(r.idx, vec![]);
+            self.grammar.add_rule(r.idx, vec![]).unwrap();
             r
         } else {
             let lx_id = self
@@ -243,7 +245,7 @@ impl GrammarBuilder {
             self.regex.spec.has_max_tokens = true;
         }
         self.grammar.apply_node_props(r.idx, props);
-        self.grammar.make_gen_grammar(r.idx, data);
+        self.grammar.make_gen_grammar(r.idx, data).unwrap();
         r
     }
 
@@ -269,7 +271,9 @@ impl GrammarBuilder {
             symprops.temperature = t;
         }
         symprops.stop_capture_name = data.stop_capture_name.clone();
-        self.grammar.make_terminal(lhs.idx, lx_id, &self.regex.spec);
+        self.grammar
+            .make_terminal(lhs.idx, lx_id, &self.regex.spec)
+            .unwrap();
         Ok(lhs)
     }
 
@@ -320,9 +324,9 @@ impl GrammarBuilder {
         let empty = self.empty().idx;
         for n in &ch {
             if n == &empty {
-                self.grammar.add_rule(r.idx, vec![]);
+                self.grammar.add_rule(r.idx, vec![]).unwrap();
             } else {
-                self.grammar.add_rule(r.idx, vec![*n]);
+                self.grammar.add_rule(r.idx, vec![*n]).unwrap();
             }
         }
         r
@@ -356,7 +360,7 @@ impl GrammarBuilder {
             };
         }
         let r = self.new_node("join");
-        self.grammar.add_rule(r.idx, ch);
+        self.grammar.add_rule(r.idx, ch).unwrap();
         r
     }
 
@@ -370,22 +374,22 @@ impl GrammarBuilder {
 
     pub fn optional(&mut self, value: NodeRef) -> NodeRef {
         let p = self.new_node("opt");
-        self.grammar.add_rule(p.idx, vec![]);
-        self.grammar.add_rule(p.idx, vec![value.idx]);
+        self.grammar.add_rule(p.idx, vec![]).unwrap();
+        self.grammar.add_rule(p.idx, vec![value.idx]).unwrap();
         p
     }
 
     pub fn one_or_more(&mut self, elt: NodeRef) -> NodeRef {
         let p = self.new_node("plus");
-        self.grammar.add_rule(p.idx, vec![elt.idx]);
-        self.grammar.add_rule(p.idx, vec![p.idx, elt.idx]);
+        self.grammar.add_rule(p.idx, vec![elt.idx]).unwrap();
+        self.grammar.add_rule(p.idx, vec![p.idx, elt.idx]).unwrap();
         p
     }
 
     pub fn zero_or_more(&mut self, elt: NodeRef) -> NodeRef {
         let p = self.new_node("star");
-        self.grammar.add_rule(p.idx, vec![]);
-        self.grammar.add_rule(p.idx, vec![p.idx, elt.idx]);
+        self.grammar.add_rule(p.idx, vec![]).unwrap();
+        self.grammar.add_rule(p.idx, vec![p.idx, elt.idx]).unwrap();
         p
     }
 
@@ -568,7 +572,9 @@ impl GrammarBuilder {
         self.grammar
             .check_empty_symbol(placeholder.idx)
             .expect("placeholder already set");
-        self.grammar.add_rule(placeholder.idx, vec![node.idx]);
+        self.grammar
+            .add_rule(placeholder.idx, vec![node.idx])
+            .unwrap();
     }
 
     pub fn set_start_node(&mut self, node: NodeRef) {

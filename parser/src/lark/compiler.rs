@@ -91,9 +91,12 @@ pub fn lark_regex_quote(rx: &str) -> String {
     res
 }
 
-pub fn lark_to_llguidance(builder: GrammarBuilder, lark: &str) -> Result<GrammarResult> {
-    // TODO size_hint
+pub fn lark_to_llguidance(mut builder: GrammarBuilder, lark: &str) -> Result<GrammarResult> {
     let parsed = parse_lark(lark)?;
+
+    let n = std::cmp::min(lark.len() / 8, 1_000_000);
+    builder.regex.spec.regex_builder.reserve(n);
+
     compile_lark(builder, parsed)
 }
 

@@ -4,7 +4,7 @@ use anyhow::Result;
 use toktrie::{InferenceCapabilities, TokEnv};
 
 use crate::{
-    api::{ParserLimits, TopLevelGrammar},
+    api::{GrammarInit, ParserLimits, TopLevelGrammar},
     earley::{SlicedBiasComputer, XorShift},
     Logger, TokenParser,
 };
@@ -39,6 +39,10 @@ impl ParserFactory {
 
     pub fn limits_mut(&mut self) -> &mut ParserLimits {
         &mut self.limits
+    }
+
+    pub fn limits(&self) -> &ParserLimits {
+        &self.limits
     }
 
     pub fn tok_env(&self) -> &TokEnv {
@@ -103,9 +107,26 @@ impl ParserFactory {
         buffer_log_level: u32,
         stderr_log_level: u32,
     ) -> Result<TokenParser> {
-        let mut parser = TokenParser::from_llguidance_json(
+        self.create_parser_from_init(
+            GrammarInit::Serialized(grammar),
+            buffer_log_level,
+            stderr_log_level,
+        )
+    }
+
+    pub fn create_parser_from_init_default(&self, init: GrammarInit) -> Result<TokenParser> {
+        self.create_parser_from_init(init, self.buffer_log_level, self.stderr_log_level)
+    }
+
+    pub fn create_parser_from_init(
+        &self,
+        init: GrammarInit,
+        buffer_log_level: u32,
+        stderr_log_level: u32,
+    ) -> Result<TokenParser> {
+        let mut parser = TokenParser::from_init(
             self.tok_env.clone(),
-            grammar,
+            init,
             Logger::new(buffer_log_level, stderr_log_level),
             self.inference_caps.clone(),
             self.limits.clone(),

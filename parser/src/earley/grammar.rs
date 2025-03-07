@@ -104,6 +104,7 @@ impl SymbolProps {
     }
 }
 
+#[derive(Debug, Clone)]
 struct Symbol {
     idx: SymIdx,
     name: String,
@@ -113,6 +114,7 @@ struct Symbol {
     props: SymbolProps,
 }
 
+#[derive(Debug, Clone)]
 struct Rule {
     lhs: SymIdx,
     rhs: Vec<SymIdx>,
@@ -124,6 +126,7 @@ impl Rule {
     }
 }
 
+#[derive(Clone)]
 pub struct Grammar {
     name: Option<String>,
     symbols: Vec<Symbol>,

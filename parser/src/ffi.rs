@@ -8,9 +8,8 @@ use anyhow::{bail, ensure, Result};
 use toktrie::{InferenceCapabilities, TokEnv, TokRxInfo, TokTrie, TokenizerEnv};
 
 use crate::{
-    api::{ParserLimits, RegexNode, TopLevelGrammar},
-    CommitResult, Constraint, JsonCompileOptions, Logger, ParserFactory, StopController,
-    TokenParser,
+    api::{ParserLimits, TopLevelGrammar},
+    CommitResult, Constraint, Logger, ParserFactory, StopController, TokenParser,
 };
 
 struct CTokenizerInner {
@@ -240,7 +239,7 @@ impl LlgConstraintInit {
         grammar: TopLevelGrammar,
         extra_lexemes: Vec<String>,
     ) -> Result<TokenParser> {
-        TokenParser::from_llguidance_json(
+        TokenParser::from_grammar(
             self.tok_env()?,
             grammar,
             self.logger(),

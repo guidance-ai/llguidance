@@ -363,7 +363,7 @@ impl Compiler {
             let json_any = self.builder.new_node("json_any");
             self.any_cache = Some(json_any); // avoid infinite recursion
             let num = self.json_number(None, None, false, false, None).unwrap();
-            let tf = self.builder.regex.regex("true|false".to_string()).unwrap();
+            let tf = self.builder.regex.regex("true|false").unwrap();
             let options = vec![
                 self.builder.string("null"),
                 self.builder.lexeme(tf),
@@ -439,7 +439,7 @@ impl Compiler {
                         .collect::<Vec<_>>();
                     let taken = self.builder.regex.select(taken_name_ids);
                     let not_taken = self.builder.regex.not(taken);
-                    let valid = self.builder.regex.regex(format!("\"({})*\"", CHAR_REGEX))?;
+                    let valid = self.builder.regex.regex(&format!("\"({})*\"", CHAR_REGEX))?;
                     let valid_and_not_taken = self.builder.regex.and(vec![valid, not_taken]);
                     self.builder.lexeme(valid_and_not_taken)
                 };

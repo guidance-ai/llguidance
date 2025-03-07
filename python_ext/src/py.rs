@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::ops::DerefMut;
 use std::{borrow::Cow, sync::Arc};
 
-use llguidance::api::{GrammarWithLexer, ParserLimits};
+use llguidance::api::{GrammarInit, GrammarWithLexer, ParserLimits};
 use llguidance::earley::SlicedBiasComputer;
 use llguidance::toktrie::{
     self, ApproximateTokEnv, InferenceCapabilities, TokEnv, TokRxInfo, TokTrie, TokenId,
@@ -177,7 +177,7 @@ impl LLInterpreter {
             fork: false,
         };
         let logger = Logger::new(0, std::cmp::max(0, log_level) as u32);
-        let mut inner = TokenParser::from_llguidance_json(
+        let mut inner = TokenParser::from_grammar(
             fact.tok_env().clone(),
             arg,
             logger,
@@ -544,7 +544,7 @@ impl JsonCompiler {
         }
     }
     fn compile(&self, schema: &str) -> PyResult<String> {
-        let schema: Value = serde_json::from_str(schema).map_err(val_error)?;
+        let mut schema: Value = serde_json::from_str(schema).map_err(val_error)?;
         let compile_options = JsonCompileOptions {
             item_separator: self.item_separator.clone(),
             key_separator: self.key_separator.clone(),
@@ -552,6 +552,11 @@ impl JsonCompiler {
             coerce_one_of: self.coerce_one_of,
             retriever: None,
         };
+        compile_options.apply_to(&mut schema);
+        let grm = TopLevelGrammar::from_json_schema(schema);
+        let g_init = GrammarInit::Serialized(grm);
+        g_init.to_internal
+        
         let grammar = compile_options.json_to_llg(schema).map_err(val_error)?;
         serde_json::to_string(&grammar).map_err(val_error)
     }

@@ -5,7 +5,7 @@ use llguidance::{
     api::{ParserLimits, TopLevelGrammar},
     earley::{SlicedBiasComputer, XorShift},
     toktrie::{InferenceCapabilities, TokEnv},
-    Constraint, JsonCompileOptions, TokenParser,
+    Constraint, TokenParser,
 };
 use serde_json::json;
 
@@ -130,7 +130,7 @@ fn main() {
         fork: false,                  // not used
     };
 
-    let parser = TokenParser::from_llguidance_json(
+    let parser = TokenParser::from_grammar(
         tok_env.clone(),
         grammar.clone(),
         llguidance::Logger::new(buffer_log_level, stderr_log_level),
@@ -189,7 +189,7 @@ fn main() {
             }
 
             t0 = std::time::Instant::now();
-            let parser = TokenParser::from_llguidance_json(
+            let parser = TokenParser::from_grammar(
                 tok_env.clone(),
                 grammar.clone(),
                 llguidance::Logger::new(buffer_log_level, stderr_log_level),
