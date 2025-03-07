@@ -439,7 +439,10 @@ impl Compiler {
                         .collect::<Vec<_>>();
                     let taken = self.builder.regex.select(taken_name_ids);
                     let not_taken = self.builder.regex.not(taken);
-                    let valid = self.builder.regex.regex(&format!("\"({})*\"", CHAR_REGEX))?;
+                    let valid = self
+                        .builder
+                        .regex
+                        .regex(&format!("\"({})*\"", CHAR_REGEX))?;
                     let valid_and_not_taken = self.builder.regex.and(vec![valid, not_taken]);
                     self.builder.lexeme(valid_and_not_taken)
                 };
