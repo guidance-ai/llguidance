@@ -247,10 +247,10 @@ impl GrammarBuilder {
     }
 
     pub fn gen_grammar(&mut self, data: GenGrammarOptions, props: NodeProps) -> NodeRef {
-        let r = self.new_node("gg");
         if props.max_tokens.is_some() {
             self.regex.spec.has_max_tokens = true;
         }
+        let r = self.new_node("gg");
         self.grammar.apply_node_props(r.idx, props);
         self.grammar.make_gen_grammar(r.idx, data).unwrap();
         r
@@ -272,7 +272,7 @@ impl GrammarBuilder {
             props.max_tokens.unwrap_or(usize::MAX),
             data.is_suffix.unwrap_or(false),
         )?;
-
+        self.grammar.apply_node_props(lhs.idx, props);
         let symprops = self.grammar.sym_props_mut(lhs.idx);
         if let Some(t) = data.temperature {
             symprops.temperature = t;
@@ -309,6 +309,7 @@ impl GrammarBuilder {
             )
             .unwrap();
         let r = self.lexeme_to_node(idx);
+        self.grammar.apply_node_props(r.idx, props);
         if let Some(t) = temperature {
             self.grammar.set_temperature(r.idx, t);
         }
@@ -367,6 +368,7 @@ impl GrammarBuilder {
             };
         }
         let r = self.new_node("");
+        self.grammar.apply_node_props(r.idx, props);
         self.grammar.add_rule(r.idx, ch).unwrap();
         r
     }
