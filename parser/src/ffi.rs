@@ -9,8 +9,8 @@ use toktrie::{InferenceCapabilities, TokEnv, TokRxInfo, TokTrie, TokenizerEnv};
 
 use crate::{
     api::{ParserLimits, RegexNode, TopLevelGrammar},
-    lark_to_llguidance, CommitResult, Constraint, JsonCompileOptions, Logger, ParserFactory,
-    StopController, TokenParser,
+    CommitResult, Constraint, JsonCompileOptions, Logger, ParserFactory, StopController,
+    TokenParser,
 };
 
 struct CTokenizerInner {
@@ -359,13 +359,13 @@ unsafe fn c_str_to_str<'a>(c_str: *const c_char, info: &str) -> Result<&'a str> 
 
 fn new_constraint_regex(init: &LlgConstraintInit, regex: *const c_char) -> Result<Constraint> {
     let regex = unsafe { c_str_to_str(regex, "regex") }?;
-    let grammar = TopLevelGrammar::from_regex(RegexNode::Regex(regex.to_string()));
+    let grammar = TopLevelGrammar::from_regex(regex);
     init.build_constraint(grammar)
 }
 
 fn new_constraint_lark(init: &LlgConstraintInit, lark: *const c_char) -> Result<Constraint> {
     let lark = unsafe { c_str_to_str(lark, "lark") }?;
-    let grammar = lark_to_llguidance(lark)?;
+    let grammar = TopLevelGrammar::from_lark(lark.to_string());
     init.build_constraint(grammar)
 }
 
@@ -373,10 +373,7 @@ fn new_constraint_json(init: &LlgConstraintInit, json_schema: *const c_char) -> 
     let json_schema = unsafe { c_str_to_str(json_schema, "json_schema") }?;
     let json_schema = serde_json::from_str(json_schema)
         .map_err(|e| anyhow::anyhow!("Invalid JSON in json_schema: {e}"))?;
-    let opts = JsonCompileOptions::default();
-    let grammar = opts
-        .json_to_llg(json_schema)
-        .map_err(|e| anyhow::anyhow!("Error compiling JSON schema to LLG: {e}"))?;
+    let grammar = TopLevelGrammar::from_json_schema(json_schema);
     init.build_constraint(grammar)
 }
 

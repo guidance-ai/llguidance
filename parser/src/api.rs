@@ -3,9 +3,12 @@ use std::{
     ops::RangeInclusive,
 };
 
+use derivre::RegexAst;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use toktrie::TokenId;
+
+use crate::lark::lark_regex_quote;
 
 /// This represents a collection of grammars, with a designated
 /// "start" grammar at first position.
@@ -210,15 +213,15 @@ pub struct NodeProps {
     pub capture_name: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Clone)]
 pub struct GenOptions {
     /// Regular expression matching the body of generation.
-    pub body_rx: RegexSpec,
+    pub body_rx: RegexAst,
 
     /// The whole generation must match `body_rx + stop_rx`.
     /// Whatever matched `stop_rx` is discarded.
     /// If `stop_rx` is empty, it's assumed to be EOS.
-    pub stop_rx: RegexSpec,
+    pub stop_rx: RegexAst,
 
     /// When set, the string matching `stop_rx` will be output as a capture
     /// with the given name.
@@ -332,23 +335,12 @@ impl RegexSpec {
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Debug)]
 #[serde(untagged)]
 pub enum GrammarId {
-    Index(usize),
     Name(String),
-}
-
-impl GrammarId {
-    pub fn to_index(&self) -> Option<usize> {
-        match self {
-            GrammarId::Index(i) => Some(*i),
-            GrammarId::Name(_) => None,
-        }
-    }
 }
 
 impl Display for GrammarId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            GrammarId::Index(i) => write!(f, "@#{}", i),
             GrammarId::Name(s) => write!(f, "@{}", s),
         }
     }
@@ -376,15 +368,6 @@ impl Node {
             Node::Join { props, .. } => props,
             Node::SpecialToken { props, .. } => props,
             Node::TokenRanges { props, .. } => props,
-        }
-    }
-}
-
-impl Default for GenGrammarOptions {
-    fn default() -> Self {
-        GenGrammarOptions {
-            grammar: GrammarId::Index(0),
-            temperature: None,
         }
     }
 }
@@ -490,12 +473,16 @@ impl Default for ParserLimits {
 }
 
 impl TopLevelGrammar {
-    pub fn from_regex(rx: RegexNode) -> Self {
+    pub fn from_regex(rx: &str) -> Self {
         Self::from_grammar(GrammarWithLexer::from_regex(rx))
     }
 
     pub fn from_lark(lark_grammar: String) -> Self {
         Self::from_grammar(GrammarWithLexer::from_lark(lark_grammar))
+    }
+
+    pub fn from_json_schema(json_schema: Value) -> Self {
+        Self::from_grammar(GrammarWithLexer::from_json_schema(json_schema))
     }
 
     pub fn from_grammar(grammar: GrammarWithLexer) -> Self {
@@ -524,20 +511,10 @@ impl GrammarWithLexer {
         }
     }
 
-    pub fn from_regex(rx: RegexNode) -> Self {
-        GrammarWithLexer {
-            name: Some("regex_grammar".to_string()),
-            nodes: vec![Node::Lexeme {
-                rx: RegexSpec::RegexId(RegexId(0)),
-                contextual: None,
-                temperature: None,
-                props: NodeProps::default(),
-                json_string: None,
-                json_allowed_escapes: None,
-                json_raw: None,
-            }],
-            rx_nodes: vec![rx],
-            ..Default::default()
-        }
+    pub fn from_regex(rx: &str) -> Self {
+        let rx = lark_regex_quote(rx);
+        let mut r = Self::from_lark(format!("start: /{}/", rx));
+        r.name = Some("regex".to_string());
+        r
     }
 }

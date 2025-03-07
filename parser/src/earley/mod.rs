@@ -10,7 +10,7 @@ pub mod regexvec;
 
 pub use from_guidance::{grammars_from_json, regex_nodes_to_derivre};
 #[allow(unused_imports)]
-pub use grammar::{CGrammar, CSymIdx, Grammar};
+pub use grammar::{CGrammar, CSymIdx, Grammar, SymIdx, SymbolProps};
 pub use parser::{
     BiasComputer, DefaultBiasComputer, Parser, ParserError, ParserMetrics, ParserRecognizer,
     ParserStats, XorShift,

@@ -1,11 +1,13 @@
-use crate::{HashMap, HashSet};
+use crate::{
+    grammar_builder::{GrammarResult, RegexId},
+    substring::substring,
+    HashMap, HashSet,
+};
 use anyhow::{anyhow, bail, ensure, Result};
+use derivre::RegexAst;
 
 use crate::{
-    api::{
-        GenGrammarOptions, GenOptions, GrammarId, GrammarWithLexer, LLGuidanceOptions, Node,
-        NodeProps, RegexExt, RegexId, RegexNode, RegexSpec, TopLevelGrammar,
-    },
+    api::{GenGrammarOptions, GenOptions, GrammarId, LLGuidanceOptions, NodeProps, RegexExt},
     json::json_merge,
     substring::{chunk_into_chars, chunk_into_words},
     GrammarBuilder, JsonCompileOptions, NodeRef,
@@ -38,38 +40,61 @@ impl Default for Grammar {
 }
 
 struct Compiler {
-    test_rx: derivre::RegexBuilder,
     builder: GrammarBuilder,
-    additional_grammars: Vec<GrammarWithLexer>,
     parsed: ParsedLark,
     grammar: Grammar,
     node_ids: HashMap<String, NodeRef>,
     regex_ids: HashMap<String, RegexId>,
     in_progress: HashSet<String>,
+    pending_json_grammars: Vec<(NodeRef, Location, serde_json::Value)>,
 }
 
-fn compile_lark(parsed: ParsedLark) -> Result<TopLevelGrammar> {
-    let mut c = Compiler {
-        builder: GrammarBuilder::new(),
-        test_rx: derivre::RegexBuilder::new(),
-        additional_grammars: vec![],
+fn compile_lark(builder: GrammarBuilder, parsed: ParsedLark) -> Result<GrammarResult> {
+    let c = Compiler {
+        builder,
         parsed,
         grammar: Grammar::default(),
         node_ids: HashMap::default(),
         regex_ids: HashMap::default(),
         in_progress: HashSet::default(),
+        pending_json_grammars: vec![],
     };
-    c.execute()?;
-    let mut r = c.builder.finalize()?;
-    r.grammars.extend(c.additional_grammars);
-    Ok(r)
+    c.execute()
 }
 
-pub fn lark_to_llguidance(lark: &str) -> Result<TopLevelGrammar> {
+/// Make sure given regex can be used inside /.../ in Lark syntax.
+pub fn lark_regex_quote(rx: &str) -> String {
+    let mut is_q = false;
+    let mut res = String::new();
+    for c in rx.chars() {
+        let prev_q = is_q;
+        is_q = false;
+        match c {
+            // make sure we don't terminate on /
+            '/' => res.push_str("\\/"),
+            // these are optional, but nice
+            '\n' => res.push_str("\\n"),
+            '\r' => res.push_str("\\r"),
+            '\t' => res.push_str("\\t"),
+
+            '\\' if !prev_q => {
+                is_q = true;
+            }
+            _ => {
+                if prev_q {
+                    res.push('\\');
+                }
+                res.push(c);
+            }
+        }
+    }
+    res
+}
+
+pub fn lark_to_llguidance(builder: GrammarBuilder, lark: &str) -> Result<GrammarResult> {
+    // TODO size_hint
     let parsed = parse_lark(lark)?;
-    let mut compiled = compile_lark(parsed)?;
-    compiled.grammars[0].size_hint = Some(lark.len());
-    Ok(compiled)
+    compile_lark(builder, parsed)
 }
 
 impl Compiler {
@@ -93,10 +118,10 @@ impl Compiler {
     }
 
     fn mk_regex(&mut self, info: &str, rx: String) -> Result<RegexId> {
-        self.test_rx
-            .mk_regex(&rx)
-            .map_err(|e| anyhow!("invalid regex {rx:?} (in {info}): {e}"))?;
-        Ok(self.builder.regex.regex(rx))
+        self.builder
+            .regex
+            .regex(&rx)
+            .map_err(|e| anyhow!("invalid regex {rx:?} (in {info}): {e}"))
     }
 
     fn do_token_atom(&mut self, atom: Atom) -> Result<RegexId> {
@@ -222,20 +247,20 @@ impl Compiler {
     }
 
     fn lift_regex(&mut self, rx_id: RegexId) -> Result<NodeRef> {
-        Ok(self.builder.lexeme(RegexSpec::RegexId(rx_id)))
+        Ok(self.builder.lexeme(rx_id))
     }
 
-    fn get_grammar_id(g: &str) -> GrammarId {
+    fn get_grammar_id(g: &str) -> Result<GrammarId> {
         assert!(g.starts_with("@"));
         // see if g[1..] is an integer
-        if let Ok(id) = g[1..].parse::<usize>() {
-            GrammarId::Index(id)
+        if let Ok(_) = g[1..].parse::<usize>() {
+            bail!("numeric grammar references no longer supported");
         } else {
-            GrammarId::Name(g[1..].to_string())
+            Ok(GrammarId::Name(g[1..].to_string()))
         }
     }
 
-    fn do_atom(&mut self, expr: Atom) -> Result<NodeRef> {
+    fn do_atom(&mut self, loc: &Location, expr: Atom) -> Result<NodeRef> {
         match expr {
             Atom::Group(expansions) => self.do_expansions(expansions),
             Atom::Maybe(expansions) => {
@@ -275,14 +300,14 @@ impl Compiler {
                                 ranges.push(start..=end);
                             }
                             ensure!(!ranges.is_empty(), "empty token range");
-                            return Ok(self.builder.token_ranges(ranges));
+                            return self.builder.token_ranges(ranges);
                         }
-                        return Ok(self.builder.special_token(&s));
+                        return self.builder.special_token(&s);
                     }
                     Value::GrammarRef(g) => {
                         return Ok(self.builder.gen_grammar(
                             GenGrammarOptions {
-                                grammar: Compiler::get_grammar_id(&g),
+                                grammar: Compiler::get_grammar_id(&g)?,
                                 temperature: None,
                             },
                             NodeProps::default(),
@@ -290,26 +315,22 @@ impl Compiler {
                     }
                     Value::Json(_) => {
                         // consume value
-                        let s = match value {
+                        let json_schema = match value {
                             Value::Json(s) => s,
                             _ => unreachable!(),
                         };
-                        let opts = JsonCompileOptions::default();
-                        let mut grm = opts
-                            .json_to_llg_no_validate(s)
-                            .map_err(|e| anyhow!("failed to compile JSON schema: {}", e))?;
-                        assert!(grm.grammars.len() == 1);
-                        let mut g = grm.grammars.pop().unwrap();
-                        let name = format!("%json---{}", self.additional_grammars.len());
-                        g.name = Some(name.clone());
-                        self.additional_grammars.push(g);
-                        return Ok(self.builder.gen_grammar(
+
+                        let name = format!("%json---{}", self.builder.num_nodes());
+                        let gg = self.builder.gen_grammar(
                             GenGrammarOptions {
                                 grammar: GrammarId::Name(name),
-                                temperature: None,
+                                temperature: None, // TODO?
                             },
                             NodeProps::default(),
-                        ));
+                        );
+                        self.pending_json_grammars
+                            .push((gg, loc.clone(), json_schema));
+                        return Ok(gg);
                     }
                     // special case "" literal, so it doesn't pollute grammar with epsilon regex
                     Value::LiteralString(s, _) if s.is_empty() => return Ok(self.builder.empty()),
@@ -329,8 +350,8 @@ impl Compiler {
         }
     }
 
-    fn do_expr(&mut self, expr: Expr) -> Result<NodeRef> {
-        let atom = self.do_atom(expr.atom)?;
+    fn do_expr(&mut self, loc: &Location, expr: Expr) -> Result<NodeRef> {
+        let atom = self.do_atom(loc, expr.atom)?;
 
         if let Some((a, b)) = expr.range {
             ensure!(expr.op.is_none(), "ranges not supported with operators");
@@ -361,6 +382,7 @@ impl Compiler {
     }
 
     fn do_expansions(&mut self, expansions: Expansions) -> Result<NodeRef> {
+        let loc = expansions.0;
         let options = expansions
             .1
             .into_iter()
@@ -369,12 +391,12 @@ impl Compiler {
                     .expansion
                     .0
                     .into_iter()
-                    .map(|e| self.do_expr(e))
+                    .map(|e| self.do_expr(&loc, e))
                     .collect::<Result<Vec<_>>>()?;
                 Ok(self.builder.join(&args))
             })
             .collect::<Result<Vec<_>>>()
-            .map_err(|e| expansions.0.augment(e))?;
+            .map_err(|e| loc.augment(e))?;
         Ok(self.builder.select(&options))
     }
 
@@ -389,7 +411,7 @@ impl Compiler {
             return Ok(*id);
         }
         if self.in_progress.contains(name) {
-            let id = self.builder.placeholder();
+            let id = self.builder.new_node(name);
             self.node_ids.insert(name.to_string(), id);
             return Ok(id);
         }
@@ -431,11 +453,11 @@ impl Compiler {
 
             self.builder.gen(
                 GenOptions {
-                    body_rx: RegexSpec::RegexId(rx_id),
+                    body_rx: RegexAst::ExprRef(rx_id),
                     stop_rx: if is_empty {
-                        RegexSpec::Regex("".to_string())
+                        RegexAst::EmptyString
                     } else {
-                        RegexSpec::RegexId(stop_id)
+                        RegexAst::ExprRef(stop_id)
                     },
                     stop_capture_name: rule.stop_capture_name.clone(),
                     lazy: Some(lazy),
@@ -443,7 +465,7 @@ impl Compiler {
                     is_suffix: Some(rule.suffix.is_some()),
                 },
                 props,
-            )
+            )?
         } else {
             ensure!(
                 rule.stop_capture_name.is_none(),
@@ -454,7 +476,7 @@ impl Compiler {
                     Some(Atom::Value(Value::GrammarRef(g))) => {
                         return Ok(self.builder.gen_grammar(
                             GenGrammarOptions {
-                                grammar: Compiler::get_grammar_id(g),
+                                grammar: Compiler::get_grammar_id(g)?,
                                 temperature: rule.temperature,
                             },
                             props,
@@ -469,15 +491,7 @@ impl Compiler {
                                 e
                             )
                         })?;
-                        return Ok(self.builder.add_node(Node::Lexeme {
-                            rx: RegexSpec::RegexId(rx_id),
-                            contextual: None,
-                            temperature: rule.temperature,
-                            json_string: None,
-                            json_raw: None,
-                            json_allowed_escapes: None,
-                            props,
-                        }));
+                        return Ok(self.builder.lexeme_ext(rx_id, rule.temperature, props));
                     }
                 }
             }
@@ -503,7 +517,7 @@ impl Compiler {
         Ok(id)
     }
 
-    fn execute(&mut self) -> Result<()> {
+    fn execute(mut self) -> Result<GrammarResult> {
         let mut grm = Grammar::default();
         for item in std::mem::take(&mut self.parsed.items) {
             let loc = item.location().clone();
@@ -521,22 +535,27 @@ impl Compiler {
         let opts: LLGuidanceOptions =
             serde_json::from_value(self.grammar.llguidance_options.clone())
                 .map_err(|e| anyhow!("failed to parse %llguidance declaration: {}", e))?;
-        let mut grm_with_lex = GrammarWithLexer::default();
-        grm_with_lex.options = opts;
-        self.builder.add_grammar(grm_with_lex);
 
         let ignore = ignore
             .into_iter()
-            .map(|exp| self.do_token_expansions(exp))
+            .map(|exp| Ok(RegexAst::ExprRef(self.do_token_expansions(exp)?)))
             .collect::<Result<Vec<_>>>()?;
+        let id = self.builder.add_grammar(opts, RegexAst::Or(ignore))?;
+
         let start = self.do_rule(start_name)?;
         self.builder.set_start_node(start);
-        if ignore.len() > 0 {
-            let ignore_rx = self.builder.regex.select(ignore);
-            self.builder.top_grammar.grammars[0].greedy_skip_rx =
-                Some(RegexSpec::RegexId(ignore_rx));
+
+        let mut builder = self.builder;
+        for (gg, loc, json_schema) in self.pending_json_grammars {
+            let opts = JsonCompileOptions::default();
+            let res = opts
+                .json_to_llg_no_validate(builder, json_schema)
+                .map_err(|e| loc.augment(anyhow!("failed to compile JSON schema: {}", e)))?;
+            builder = res.builder;
+            builder.link_gen_grammar(gg, res.start_node)?;
         }
-        Ok(())
+
+        Ok(builder.finalize(id))
     }
 }
 
@@ -651,16 +670,17 @@ fn compile_lark_regex(builder: &mut GrammarBuilder, l: RegexExt) -> Result<Regex
         bail!("only one field can be set on %regex; got {:?}", fields_set);
     }
 
-    let chunks: Vec<String> = if let Some(s) = l.substring_words {
-        chunk_into_words(&s).iter().map(|s| s.to_string()).collect()
+    let bld = &mut builder.regex.spec.regex_builder;
+
+    let eref = if let Some(s) = l.substring_words {
+        substring(bld, chunk_into_words(&s))?
     } else if let Some(s) = l.substring_chars {
-        chunk_into_chars(&s).iter().map(|s| s.to_string()).collect()
+        substring(bld, chunk_into_chars(&s))?
     } else if let Some(s) = l.substring_chunks {
-        s
+        substring(bld, s.iter().map(|s| s.as_str()).collect())?
     } else {
         unreachable!()
     };
 
-    let rx_id = builder.regex.add_node(RegexNode::Substring(chunks));
-    Ok(rx_id)
+    Ok(eref)
 }

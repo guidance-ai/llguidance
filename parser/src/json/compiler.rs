@@ -1,31 +1,30 @@
+use crate::api::LLGuidanceOptions;
+use crate::grammar_builder::GrammarResult;
 use crate::HashMap;
 use anyhow::{anyhow, Context, Result};
 use derivre::{JsonQuoteOptions, RegexAst};
 use indexmap::IndexMap;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use super::numeric::{check_number_bounds, rx_float_range, rx_int_range, Decimal};
 use super::schema::{build_schema, Schema};
 use super::RetrieveWrapper;
 
-use crate::{
-    api::{GrammarWithLexer, RegexSpec, TopLevelGrammar},
-    GrammarBuilder, NodeRef,
-};
+use crate::{GrammarBuilder, NodeRef};
 
 // TODO: grammar size limit
 // TODO: array maxItems etc limits
 // TODO: schemastore/src/schemas/json/BizTalkServerApplicationSchema.json - this breaks 1M fuel on lexer, why?!
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct JsonCompileOptions {
     pub item_separator: String,
     pub key_separator: String,
     pub whitespace_flexible: bool,
     pub coerce_one_of: bool,
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     pub retriever: Option<RetrieveWrapper>,
 }
 
@@ -78,49 +77,38 @@ impl Default for JsonCompileOptions {
 }
 
 impl JsonCompileOptions {
-    pub fn new(
-        item_separator: String,
-        key_separator: String,
-        whitespace_flexible: bool,
-        coerce_one_of: bool,
-        retriever: Option<RetrieveWrapper>,
-    ) -> Self {
-        Self {
-            item_separator,
-            key_separator,
-            whitespace_flexible,
-            coerce_one_of,
-            retriever,
-        }
-    }
-
-    pub fn json_to_llg(&self, schema: Value) -> Result<TopLevelGrammar> {
-        let mut compiler = Compiler::new(self.clone());
+    pub fn json_to_llg(&self, builder: GrammarBuilder, schema: Value) -> Result<GrammarResult> {
+        let compiler = Compiler::new(self.clone(), builder);
         #[cfg(feature = "jsonschema_validation")]
         {
             use crate::json_validation::validate_schema;
             validate_schema(&schema)?;
         }
 
-        compiler.execute(schema)?;
-        compiler.builder.finalize()
+        compiler.execute(schema)
     }
 
-    pub fn json_to_llg_no_validate(&self, schema: Value) -> Result<TopLevelGrammar> {
-        let mut compiler = Compiler::new(self.clone());
-        compiler.execute(schema)?;
-        compiler.builder.finalize()
+    pub fn json_to_llg_no_validate(
+        &self,
+        builder: GrammarBuilder,
+        schema: Value,
+    ) -> Result<GrammarResult> {
+        let compiler = Compiler::new(self.clone(), builder);
+        compiler.execute(schema)
     }
-}
 
-fn mk_regex(rx: &str) -> RegexSpec {
-    RegexSpec::Regex(rx.to_string())
+    pub fn apply_to(&self, schema: &mut Value) {
+        schema.as_object_mut().unwrap().insert(
+            "x-guidance".to_string(),
+            serde_json::to_value(self).unwrap(),
+        );
+    }
 }
 
 impl Compiler {
-    pub fn new(options: JsonCompileOptions) -> Self {
+    pub fn new(options: JsonCompileOptions, builder: GrammarBuilder) -> Self {
         Self {
-            builder: GrammarBuilder::new(),
+            builder,
             options,
             definitions: HashMap::default(),
             pending_definitions: vec![],
@@ -129,15 +117,15 @@ impl Compiler {
         }
     }
 
-    pub fn execute(&mut self, schema: Value) -> Result<()> {
-        self.builder.add_grammar(GrammarWithLexer {
-            greedy_skip_rx: if self.options.whitespace_flexible {
-                Some(mk_regex(r"[\x20\x0A\x0D\x09]+"))
-            } else {
-                None
-            },
-            ..GrammarWithLexer::default()
-        });
+    pub fn execute(mut self, schema: Value) -> Result<GrammarResult> {
+        let skip = if self.options.whitespace_flexible {
+            RegexAst::Regex(r"[\x20\x0A\x0D\x09]+".to_string())
+        } else {
+            RegexAst::NoMatch
+        };
+        let id = self
+            .builder
+            .add_grammar(LLGuidanceOptions::default(), skip)?;
 
         let (compiled_schema, definitions) = build_schema(schema, self.options.retriever.clone())?;
 
@@ -152,7 +140,7 @@ impl Compiler {
             self.builder.set_placeholder(pl, compiled);
         }
 
-        Ok(())
+        Ok(self.builder.finalize(id))
     }
 
     fn gen_json(&mut self, json_schema: &Schema) -> Result<NodeRef> {
@@ -350,7 +338,7 @@ impl Compiler {
 
     fn ast_lexeme(&mut self, ast: RegexAst) -> Result<NodeRef> {
         let id = self.builder.regex.add_ast(ast)?;
-        Ok(self.builder.lexeme(RegexSpec::RegexId(id)))
+        Ok(self.builder.lexeme(id))
     }
 
     fn json_simple_string(&mut self) -> NodeRef {
@@ -364,7 +352,7 @@ impl Compiler {
         if let Some(definition) = self.definitions.get(reference) {
             return Ok(*definition);
         }
-        let r = self.builder.placeholder();
+        let r = self.builder.new_node(reference);
         self.definitions.insert(reference.to_string(), r);
         self.pending_definitions.push((reference.to_string(), r));
         Ok(r)
@@ -372,12 +360,13 @@ impl Compiler {
 
     fn gen_json_any(&mut self) -> NodeRef {
         cache!(self.any_cache, {
-            let json_any = self.builder.placeholder();
+            let json_any = self.builder.new_node("json_any");
             self.any_cache = Some(json_any); // avoid infinite recursion
             let num = self.json_number(None, None, false, false, None).unwrap();
+            let tf = self.builder.regex.regex("true|false".to_string()).unwrap();
             let options = vec![
                 self.builder.string("null"),
-                self.builder.lexeme(mk_regex(r"true|false")),
+                self.builder.lexeme(tf),
                 self.ast_lexeme(num).unwrap(),
                 self.json_simple_string(),
                 self.gen_json_array(&[], &Schema::Any, 0, None).unwrap(),
@@ -450,10 +439,9 @@ impl Compiler {
                         .collect::<Vec<_>>();
                     let taken = self.builder.regex.select(taken_name_ids);
                     let not_taken = self.builder.regex.not(taken);
-                    let valid = self.builder.regex.regex(format!("\"({})*\"", CHAR_REGEX));
+                    let valid = self.builder.regex.regex(format!("\"({})*\"", CHAR_REGEX))?;
                     let valid_and_not_taken = self.builder.regex.and(vec![valid, not_taken]);
-                    let rx = RegexSpec::RegexId(valid_and_not_taken);
-                    self.builder.lexeme(rx)
+                    self.builder.lexeme(valid_and_not_taken)
                 };
                 let colon = self.builder.string(&self.options.key_separator);
                 let item = self.builder.join(&[name, colon, property]);

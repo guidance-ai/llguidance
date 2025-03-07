@@ -9,9 +9,9 @@ use crate::api::{
 };
 use crate::earley::lexerspec::{token_ranges_to_string, LexemeClass};
 use crate::substring::substring;
-use crate::HashMap;
 use crate::Instant;
 use crate::{lark_to_llguidance, loginfo, JsonCompileOptions, Logger};
+use crate::{GrammarBuilder, HashMap};
 use anyhow::{anyhow, bail, ensure, Result};
 use derivre::{ExprRef, JsonQuoteOptions, RegexAst, RegexBuilder};
 use toktrie::TokEnv;
@@ -390,8 +390,7 @@ fn grammar_from_json(
 struct CompileCtx {
     tok_env: TokEnv,
     limits: ParserLimits,
-    lexer_spec: LexerSpec,
-    grammar: Grammar,
+    builder: Option<GrammarBuilder>,
     grammar_by_idx: HashMap<GrammarId, usize>,
     grammar_roots: Vec<(SymIdx, LexemeClass)>,
 }
@@ -409,11 +408,12 @@ pub fn grammars_from_json(
 
     ensure!(input.grammars.len() > 0, "empty grammars array");
 
+    let builder = GrammarBuilder::new(tok_env.clone());
+
     let mut ctx = CompileCtx {
         tok_env: tok_env.clone(),
         limits,
-        lexer_spec: LexerSpec::new()?,
-        grammar: Grammar::new(None),
+        builder: Some(builder),
         grammar_by_idx: HashMap::default(),
         grammar_roots: vec![(SymIdx::BOGUS, LexemeClass::ROOT); input.grammars.len()],
     };
@@ -426,7 +426,6 @@ pub fn grammars_from_json(
             }
             ctx.grammar_by_idx.insert(n, idx);
         }
-        ctx.grammar_by_idx.insert(GrammarId::Index(idx), idx);
     }
 
     for (idx, grm) in input.grammars.into_iter().enumerate() {

@@ -1,115 +1,81 @@
-use crate::HashMap;
-use anyhow::{bail, ensure, Result};
-use derivre::RegexAst;
-use std::{ops::RangeInclusive, sync::atomic::AtomicU32};
-
-use crate::api::{
-    GenGrammarOptions, GenOptions, GrammarWithLexer, Node, NodeId, NodeProps, RegexId, RegexNode,
-    RegexSpec, TopLevelGrammar,
+use crate::{
+    api::LLGuidanceOptions,
+    earley::{
+        lexerspec::{token_ranges_to_string, LexemeClass, LexemeIdx, LexerSpec},
+        Grammar, SymIdx, SymbolProps,
+    },
+    HashMap,
 };
+use anyhow::{bail, ensure, Result};
+use derivre::{ExprRef, RegexAst};
+use std::ops::RangeInclusive;
+use toktrie::{bytes::limit_str, TokEnv};
+
+use crate::api::{GenGrammarOptions, GenOptions, Node, NodeProps, TopLevelGrammar};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct NodeRef {
-    idx: usize,
-    grammar_id: u32,
+    idx: SymIdx,
+    grammar_id: LexemeClass,
+}
+
+impl NodeRef {
+    pub const BOGUS: NodeRef = NodeRef {
+        idx: SymIdx::BOGUS,
+        grammar_id: LexemeClass::ROOT,
+    };
 }
 
 const K: usize = 4;
 
 pub struct GrammarBuilder {
-    pub top_grammar: TopLevelGrammar,
-    placeholder: Node,
-    strings: HashMap<String, NodeRef>,
-    curr_grammar_id: u32,
-    node_refs: HashMap<String, NodeRef>,
-    nodes: Vec<Node>,
+    grammar: Grammar,
+    curr_grammar_id: LexemeClass,
+    curr_start_idx: NodeRef,
     pub regex: RegexBuilder,
+    tok_env: TokEnv,
+
+    strings: HashMap<String, NodeRef>,
     at_most_cache: HashMap<(NodeRef, usize), NodeRef>,
     repeat_exact_cache: HashMap<(NodeRef, usize), NodeRef>,
 }
 
+pub struct GrammarResult {
+    pub builder: GrammarBuilder,
+    pub start_node: SymIdx,
+}
+
 pub struct RegexBuilder {
-    node_ids: HashMap<RegexNode, RegexId>,
-    nodes: Vec<RegexNode>,
+    pub(crate) spec: LexerSpec,
+}
+
+pub type RegexId = derivre::ExprRef;
+
+fn map_ids(nodes: &Vec<RegexId>) -> Vec<RegexAst> {
+    nodes.iter().map(|n| RegexAst::ExprRef(*n)).collect()
 }
 
 impl RegexBuilder {
     pub fn new() -> Self {
         Self {
-            nodes: vec![],
-            node_ids: HashMap::default(),
+            spec: LexerSpec::new().unwrap(),
         }
     }
 
     pub fn add_ast(&mut self, ast: RegexAst) -> Result<RegexId> {
-        let id = match ast {
-            RegexAst::And(asts) => {
-                let ids = self.add_asts(asts)?;
-                self.and(ids)
-            }
-            RegexAst::Or(asts) => {
-                let ids = self.add_asts(asts)?;
-                self.add_node(RegexNode::Or(ids))
-            }
-            RegexAst::Concat(asts) => {
-                let ids = self.add_asts(asts)?;
-                self.concat(ids)
-            }
-            RegexAst::LookAhead(ast) => {
-                let id = self.add_ast(*ast)?;
-                self.add_node(RegexNode::LookAhead(id))
-            }
-            RegexAst::Not(ast) => {
-                let id = self.add_ast(*ast)?;
-                self.not(id)
-            }
-            RegexAst::Repeat(ast, min, max) => {
-                let id = self.add_ast(*ast)?;
-                self.repeat(id, min, Some(max))
-            }
-            RegexAst::EmptyString => self.add_node(RegexNode::EmptyString),
-            RegexAst::NoMatch => self.add_node(RegexNode::NoMatch),
-            RegexAst::Regex(rx) => self.regex(rx),
-            RegexAst::Literal(s) => self.literal(s),
-            RegexAst::ByteLiteral(bytes) => self.add_node(RegexNode::ByteLiteral(bytes)),
-            RegexAst::Byte(b) => self.add_node(RegexNode::Byte(b)),
-            RegexAst::ByteSet(bs) => self.add_node(RegexNode::ByteSet(bs)),
-            RegexAst::JsonQuote(ast, opts) => {
-                let regex = self.add_ast(*ast)?;
-                self.add_node(RegexNode::JsonQuote {
-                    regex,
-                    raw_mode: opts.raw_mode,
-                    allowed_escapes: Some(opts.allowed_escapes.clone()),
-                })
-            }
-            RegexAst::MultipleOf(d, s) => self.add_node(RegexNode::MultipleOf(d, s)),
-            RegexAst::ExprRef(_) => {
-                bail!("ExprRef not supported")
-            }
-        };
-        Ok(id)
+        self.spec.regex_builder.mk(&ast)
     }
 
     fn add_asts(&mut self, asts: Vec<RegexAst>) -> Result<Vec<RegexId>> {
         asts.into_iter().map(|ast| self.add_ast(ast)).collect()
     }
 
-    pub fn add_node(&mut self, node: RegexNode) -> RegexId {
-        if let Some(id) = self.node_ids.get(&node) {
-            return *id;
-        }
-        let id = RegexId(self.nodes.len());
-        self.nodes.push(node.clone());
-        self.node_ids.insert(node, id);
-        id
-    }
-
-    pub fn regex(&mut self, rx: String) -> RegexId {
-        self.add_node(RegexNode::Regex(rx))
+    pub fn regex(&mut self, rx: &str) -> Result<RegexId> {
+        self.spec.regex_builder.mk_regex(rx)
     }
 
     pub fn literal(&mut self, s: String) -> RegexId {
-        self.add_node(RegexNode::Literal(s))
+        self.add_ast(RegexAst::Literal(s)).unwrap()
     }
 
     pub fn concat(&mut self, nodes: Vec<RegexId>) -> RegexId {
@@ -117,9 +83,9 @@ impl RegexBuilder {
             return nodes[0];
         }
         if nodes.len() == 0 {
-            return self.add_node(RegexNode::NoMatch);
+            return ExprRef::EMPTY_STRING;
         }
-        self.add_node(RegexNode::Concat(nodes))
+        self.add_ast(RegexAst::Concat(map_ids(&nodes))).unwrap()
     }
 
     pub fn select(&mut self, nodes: Vec<RegexId>) -> RegexId {
@@ -127,9 +93,9 @@ impl RegexBuilder {
             return nodes[0];
         }
         if nodes.len() == 0 {
-            return self.add_node(RegexNode::NoMatch);
+            return ExprRef::NO_MATCH;
         }
-        self.add_node(RegexNode::Or(nodes))
+        self.add_ast(RegexAst::Or(map_ids(&nodes))).unwrap()
     }
 
     pub fn zero_or_more(&mut self, node: RegexId) -> RegexId {
@@ -145,110 +111,68 @@ impl RegexBuilder {
     }
 
     pub fn repeat(&mut self, node: RegexId, min: u32, max: Option<u32>) -> RegexId {
-        self.add_node(RegexNode::Repeat(node, min, max))
+        self.add_ast(RegexAst::Repeat(
+            Box::new(RegexAst::ExprRef(node)),
+            min,
+            max.unwrap_or(u32::MAX),
+        ))
+        .unwrap()
     }
 
     pub fn not(&mut self, node: RegexId) -> RegexId {
-        self.add_node(RegexNode::Not(node))
+        self.add_ast(RegexAst::Not(Box::new(RegexAst::ExprRef(node))))
+            .unwrap()
     }
 
     pub fn and(&mut self, nodes: Vec<RegexId>) -> RegexId {
-        self.add_node(RegexNode::And(nodes))
+        self.add_ast(RegexAst::And(map_ids(&nodes))).unwrap()
     }
 
     pub fn or(&mut self, nodes: Vec<RegexId>) -> RegexId {
-        self.add_node(RegexNode::Or(nodes))
-    }
-
-    pub fn finalize(&mut self) -> Vec<RegexNode> {
-        let r = std::mem::take(&mut self.nodes);
-        *self = Self::new();
-        r
+        self.select(nodes)
     }
 }
 
 impl GrammarBuilder {
-    pub fn new() -> Self {
+    pub fn new(tok_env: TokEnv) -> Self {
         Self {
-            top_grammar: TopLevelGrammar {
-                grammars: vec![],
-                max_tokens: None,
-                test_trace: false,
-            },
-            placeholder: Node::String {
-                literal: "__placeholder__: do not use this string in grammars".to_string(),
-                props: NodeProps {
-                    max_tokens: Some(usize::MAX - 108),
-                    capture_name: Some("$$$placeholder$$$".to_string()),
-                    ..NodeProps::default()
-                },
-            },
+            grammar: Grammar::new(None),
+            curr_grammar_id: LexemeClass::ROOT,
+            curr_start_idx: NodeRef::BOGUS,
             strings: HashMap::default(),
-            curr_grammar_id: 0,
-            node_refs: HashMap::default(),
-            nodes: vec![],
             regex: RegexBuilder::new(),
             at_most_cache: HashMap::default(),
             repeat_exact_cache: HashMap::default(),
+            tok_env,
         }
     }
 
-    fn shift_nodes(&mut self) {
-        if self.top_grammar.grammars.len() == 0 {
-            assert!(self.nodes.is_empty(), "nodes added before add_grammar()");
-        } else {
-            let nodes = std::mem::take(&mut self.nodes);
-            assert!(
-                nodes.len() > 0,
-                "no nodes added before add_grammar() or finalize()"
-            );
-            self.top_grammar.grammars.last_mut().unwrap().nodes = nodes;
-            self.top_grammar.grammars.last_mut().unwrap().rx_nodes = self.regex.finalize();
-        }
-    }
+    pub fn add_grammar(&mut self, options: LLGuidanceOptions, skip: RegexAst) -> Result<SymIdx> {
+        let grammar_id = self.regex.spec.new_lexeme_class(skip)?;
 
-    fn next_grammar_id(&mut self) {
-        static COUNTER: AtomicU32 = AtomicU32::new(1);
-        self.curr_grammar_id = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    }
-
-    pub fn add_grammar(&mut self, grammar: GrammarWithLexer) {
-        assert!(grammar.nodes.is_empty(), "Grammar already has nodes");
-        self.shift_nodes();
-
-        self.next_grammar_id();
-        self.top_grammar.grammars.push(grammar);
         self.strings.clear();
+        self.at_most_cache.clear();
+        self.repeat_exact_cache.clear();
+
+        self.curr_grammar_id = grammar_id;
+
+        let utf8 = !options.allow_invalid_utf8;
+        self.regex.spec.regex_builder.unicode(utf8);
+        self.regex.spec.regex_builder.utf8(utf8);
+
+        if options.no_forcing {
+            self.regex.spec.no_forcing = true;
+        }
 
         // add root node
-        let id = self.placeholder();
-        assert!(id.idx == 0);
+        self.curr_start_idx = self.new_node("start");
+        Ok(self.curr_start_idx.idx)
     }
 
-    pub fn add_node(&mut self, node: Node) -> NodeRef {
-        // Generate a key for the node from its serialized form if it is not the placeholder
-        let key = (node != self.placeholder)
-            .then(|| serde_json::to_string(&node).ok())
-            .flatten();
-
-        // Return the node reference if it already exists
-        if let Some(ref key) = key {
-            if let Some(node_ref) = self.node_refs.get(key) {
-                return *node_ref;
-            }
-        }
-
-        // Create new node reference
-        let r = NodeRef {
-            idx: self.nodes.len(),
-            grammar_id: self.curr_grammar_id,
-        };
-
-        // Add the node and store the reference (if it's not the placeholder)
-        self.nodes.push(node);
-        if let Some(key) = key {
-            self.node_refs.insert(key, r);
-        }
+    fn lexeme_to_node(&mut self, lx_id: LexemeIdx) -> NodeRef {
+        let lname = self.regex.spec.lexeme_spec(lx_id).name.clone();
+        let r = self.new_node(&lname);
+        self.grammar.make_terminal(r.idx, lx_id, &self.regex.spec);
         r
     }
 
@@ -256,75 +180,152 @@ impl GrammarBuilder {
         if let Some(r) = self.strings.get(s) {
             return *r;
         }
-        let r = self.add_node(Node::String {
-            literal: s.to_string(),
-            props: NodeProps::default(),
-        });
+        let r = if s.is_empty() {
+            let r = self.new_node("empty");
+            self.grammar.add_rule(r.idx, vec![]);
+            r
+        } else {
+            let lx_id = self
+                .regex
+                .spec
+                .add_greedy_lexeme(
+                    limit_str(s, 20),
+                    RegexAst::Literal(s.to_string()),
+                    false,
+                    None,
+                    usize::MAX,
+                )
+                .unwrap();
+            self.lexeme_to_node(lx_id)
+        };
         self.strings.insert(s.to_string(), r);
         r
     }
 
-    pub fn token_ranges(&mut self, token_ranges: Vec<RangeInclusive<u32>>) -> NodeRef {
-        self.add_node(Node::TokenRanges {
-            token_ranges,
-            props: NodeProps::default(),
-        })
+    pub fn token_ranges(&mut self, token_ranges: Vec<RangeInclusive<u32>>) -> Result<NodeRef> {
+        let name = token_ranges_to_string(&token_ranges);
+        let trie = self.tok_env.tok_trie();
+
+        for r in &token_ranges {
+            ensure!(r.start() <= r.end(), "Invalid token range: {:?}", r);
+            ensure!(
+                *r.end() < trie.vocab_size() as u32,
+                "Token range end too large: {:?}",
+                r.end()
+            );
+        }
+
+        let id = self.regex.spec.add_special_token(name, token_ranges)?;
+        Ok(self.lexeme_to_node(id))
     }
 
-    pub fn special_token(&mut self, name: &str) -> NodeRef {
-        self.add_node(Node::SpecialToken {
-            token: name.to_string(),
-            props: NodeProps::default(),
-        })
+    pub fn special_token(&mut self, token: &str) -> Result<NodeRef> {
+        let trie = self.tok_env.tok_trie();
+        if let Some(tok_id) = trie.get_special_token(token) {
+            let idx = self
+                .regex
+                .spec
+                .add_special_token(token.to_string(), vec![tok_id..=tok_id])?;
+            Ok(self.lexeme_to_node(idx))
+        } else {
+            let spec = trie.get_special_tokens();
+            bail!(
+                "unknown special token: {:?}; following special tokens are available: {}",
+                token,
+                trie.tokens_dbg(&spec)
+            );
+        }
     }
 
     pub fn gen_grammar(&mut self, data: GenGrammarOptions, props: NodeProps) -> NodeRef {
-        self.add_node(Node::GenGrammar { data, props })
+        let r = self.new_node("gen_grammar");
+        if props.max_tokens.is_some() {
+            self.regex.spec.has_max_tokens = true;
+        }
+        self.grammar.apply_node_props(r.idx, props);
+        self.grammar.make_gen_grammar(r.idx, data);
+        r
     }
 
-    pub fn gen_rx(&mut self, regex: &str, stop_regex: &str) -> NodeRef {
-        self.gen(
-            GenOptions {
-                body_rx: RegexSpec::Regex(regex.to_string()),
-                stop_rx: RegexSpec::Regex(stop_regex.to_string()),
-                ..Default::default()
-            },
-            NodeProps::default(),
-        )
+    pub fn gen(&mut self, data: GenOptions, props: NodeProps) -> Result<NodeRef> {
+        let empty_stop = matches!(data.stop_rx, RegexAst::EmptyString);
+        let lazy = data.lazy.unwrap_or(!empty_stop);
+        let name = props
+            .capture_name
+            .clone()
+            .unwrap_or_else(|| "gen".to_string());
+        let lhs = self.new_node(&name);
+        let lx_id = self.regex.spec.add_rx_and_stop(
+            self.grammar.sym_name(lhs.idx).to_string(),
+            data.body_rx,
+            data.stop_rx,
+            lazy,
+            props.max_tokens.unwrap_or(usize::MAX),
+            data.is_suffix.unwrap_or(false),
+        )?;
+
+        let symprops = self.grammar.sym_props_mut(lhs.idx);
+        if let Some(t) = data.temperature {
+            symprops.temperature = t;
+        }
+        symprops.stop_capture_name = data.stop_capture_name.clone();
+        self.grammar.make_terminal(lhs.idx, lx_id, &self.regex.spec);
+        Ok(lhs)
     }
 
-    pub fn gen(&mut self, data: GenOptions, props: NodeProps) -> NodeRef {
-        self.add_node(Node::Gen { data, props })
+    pub fn lexeme(&mut self, rx: ExprRef) -> NodeRef {
+        self.lexeme_ext(rx, None, NodeProps::default())
     }
 
-    pub fn lexeme(&mut self, rx: RegexSpec) -> NodeRef {
-        self.add_node(Node::Lexeme {
-            rx,
-            contextual: None,
-            temperature: None,
-            json_string: None,
-            json_raw: None,
-            json_allowed_escapes: None,
-            props: NodeProps::default(),
-        })
+    pub fn lexeme_ext(
+        &mut self,
+        rx: ExprRef,
+        temperature: Option<f32>,
+        props: NodeProps,
+    ) -> NodeRef {
+        let idx = self
+            .regex
+            .spec
+            .add_greedy_lexeme(
+                props
+                    .capture_name
+                    .clone()
+                    .unwrap_or_else(|| "lx".to_string()),
+                RegexAst::ExprRef(rx),
+                false,
+                None,
+                props.max_tokens.unwrap_or(usize::MAX),
+            )
+            .unwrap();
+        let r = self.lexeme_to_node(idx);
+        if let Some(t) = temperature {
+            self.grammar.set_temperature(r.idx, t);
+        }
+        r
     }
 
-    fn child_nodes(&mut self, options: &[NodeRef]) -> Vec<NodeId> {
+    fn child_nodes(&mut self, options: &[NodeRef]) -> Vec<SymIdx> {
         options
             .iter()
             .map(|e| {
                 assert!(e.grammar_id == self.curr_grammar_id);
-                NodeId(e.idx)
+                e.idx
             })
             .collect()
     }
 
     pub fn select(&mut self, options: &[NodeRef]) -> NodeRef {
         let ch = self.child_nodes(&options);
-        self.add_node(Node::Select {
-            among: ch,
-            props: NodeProps::default(),
-        })
+        let r = self.new_node("select");
+        let empty = self.empty().idx;
+        for n in &ch {
+            if n == &empty {
+                self.grammar.add_rule(r.idx, vec![]);
+            } else {
+                self.grammar.add_rule(r.idx, vec![*n]);
+            }
+        }
+        r
     }
 
     pub fn max_tokens(&mut self, node: NodeRef, max_tokens: usize) -> NodeRef {
@@ -343,46 +344,48 @@ impl GrammarBuilder {
 
     pub fn join_props(&mut self, values: &[NodeRef], props: NodeProps) -> NodeRef {
         let mut ch = self.child_nodes(&values);
-        let empty = NodeId(self.empty().idx);
+        let empty = self.empty().idx;
         ch.retain(|&n| n != empty);
         if ch.len() == 0 {
             return self.empty();
         }
         if ch.len() == 1 && props == NodeProps::default() {
             return NodeRef {
-                idx: ch[0].0,
+                idx: ch[0],
                 grammar_id: self.curr_grammar_id,
             };
         }
-        self.add_node(Node::Join {
-            sequence: ch,
-            props,
-        })
+        let r = self.new_node("join");
+        self.grammar.add_rule(r.idx, ch);
+        r
     }
 
     pub fn empty(&mut self) -> NodeRef {
         self.string("")
     }
 
+    pub fn num_nodes(&self) -> usize {
+        self.grammar.num_symbols()
+    }
+
     pub fn optional(&mut self, value: NodeRef) -> NodeRef {
-        let empty = self.empty();
-        self.select(&[value, empty])
+        let p = self.new_node("opt");
+        self.grammar.add_rule(p.idx, vec![]);
+        self.grammar.add_rule(p.idx, vec![value.idx]);
+        p
     }
 
     pub fn one_or_more(&mut self, elt: NodeRef) -> NodeRef {
-        let p = self.placeholder();
-        let p_elt = self.join(&[p, elt]);
-        let inner = self.select(&[elt, p_elt]);
-        self.set_placeholder(p, inner);
+        let p = self.new_node("plus");
+        self.grammar.add_rule(p.idx, vec![elt.idx]);
+        self.grammar.add_rule(p.idx, vec![p.idx, elt.idx]);
         p
     }
 
     pub fn zero_or_more(&mut self, elt: NodeRef) -> NodeRef {
-        let p = self.placeholder();
-        let empty = self.empty();
-        let p_elt = self.join(&[p, elt]);
-        let inner = self.select(&[empty, p_elt]);
-        self.set_placeholder(p, inner);
+        let p = self.new_node("star");
+        self.grammar.add_rule(p.idx, vec![]);
+        self.grammar.add_rule(p.idx, vec![p.idx, elt.idx]);
         p
     }
 
@@ -552,62 +555,34 @@ impl GrammarBuilder {
         }
     }
 
-    pub fn placeholder(&mut self) -> NodeRef {
-        self.add_node(self.placeholder.clone())
-    }
-
-    pub fn is_placeholder(&self, node: NodeRef) -> bool {
-        assert!(node.grammar_id == self.curr_grammar_id);
-        self.nodes[node.idx] == self.placeholder
+    pub fn new_node(&mut self, name: &str) -> NodeRef {
+        let id = self.grammar.fresh_symbol_ext(name, SymbolProps::default());
+        NodeRef {
+            idx: id,
+            grammar_id: self.curr_grammar_id,
+        }
     }
 
     pub fn set_placeholder(&mut self, placeholder: NodeRef, node: NodeRef) {
-        let ch = self.child_nodes(&[placeholder, node]); // validate
-        if !self.is_placeholder(placeholder) {
-            panic!(
-                "placeholder already set at {} to {:?}",
-                placeholder.idx, self.nodes[placeholder.idx]
-            );
-        }
-        if self.is_placeholder(node) {
-            // in case we're setting one placeholder to another, make sure we don't swap the order
-            self.nodes[placeholder.idx] = Node::Join {
-                sequence: vec![ch[1]],
-                props: NodeProps::default(),
-            };
-        } else {
-            // otherwise (typical) copy node into placeholder, and replace node with reference to the placeholder
-            // this will lead to slightly simpler grammar in some cases
-            let prev_placeholder_link = Node::Join {
-                sequence: vec![ch[0]],
-                props: NodeProps::default(),
-            };
-            self.nodes[placeholder.idx] =
-                std::mem::replace(&mut self.nodes[node.idx], prev_placeholder_link);
-        }
+        let _ = self.child_nodes(&[placeholder, node]); // validate
+        self.grammar
+            .check_empty_symbol(placeholder.idx)
+            .expect("placeholder already set");
+        self.grammar.add_rule(placeholder.idx, vec![node.idx]);
     }
 
     pub fn set_start_node(&mut self, node: NodeRef) {
-        self.set_placeholder(
-            NodeRef {
-                idx: 0,
-                grammar_id: self.curr_grammar_id,
-            },
-            node,
-        );
+        self.set_placeholder(self.curr_start_idx, node);
     }
 
-    pub fn finalize(mut self) -> Result<TopLevelGrammar> {
-        ensure!(
-            self.top_grammar.grammars.len() > 0,
-            "No grammars added to the top level grammar"
-        );
-        self.shift_nodes();
-        for grammar in &self.top_grammar.grammars {
-            for node in &grammar.nodes {
-                ensure!(node != &self.placeholder, "Unresolved placeholder");
-            }
+    pub fn link_gen_grammar(&mut self, gg: NodeRef, grm_start: SymIdx) -> Result<()> {
+        self.grammar.link_gen_grammar(gg.idx, grm_start)
+    }
+
+    pub fn finalize(self, symidx: SymIdx) -> GrammarResult {
+        GrammarResult {
+            start_node: symidx,
+            builder: self,
         }
-        Ok(self.top_grammar.clone())
     }
 }

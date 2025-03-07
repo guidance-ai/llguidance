@@ -4,7 +4,6 @@ use std::{fs::File, hint::black_box, io::Read, vec};
 use llguidance::{
     api::{ParserLimits, TopLevelGrammar},
     earley::{SlicedBiasComputer, XorShift},
-    lark_to_llguidance,
     toktrie::{InferenceCapabilities, TokEnv},
     Constraint, JsonCompileOptions, TokenParser,
 };
@@ -82,12 +81,10 @@ fn main() {
     let grammar: TopLevelGrammar = if opts.file.ends_with(".ll.json") {
         serde_json::from_str(&grammar_file).expect("Invalid JSON in schema")
     } else if opts.file.ends_with(".schema.json") {
-        let opts = JsonCompileOptions::default();
         let val = serde_json::from_str(&grammar_file).expect("Invalid JSON in schema");
-        opts.json_to_llg(val)
-            .expect("Failed to convert JSON to LLG")
+        TopLevelGrammar::from_json_schema(val)
     } else if opts.file.ends_with(".lark") {
-        lark_to_llguidance(&grammar_file).expect("Failed to convert lark to LLG")
+        TopLevelGrammar::from_lark(grammar_file)
     } else if opts.file.ends_with(".txt") {
         let regex_opts = if opts.split_words {
             json!({

@@ -43,7 +43,7 @@ impl LexemeClass {
 pub struct LexemeSpec {
     pub(crate) idx: LexemeIdx,
     pub(crate) single_set: MatchingLexemes,
-    name: String,
+    pub(crate) name: String,
     pub(crate) rx: RegexAst,
     class: LexemeClass,
     compiled_rx: ExprRef,

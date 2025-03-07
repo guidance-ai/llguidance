@@ -1,5 +1,5 @@
 use super::lexerspec::{LexemeClass, LexemeIdx, LexerSpec};
-use crate::api::{GenGrammarOptions, GrammarId};
+use crate::api::{GenGrammarOptions, GrammarId, NodeProps};
 use crate::HashMap;
 use anyhow::{bail, ensure, Result};
 use std::{fmt::Debug, hash::Hash};
@@ -144,7 +144,11 @@ impl Grammar {
     }
 
     pub fn is_small(&self) -> bool {
-        self.symbols.len() < 200
+        self.num_symbols() < 200
+    }
+
+    pub fn num_symbols(&self) -> usize {
+        self.symbols.len()
     }
 
     fn sym_data(&self, sym: SymIdx) -> &Symbol {
@@ -162,7 +166,19 @@ impl Grammar {
         Ok(())
     }
 
-    fn check_empty_symbol(&self, sym: SymIdx) -> Result<()> {
+    pub fn link_gen_grammar(&mut self, lhs: SymIdx, grammar: SymIdx) -> Result<()> {
+        let sym = self.sym_data_mut(lhs);
+        ensure!(
+            sym.gen_grammar.is_some(),
+            "no grammar options for {}",
+            sym.name
+        );
+        ensure!(sym.rules.is_empty(), "symbol {} has rules", sym.name);
+        self.add_rule(lhs, vec![grammar])?;
+        Ok(())
+    }
+
+    pub fn check_empty_symbol(&self, sym: SymIdx) -> Result<()> {
         let sym = self.sym_data(sym);
         ensure!(sym.rules.is_empty(), "symbol {} has rules", sym.name);
         ensure!(
@@ -195,6 +211,10 @@ impl Grammar {
         Ok(())
     }
 
+    pub fn set_temperature(&mut self, lhs: SymIdx, temp: f32) {
+        self.sym_data_mut(lhs).props.temperature = temp;
+    }
+
     pub fn make_gen_grammar(&mut self, lhs: SymIdx, data: GenGrammarOptions) -> Result<()> {
         self.check_empty_symbol(lhs)?;
         let sym = self.sym_data_mut(lhs);
@@ -202,11 +222,21 @@ impl Grammar {
         Ok(())
     }
 
+    pub fn apply_node_props(&mut self, lhs: SymIdx, props: NodeProps) {
+        let sym = self.sym_data_mut(lhs);
+        if let Some(max_tokens) = props.max_tokens {
+            sym.props.max_tokens = max_tokens;
+        }
+        if let Some(capture_name) = props.capture_name {
+            sym.props.capture_name = Some(capture_name);
+        }
+    }
+
     pub fn sym_props_mut(&mut self, sym: SymIdx) -> &mut SymbolProps {
         &mut self.sym_data_mut(sym).props
     }
 
-    pub fn sym_props(&mut self, sym: SymIdx) -> &SymbolProps {
+    pub fn sym_props(&self, sym: SymIdx) -> &SymbolProps {
         &self.sym_data(sym).props
     }
 

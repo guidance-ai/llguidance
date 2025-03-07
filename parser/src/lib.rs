@@ -43,19 +43,11 @@ pub use tokenizer_json::token_bytes_from_tokenizer_json;
 #[cfg(feature = "lark")]
 mod lark;
 
-#[cfg(feature = "lark")]
-pub use lark::lark_to_llguidance;
-
 #[cfg(feature = "wasm")]
 pub use instant::Instant;
 
 #[cfg(not(feature = "wasm"))]
 pub use std::time::Instant;
-
-#[cfg(not(feature = "lark"))]
-pub fn lark_to_llguidance(_lark: &str) -> anyhow::Result<api::TopLevelGrammar> {
-    anyhow::bail!("lark_to_llguidance not available without the 'lark' feature");
-}
 
 #[macro_export]
 macro_rules! loginfo {
