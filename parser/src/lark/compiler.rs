@@ -128,6 +128,7 @@ impl Compiler {
     }
 
     fn do_token_atom(&mut self, atom: Atom) -> Result<RegexId> {
+        self.builder.check_limits()?;
         match atom {
             Atom::Group(expansions) => self.do_token_expansions(expansions),
             Atom::Maybe(expansions) => {
@@ -232,6 +233,7 @@ impl Compiler {
     }
 
     fn do_token_expansions(&mut self, expansions: Expansions) -> Result<RegexId> {
+        self.builder.check_limits()?;
         let options = expansions
             .1
             .into_iter()
@@ -385,6 +387,7 @@ impl Compiler {
     }
 
     fn do_expansions(&mut self, expansions: Expansions) -> Result<NodeRef> {
+        self.builder.check_limits()?;
         let loc = expansions.0;
         let options = expansions
             .1

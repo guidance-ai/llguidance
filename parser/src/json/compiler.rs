@@ -223,6 +223,8 @@ impl Compiler {
             }
         }
 
+        self.builder.check_limits()?;
+
         if !regex_nodes.is_empty() {
             let node = RegexAst::Or(regex_nodes);
             let lex = self.ast_lexeme(node)?;
@@ -529,6 +531,8 @@ impl Compiler {
         fn literal_regex(rx: &str) -> Option<RegexAst> {
             Some(RegexAst::Literal(rx.to_string()))
         }
+
+        self.builder.check_limits()?;
 
         let r = match schema {
             Schema::Null => literal_regex("null"),

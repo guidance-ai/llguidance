@@ -35,21 +35,7 @@ fn process_grammar(ctx: &mut CompileCtx, input: GrammarWithLexer) -> Result<(Sym
         bail!("grammar must have either lark_grammar or json_schema");
     };
 
-    let lexer_spec = &res.builder.regex.spec;
-    let limits = &ctx.limits;
-    let size = res.builder.size();
-
-    ensure!(
-        lexer_spec.cost() <= limits.initial_lexer_fuel,
-        "initial lexer configuration (grammar) too big (limit for this grammar: {})",
-        limits.initial_lexer_fuel
-    );
-
-    ensure!(
-        size <= limits.max_grammar_size,
-        "grammar size (number of symbols) too big (limit for this grammar: {})",
-        limits.max_grammar_size,
-    );
+    res.builder.check_limits()?;
 
     let grammar_id = res.builder.grammar.sym_props(res.start_node).grammar_id;
 
@@ -97,7 +83,6 @@ fn process_all_grammars(
 }
 
 struct CompileCtx {
-    limits: ParserLimits,
     builder: Option<GrammarBuilder>,
     grammar_by_idx: HashMap<GrammarId, usize>,
     grammar_roots: Vec<(SymIdx, LexemeClass)>,
@@ -115,10 +100,9 @@ impl GrammarInit {
             GrammarInit::Serialized(input) => {
                 ensure!(input.grammars.len() > 0, "empty grammars array");
 
-                let builder = GrammarBuilder::new(tok_env);
+                let builder = GrammarBuilder::new(tok_env, limits.clone());
 
                 let ctx = CompileCtx {
-                    limits,
                     builder: Some(builder),
                     grammar_by_idx: HashMap::default(),
                     grammar_roots: vec![(SymIdx::BOGUS, LexemeClass::ROOT); input.grammars.len()],

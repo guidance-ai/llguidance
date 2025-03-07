@@ -1,5 +1,5 @@
 use crate::{
-    api::LLGuidanceOptions,
+    api::{LLGuidanceOptions, ParserLimits},
     earley::{
         lexerspec::{token_ranges_to_string, LexemeClass, LexemeIdx, LexerSpec},
         Grammar, SymIdx, SymbolProps,
@@ -34,6 +34,7 @@ pub struct GrammarBuilder {
     curr_start_idx: NodeRef,
     pub regex: RegexBuilder,
     tok_env: Option<TokEnv>,
+    limits: ParserLimits,
 
     strings: HashMap<String, NodeRef>,
     at_most_cache: HashMap<(NodeRef, usize), NodeRef>,
@@ -130,7 +131,7 @@ impl RegexBuilder {
 }
 
 impl GrammarBuilder {
-    pub fn new(tok_env: Option<TokEnv>) -> Self {
+    pub fn new(tok_env: Option<TokEnv>, limits: ParserLimits) -> Self {
         Self {
             grammar: Grammar::new(None),
             curr_grammar_id: LexemeClass::ROOT,
@@ -139,11 +140,31 @@ impl GrammarBuilder {
             regex: RegexBuilder::new(),
             at_most_cache: HashMap::default(),
             repeat_exact_cache: HashMap::default(),
+            limits,
             tok_env,
         }
     }
 
+    pub fn check_limits(&self) -> Result<()> {
+        ensure!(
+            self.regex.spec.cost() <= self.limits.initial_lexer_fuel,
+            "initial lexer configuration (grammar) too big (limit for this grammar: {})",
+            self.limits.initial_lexer_fuel
+        );
+
+        let size = self.grammar.num_symbols();
+        ensure!(
+            size <= self.limits.max_grammar_size,
+            "grammar size (number of symbols) too big (limit for this grammar: {})",
+            self.limits.max_grammar_size,
+        );
+
+        Ok(())
+    }
+
     pub fn add_grammar(&mut self, options: LLGuidanceOptions, skip: RegexAst) -> Result<SymIdx> {
+        self.check_limits()?;
+
         let grammar_id = self.regex.spec.new_lexeme_class(skip)?;
 
         self.strings.clear();
@@ -212,6 +233,8 @@ impl GrammarBuilder {
     }
 
     pub fn token_ranges(&mut self, token_ranges: Vec<RangeInclusive<u32>>) -> Result<NodeRef> {
+        self.check_limits()?;
+
         let name = token_ranges_to_string(&token_ranges);
 
         let trie = self.tok_env("token ranges")?.tok_trie();
@@ -229,6 +252,8 @@ impl GrammarBuilder {
     }
 
     pub fn special_token(&mut self, token: &str) -> Result<NodeRef> {
+        self.check_limits()?;
+
         let trie = self.tok_env("special token")?.tok_trie();
         if let Some(tok_id) = trie.get_special_token(token) {
             let idx = self
@@ -257,6 +282,8 @@ impl GrammarBuilder {
     }
 
     pub fn gen(&mut self, data: GenOptions, props: NodeProps) -> Result<NodeRef> {
+        self.check_limits()?;
+
         let empty_stop = matches!(data.stop_rx, RegexAst::EmptyString);
         let lazy = data.lazy.unwrap_or(!empty_stop);
         let name = props
