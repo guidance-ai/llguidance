@@ -130,6 +130,7 @@ impl Rule {
 pub struct Grammar {
     name: Option<String>,
     symbols: Vec<Symbol>,
+    symbol_count_cache: HashMap<String, usize>,
     symbol_by_name: HashMap<String, SymIdx>,
 }
 
@@ -139,6 +140,7 @@ impl Grammar {
             name,
             symbols: vec![],
             symbol_by_name: HashMap::default(),
+            symbol_count_cache: HashMap::default(),
         }
     }
 
@@ -247,14 +249,18 @@ impl Grammar {
         &self.symbols[sym.0 as usize].name
     }
 
-    fn rule_to_string(&self, rule: &Rule, dot: Option<usize>) -> String {
+    fn rule_to_string(&self, rule: &Rule, dot: Option<usize>, is_first: bool) -> String {
         let ldata = self.sym_data(rule.lhs());
         let dot_data = rule
             .rhs
             .get(dot.unwrap_or(0))
             .map(|s| &self.sym_data(*s).props);
         rule_to_string(
-            self.sym_name(rule.lhs()),
+            if is_first {
+                self.sym_name(rule.lhs())
+            } else {
+                ""
+            },
             rule.rhs
                 .iter()
                 .map(|s| self.sym_data(*s).short_name())
@@ -439,6 +445,10 @@ impl Grammar {
         let mut temperatures: HashMap<LexemeClass, f32> = HashMap::default();
         for sym in &mut self.symbols {
             if let Some(opts) = &sym.gen_grammar {
+                if sym.rules.len() == 1 {
+                    // ignore already-resolved grammars
+                    continue;
+                }
                 if let Some((idx, cls)) = ctx.get(&opts.grammar).cloned() {
                     rules.push((sym.idx, idx));
                     let temp = opts.temperature.unwrap_or(0.0);
@@ -484,11 +494,12 @@ impl Grammar {
 
     pub fn fresh_symbol_ext(&mut self, name0: &str, symprops: SymbolProps) -> SymIdx {
         let mut name = name0.to_string();
-        let mut idx = 2;
+        let mut idx = self.symbol_count_cache.get(&name).cloned().unwrap_or(2);
         while self.symbol_by_name.contains_key(&name) {
             name = format!("{}#{}", name0, idx);
             idx += 1;
         }
+        self.symbol_count_cache.insert(name0.to_string(), idx);
 
         let idx = SymIdx(self.symbols.len() as u32);
         self.symbols.push(Symbol {
@@ -572,8 +583,8 @@ impl Grammar {
                     )?;
                 }
             } else {
-                for rule in &sym.rules {
-                    writeln!(f, "{}", self.rule_to_string(rule, None))?;
+                for (idx, rule) in sym.rules.iter().enumerate() {
+                    writeln!(f, "{}", self.rule_to_string(rule, None, idx == 0))?;
                 }
             }
         }

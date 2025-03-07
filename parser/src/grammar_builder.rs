@@ -162,6 +162,7 @@ impl GrammarBuilder {
 
         // add root node
         self.curr_start_idx = self.new_node("start");
+        self.grammar.sym_props_mut(self.curr_start_idx.idx).is_start = true;
         Ok(self.curr_start_idx.idx)
     }
 
@@ -246,7 +247,7 @@ impl GrammarBuilder {
     }
 
     pub fn gen_grammar(&mut self, data: GenGrammarOptions, props: NodeProps) -> NodeRef {
-        let r = self.new_node("gen_grammar");
+        let r = self.new_node("gg");
         if props.max_tokens.is_some() {
             self.regex.spec.has_max_tokens = true;
         }
@@ -326,7 +327,7 @@ impl GrammarBuilder {
 
     pub fn select(&mut self, options: &[NodeRef]) -> NodeRef {
         let ch = self.child_nodes(&options);
-        let r = self.new_node("select");
+        let r = self.new_node("");
         let empty = self.empty().idx;
         for n in &ch {
             if n == &empty {
@@ -365,7 +366,7 @@ impl GrammarBuilder {
                 grammar_id: self.curr_grammar_id,
             };
         }
-        let r = self.new_node("join");
+        let r = self.new_node("");
         self.grammar.add_rule(r.idx, ch).unwrap();
         r
     }
@@ -379,7 +380,7 @@ impl GrammarBuilder {
     }
 
     pub fn optional(&mut self, value: NodeRef) -> NodeRef {
-        let p = self.new_node("opt");
+        let p = self.new_node("");
         self.grammar.add_rule(p.idx, vec![]).unwrap();
         self.grammar.add_rule(p.idx, vec![value.idx]).unwrap();
         p
@@ -566,7 +567,13 @@ impl GrammarBuilder {
     }
 
     pub fn new_node(&mut self, name: &str) -> NodeRef {
-        let id = self.grammar.fresh_symbol_ext(name, SymbolProps::default());
+        let id = self.grammar.fresh_symbol_ext(
+            name,
+            SymbolProps {
+                grammar_id: self.curr_grammar_id,
+                ..Default::default()
+            },
+        );
         NodeRef {
             idx: id,
             grammar_id: self.curr_grammar_id,
