@@ -686,7 +686,7 @@ impl TestEnv {
             test_file.schema.clone()
         };
         let g_init = GrammarInit::Serialized(TopLevelGrammar::from_json_schema(schema));
-        let g_init = g_init.to_internal(&self.tok_env, self.factory.limits().clone());
+        let g_init = g_init.to_internal(None, self.factory.limits().clone());
 
         res.json_compile_us = t0.elapsed().as_micros() as usize;
 

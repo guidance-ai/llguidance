@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Display};
 
+use anyhow::{bail, Result};
 use derivre::RegexAst;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -261,6 +262,18 @@ impl Default for ParserLimits {
 }
 
 impl TopLevelGrammar {
+    pub fn from_str(s: &str) -> Result<Self> {
+        let first_non_whitespace = s.chars().find(|c| !c.is_whitespace());
+        if first_non_whitespace.is_none() {
+            bail!("Empty grammar");
+        }
+        if first_non_whitespace == Some('{') {
+            Ok(serde_json::from_str(&s)?)
+        } else {
+            Ok(TopLevelGrammar::from_lark(s.to_string()))
+        }
+    }
+
     pub fn from_regex(rx: &str) -> Self {
         Self::from_grammar(GrammarWithLexer::from_regex(rx))
     }

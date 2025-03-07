@@ -6,7 +6,7 @@ use crate::{
     },
     HashMap,
 };
-use anyhow::{bail, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Result};
 use derivre::{ExprRef, RegexAst};
 use std::ops::RangeInclusive;
 use toktrie::{bytes::limit_str, TokEnv};
@@ -33,7 +33,7 @@ pub struct GrammarBuilder {
     curr_grammar_id: LexemeClass,
     curr_start_idx: NodeRef,
     pub regex: RegexBuilder,
-    tok_env: TokEnv,
+    tok_env: Option<TokEnv>,
 
     strings: HashMap<String, NodeRef>,
     at_most_cache: HashMap<(NodeRef, usize), NodeRef>,
@@ -130,7 +130,7 @@ impl RegexBuilder {
 }
 
 impl GrammarBuilder {
-    pub fn new(tok_env: TokEnv) -> Self {
+    pub fn new(tok_env: Option<TokEnv>) -> Self {
         Self {
             grammar: Grammar::new(None),
             curr_grammar_id: LexemeClass::ROOT,
@@ -204,10 +204,16 @@ impl GrammarBuilder {
         r
     }
 
+    fn tok_env(&self, reason: &str) -> Result<&TokEnv> {
+        self.tok_env
+            .as_ref()
+            .ok_or(anyhow!("tokenizer required for {}", reason))
+    }
+
     pub fn token_ranges(&mut self, token_ranges: Vec<RangeInclusive<u32>>) -> Result<NodeRef> {
         let name = token_ranges_to_string(&token_ranges);
-        let trie = self.tok_env.tok_trie();
 
+        let trie = self.tok_env("token ranges")?.tok_trie();
         for r in &token_ranges {
             ensure!(r.start() <= r.end(), "Invalid token range: {:?}", r);
             ensure!(
@@ -222,7 +228,7 @@ impl GrammarBuilder {
     }
 
     pub fn special_token(&mut self, token: &str) -> Result<NodeRef> {
-        let trie = self.tok_env.tok_trie();
+        let trie = self.tok_env("special token")?.tok_trie();
         if let Some(tok_id) = trie.get_special_token(token) {
             let idx = self
                 .regex

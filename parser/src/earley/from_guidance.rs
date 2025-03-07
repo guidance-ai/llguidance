@@ -106,7 +106,7 @@ struct CompileCtx {
 impl GrammarInit {
     pub fn to_internal(
         self,
-        tok_env: &TokEnv,
+        tok_env: Option<TokEnv>,
         limits: ParserLimits,
     ) -> Result<(Grammar, LexerSpec)> {
         match self {
@@ -115,7 +115,7 @@ impl GrammarInit {
             GrammarInit::Serialized(input) => {
                 ensure!(input.grammars.len() > 0, "empty grammars array");
 
-                let builder = GrammarBuilder::new(tok_env.clone());
+                let builder = GrammarBuilder::new(tok_env);
 
                 let ctx = CompileCtx {
                     limits,
@@ -131,7 +131,7 @@ impl GrammarInit {
 
     pub fn to_cgrammar(
         self,
-        tok_env: &TokEnv,
+        tok_env: Option<TokEnv>,
         logger: &mut Logger,
         limits: ParserLimits,
         extra_lexemes: Vec<String>,

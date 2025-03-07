@@ -104,8 +104,12 @@ impl TokenParser {
             }
             _ => {}
         }
-        let compiled_grammar =
-            grammar_init.to_cgrammar(&token_env, &mut logger, limits.clone(), extra_lexemes)?;
+        let compiled_grammar = grammar_init.to_cgrammar(
+            Some(token_env.clone()),
+            &mut logger,
+            limits.clone(),
+            extra_lexemes,
+        )?;
         let parser = Parser::new(token_env.clone(), compiled_grammar, limits.clone())?;
         let eos_token = token_env.tok_trie().eos_token();
 
