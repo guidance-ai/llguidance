@@ -1177,3 +1177,66 @@ mod test_retriever {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_problem_child() {
+        let schema = json!({
+          "allOf": [
+            {
+              "$ref": "#/definitions/word"
+            },
+            {
+              "$ref": "#/definitions/x0"
+            },
+          ],
+          "definitions": {
+            "word": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "$ref": "#/definitions/word"
+                },
+                "b": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "b"
+              ],
+              "additionalProperties": true
+            },
+            "x0": {
+              "additionalProperties": {
+                "allOf": [
+                  {
+                    "$ref": "#/definitions/x1"
+                  },
+                  {
+                    "multipleOf": 2
+                  }
+                ]
+              },
+              "required": [
+                "x0"
+              ]
+            },
+            "x1": {
+              "additionalProperties": {
+                "$ref": "#/definitions/x0"
+              },
+              "required": [
+                "a",
+                "x1"
+              ]
+            },
+          }
+        });
+        let (schema, _) = build_schema(schema, None).unwrap();
+    }
+}
