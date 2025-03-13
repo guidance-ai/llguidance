@@ -451,7 +451,7 @@ impl Schema {
             // TODO: Do const and enum really belong here? Maybe they should always take precedence as they are "literal" constraints?
             "const" => {
                 let schema = compile_const(v)?;
-                result = result.intersect(schema, &ctx)?
+                result = result.intersect(schema, ctx)?
             }
             "enum" => {
                 let instances = v
@@ -459,17 +459,17 @@ impl Schema {
                     .ok_or_else(|| anyhow!("enum must be an array"))?;
                 let options = instances
                     .iter()
-                    .map(|instance| compile_const(instance))
+                    .map(compile_const)
                     .collect::<Result<Vec<_>>>()?;
-                result = result.intersect(Schema::AnyOf { options }, &ctx)?;
+                result = result.intersect(Schema::AnyOf { options }, ctx)?;
             }
             "allOf" => {
                 let all_of = v
                     .as_array()
                     .ok_or_else(|| anyhow!("allOf must be an array"))?;
                 for value in all_of {
-                    let schema = compile_resource(&ctx, ctx.as_resource_ref(value))?;
-                    result = result.intersect(schema, &ctx)?;
+                    let schema = compile_resource(ctx, ctx.as_resource_ref(value))?;
+                    result = result.intersect(schema, ctx)?;
                 }
             }
             "anyOf" => {
@@ -478,9 +478,9 @@ impl Schema {
                     .ok_or_else(|| anyhow!("anyOf must be an array"))?;
                 let options = any_of
                     .iter()
-                    .map(|value| compile_resource(&ctx, ctx.as_resource_ref(value)))
+                    .map(|value| compile_resource(ctx, ctx.as_resource_ref(value)))
                     .collect::<Result<Vec<_>>>()?;
-                result = result.intersect(Schema::AnyOf { options }, &ctx)?;
+                result = result.intersect(Schema::AnyOf { options }, ctx)?;
             }
             "oneOf" => {
                 let one_of = v
@@ -488,9 +488,9 @@ impl Schema {
                     .ok_or_else(|| anyhow!("oneOf must be an array"))?;
                 let options = one_of
                     .iter()
-                    .map(|value| compile_resource(&ctx, ctx.as_resource_ref(value)))
+                    .map(|value| compile_resource(ctx, ctx.as_resource_ref(value)))
                     .collect::<Result<Vec<_>>>()?;
-                result = result.intersect(Schema::OneOf { options }, &ctx)?;
+                result = result.intersect(Schema::OneOf { options }, ctx)?;
             }
             "$ref" => {
                 let reference = v
@@ -630,7 +630,7 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
     let mut current = HashMap::default();
     let in_place_applicator_kwds = ["const", "enum", "allOf", "anyOf", "oneOf", "$ref"];
     for (k, v) in schemadict.iter() {
-        if in_place_applicator_kwds.contains(&k) {
+        if in_place_applicator_kwds.contains(k) {
             if !current.is_empty() {
                 if let Some(&types) = schemadict.get("type") {
                     // Make sure we always give type information to ensure we get the smallest union we can
@@ -638,13 +638,13 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
                 }
                 let current_schema = compile_contents_simple(
                     ctx,
-                    std::mem::replace(&mut current, HashMap::default()),
+                    std::mem::take(&mut current),
                 )?;
                 result = result.intersect(current_schema, ctx)?;
             }
             // Finally apply the applicator
             result = result.apply((k, v), ctx)?;
-        } else if !META_AND_ANNOTATIONS.contains(&k) {
+        } else if !META_AND_ANNOTATIONS.contains(k) {
             current.insert(k, v);
             if *k == "additionalProperties" && !current.contains_key("properties") {
                 // additionalProperties needs to know about properties
@@ -670,7 +670,7 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
             current.insert("type", types);
         }
         let current_schema =
-            compile_contents_simple(ctx, std::mem::replace(&mut current, HashMap::default()))?;
+            compile_contents_simple(ctx, std::mem::take(&mut current))?;
         result = result.intersect(current_schema, ctx)?;
     }
     Ok(result)
@@ -682,7 +682,7 @@ fn compile_contents_simple(ctx: &Context, schemadict: HashMap<&str, &Value>) -> 
     } else {
         let types = schemadict.get("type");
         match types {
-            Some(Value::String(tp)) => compile_type(ctx, &tp, &schemadict),
+            Some(Value::String(tp)) => compile_type(ctx, tp, &schemadict),
             Some(Value::Array(types)) => {
                 let options = types
                     .iter()
