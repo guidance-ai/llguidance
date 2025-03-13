@@ -35,7 +35,7 @@ pub fn catch_unwind<F: FnOnce() -> Result<R> + UnwindSafe, R>(f: F) -> Result<R>
         let prev = std::panic::take_hook();
         std::panic::set_hook(Box::new(move |info| {
             if UNWIND_COUNT.with(|count| count.get()) == 0 {
-                return prev(info);
+                prev(info)
             } else {
                 let trace = Backtrace::force_capture();
                 BACKTRACE.with(move |b| b.set(Some(trace)));

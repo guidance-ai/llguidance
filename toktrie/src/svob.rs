@@ -41,9 +41,9 @@ impl Default for SimpleVob {
     }
 }
 
-impl Into<Vec<u32>> for SimpleVob {
-    fn into(self) -> Vec<u32> {
-        self.data
+impl From<SimpleVob> for Vec<u32> {
+    fn from(val: SimpleVob) -> Self {
+        val.data
     }
 }
 
@@ -89,6 +89,10 @@ impl SimpleVob {
         self.size
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.size == 0
+    }
+
     pub fn num_set(&self) -> usize {
         self.data.iter().map(|x| x.count_ones() as usize).sum()
     }
@@ -130,11 +134,9 @@ impl SimpleVob {
 
     #[inline(always)]
     pub fn iter_set_entries(&self, mut f: impl FnMut(usize)) {
-        let src = self.as_slice();
         let numelts = self.size;
         let max_len = numelts / 32;
-        for idx in 0..max_len {
-            let d = src[idx];
+        for (idx, &d) in self.as_slice()[..max_len].iter().enumerate() {
             // optimize for the two common cases
             if d == 0 {
                 continue;
@@ -160,11 +162,9 @@ impl SimpleVob {
 
     #[inline(always)]
     pub fn iter_unset_entries(&self, mut f: impl FnMut(usize)) {
-        let src = self.as_slice();
         let numelts = self.size;
         let max_len = numelts / 32;
-        for idx in 0..max_len {
-            let d = src[idx];
+        for (idx, &d) in self.as_slice()[..max_len].iter().enumerate() {
             // optimize for the two common cases
             if d == 0 {
                 for bit in 0..32 {
@@ -190,11 +190,9 @@ impl SimpleVob {
 
     #[inline(always)]
     pub fn iter_entries(&self, mut f: impl FnMut(bool, usize)) {
-        let src = self.as_slice();
         let numelts = self.size;
         let max_len = numelts / 32;
-        for idx in 0..max_len {
-            let d = src[idx];
+        for (idx, &d) in self.as_slice()[..max_len].iter().enumerate() {
             // optimize for the two common cases
             if d == 0 {
                 for bit in 0..32 {
@@ -406,7 +404,7 @@ pub struct SimpleVobIter<'a> {
     idx: usize,
 }
 
-impl<'a> Iterator for SimpleVobIter<'a> {
+impl Iterator for SimpleVobIter<'_> {
     type Item = u32;
 
     #[inline(always)]
@@ -424,7 +422,7 @@ impl<'a> Iterator for SimpleVobIter<'a> {
             bitoff = 0;
             dataoff += 1;
         }
-        return None;
+        None
     }
 }
 

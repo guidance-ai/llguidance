@@ -160,7 +160,7 @@ impl LlgSemanticResult {
         } else if let Some(e) = &self.validation_error {
             format!("VALIDATION: {}", short_limit_string(e))
         } else {
-            format!("OK")
+            "OK".to_string()
         }
     }
 }
@@ -288,19 +288,17 @@ fn json_sum(curr: &mut Value, v: &Value) {
             let c = &curr[k];
             let v2 = if c.is_null() {
                 v
+            } else if k.starts_with("max_") {
+                std::cmp::max(c.as_i64().unwrap(), v)
             } else {
-                if k.starts_with("max_") {
-                    std::cmp::max(c.as_i64().unwrap(), v)
-                } else {
-                    c.as_i64().unwrap() + v
-                }
+                c.as_i64().unwrap() + v
             };
             curr[k] = json!(v2);
         }
     }
 }
 
-fn log_fraction_plot(times: &mut Vec<usize>) -> String {
+fn log_fraction_plot(times: &mut [usize]) -> String {
     times.sort();
     let mut cutoff = 1;
     let mult = 1.3;
@@ -357,7 +355,7 @@ impl TestEnv {
 
         if !self.cli.llg_no_forcing {
             let forced = parser.compute_ff_tokens();
-            if forced.len() > 0 {
+            if !forced.is_empty() {
                 let us = t0.elapsed().as_micros() as usize;
                 stats.ff_tokens_us.push(us);
                 let endp = std::cmp::min(tokens.len(), tidx + forced.len());
@@ -513,7 +511,7 @@ impl TestEnv {
 
         if !self.cli.llg_no_forcing {
             let forced = parser.compute_ff_tokens();
-            if forced.len() > 0 {
+            if !forced.is_empty() {
                 return Ok(RefResult::Forced(forced));
             }
         }
@@ -530,7 +528,7 @@ impl TestEnv {
         t: &JsonTestSequence,
     ) -> Result<()> {
         let dstr = serde_json::to_string(&t.data).unwrap();
-        let mut rnd = XorShift::from_str(&dstr);
+        let mut rnd = XorShift::new_str(&dstr);
         let tokens = self.tok_env.tokenize(&dstr);
         let trie = self.tok_env.tok_trie();
         let masks = self.cli.llg_masks;
@@ -565,13 +563,11 @@ impl TestEnv {
                     tidx,
                     &tokens,
                 )?
+            } else if parser.validate_token(tokens[tidx])? {
+                MaskResult::Accept { n_tokens: 1 }
             } else {
-                if parser.validate_token(tokens[tidx])? {
-                    MaskResult::Accept { n_tokens: 1 }
-                } else {
-                    MaskResult::Reject {
-                        reason: "validate_token".to_string(),
-                    }
+                MaskResult::Reject {
+                    reason: "validate_token".to_string(),
                 }
             };
 
@@ -625,10 +621,8 @@ impl TestEnv {
                         .unwrap_or_else(|| t.python_error.clone().unwrap_or("???".to_string()))
                 );
             }
-        } else {
-            if t.valid {
-                bail!("parser not accepting at the end");
-            }
+        } else if t.valid {
+            bail!("parser not accepting at the end");
         }
 
         Ok(())
@@ -645,7 +639,9 @@ impl TestEnv {
         parser.start_without_prompt();
 
         let mut ref_parser = ref_parser.map(|p| p.deep_clone());
-        ref_parser.as_mut().map(|p| p.start_without_prompt());
+        if let Some(p) = ref_parser.as_mut() {
+            p.start_without_prompt()
+        }
 
         let r = self.run_llg_test_inner(stats, &mut parser, ref_parser, t);
 
@@ -659,10 +655,14 @@ impl TestEnv {
     }
 
     fn run_llg_compile(&self, id: &str, test_file: &JsonTest) -> LlgResult {
-        let mut opts = JsonCompileOptions::default();
-        opts.whitespace_flexible = !self.cli.compact;
-        let mut res = LlgResult::default();
-        res.id = id.to_string();
+        let opts = JsonCompileOptions {
+            whitespace_flexible: !self.cli.compact,
+            ..Default::default()
+        };
+        let mut res = LlgResult {
+            id: id.to_string(),
+            ..Default::default()
+        };
 
         let all_tests = test_file
             .tests
@@ -680,11 +680,12 @@ impl TestEnv {
         }
 
         let t0 = std::time::Instant::now();
-        let schema = if self.cli.ignore_schema {
+        let mut schema = if self.cli.ignore_schema {
             json!({"type": "object"})
         } else {
             test_file.schema.clone()
         };
+        opts.apply_to(&mut schema);
         let g_init = GrammarInit::Serialized(TopLevelGrammar::from_json_schema(schema));
         let g_init = g_init.to_internal(None, self.factory.limits().clone());
 
@@ -751,12 +752,10 @@ impl TestEnv {
                         res.validation_error = Some(format!("test #{idx}: {e}"));
                         limit_string(&mut res.validation_error);
                     }
+                } else if t.valid {
+                    res.num_valid_tests += 1;
                 } else {
-                    if t.valid {
-                        res.num_valid_tests += 1;
-                    } else {
-                        res.num_invalid_tests += 1;
-                    }
+                    res.num_invalid_tests += 1;
                 }
             }
 
@@ -774,11 +773,13 @@ impl TestEnv {
         let file_name = &self.file_name;
         let schema_file = read_file_to_string(file_name);
         let mut test_file: JsonTest = serde_json::from_str(&schema_file)
-            .expect(format!("Invalid JSON in schema file {}", file_name).as_str());
+            .unwrap_or_else(|_| panic!("Invalid JSON in schema file {}", file_name));
 
-        let mut stats = SchemaRes::default();
-        stats.file_name = file_name.clone();
-        stats.full_size = serde_json::to_string(&test_file.schema).unwrap().len();
+        let mut stats = SchemaRes {
+            file_name: file_name.clone(),
+            full_size: serde_json::to_string(&test_file.schema).unwrap().len(),
+            ..Default::default()
+        };
 
         let uuid_regex = regex::Regex::new(r"^(?P<time_low>[0-9a-fA-F]{8})-(?P<time_mid>[0-9a-fA-F]{4})-(?P<time_high_and_version>[0-9a-fA-F]{4})-(?P<clock_seq_and_reserved>[0-9a-fA-F]{2})(?P<clock_seq_low>[0-9a-fA-F]{2})-(?P<node>[0-9a-fA-F]{12})$"
     ).unwrap();
@@ -956,7 +957,7 @@ fn main() {
     // factory.set_stderr_log_level(2);
     // factory.limits_mut().step_lexer_fuel = 10_000_000;
 
-    let mut ref_factory = ParserFactory::new(&tok_env, caps.clone(), &vec![]).unwrap();
+    let mut ref_factory = ParserFactory::new(&tok_env, caps.clone(), &[]).unwrap();
     ref_factory.quiet();
 
     let factory = Arc::new(factory);
@@ -1150,7 +1151,7 @@ fn main() {
         );
     }
 
-    if llg_results.len() > 0 {
+    if !llg_results.is_empty() {
         save_json_to_file("tmp/llg_results.json", &llg_results);
         save_json_to_file("tmp/llg_sem_results.json", &llg_sem_results);
     }
@@ -1172,12 +1173,13 @@ fn main() {
 
         eprintln!("Expected from {}...", expected_file_name);
         let mut expected_map: HashMap<String, LlgSemanticResult> =
-            serde_json::from_str(&read_file_to_string(&expected_file_name)).unwrap();
+            serde_json::from_str(&read_file_to_string(expected_file_name)).unwrap();
         let mut num_err = 0;
         let mut num_warn = 0;
         for (id, r) in llg_sem_results.iter() {
             if let Some(exp) = expected_map.remove(id) {
                 if r != &exp {
+                    #[allow(clippy::comparison_chain)]
                     let status = if r.error_badness() < exp.error_badness() {
                         num_err += 1;
                         "improvement"
@@ -1214,17 +1216,11 @@ fn main() {
 
         if num_err > 0 {
             eprintln!("FAILED: {} errors, {} warnings", num_err, num_warn);
-            eprintln!(
-                "MISMATCH: {} {}",
-                "tmp/llg_sem_results.json", expected_file_name
-            );
+            eprintln!("MISMATCH: tmp/llg_sem_results.json {}", expected_file_name);
             std::process::exit(1);
         } else if num_warn > 0 {
             eprintln!("SOFT FAIL: {} warnings", num_warn);
-            eprintln!(
-                "TRY: cp {} {}",
-                "tmp/llg_sem_results.json", expected_file_name
-            );
+            eprintln!("TRY: cp tmp/llg_sem_results.json {}", expected_file_name);
             std::process::exit(1);
         } else {
             eprintln!("PASSED");
@@ -1245,7 +1241,7 @@ fn mask_cache_stats(results: &[SchemaRes]) -> Value {
             v.reverse();
             v
         })
-        .filter(|v| v.len() > 0)
+        .filter(|v| !v.is_empty())
         .collect::<Vec<_>>();
     for idx in 0..results.len() {
         let idx2 = rng.from_range(0..results.len());
@@ -1260,17 +1256,17 @@ fn mask_cache_stats(results: &[SchemaRes]) -> Value {
     let mut num_misses: usize = 0;
     let mut round = 0;
 
-    while left.len() > 0 {
+    while !left.is_empty() {
         let curr_batch = left
             .iter_mut()
             .map(|e| e.pop().unwrap())
             .collect::<Vec<_>>();
         for h in curr_batch {
-            if on_gpu.contains_key(&h) {
-                num_hits += 1;
-            } else {
+            if let std::collections::hash_map::Entry::Vacant(e) = on_gpu.entry(h) {
                 num_misses += 1;
-                on_gpu.insert(h, round);
+                e.insert(round);
+            } else {
+                num_hits += 1;
             }
         }
         if on_gpu.len() > hash_size {
@@ -1281,8 +1277,8 @@ fn mask_cache_stats(results: &[SchemaRes]) -> Value {
             }
             assert!(on_gpu.len() <= hash_size);
         }
-        left.retain(|e| e.len() > 0);
-        while left.len() < batch_size && results.len() > 0 {
+        left.retain(|e| !e.is_empty());
+        while left.len() < batch_size && !results.is_empty() {
             left.push(results.pop().unwrap());
         }
         round += 1;
@@ -1300,17 +1296,17 @@ fn mask_cache_stats(results: &[SchemaRes]) -> Value {
 
 fn save_json_to_file<T: Serialize>(filename: &str, data: &T) {
     let mut file =
-        File::create(filename).expect(format!("Unable to create file {}", filename).as_str());
+        File::create(filename).unwrap_or_else(|_| panic!("Unable to create file {}", filename));
     file.write_all(serde_json::to_string_pretty(data).unwrap().as_bytes())
-        .expect(format!("Unable to write file {}", filename).as_str());
+        .unwrap_or_else(|_| panic!("Unable to write file {}", filename));
     // eprintln!("Saved to {}", filename);
 }
 
 fn save_text_to_file(filename: &str, data: &str) {
     let mut file =
-        File::create(filename).expect(format!("Unable to create file {}", filename).as_str());
+        File::create(filename).unwrap_or_else(|_| panic!("Unable to create file {}", filename));
     file.write_all(data.as_bytes())
-        .expect(format!("Unable to write file {}", filename).as_str());
+        .unwrap_or_else(|_| panic!("Unable to write file {}", filename));
     // eprintln!("Saved to {}", filename);
 }
 
@@ -1374,7 +1370,7 @@ fn read_file_to_string(filename: &str) -> String {
 
 fn save_sorted_json_to_file(filename: &str, data: &HashMap<String, usize>) {
     let mut data: Vec<_> = data.iter().collect();
-    data.sort_by(|a, b| b.1.cmp(&a.1));
+    data.sort_by(|a, b| b.1.cmp(a.1));
     let data = Value::Object(
         data.iter()
             .map(|(k, v)| ((*k).clone(), Value::Number((**v as u64).into())))

@@ -23,7 +23,7 @@ impl ParserFactory {
     pub fn new(
         tok_env: &TokEnv,
         inference_caps: InferenceCapabilities,
-        regexes: &Vec<String>,
+        regexes: &[String],
     ) -> Result<Self> {
         let slicer = Arc::new(SlicedBiasComputer::new(tok_env, regexes)?);
         Ok(ParserFactory {

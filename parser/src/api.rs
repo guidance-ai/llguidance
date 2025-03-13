@@ -19,6 +19,7 @@ pub struct TopLevelGrammar {
     pub max_tokens: Option<usize>,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone)]
 pub enum GrammarInit {
     Serialized(TopLevelGrammar),
@@ -192,15 +193,17 @@ pub enum StopReason {
     ParserTooComplex,
 }
 
-impl StopReason {
-    pub fn to_string(&self) -> String {
-        serde_json::to_value(self)
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .to_string()
+impl Display for StopReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            serde_json::to_value(self).unwrap().as_str().unwrap()
+        )
     }
+}
 
+impl StopReason {
     pub fn is_ok(&self) -> bool {
         matches!(
             self,
@@ -260,13 +263,13 @@ impl Default for ParserLimits {
 }
 
 impl TopLevelGrammar {
-    pub fn from_str(s: &str) -> Result<Self> {
+    pub fn from_lark_or_json_schema(s: &str) -> Result<Self> {
         let first_non_whitespace = s.chars().find(|c| !c.is_whitespace());
         if first_non_whitespace.is_none() {
             bail!("Empty grammar");
         }
         if first_non_whitespace == Some('{') {
-            Ok(serde_json::from_str(&s)?)
+            Ok(serde_json::from_str(s)?)
         } else {
             Ok(TopLevelGrammar::from_lark(s.to_string()))
         }

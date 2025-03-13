@@ -52,8 +52,14 @@ pub struct RegexBuilder {
 
 pub type RegexId = derivre::ExprRef;
 
-fn map_ids(nodes: &Vec<RegexId>) -> Vec<RegexAst> {
+fn map_ids(nodes: &[RegexId]) -> Vec<RegexAst> {
     nodes.iter().map(|n| RegexAst::ExprRef(*n)).collect()
+}
+
+impl Default for RegexBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RegexBuilder {
@@ -79,7 +85,7 @@ impl RegexBuilder {
         if nodes.len() == 1 {
             return nodes[0];
         }
-        if nodes.len() == 0 {
+        if nodes.is_empty() {
             return ExprRef::EMPTY_STRING;
         }
         self.add_ast(RegexAst::Concat(map_ids(&nodes))).unwrap()
@@ -89,7 +95,7 @@ impl RegexBuilder {
         if nodes.len() == 1 {
             return nodes[0];
         }
-        if nodes.len() == 0 {
+        if nodes.is_empty() {
             return ExprRef::NO_MATCH;
         }
         self.add_ast(RegexAst::Or(map_ids(&nodes))).unwrap()
@@ -354,7 +360,7 @@ impl GrammarBuilder {
     }
 
     pub fn select(&mut self, options: &[NodeRef]) -> NodeRef {
-        let ch = self.child_nodes(&options);
+        let ch = self.child_nodes(options);
         let r = self.new_node("");
         let empty = self.empty().idx;
         for n in &ch {
@@ -382,10 +388,10 @@ impl GrammarBuilder {
     }
 
     pub fn join_props(&mut self, values: &[NodeRef], props: NodeProps) -> NodeRef {
-        let mut ch = self.child_nodes(&values);
+        let mut ch = self.child_nodes(values);
         let empty = self.empty().idx;
         ch.retain(|&n| n != empty);
-        if ch.len() == 0 {
+        if ch.is_empty() {
             return self.empty();
         }
         if ch.len() == 1 && props == NodeProps::default() {

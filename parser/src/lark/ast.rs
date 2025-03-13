@@ -4,6 +4,7 @@ use super::lexer::Location;
 
 /// Represents an item in the grammar (rule, token, or statement).
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum Item {
     Rule(Rule),
     Token(TokenDef),

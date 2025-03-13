@@ -21,10 +21,7 @@ fn add_bytes(tokens: &mut Vec<Vec<u8>>, idx: usize, bytes: Vec<u8>) {
 // useful when debugging this: https://www.cogsci.ed.ac.uk/~richard/utf-8.cgi
 
 fn is_self_mapped(c: char) -> bool {
-    match c {
-        '!'..='~' | '\u{00A1}'..='\u{00AC}' | '\u{00AE}'..='\u{00FF}' => true,
-        _ => false,
-    }
+    matches!(c, '!'..='~' | '\u{00A1}'..='\u{00AC}' | '\u{00AE}'..='\u{00FF}')
 }
 
 fn build_char_map() -> HashMap<char, u8> {
@@ -94,7 +91,7 @@ pub fn token_bytes_from_tokenizer_json(tokenizer_json: &Value) -> Result<Vec<Vec
             .map_err(|e| anyhow!("error parsing vocab: {}", e))?;
 
     for (tok_name, &tok_id) in vocab.iter() {
-        if tok_id < token_bytes.len() && token_bytes[tok_id].len() > 0 {
+        if tok_id < token_bytes.len() && !token_bytes[tok_id].is_empty() {
             continue; // skip specials already added
         }
 
@@ -115,7 +112,7 @@ pub fn token_bytes_from_tokenizer_json(tokenizer_json: &Value) -> Result<Vec<Vec
                 .map(|c| {
                     char_map
                         .get(&c)
-                        .map(|c| *c)
+                        .copied()
                         .ok_or_else(|| anyhow!("missing char: {}", c))
                 })
                 .collect();

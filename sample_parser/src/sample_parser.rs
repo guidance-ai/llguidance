@@ -12,7 +12,7 @@ use serde_json::json;
 fn dump_tokenizer(name: &str) {
     let btok = toktrie_hf_tokenizers::ByteTokenizer::from_name(name).unwrap();
     let vecs = btok.token_bytes();
-    for (_i, v) in vecs.iter().enumerate() {
+    for v in vecs.iter() {
         let v: String = v
             .iter()
             .map(|b| format!("{:02x}", b))

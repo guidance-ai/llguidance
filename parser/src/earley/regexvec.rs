@@ -7,10 +7,7 @@
 use anyhow::{bail, Result};
 use derivre::raw::{DerivCache, ExprSet, NextByteCache, RelevanceCache, VecHashCons};
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{Debug, Display},
-    u64,
-};
+use std::fmt::{Debug, Display};
 use toktrie::SimpleVob;
 
 pub use derivre::{AlphabetInfo, ExprRef, NextByte, StateID};
@@ -43,10 +40,7 @@ pub enum MatchingLexemes {
 
 impl MatchingLexemes {
     pub fn is_some(&self) -> bool {
-        match self {
-            MatchingLexemes::None => false,
-            _ => true,
-        }
+        !matches!(self, MatchingLexemes::None)
     }
 
     pub fn is_none(&self) -> bool {
@@ -93,6 +87,10 @@ impl MatchingLexemes {
             MatchingLexemes::Two(_) => 2,
             MatchingLexemes::Many(v) => v.len(),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn as_slice(&self) -> &[LexemeIdx] {
@@ -339,7 +337,6 @@ impl RegexVec {
         mut budget: u64,
     ) -> Result<bool> {
         let budget0 = budget;
-        let t0 = crate::Instant::now();
         assert!(self.subsume_possible(state));
         let small = self.get_rx(lexeme_idx);
         let mut res = false;
@@ -364,10 +361,6 @@ impl RegexVec {
             }
             let cost = self.exprs.cost() - c0;
             budget = budget.saturating_sub(cost);
-        }
-        let cost = budget0 - budget;
-        if false && cost > 10 {
-            println!("check_subsume: {}/{} {:?}", cost, budget0, t0.elapsed());
         }
         Ok(res)
     }
@@ -541,13 +534,11 @@ impl RegexVec {
     }
 
     pub fn print_state_table(&self) {
-        let mut state = 0;
-        for row in self.state_table.chunks(self.alpha.len()) {
+        for (state, row) in self.state_table.chunks(self.alpha.len()).enumerate() {
             println!("state: {}", state);
             for (b, &new_state) in row.iter().enumerate() {
                 println!("  s{:?} -> {:?}", b, new_state);
             }
-            state += 1;
         }
     }
 }
@@ -586,16 +577,12 @@ impl RegexVec {
 
         let fuel0 = limits.initial_lexer_fuel;
         let mut relevance = RelevanceCache::new();
-        for idx in 0..rx_list.len() {
+        for elt in rx_list.iter_mut() {
             let c0 = exprset.cost();
-            match relevance.is_non_empty_limited(
-                &mut exprset,
-                rx_list[idx],
-                limits.initial_lexer_fuel,
-            ) {
+            match relevance.is_non_empty_limited(&mut exprset, *elt, limits.initial_lexer_fuel) {
                 Ok(true) => {}
                 Ok(false) => {
-                    rx_list[idx] = ExprRef::NO_MATCH;
+                    *elt = ExprRef::NO_MATCH;
                 }
                 Err(_) => {
                     bail!(
@@ -778,10 +765,10 @@ impl Debug for RegexVec {
     }
 }
 
-fn iter_state<'a>(
-    rx_sets: &'a VecHashCons,
+fn iter_state(
+    rx_sets: &VecHashCons,
     state: StateID,
-) -> impl Iterator<Item = (LexemeIdx, ExprRef)> + 'a {
+) -> impl Iterator<Item = (LexemeIdx, ExprRef)> + '_ {
     let lst = rx_sets.get(state.as_u32());
     (0..lst.len()).step_by(2).map(move |idx| {
         (

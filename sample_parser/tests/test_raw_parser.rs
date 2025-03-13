@@ -11,7 +11,7 @@ lazy_static! {
     static ref PARSER_FACTORY_PHI: ParserFactory = {
         let env = sample_parser::get_tok_env();
         let mut fact = ParserFactory::new(
-            &env,
+            env,
             InferenceCapabilities {
                 ff_tokens: false,
                 backtrack: false,
@@ -80,10 +80,10 @@ fn test_ff_tokens() {
     consume(&mut parser, 1111);
     consume(&mut parser, 311);
 
-    let n = parser.validate_tokens_raw(&vec![366, 311, 1111]).unwrap();
+    let n = parser.validate_tokens_raw(&[366, 311, 1111]).unwrap();
     assert_eq!(n, 3);
 
-    let n = parser.validate_tokens_raw(&vec![29879, 311, 1111]).unwrap();
+    let n = parser.validate_tokens_raw(&[29879, 311, 1111]).unwrap();
     assert_eq!(n, 3);
 
     consume(&mut parser, 29879);

@@ -231,7 +231,7 @@ impl LlgConstraintInit {
         if self.tokenizer.is_null() {
             bail!("Tokenizer is null");
         }
-        Ok(unsafe { (&*self.tokenizer).to_env() })
+        Ok(unsafe { (*self.tokenizer).to_env() })
     }
 
     pub fn build_parser(
@@ -522,7 +522,7 @@ pub extern "C" fn llg_get_temperature(cc: &LlgConstraint) -> f32 {
 pub extern "C" fn llg_is_stopped(cc: &LlgConstraint) -> bool {
     cc.constraint
         .as_ref()
-        .map_or(true, |c| c.step_result().is_stop())
+        .is_none_or(|c| c.step_result().is_stop())
 }
 
 /// Compute mask for the next token sampling
@@ -581,8 +581,10 @@ pub extern "C" fn llg_commit_token(
 }
 
 /// Compute mask for several constraints in parallel.
+/// # Safety
+/// This function should only be called from C code.
 #[no_mangle]
-pub extern "C" fn llg_par_compute_mask(
+pub unsafe extern "C" fn llg_par_compute_mask(
     steps: *const LlgConstraintStep,
     n_steps: usize,
     user_data: *const c_void,
@@ -639,8 +641,10 @@ pub extern "C" fn llg_clone_tokenizer(tok: &LlgTokenizer) -> *mut LlgTokenizer {
 /// Tokenize the given bytes and return the tokens.
 /// Always returns the number of tokens that would be written to output_tokens
 /// if output_tokens_len was large enough.
+/// # Safety
+/// This function should only be called from C code.
 #[no_mangle]
-pub extern "C" fn llg_tokenize_bytes(
+pub unsafe extern "C" fn llg_tokenize_bytes(
     tok: &LlgTokenizer,
     bytes: *const u8,
     bytes_len: usize,
@@ -662,8 +666,10 @@ pub extern "C" fn llg_tokenize_bytes(
 /// Special tokens will be tokenized, if they follow 0xFF byte prefix.
 /// Always returns the number of tokens that would be written to output_tokens
 /// if output_tokens_len was large enough.
+/// # Safety
+/// This function should only be called from C code.
 #[no_mangle]
-pub extern "C" fn llg_tokenize_bytes_marker(
+pub unsafe extern "C" fn llg_tokenize_bytes_marker(
     tok: &LlgTokenizer,
     bytes: *const u8,
     bytes_len: usize,
@@ -685,8 +691,10 @@ pub extern "C" fn llg_tokenize_bytes_marker(
 /// Return a string representation of the tokens, useful for debugging.
 /// The output is null-terminated.
 /// Returns the number of bytes that would be written to output if output_len was large enough.
+/// # Safety
+/// This function should only be called from C code.
 #[no_mangle]
-pub extern "C" fn llg_stringify_tokens(
+pub unsafe extern "C" fn llg_stringify_tokens(
     tok: &LlgTokenizer,
     tokens: *const u32,
     n_tokens: usize,
@@ -706,16 +714,20 @@ pub extern "C" fn llg_stringify_tokens(
 }
 
 /// Free the tokenizer. Should *NOT* be called while there are still constraints using it.
+/// # Safety
+/// This function should only be called from C code.
 #[no_mangle]
-pub extern "C" fn llg_free_tokenizer(tok: *mut LlgTokenizer) {
+pub unsafe extern "C" fn llg_free_tokenizer(tok: *mut LlgTokenizer) {
     unsafe {
         drop(Box::from_raw(tok));
     }
 }
 
 /// Free the constraint
+/// # Safety
+/// This function should only be called from C code.
 #[no_mangle]
-pub extern "C" fn llg_free_constraint(cc: *mut LlgConstraint) {
+pub unsafe extern "C" fn llg_free_constraint(cc: *mut LlgConstraint) {
     unsafe {
         drop(Box::from_raw(cc));
     }
@@ -770,8 +782,10 @@ fn save_error_string(e: impl Display, error_string: *mut c_char, error_string_le
 }
 
 /// Create a new stop-sequence controller
+/// # Safety
+/// This function should only be called from C code.
 #[no_mangle]
-pub extern "C" fn llg_new_stop_controller(
+pub unsafe extern "C" fn llg_new_stop_controller(
     tokenizer: &LlgTokenizer,
     stop_tokens: *const u32,
     stop_tokens_len: usize,
@@ -811,8 +825,10 @@ pub extern "C" fn llg_stop_commit_token(
 }
 
 /// Free the stop-sequence controller
+/// # Safety
+/// This function should only be called from C code.
 #[no_mangle]
-pub extern "C" fn llg_free_stop_controller(stop_ctrl: *mut LlgStopController) {
+pub unsafe extern "C" fn llg_free_stop_controller(stop_ctrl: *mut LlgStopController) {
     unsafe {
         drop(Box::from_raw(stop_ctrl));
     }

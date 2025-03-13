@@ -66,13 +66,13 @@ impl Parser {
         } else {
             None
         };
-        let (name, pin_terminals) = if name.starts_with("!") {
-            (name[1..].to_string(), true)
+        let (name, pin_terminals) = if let Some(name) = name.strip_prefix("!") {
+            (name.to_string(), true)
         } else {
             (name, false)
         };
-        let (name, cond_inline) = if name.starts_with("?") {
-            (name[1..].to_string(), true)
+        let (name, cond_inline) = if let Some(name) = name.strip_prefix("?") {
+            (name.to_string(), true)
         } else {
             (name, false)
         };
@@ -307,10 +307,8 @@ impl Parser {
             return true;
         }
         let p0 = self.pos;
-        if self.match_token(Token::Newline) {
-            if self.match_token(Token::VBar) {
-                return true;
-            }
+        if self.match_token(Token::Newline) && self.match_token(Token::VBar) {
+            return true;
         }
         self.pos = p0;
         false
@@ -401,13 +399,13 @@ impl Parser {
     }
 
     fn parse_string(&self, s: &str) -> Result<(String, String)> {
-        let (inner, flags) = if s.ends_with('i') {
-            (&s[..s.len() - 1], "i")
+        let (inner, flags) = if let Some(s) = s.strip_suffix('i') {
+            (s, "i")
         } else {
             (s, "")
         };
         let inner =
-            serde_json::from_str(&inner).map_err(|e| anyhow!("error parsing string: {e}"))?;
+            serde_json::from_str(inner).map_err(|e| anyhow!("error parsing string: {e}"))?;
         Ok((inner, flags.to_string()))
     }
 
@@ -544,11 +542,7 @@ impl Parser {
             return false;
         }
         let pref = &self.tokens[self.pos..self.pos + toks.len()];
-        if pref.iter().zip(toks.iter()).all(|(a, b)| a.token == *b) {
-            true
-        } else {
-            false
-        }
+        pref.iter().zip(toks.iter()).all(|(a, b)| a.token == *b)
     }
 
     /// Expects a specific token, or returns an error.

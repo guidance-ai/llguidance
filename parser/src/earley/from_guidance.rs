@@ -22,14 +22,13 @@ fn process_grammar(ctx: &mut CompileCtx, input: GrammarWithLexer) -> Result<(Sym
             "cannot have both lark_grammar and json_schema"
         );
         lark_to_llguidance(builder, &lark)?
-    } else if let Some(json_schema) = input.json_schema {
-        let opts: JsonCompileOptions = json_schema
-            .as_object()
-            .and_then(|obj| obj.get("x-guidance"))
-            .map_or_else(
-                || Ok(JsonCompileOptions::default()),
-                |v| serde_json::from_value(v.clone()),
-            )?;
+    } else if let Some(mut json_schema) = input.json_schema {
+        let mut opts = JsonCompileOptions::default();
+        if let Some(x_guidance) = json_schema.get("x-guidance") {
+            opts = serde_json::from_value(x_guidance.clone())?;
+            // TODO not removing it causes oneOf to be handled as anyOf in Github_medium---o61004.json
+            json_schema.as_object_mut().unwrap().remove("x-guidance");
+        }
         opts.json_to_llg(builder, json_schema)?
     } else {
         bail!("grammar must have either lark_grammar or json_schema");
@@ -98,7 +97,7 @@ impl GrammarInit {
             GrammarInit::Internal(g, l) => Ok((g, l)),
 
             GrammarInit::Serialized(input) => {
-                ensure!(input.grammars.len() > 0, "empty grammars array");
+                ensure!(!input.grammars.is_empty(), "empty grammars array");
 
                 let builder = GrammarBuilder::new(tok_env, limits.clone());
 

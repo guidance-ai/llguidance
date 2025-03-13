@@ -196,7 +196,7 @@ impl<S> Branch<S> {
     }
 
     pub fn has_ff_tokens(&self) -> bool {
-        self.splices.len() > 0
+        !self.splices.is_empty()
     }
 
     pub fn stop() -> Self {

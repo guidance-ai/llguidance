@@ -130,61 +130,59 @@ pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
                         rx_int_range(Some(0), Some(right))?
                     ))
                 }
-            } else {
-                if num_digits(left) == num_digits(right) {
-                    let l = left.to_string();
-                    let r = right.to_string();
-                    if left == right {
-                        return Ok(format!("({})", l));
-                    }
-
-                    let lpref = &l[..l.len() - 1];
-                    let lx = &l[l.len() - 1..];
-                    let rpref = &r[..r.len() - 1];
-                    let rx = &r[r.len() - 1..];
-
-                    if lpref == rpref {
-                        return Ok(format!("({}[{}-{}])", lpref, lx, rx));
-                    }
-
-                    let mut left_rec = lpref.parse::<i64>().unwrap_or(0);
-                    let mut right_rec = rpref.parse::<i64>().unwrap_or(0);
-                    if left_rec >= right_rec {
-                        return Err(anyhow!(
-                            "Invalid recursive range: left_rec ({}) must be less than right_rec ({})",
-                            left_rec,
-                            right_rec
-                        ));
-                    }
-
-                    let mut parts = Vec::new();
-
-                    if lx != "0" {
-                        left_rec += 1;
-                        parts.push(format!("{}[{}-9]", lpref, lx));
-                    }
-
-                    if rx != "9" {
-                        right_rec -= 1;
-                        parts.push(format!("{}[0-{}]", rpref, rx));
-                    }
-
-                    if left_rec <= right_rec {
-                        let inner = rx_int_range(Some(left_rec), Some(right_rec))?;
-                        parts.push(format!("{}[0-9]", inner));
-                    }
-
-                    Ok(mk_or(parts))
-                } else {
-                    let break_point = 10_i64
-                        .checked_pow(num_digits(left) as u32)
-                        .ok_or_else(|| anyhow!("Overflow when calculating break point"))?
-                        - 1;
-                    Ok(mk_or(vec![
-                        rx_int_range(Some(left), Some(break_point))?,
-                        rx_int_range(Some(break_point + 1), Some(right))?,
-                    ]))
+            } else if num_digits(left) == num_digits(right) {
+                let l = left.to_string();
+                let r = right.to_string();
+                if left == right {
+                    return Ok(format!("({})", l));
                 }
+
+                let lpref = &l[..l.len() - 1];
+                let lx = &l[l.len() - 1..];
+                let rpref = &r[..r.len() - 1];
+                let rx = &r[r.len() - 1..];
+
+                if lpref == rpref {
+                    return Ok(format!("({}[{}-{}])", lpref, lx, rx));
+                }
+
+                let mut left_rec = lpref.parse::<i64>().unwrap_or(0);
+                let mut right_rec = rpref.parse::<i64>().unwrap_or(0);
+                if left_rec >= right_rec {
+                    return Err(anyhow!(
+                        "Invalid recursive range: left_rec ({}) must be less than right_rec ({})",
+                        left_rec,
+                        right_rec
+                    ));
+                }
+
+                let mut parts = Vec::new();
+
+                if lx != "0" {
+                    left_rec += 1;
+                    parts.push(format!("{}[{}-9]", lpref, lx));
+                }
+
+                if rx != "9" {
+                    right_rec -= 1;
+                    parts.push(format!("{}[0-{}]", rpref, rx));
+                }
+
+                if left_rec <= right_rec {
+                    let inner = rx_int_range(Some(left_rec), Some(right_rec))?;
+                    parts.push(format!("{}[0-9]", inner));
+                }
+
+                Ok(mk_or(parts))
+            } else {
+                let break_point = 10_i64
+                    .checked_pow(num_digits(left) as u32)
+                    .ok_or_else(|| anyhow!("Overflow when calculating break point"))?
+                    - 1;
+                Ok(mk_or(vec![
+                    rx_int_range(Some(left), Some(break_point))?,
+                    rx_int_range(Some(break_point + 1), Some(right))?,
+                ]))
             }
         }
     }
@@ -216,29 +214,27 @@ fn lexi_x_to_9(x: &str, incl: bool) -> Result<String> {
             }
             Ok(mk_or(parts))
         }
+    } else if x.is_empty() {
+        Ok("[0-9]*[1-9]".to_string())
     } else {
-        if x.is_empty() {
-            Ok("[0-9]*[1-9]".to_string())
-        } else {
-            let x0 = x
-                .chars()
+        let x0 = x
+            .chars()
+            .next()
+            .ok_or_else(|| anyhow!("String x is unexpectedly empty"))?
+            .to_digit(10)
+            .ok_or_else(|| anyhow!("Failed to parse character as digit"))?;
+        let x_rest = &x[1..];
+        let mut parts = vec![format!(
+            "{}{}",
+            x.chars()
                 .next()
-                .ok_or_else(|| anyhow!("String x is unexpectedly empty"))?
-                .to_digit(10)
-                .ok_or_else(|| anyhow!("Failed to parse character as digit"))?;
-            let x_rest = &x[1..];
-            let mut parts = vec![format!(
-                "{}{}",
-                x.chars()
-                    .next()
-                    .ok_or_else(|| anyhow!("String x is unexpectedly empty"))?,
-                lexi_x_to_9(x_rest, incl)?
-            )];
-            if x0 < 9 {
-                parts.push(format!("[{}-9][0-9]*", x0 + 1));
-            }
-            Ok(mk_or(parts))
+                .ok_or_else(|| anyhow!("String x is unexpectedly empty"))?,
+            lexi_x_to_9(x_rest, incl)?
+        )];
+        if x0 < 9 {
+            parts.push(format!("[{}-9][0-9]*", x0 + 1));
         }
+        Ok(mk_or(parts))
     }
 }
 
@@ -486,7 +482,7 @@ pub fn rx_float_range(
                         left_rec += 1;
                     }
 
-                    if right_rec - 1 >= left_rec {
+                    if right_rec > left_rec {
                         let inner = rx_int_range(Some(left_rec), Some(right_rec - 1))?;
                         parts.push(format!("({}(\\.[0-9]+)?)", inner));
                     }

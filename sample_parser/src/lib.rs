@@ -24,7 +24,7 @@ fn check_grammar(
     output: &[&str],
     temp: f32,
 ) -> Constraint {
-    let mut rnd = XorShift::from_str(&serde_json::to_string(&grammar).unwrap());
+    let mut rnd = XorShift::new_str(&serde_json::to_string(&grammar).unwrap());
 
     let parser = factory.create_parser(grammar).unwrap();
     let can_rollback = parser.parser.grammar().lexer_spec().can_rollback();
@@ -218,12 +218,10 @@ fn check_grammar(
                     assert!(bt == 0 || res.ff_tokens.is_empty());
                     bt = 1;
                     // go to forced byte checking
+                } else if toks.is_empty() {
+                    panic!("Expected {}; got nothing", tok);
                 } else {
-                    if toks.is_empty() {
-                        panic!("Expected {}; got nothing", tok);
-                    } else {
-                        panic!("Expected token {} got {}", tok, toks[0]);
-                    }
+                    panic!("Expected token {} got {}", tok, toks[0]);
                 }
             } else if toks.len() > 1 {
                 // we got fast-forwarded to the next entry,
@@ -299,7 +297,7 @@ fn tokenize_trace(tok_env: &TokEnv, s: &str) -> Vec<(bool, TokenId)> {
     }
 
     // Split by both ‧ and × to catch all tokens
-    let words = s.split(|c| c == '‧' || c == '✖').collect::<Vec<&str>>();
+    let words = s.split(['‧', '✖']).collect::<Vec<&str>>();
     let mut char_pos = 0;
 
     for word in words {
@@ -321,7 +319,7 @@ fn tokenize_trace(tok_env: &TokEnv, s: &str) -> Vec<(bool, TokenId)> {
         } else if let Some(t) = trie.get_special_token(word) {
             result.push((is_allowed, t));
         } else if word.starts_with("<[") && word.ends_with("]>") {
-            let t = u32::from_str_radix(&word[2..word.len() - 2], 10).unwrap();
+            let t = word[2..word.len() - 2].parse::<u32>().unwrap();
             assert!(t < trie.vocab_size() as u32);
             result.push((is_allowed, t));
         } else {

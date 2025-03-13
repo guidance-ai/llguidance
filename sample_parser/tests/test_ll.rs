@@ -544,10 +544,10 @@ fn test_ll_nullable_lexeme() {
         num1: /-?(?:0|[1-9][0-9]*)/
         num2: /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)/
     "#;
-    check_lark_grammar_nested(r#"start: @sub"#, &float_grammar, &["", "1‧≺EOS≻"]);
-    check_lark_grammar_nested(r#"start: @sub"#, &float_grammar, &["", "0‧≺EOS≻"]);
-    check_lark_grammar_nested(r#"start: @sub"#, &float_grammar, &["", "1‧.‧1‧≺EOS≻"]);
-    check_lark_grammar_nested(r#"start: @sub"#, &float_grammar, &["", "0‧.‧1‧≺EOS≻"]);
+    check_lark_grammar_nested(r#"start: @sub"#, float_grammar, &["", "1‧≺EOS≻"]);
+    check_lark_grammar_nested(r#"start: @sub"#, float_grammar, &["", "0‧≺EOS≻"]);
+    check_lark_grammar_nested(r#"start: @sub"#, float_grammar, &["", "1‧.‧1‧≺EOS≻"]);
+    check_lark_grammar_nested(r#"start: @sub"#, float_grammar, &["", "0‧.‧1‧≺EOS≻"]);
 }
 
 #[test]

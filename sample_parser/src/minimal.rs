@@ -26,7 +26,7 @@ impl SingleByteTokenizer {
         SingleByteTokenizer { tok_trie }
     }
 
-    fn to_env(self) -> TokEnv {
+    fn into_env(self) -> TokEnv {
         Arc::new(self)
     }
 }
@@ -59,7 +59,7 @@ fn main() {
     };
     let obj_str = read_file_to_string(&args[2]);
 
-    let tok_env: TokEnv = SingleByteTokenizer::new().to_env();
+    let tok_env: TokEnv = SingleByteTokenizer::new().into_env();
 
     let tokens = tok_env.tokenize(&obj_str);
 

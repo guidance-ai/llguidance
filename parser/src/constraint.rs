@@ -73,7 +73,7 @@ impl Constraint {
     fn save_progress_and_result(&mut self, res: StepResult) {
         self.last_res = res;
         if self.log_json_progress {
-            for p in self.reporter.get_progress(&mut self.parser, &self.last_res) {
+            for p in self.reporter.get_progress(&self.parser, &self.last_res) {
                 self.parser.logger.write_buffer("JSON-OUT: ");
                 self.parser
                     .logger
@@ -131,9 +131,9 @@ impl Constraint {
     /// It typically takes up to a millisecond for a 100k tokenizer.
     /// It will return an error when the order of calls is violated.
     /// The result will be either:
-    /// - a mask of allowed tokens to sample, or
-    /// - an unconditional splice result, indicating that the parser wants to append tokens, or
-    /// - a stop result, indicating that the parser is done
+    ///     - a mask of allowed tokens to sample, or
+    ///     - an unconditional splice result, indicating that the parser wants to append tokens, or
+    ///     - a stop result, indicating that the parser is done
     /// The splice is never returned when ff_tokens are disabled in InferenceCapabilities.
     /// After this returns, commit_token() must be called with the sampled token if any.
     pub fn compute_mask(&mut self) -> Result<&StepResult> {
@@ -251,7 +251,7 @@ impl Constraint {
 
             // save any logs
             self.save_progress_and_result(StepResult::splice(bt as u32, tokens));
-            return self.res_commit_result();
+            self.res_commit_result()
         } else {
             bail!("internal error: invalid compute_mask() result");
         }
@@ -262,7 +262,7 @@ impl Constraint {
     /// and then use flush_logs() to get a string, from which the user
     /// can extract the JSON of the outputs.
     pub fn flush_progress(&mut self) -> Vec<ParserOutput> {
-        self.reporter.get_progress(&mut self.parser, &self.last_res)
+        self.reporter.get_progress(&self.parser, &self.last_res)
     }
 
     /// Logs to be sent to the user.

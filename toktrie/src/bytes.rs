@@ -68,7 +68,7 @@ impl<'a> LimitedWriter<'a> {
     }
 }
 
-impl<'a> Write for LimitedWriter<'a> {
+impl Write for LimitedWriter<'_> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         let remaining = self.max_len.saturating_sub(self.buf.len());
         if s.len() > remaining {

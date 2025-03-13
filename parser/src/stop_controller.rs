@@ -44,7 +44,7 @@ impl StopController {
         } else {
             RegexAst::NoMatch
         };
-        if stop_strings.len() > 0 {
+        if !stop_strings.is_empty() {
             let mut alts = stop_strings
                 .iter()
                 .map(|s| RegexAst::Regex(s.clone()))
@@ -92,12 +92,12 @@ impl StopController {
             self.is_stopped = true;
         } else {
             let bytes = self.tok_env.tok_trie().token(tok_id);
-            if bytes.len() > 0 && bytes[0] == TokTrie::SPECIAL_TOKEN_MARKER {
+            if !bytes.is_empty() && bytes[0] == TokTrie::SPECIAL_TOKEN_MARKER {
                 if let Some(rx) = self.regex.as_mut() {
                     rx.state = rx.initial_state;
                 }
                 buf.extend_from_slice(&bytes[1..]);
-            } else if bytes.len() == 0 {
+            } else if bytes.is_empty() {
                 if let Some(rx) = self.regex.as_mut() {
                     rx.state = rx.initial_state;
                 }

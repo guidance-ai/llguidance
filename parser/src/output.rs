@@ -72,7 +72,7 @@ impl Reporter {
         mid_res: &StepResult,
     ) -> Vec<ParserOutput> {
         let mut res = self.get_progress_core(tok_parser);
-        self.is_generated = !mid_res.is_stop() && mid_res.splices.len() == 0;
+        self.is_generated = !mid_res.is_stop() && mid_res.splices.is_empty();
 
         if mid_res.is_stop() {
             res.push(self.final_text(tok_parser));

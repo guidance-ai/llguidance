@@ -67,7 +67,7 @@ pub fn token_ranges_to_string(token_ranges: &Vec<RangeInclusive<TokenId>>) -> St
     let mut s = "<[".to_string();
     for range in token_ranges {
         if s.len() > 2 {
-            s.push_str(",");
+            s.push(',');
         }
         if range.start() == range.end() {
             write!(s, "{:?}", range.start()).unwrap();
@@ -102,7 +102,7 @@ impl LexemeSpec {
         if self.contextual {
             f.push_str(" contextual");
         }
-        if self.token_ranges.len() > 0 {
+        if !self.token_ranges.is_empty() {
             write!(f, " tokens={}", token_ranges_to_string(&self.token_ranges)).unwrap();
         }
         // write!(f, " compiled={:?}", self.compiled_rx).unwrap();
@@ -207,7 +207,7 @@ impl LexerSpec {
         let mut res = Vec::new();
         for idx in possible.iter() {
             let spec = &self.lexemes[idx.as_usize()];
-            if spec.token_ranges.len() > 0 {
+            if !spec.token_ranges.is_empty() {
                 res.push(spec);
             }
         }
@@ -244,7 +244,7 @@ impl LexerSpec {
     }
 
     fn add_lexeme_spec(&mut self, mut spec: LexemeSpec) -> Result<LexemeIdx> {
-        let compiled = if spec.token_ranges.len() > 0 {
+        let compiled = if !spec.token_ranges.is_empty() {
             if let Some(rx) = self.special_token_rx {
                 rx
             } else {
@@ -262,10 +262,9 @@ impl LexerSpec {
 
         if !self.has_stop && !spec.is_suffix {
             self.has_stop = match &spec.rx {
-                RegexAst::Concat(parts) => parts.iter().any(|part| match part {
-                    RegexAst::LookAhead(_) => true,
-                    _ => false,
-                }),
+                RegexAst::Concat(parts) => parts
+                    .iter()
+                    .any(|part| matches!(part, RegexAst::LookAhead(_))),
                 _ => false,
             };
             if spec.ends_at_eos {
@@ -300,7 +299,7 @@ impl LexerSpec {
 
     fn empty_spec(&self) -> LexemeSpec {
         assert!(
-            self.skip_by_class.len() > 0,
+            !self.skip_by_class.is_empty(),
             "new_lexeme_class() not called"
         );
         LexemeSpec {
@@ -390,7 +389,7 @@ impl LexerSpec {
         })
     }
 
-    pub fn add_extra_lexemes(&mut self, extra_lexemes: &Vec<String>) {
+    pub fn add_extra_lexemes(&mut self, extra_lexemes: &[String]) {
         assert!(self.num_extra_lexemes == 0);
         self.num_extra_lexemes = extra_lexemes.len();
         for (idx, added) in extra_lexemes.iter().enumerate() {
@@ -516,10 +515,7 @@ impl Lexeme {
     }
 
     pub fn is_bogus(&self) -> bool {
-        match self.idx {
-            MatchingLexemesIdx::Single(LexemeIdx(0)) if self.bytes.is_empty() => true,
-            _ => false,
-        }
+        self.bytes.is_empty() && matches!(self.idx, MatchingLexemesIdx::Single(LexemeIdx(0)))
     }
 
     pub fn is_suffix(&self) -> bool {

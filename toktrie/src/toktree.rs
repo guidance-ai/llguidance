@@ -95,14 +95,14 @@ pub trait Recognizer {
 pub fn parse_numeric_token(s: &[u8]) -> Option<(usize, TokenId)> {
     let spec_len = s[0..std::cmp::min(s.len(), 20)]
         .iter()
-        .position(|&x| x == ']' as u8);
+        .position(|&x| x == b']');
     if let Some(spec_len) = spec_len {
         if s[0] != b'[' {
             return None;
         }
         let inner_bytes = &s[1..spec_len];
         if let Ok(inner_str) = std::str::from_utf8(inner_bytes) {
-            if let Ok(id) = u32::from_str_radix(inner_str, 10) {
+            if let Ok(id) = inner_str.parse::<u32>() {
                 return Some((spec_len + 1, id as TokenId));
             }
         }
@@ -138,11 +138,11 @@ pub trait TokenizerEnv: Send {
                 idx += normal_len;
             }
             idx += 1; // skip ff
-            if idx + 2 < s.len() && s[idx] == '<' as u8 {
+            if idx + 2 < s.len() && s[idx] == b'<' {
                 // tokenize \xff<foobar> as special token <foobar>
                 let spec_len = s[idx..std::cmp::min(s.len(), idx + 100)]
                     .iter()
-                    .position(|&x| x == '>' as u8);
+                    .position(|&x| x == b'>');
                 if let Some(mut spec_len) = spec_len {
                     spec_len += 1;
                     let spec_token = &s[idx - 1..idx + spec_len];
@@ -275,14 +275,14 @@ impl TokTrie {
     // see https://github.com/microsoft/llguidance/blob/main/docs/special_tokens.md
     pub const SPECIAL_TOKEN_MARKER: u8 = 0xff;
 
-    pub fn from(info: &TokRxInfo, words: &Vec<Vec<u8>>) -> Self {
+    pub fn from(info: &TokRxInfo, words: &[Vec<u8>]) -> Self {
         let mut trie = TrieHash::new(0xff);
         let mut token_offsets = Vec::new();
         let mut token_data = Vec::new();
         assert!(info.vocab_size == words.len() as u32);
         let mut max_token_len = 0;
         for (idx, word) in words.iter().enumerate() {
-            if word.len() > 0 {
+            if !word.is_empty() {
                 trie.insert(word, idx as u32);
                 max_token_len = std::cmp::max(max_token_len, word.len());
             }
@@ -295,7 +295,7 @@ impl TokTrie {
         let mut nodes = Vec::new();
         trie.serialize(&mut nodes, 0);
         let r = TokTrie {
-            info: info.clone(),
+            info: *info,
             token_offsets,
             token_data,
             nodes,
@@ -308,13 +308,13 @@ impl TokTrie {
     pub fn with_eos_token(&self, eos_token: TokenId) -> Self {
         self.with_info(TokRxInfo {
             tok_eos: eos_token,
-            ..self.info.clone()
+            ..self.info
         })
     }
 
     pub fn with_info(&self, info: TokRxInfo) -> Self {
         let mut r = self.clone();
-        r.info = info.clone();
+        r.info = info;
         r
     }
 
@@ -330,7 +330,7 @@ impl TokTrie {
     }
 
     fn next_node(&self, n: &TrieNode) -> usize {
-        return self.node_offset(n) + n.subtree_size();
+        self.node_offset(n) + n.subtree_size()
     }
 
     pub fn info(&self) -> &TokRxInfo {
@@ -360,7 +360,7 @@ impl TokTrie {
 
         let ts_neg = ts.negated();
         let use_neg = ts_neg.num_set() * 10 < ts.num_set();
-        let ts1 = if use_neg { &ts_neg } else { &ts };
+        let ts1 = if use_neg { &ts_neg } else { ts };
         let num_set = ts1.num_set();
         let max_tok = std::cmp::min(max_examples, num_set);
         let mut token_names = Vec::new();
@@ -416,7 +416,7 @@ impl TokTrie {
             .join("‧");
 
         if limited {
-            joined.push_str("…");
+            joined.push('…');
         }
 
         if quote {
@@ -467,7 +467,7 @@ impl TokTrie {
 
     pub fn token_len(&self, idx: u32) -> usize {
         let t = self.token(idx);
-        if t.len() == 0 || t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
+        if t.is_empty() || t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
             let mut idx = idx;
             let mut len = 1;
             while idx >= 10 {
@@ -492,11 +492,10 @@ impl TokTrie {
     }
 
     pub fn decode(&self, tokens: &[TokenId]) -> Vec<u8> {
-        let mut res = Vec::new();
-        res.reserve(tokens.len() * 6 + 32); // approximately
+        let mut res = Vec::with_capacity(tokens.len() * 6 + 32); // approximately
         for &tok in tokens {
             let t = self.token(tok);
-            if t.len() == 0 {
+            if t.is_empty() {
                 res.extend_from_slice(format!("<[{}]>", tok).as_bytes());
             } else if t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
                 res.extend_from_slice(&t[1..]);
@@ -508,19 +507,17 @@ impl TokTrie {
     }
 
     pub fn decode_as_special(&self, tok: TokenId) -> Vec<u8> {
-        let mut res = Vec::new();
-        res.reserve(9);
+        let mut res = Vec::with_capacity(9);
         res.push(TokTrie::SPECIAL_TOKEN_MARKER);
         res.extend_from_slice(format!("[{}]", tok).as_bytes());
         res
     }
 
     pub fn decode_raw(&self, tokens: &[TokenId]) -> Vec<u8> {
-        let mut res = Vec::new();
-        res.reserve(tokens.len() * 6 + 32); // approximately
+        let mut res = Vec::with_capacity(tokens.len() * 6 + 32); // approximately
         for &tok in tokens {
             let t = self.token(tok);
-            if t.len() == 0 || t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
+            if t.is_empty() || t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
                 res.push(TokTrie::SPECIAL_TOKEN_MARKER);
                 res.extend_from_slice(format!("[{}]", tok).as_bytes());
             } else {
@@ -556,7 +553,7 @@ impl TokTrie {
 
     pub fn is_special_token(&self, tok: TokenId) -> bool {
         let bytes = self.token(tok);
-        bytes.len() > 0 && bytes[0] == TokTrie::SPECIAL_TOKEN_MARKER
+        !bytes.is_empty() && bytes[0] == TokTrie::SPECIAL_TOKEN_MARKER
     }
 
     pub fn get_special_token(&self, name: &str) -> Option<TokenId> {
@@ -590,7 +587,7 @@ impl TokTrie {
 
     pub fn greedy_tokenize(&self, bytes: &[u8]) -> Vec<TokenId> {
         let mut r = Vec::new();
-        if bytes.len() == 0 {
+        if bytes.is_empty() {
             return r;
         }
 
@@ -613,7 +610,7 @@ impl TokTrie {
                     n = self.root();
                 }
             }
-            idx = idx + 1;
+            idx += 1;
         }
         r.push(last_tok.unwrap());
         r
@@ -662,7 +659,7 @@ impl TokTrie {
     }
 
     pub fn prefix_token_id(&self, bytes: &[u8]) -> (TokenId, usize) {
-        assert!(bytes.len() > 0);
+        assert!(!bytes.is_empty());
         let mut last = (0, 0);
         let mut n = self.root();
         for (idx, byte) in bytes.iter().enumerate() {
@@ -674,7 +671,7 @@ impl TokTrie {
                 last = (tok, idx + 1);
             }
         }
-        return last;
+        last
     }
 
     pub fn max_token_len(&self) -> usize {
@@ -709,16 +706,14 @@ impl TokTrie {
         &self.nodes[0]
     }
 
-    pub fn check_against(&self, tokens: &Vec<Vec<u8>>) {
-        let vocab_size = tokens.len();
-        for idx in 0..vocab_size {
-            let bytes = &tokens[idx];
+    pub fn check_against(&self, tokens: &[Vec<u8>]) {
+        for (idx, bytes) in tokens.iter().enumerate() {
             let tid = idx as TokenId;
             assert!(bytes == self.token(tid));
             let root = self.root();
-            if bytes.len() > 0 {
+            if !bytes.is_empty() {
                 let tid2 = self
-                    .child_at_bytes(root, &bytes)
+                    .child_at_bytes(root, bytes)
                     .unwrap()
                     .token_id()
                     .unwrap();
@@ -738,20 +733,15 @@ impl TokTrie {
     }
 
     pub fn child_at_byte<'a>(&'a self, n: &'a TrieNode, byte: u8) -> Option<&'a TrieNode> {
-        for child in self.node_children(n) {
-            if child.byte() == byte {
-                return Some(child);
-            }
-        }
-        None
+        self.node_children(n).find(|&child| child.byte() == byte)
     }
 
     pub fn all_subtokens(&self, bytes: &[u8]) -> Vec<TokenId> {
         let mut r = Vec::new();
         for i in 0..bytes.len() {
             let mut n = self.root();
-            for j in i..bytes.len() {
-                n = match self.child_at_byte(n, bytes[j]) {
+            for &b in &bytes[i..] {
+                n = match self.child_at_byte(n, b) {
                     Some(n) => n,
                     None => break,
                 };
@@ -774,10 +764,7 @@ impl TokTrie {
 
     pub fn child_at_bytes<'a>(&'a self, mut n: &'a TrieNode, bytes: &[u8]) -> Option<&'a TrieNode> {
         for &byte in bytes {
-            n = match self.child_at_byte(n, byte) {
-                Some(n) => n,
-                None => return None,
-            }
+            n = self.child_at_byte(n, byte)?
         }
         Some(n)
     }
@@ -874,7 +861,7 @@ impl TokTrie {
 
     pub fn add_bias(&self, r: &mut impl Recognizer, toks: &mut SimpleVob, start: &[u8]) {
         // all prefixes of 'start' are also allowed
-        if start.len() > 0 {
+        if !start.is_empty() {
             let mut fixed = FixedRecognizer::new(start);
             self.add_bias(&mut fixed, toks, &[]);
         }
@@ -886,7 +873,7 @@ impl TokTrie {
         let n = n.unwrap();
         r.trie_started("add_bias");
         let (next_pop, nodes_walked) = self.add_bias_inner(r, toks, n);
-        if start.len() == 0 {
+        if start.is_empty() {
             // if start was non-empty, trie_finished() is supposed to clean this up
             r.pop_bytes(next_pop);
         }
@@ -1051,7 +1038,7 @@ impl TokTrie {
             }
         }
 
-        if histogram.len() > 0 {
+        if !histogram.is_empty() {
             histogram = format!("\n{}", histogram);
         }
 
@@ -1101,7 +1088,7 @@ impl TrieHash {
         }
     }
     fn insert(&mut self, word: &[u8], token_id: u32) {
-        if word.len() == 0 {
+        if word.is_empty() {
             // Some tokenizers have duplicate tokens...
             // we just override
             assert!(self.token_id == NO_TOKEN);

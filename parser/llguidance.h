@@ -291,6 +291,8 @@ int32_t llg_commit_token(struct LlgConstraint *cc, LlgToken token, struct LlgCom
 
 /**
  * Compute mask for several constraints in parallel.
+ * # Safety
+ * This function should only be called from C code.
  */
 void llg_par_compute_mask(const struct LlgConstraintStep *steps,
                           size_t n_steps,
@@ -319,6 +321,8 @@ struct LlgTokenizer *llg_clone_tokenizer(const struct LlgTokenizer *tok);
  * Tokenize the given bytes and return the tokens.
  * Always returns the number of tokens that would be written to output_tokens
  * if output_tokens_len was large enough.
+ * # Safety
+ * This function should only be called from C code.
  */
 size_t llg_tokenize_bytes(const struct LlgTokenizer *tok,
                           const uint8_t *bytes,
@@ -331,6 +335,8 @@ size_t llg_tokenize_bytes(const struct LlgTokenizer *tok,
  * Special tokens will be tokenized, if they follow 0xFF byte prefix.
  * Always returns the number of tokens that would be written to output_tokens
  * if output_tokens_len was large enough.
+ * # Safety
+ * This function should only be called from C code.
  */
 size_t llg_tokenize_bytes_marker(const struct LlgTokenizer *tok,
                                  const uint8_t *bytes,
@@ -342,6 +348,8 @@ size_t llg_tokenize_bytes_marker(const struct LlgTokenizer *tok,
  * Return a string representation of the tokens, useful for debugging.
  * The output is null-terminated.
  * Returns the number of bytes that would be written to output if output_len was large enough.
+ * # Safety
+ * This function should only be called from C code.
  */
 size_t llg_stringify_tokens(const struct LlgTokenizer *tok,
                             const uint32_t *tokens,
@@ -351,11 +359,15 @@ size_t llg_stringify_tokens(const struct LlgTokenizer *tok,
 
 /**
  * Free the tokenizer. Should *NOT* be called while there are still constraints using it.
+ * # Safety
+ * This function should only be called from C code.
  */
 void llg_free_tokenizer(struct LlgTokenizer *tok);
 
 /**
  * Free the constraint
+ * # Safety
+ * This function should only be called from C code.
  */
 void llg_free_constraint(struct LlgConstraint *cc);
 
@@ -369,6 +381,8 @@ const char *llg_flush_logs(struct LlgConstraint *cc);
 
 /**
  * Create a new stop-sequence controller
+ * # Safety
+ * This function should only be called from C code.
  */
 struct LlgStopController *llg_new_stop_controller(const struct LlgTokenizer *tokenizer,
                                                   const uint32_t *stop_tokens,
@@ -390,6 +404,8 @@ const char *llg_stop_commit_token(struct LlgStopController *stop_ctrl,
 
 /**
  * Free the stop-sequence controller
+ * # Safety
+ * This function should only be called from C code.
  */
 void llg_free_stop_controller(struct LlgStopController *stop_ctrl);
 

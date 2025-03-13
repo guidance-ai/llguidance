@@ -592,7 +592,7 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
         .keys()
         .filter(|k| !ctx.is_valid_keyword(k))
         .collect::<Vec<_>>();
-    if unimplemented_keys.len() > 0 {
+    if !unimplemented_keys.is_empty() {
         // ensure consistent order for tests
         unimplemented_keys.sort();
         bail!("Unimplemented keys: {:?}", unimplemented_keys);
@@ -707,7 +707,7 @@ fn define_ref(ctx: &Context, ref_uri: &str) -> Result<()> {
         ctx.mark_seen(ref_uri);
         let resource = ctx.lookup_resource(ref_uri)?;
         let resolved_schema = compile_resource(ctx, resource)?;
-        ctx.insert_ref(&ref_uri, resolved_schema);
+        ctx.insert_ref(ref_uri, resolved_schema);
     }
     Ok(())
 }
@@ -761,7 +761,7 @@ fn compile_const(instance: &Value) -> Result<Schema> {
         Value::Array(items) => {
             let prefix_items = items
                 .iter()
-                .map(|item| compile_const(item))
+                .map(compile_const)
                 .collect::<Result<Vec<Schema>>>()?;
             Ok(Schema::Array {
                 min_items: prefix_items.len() as u64,
@@ -805,7 +805,7 @@ fn compile_types(
 fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Result<Schema> {
     ctx.increment()?;
 
-    let get = |key: &str| schema.get(key).map(|v| *v);
+    let get = |key: &str| schema.get(key).copied();
 
     match tp {
         "null" => Ok(Schema::Null),
@@ -918,9 +918,9 @@ fn pattern_to_regex(pattern: &str) -> RegexAst {
         result.push_str(".*");
     }
     // without parens, for a|b we would get .*a|b.* which is (.*a)|(b.*)
-    result.push_str("(");
+    result.push('(');
     result.push_str(trimmed);
-    result.push_str(")");
+    result.push(')');
     if !right_anchored {
         result.push_str(".*");
     }
@@ -964,7 +964,7 @@ fn compile_string(
                 .ok_or_else(|| anyhow!("Expected string for 'format', got {}", limited_str(val)))?
                 .to_string();
             let fmt = lookup_format(&key).ok_or_else(|| anyhow!("Unknown format: {}", key))?;
-            pattern_to_regex(&fmt)
+            pattern_to_regex(fmt)
         }),
     };
     let regex = match (pattern_rx, format_rx) {
@@ -976,7 +976,7 @@ fn compile_string(
     Ok(Schema::String {
         min_length,
         max_length,
-        regex: regex,
+        regex,
     })
 }
 
@@ -1024,12 +1024,12 @@ fn compile_array(
             .as_array()
             .ok_or_else(|| anyhow!("Expected array for 'prefixItems', got {}", limited_str(val)))?
             .iter()
-            .map(|item| compile_resource(&ctx, ctx.as_resource_ref(item)))
+            .map(|item| compile_resource(ctx, ctx.as_resource_ref(item)))
             .collect::<Result<Vec<Schema>>>()?,
     };
     let items = match items {
         None => None,
-        Some(val) => Some(Box::new(compile_resource(&ctx, ctx.as_resource_ref(val))?)),
+        Some(val) => Some(Box::new(compile_resource(ctx, ctx.as_resource_ref(val))?)),
     };
     Ok(Schema::Array {
         min_items,
@@ -1051,12 +1051,12 @@ fn compile_object(
             .as_object()
             .ok_or_else(|| anyhow!("Expected object for 'properties', got {}", limited_str(val)))?
             .iter()
-            .map(|(k, v)| compile_resource(&ctx, ctx.as_resource_ref(v)).map(|v| (k.clone(), v)))
+            .map(|(k, v)| compile_resource(ctx, ctx.as_resource_ref(v)).map(|v| (k.clone(), v)))
             .collect::<Result<IndexMap<String, Schema>>>()?,
     };
     let additional_properties = match additional_properties {
         None => None,
-        Some(val) => Some(Box::new(compile_resource(&ctx, ctx.as_resource_ref(val))?)),
+        Some(val) => Some(Box::new(compile_resource(ctx, ctx.as_resource_ref(val))?)),
     };
     let required = match required {
         None => IndexSet::new(),

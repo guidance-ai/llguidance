@@ -46,7 +46,7 @@ impl LLExecutor {
         let num_threads = num_threads.unwrap_or_else(|| {
             let n = std::thread::available_parallelism().unwrap().get();
             // by default run on 80% of available threads but not more than 32
-            std::cmp::min(32, std::cmp::max(1, n * 80 / 100))
+            (n * 80 / 100).clamp(1, 32)
         });
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(num_threads)
@@ -102,6 +102,7 @@ impl LLExecutor {
         let rlen = refs.len();
 
         if !ok {
+            #[allow(clippy::needless_range_loop)]
             for idx in 0..rlen {
                 unsafe { (*ptrs[idx]).borrowed = false };
             }
@@ -115,6 +116,7 @@ impl LLExecutor {
                 })
                 .collect::<Result<Vec<_>, _>>()
         });
+        #[allow(clippy::needless_range_loop)]
         for idx in 0..rlen {
             unsafe { (*ptrs[idx]).borrowed = false };
         }
@@ -167,7 +169,7 @@ impl LLInterpreter {
         log_level: Option<isize>,
     ) -> PyResult<Self> {
         let fact = &tokenizer.factory;
-        let arg = TopLevelGrammar::from_str(grammar).map_err(val_error)?;
+        let arg = TopLevelGrammar::from_lark_or_json_schema(grammar).map_err(val_error)?;
         let log_level = log_level.unwrap_or(1);
         let inference_caps = InferenceCapabilities {
             backtrack: enable_backtrack.unwrap_or(true),
@@ -250,7 +252,7 @@ impl LLInterpreter {
         if let Some(m) = r.sample_mask.as_ref() {
             let src = bytemuck::cast_slice::<u32, u8>(m.as_slice());
             if trg_slice.len() > src.len() {
-                (&mut trg_slice[..src.len()]).copy_from_slice(src);
+                trg_slice[..src.len()].copy_from_slice(src);
             } else {
                 trg_slice.copy_from_slice(&src[..trg_slice.len()]);
             }
@@ -316,7 +318,7 @@ impl LLTokenizer {
         eos_token: Option<u32>,
         slices: Option<Vec<String>>,
     ) -> PyResult<Self> {
-        let tok_env: TokEnv = if let Some(tokenizer_str) = tokenizer.extract::<String>().ok() {
+        let tok_env: TokEnv = if let Ok(tokenizer_str) = tokenizer.extract::<String>() {
             if tokenizer_str.starts_with("{") {
                 let val = serde_json::from_str(&tokenizer_str).map_err(val_error)?;
                 let mut tokens = token_bytes_from_tokenizer_json(&val).map_err(val_error)?;
@@ -342,9 +344,10 @@ impl LLTokenizer {
                         .filter_map(|s| trie.get_special_token(s))
                         .next()
                         .ok_or_else(|| {
-                            PyValueError::new_err(format!(
+                            PyValueError::new_err(
                                 "Expecting a tokenizer with an EOS token, but none was found"
-                            ))
+                                    .to_string(),
+                            )
                         })?
                 };
                 let trie = trie.with_eos_token(eos_token);
@@ -372,7 +375,7 @@ impl LLTokenizer {
         let factory = ParserFactory::new(
             &tok_env,
             InferenceCapabilities::default(),
-            &slices.unwrap_or_else(|| SlicedBiasComputer::general_slices()),
+            &slices.unwrap_or_else(SlicedBiasComputer::general_slices),
         )
         .map_err(val_error)?;
 
@@ -418,7 +421,7 @@ impl LLTokenizer {
 
     #[getter]
     fn vocab_size(&self) -> usize {
-        self.tok_trie().vocab_size() as usize
+        self.tok_trie().vocab_size()
     }
 
     #[getter]
@@ -536,8 +539,8 @@ impl JsonCompiler {
             }
         });
         JsonCompiler {
-            item_separator: item_separator,
-            key_separator: key_separator,
+            item_separator,
+            key_separator,
             whitespace_flexible,
             coerce_one_of,
         }

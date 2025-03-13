@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop)]
+
 use std::panic::AssertUnwindSafe;
 
 use toktrie::SimpleVob;
@@ -9,6 +11,7 @@ fn bools_to_bin_string(bits: &[bool]) -> String {
 #[test]
 fn test_allow_range_empty() {
     let mut v = SimpleVob::alloc(32);
+    #[allow(clippy::reversed_empty_ranges)]
     v.allow_range(10..=9); // no effect
     assert_eq!(v.num_set(), 0);
     assert_eq!(v.to_bin_string(), "00000000000000000000000000000000");
@@ -44,6 +47,7 @@ fn test_allow_range_multiple_words() {
     // set range [10..85], spanning multiple 32-bit words
     v.allow_range(10..=84);
     let mut bits = vec![false; 96];
+    #[allow(clippy::needless_range_loop)]
     for i in 10..85 {
         bits[i] = true;
     }
@@ -262,9 +266,9 @@ fn test_resize() {
 fn test_get_and_is_allowed() {
     let bits = [false, true, true, false];
     let v = SimpleVob::from_slice(&bits);
-    assert_eq!(v.get(1), true);
-    assert_eq!(v.is_allowed(2), true);
-    assert_eq!(v.is_allowed(0), false);
+    assert!(v.get(1));
+    assert!(v.is_allowed(2));
+    assert!(!v.is_allowed(0));
 }
 
 #[test]

@@ -22,7 +22,7 @@ impl SharedContext {
     }
 }
 
-impl<'a> Context<'a> {
+impl Context<'_> {
     pub fn insert_ref(&self, uri: &str, schema: Schema) {
         self.shared
             .borrow_mut()
@@ -49,7 +49,7 @@ impl<'a> Context<'a> {
         {
             return true;
         }
-        return false;
+        false
     }
 
     pub fn increment(&self) -> Result<()> {

@@ -99,7 +99,7 @@ impl<'a> Context<'a> {
 
     pub fn lookup_resource(&'a self, reference: &str) -> Result<ResourceRef<'a>> {
         let resolved = self.resolver.lookup(reference)?;
-        Ok(self.as_resource_ref(&resolved.contents()))
+        Ok(self.as_resource_ref(resolved.contents()))
     }
 }
 

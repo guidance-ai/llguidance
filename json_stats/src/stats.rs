@@ -13,6 +13,7 @@ pub struct SchemaStats {
 }
 
 fn is_directly_nested_schema(kw: &str) -> bool {
+    #[allow(clippy::match_like_matches_macro)]
     match kw {
         "allOf"
         | "anyOf"
@@ -35,13 +36,11 @@ fn is_directly_nested_schema(kw: &str) -> bool {
 }
 
 fn is_map_to_schema(kw: &str) -> bool {
-    match kw {
-        "properties" | "patternProperties" => true,
-        _ => false,
-    }
+    matches!(kw, "properties" | "patternProperties")
 }
 
 fn is_schema_kw(kw: &str) -> bool {
+    #[allow(clippy::match_like_matches_macro)]
     match kw {
         "$ref"
         | "$schema"
@@ -100,6 +99,7 @@ fn is_schema_kw(kw: &str) -> bool {
 }
 
 fn is_valid_schema_type(tp: &str) -> bool {
+    #[allow(clippy::match_like_matches_macro)]
     match tp {
         "object" | "number" | "string" | "integer" | "boolean" | "null" | "array" => true,
         _ => false,
@@ -153,8 +153,8 @@ impl SchemaStats {
     fn has_type(&self, obj: &Value, t: &str) -> bool {
         if let Some(types) = obj["type"].as_array() {
             types.iter().any(|v| v == t)
-        } else if let Some(t) = obj["type"].as_str() {
-            t == t
+        } else if let Some(tp) = obj["type"].as_str() {
+            t == tp
         } else {
             false
         }
@@ -382,9 +382,11 @@ impl SchemaStats {
     }
 
     pub fn for_file(file_name: &str, schema: &Value, additional_features: bool) -> SchemaStats {
-        let mut stats = SchemaStats::default();
-        stats.additional_features = additional_features;
-        stats.full_size = serde_json::to_string(schema).unwrap().len();
+        let mut stats = SchemaStats {
+            additional_features,
+            full_size: serde_json::to_string(schema).unwrap().len(),
+            ..Default::default()
+        };
 
         match stats.map_schema(schema) {
             Ok(val) => {

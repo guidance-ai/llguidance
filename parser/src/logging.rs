@@ -129,14 +129,14 @@ impl Logger {
     }
 }
 
-impl<'a> Write for InfoLogger<'a> {
+impl Write for InfoLogger<'_> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         self.logger.write_info(s);
         Ok(())
     }
 }
 
-impl<'a> Write for WarningLogger<'a> {
+impl Write for WarningLogger<'_> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         self.logger.write_warning(s);
         Ok(())

@@ -89,6 +89,12 @@ pub struct ParserPerfCounters {
     pub compute_mask: PerfTimer,
 }
 
+impl Default for ParserPerfCounters {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ParserPerfCounters {
     pub fn new() -> Self {
         Self {
@@ -117,7 +123,7 @@ impl Display for ParserPerfCounters {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for c in self.counters() {
             c.fmt(f)?;
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }

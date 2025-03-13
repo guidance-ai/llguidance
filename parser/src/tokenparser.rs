@@ -93,13 +93,10 @@ impl TokenParser {
 
         let compute_mask_start_time = Instant::now();
         let mut max_tokens = usize::MAX;
-        match &grammar_init {
-            GrammarInit::Serialized(input) => {
-                if let Some(m) = input.max_tokens {
-                    max_tokens = m;
-                }
+        if let GrammarInit::Serialized(input) = &grammar_init {
+            if let Some(m) = input.max_tokens {
+                max_tokens = m;
             }
-            _ => {}
         }
         let compiled_grammar = grammar_init.to_cgrammar(
             Some(token_env.clone()),
@@ -258,9 +255,9 @@ impl TokenParser {
             self.llm_tokens = self.token_env.tokenize_bytes_marker(&self.llm_bytes).0;
             self.parser.apply_forced(self.llm_bytes.len());
             let decoded = self.tok_trie().decode_raw(&self.llm_tokens);
-            if self.llm_bytes.len() > 0
-                && decoded.len() > 0
-                && &decoded[1..] == &self.llm_bytes
+            if !self.llm_bytes.is_empty()
+                && !decoded.is_empty()
+                && decoded[1..] == self.llm_bytes
                 && decoded[0] == b' '
             {
                 infoln!(self, "applying <s>space hack");
@@ -285,7 +282,7 @@ impl TokenParser {
     }
 
     fn stop(&mut self, warn: &str, reason: StopReason) -> anyhow::Error {
-        if warn.len() > 0 {
+        if !warn.is_empty() {
             self.error_message = Some(warn.to_string());
             warn!(self, "{}; stopping", warn);
         }
@@ -408,7 +405,7 @@ impl TokenParser {
         // if ff_tokens is enabled, we assume the user has already called compute_ff_tokens()
         let prefix = if !self.inference_caps.ff_tokens && self.can_force_bytes() {
             let (ff_tokens, token_prefix) = self.ff_tokens();
-            if ff_tokens.len() > 0 {
+            if !ff_tokens.is_empty() {
                 let t = ff_tokens[0];
                 infoln!(self, "forcing ff_token by mask: {}", t);
                 let mask = self.tok_trie().singleton_token_set(t);
@@ -562,7 +559,7 @@ impl TokenParser {
     }
 
     fn has_ff_bytes(&self) -> bool {
-        self.pending_grm_prefix().len() > 0 || self.parser.currently_forced_bytes().len() > 0
+        !self.pending_grm_prefix().is_empty() || !self.parser.currently_forced_bytes().is_empty()
     }
 
     fn can_force_bytes(&self) -> bool {
@@ -582,7 +579,7 @@ impl TokenParser {
             infoln!(
                 self,
                 "injecting prefix: {:?}",
-                String::from_utf8_lossy(&inject)
+                String::from_utf8_lossy(inject)
             );
         }
 
@@ -652,7 +649,7 @@ impl TokenParser {
 
             self.parser.perf_counters().tokenize_ff.record(t0.elapsed());
 
-            if grm_tokens.len() > 0 {
+            if !grm_tokens.is_empty() {
                 infoln!(self, "fixed_tokens: {}", trie.tokens_dbg(&grm_tokens));
                 return (grm_tokens, token_prefix);
             } else {
@@ -666,7 +663,7 @@ impl TokenParser {
         (Vec::new(), token_prefix)
     }
 
-    fn compute_bias(&mut self, token_prefix: &Vec<u8>) -> SimpleVob {
+    fn compute_bias(&mut self, token_prefix: &[u8]) -> SimpleVob {
         let pre_stats = self.parser.stats().clone();
         let set = self.parser.compute_bias(&*self.bias_computer, token_prefix);
         let p_stats = self.parser.stats().delta(&pre_stats);
@@ -676,7 +673,7 @@ impl TokenParser {
         set
     }
 
-    fn log_final(&mut self, token_prefix: &Vec<u8>, allowed_tokens: &SimpleVob) {
+    fn log_final(&mut self, token_prefix: &[u8], allowed_tokens: &SimpleVob) {
         infoln!(
             self,
             "step-stats: {}us; {} lex fuel; {} items; {}",
@@ -689,10 +686,10 @@ impl TokenParser {
         infoln!(
             self,
             "bias: (pref: {:?}; accpt: {}; temp: {:.3}) {}",
-            String::from_utf8_lossy(&token_prefix),
+            String::from_utf8_lossy(token_prefix),
             self.is_accepting_cache.unwrap(),
             self.parser.temperature().unwrap_or(0.0),
-            self.token_env.tok_trie().token_set_dbg(&allowed_tokens)
+            self.token_env.tok_trie().token_set_dbg(allowed_tokens)
         );
     }
 

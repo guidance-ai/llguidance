@@ -33,11 +33,9 @@ fn par_compute_mask_inner(constraints: Vec<LlgConstraintStep>) {
                     std::ptr::write_bytes(step.mask_dest.add(num_copied), 0, left);
                 }
             }
-            if add_eos {
-                if eos / 32 < mask_elts {
-                    unsafe {
-                        *step.mask_dest.add(eos / 32) |= 1 << (eos % 32);
-                    }
+            if add_eos && eos / 32 < mask_elts {
+                unsafe {
+                    *step.mask_dest.add(eos / 32) |= 1 << (eos % 32);
                 }
             }
         }
@@ -59,6 +57,7 @@ pub(crate) fn par_compute_mask(
         rayon::spawn(move || {
             par_compute_mask_inner(constraints);
             cb(ptr.user_data);
+            #[allow(clippy::drop_non_drop)]
             drop(ptr);
         });
     } else {
