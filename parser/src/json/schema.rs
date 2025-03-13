@@ -636,10 +636,7 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
                     // Make sure we always give type information to ensure we get the smallest union we can
                     current.insert("type", types);
                 }
-                let current_schema = compile_contents_simple(
-                    ctx,
-                    std::mem::take(&mut current),
-                )?;
+                let current_schema = compile_contents_simple(ctx, std::mem::take(&mut current))?;
                 result = result.intersect(current_schema, ctx)?;
             }
             // Finally apply the applicator
@@ -669,8 +666,7 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
             // Make sure we always give type information to ensure we get the smallest union we can
             current.insert("type", types);
         }
-        let current_schema =
-            compile_contents_simple(ctx, std::mem::take(&mut current))?;
+        let current_schema = compile_contents_simple(ctx, std::mem::take(&mut current))?;
         result = result.intersect(current_schema, ctx)?;
     }
     Ok(result)
