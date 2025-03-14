@@ -16,10 +16,10 @@ from llguidance.torch import (
 from llguidance import LLInterpreter, LLTokenizer, LLExecutor
 
 import llguidance.hf
-import transformers
+import transformers # type: ignore[import-untyped]
 
 
-def _build_tokenizer():
+def _build_tokenizer() -> LLTokenizer:
     hf_tok = transformers.AutoTokenizer.from_pretrained(
         "unsloth/Meta-Llama-3.1-8B-Instruct"
     )
@@ -36,7 +36,7 @@ def tokenizer() -> LLTokenizer:
     return _tokenizer
 
 
-def lark_interp(grm: str):
+def lark_interp(grm: str) -> LLInterpreter:
     gstr = json.dumps({"grammars": [{"lark_grammar": grm}]})
     interp = LLInterpreter(
         tokenizer(), gstr, enable_backtrack=False, enable_ff_tokens=False, log_level=1
@@ -45,7 +45,7 @@ def lark_interp(grm: str):
     return interp
 
 
-def test_grammar():
+def test_grammar() -> None:
     t = tokenizer()
     mask = allocate_token_bitmask(2, t.vocab_size)
     interp = lark_interp(r"start: /[A-Z ]*/")
@@ -69,7 +69,7 @@ def test_grammar():
     assert torch.isclose(mask[1, :], mask[0, :]).all()
 
 
-def test_par_grammar():
+def test_par_grammar() -> None:
     n_gram = 50
     t = tokenizer()
     grammars = [lark_interp(r"start: /[a-zA-Z ]*/") for _ in range(n_gram)]
@@ -89,7 +89,7 @@ def test_par_grammar():
     print(f"Parallel: {par_time} us, Sequential: {seq_time} us")
 
 
-def asserts(msg: str, fn: Callable, *args):
+def asserts(msg: str, fn: Callable[..., Any], *args: Any) -> None:
     try:
         fn(*args)
         raise AssertionError(f"Expected {msg}")
@@ -99,7 +99,7 @@ def asserts(msg: str, fn: Callable, *args):
         raise AssertionError(f"Expected {msg}, got {e}")
 
 
-def test_par_errors():
+def test_par_errors() -> None:
     t = tokenizer()
     exec = LLExecutor()
     g0 = lark_interp(r"start: /[a-zA-Z ]*/")
