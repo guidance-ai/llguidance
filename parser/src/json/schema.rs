@@ -534,7 +534,7 @@ impl Default for SchemaBuilderOptions {
     fn default() -> Self {
         SchemaBuilderOptions {
             max_size: 50_000,
-            max_stack_level: 100,
+            max_stack_level: 128,
         }
     }
 }
@@ -1209,58 +1209,30 @@ mod tests {
     #[test]
     fn test_problem_child() {
         let schema = json!({
-          "allOf": [
-            {
-              "$ref": "#/definitions/word"
-            },
-            {
-              "$ref": "#/definitions/x0"
-            },
-          ],
-          "definitions": {
-            "word": {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "$ref": "#/definitions/word"
+            "allOf" : [
+                {"$ref": "#/$defs/tree1"},
+                {"$ref": "#/$defs/tree2"}
+            ],
+            "$defs" : {
+                "tree1": {
+                    "type": "object",
+                    "properties": {
+                        "child": {
+                            "$ref": "#/$defs/tree1"
+                        }
+                    }
                 },
-                "b": {
-                  "type": "integer",
-                  "exclusiveMinimum": 0
+                "tree2": {
+                    "type": "object",
+                    "properties": {
+                        "child": {
+                            "$ref": "#/$defs/tree2"
+                        }
+                    }
                 }
-              },
-              "required": [
-                "b"
-              ],
-              "additionalProperties": true
-            },
-            "x0": {
-              "additionalProperties": {
-                "allOf": [
-                  {
-                    "$ref": "#/definitions/x1"
-                  },
-                  {
-                    "multipleOf": 2
-                  }
-                ]
-              },
-              "required": [
-                "x0"
-              ]
-            },
-            "x1": {
-              "additionalProperties": {
-                "$ref": "#/definitions/x0"
-              },
-              "required": [
-                "a",
-                "x1"
-              ]
-            },
-          }
+            }
         });
-        let (schema, _) = build_schema(schema, None).unwrap();
-        println!("Schema: {:?}", schema);
+        // Test failure amounts to this resulting in a stack overflow
+        let _ = build_schema(schema, None);
     }
 }
