@@ -180,7 +180,7 @@ class RuleNode(ASTNode):
 
 
 class GrammarParser:
-    def __init__(self):
+    def __init__(self) -> None:
         self.curr_comment = ""
         pass
 
@@ -438,8 +438,8 @@ class GrammarParser:
         return pos
 
 
-def resolve(rules: dict[str, RuleNode]):
-    def rename(r: RuleNode, name: str):
+def resolve(rules: dict[str, RuleNode]) -> None:
+    def rename(r: RuleNode, name: str) -> None:
         if name in rules:
             raise Exception(f"Rule '{name}' already exists")
         del rules[r.name]
@@ -512,7 +512,7 @@ def gbnf_to_lark(text: str) -> str:
     return res
 
 
-def is_lark_syntax(text: str):
+def is_lark_syntax(text: str) -> bool:
     """
     Check if the text is already in Lark syntax.
     """
@@ -530,11 +530,11 @@ def any_to_lark(text: str) -> str:
     return gbnf_to_lark(text)
 
 
-def main():
+def main() -> None:
     import sys
     import os
 
-    def process_file(fn: str):
+    def process_file(fn: str) -> None:
         print(f"{fn}... ", end="", flush=True)
         with open(fn) as f:
             text = f.read()

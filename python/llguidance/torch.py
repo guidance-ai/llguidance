@@ -17,7 +17,7 @@ def allocate_token_bitmask(batch_size: int, vocab_size: int) -> torch.Tensor:
 
 
 @torch.compile(dynamic=True)  # faster than dynamic=False and jit.script
-def apply_token_bitmask_inplace_kernel(logits: torch.Tensor, mask: torch.Tensor):
+def apply_token_bitmask_inplace_kernel(logits: torch.Tensor, mask: torch.Tensor) -> None:
     mask_expanded = torch.repeat_interleave(mask, 32, dim=1)
     bit_indices = torch.arange(32, device=logits.device, dtype=torch.int32).repeat(
         mask.shape[1]
