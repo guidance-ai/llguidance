@@ -1,7 +1,7 @@
 from typing import List, Optional
 from ._lib import LLTokenizer
 
-import transformers
+import transformers # type: ignore[import-untyped]
 
 def from_tokenizer(
     hf_tokenizer: transformers.PreTrainedTokenizerBase,
