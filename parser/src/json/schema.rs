@@ -205,38 +205,45 @@ impl Schema {
     }
 
     /// Intersect two schemas, returning a new (normalized) schema that represents the intersection of the two.
-    fn intersect(self, other: Schema, ctx: &Context) -> Result<Schema> {
+    fn intersect(self, other: Schema, ctx: &Context, stack_level: usize) -> Result<Schema> {
         ctx.increment()?;
+        if stack_level > ctx.options.max_stack_level {
+            bail!("Schema intersection stack level exceeded");
+        }
 
         let merged = match (self, other) {
             (Schema::Any, schema1) => schema1,
             (schema0, Schema::Any) => schema0,
             (Schema::Unsatisfiable { reason }, _) => Schema::Unsatisfiable { reason },
             (_, Schema::Unsatisfiable { reason }) => Schema::Unsatisfiable { reason },
-            (Schema::Ref { uri }, schema1) => intersect_ref(ctx, &uri, schema1, true)?,
-            (schema0, Schema::Ref { uri }) => intersect_ref(ctx, &uri, schema0, false)?,
+            (Schema::Ref { uri }, schema1) => {
+                intersect_ref(ctx, &uri, schema1, true, stack_level + 1)?
+            }
+            (schema0, Schema::Ref { uri }) => {
+                intersect_ref(ctx, &uri, schema0, false, stack_level + 1)?
+            }
             (Schema::OneOf { options }, schema1) => Schema::OneOf {
                 options: options
                     .into_iter()
-                    .map(|opt| opt.intersect(schema1.clone(), ctx))
+                    .map(|opt| opt.intersect(schema1.clone(), ctx, stack_level + 1))
                     .collect::<Result<Vec<_>>>()?,
             },
             (schema0, Schema::OneOf { options }) => Schema::OneOf {
                 options: options
                     .into_iter()
-                    .map(|opt| schema0.clone().intersect(opt, ctx))
+                    .map(|opt| schema0.clone().intersect(opt, ctx, stack_level + 1))
                     .collect::<Result<Vec<_>>>()?,
             },
             (Schema::AnyOf { options }, schema1) => Schema::AnyOf {
                 options: options
                     .into_iter()
-                    .map(|opt| opt.intersect(schema1.clone(), ctx))
+                    .map(|opt| opt.intersect(schema1.clone(), ctx, stack_level + 1))
                     .collect::<Result<Vec<_>>>()?,
             },
             (schema0, Schema::AnyOf { options }) => Schema::AnyOf {
                 options: options
                     .into_iter()
-                    .map(|opt| schema0.clone().intersect(opt, ctx))
+                    .map(|opt| schema0.clone().intersect(opt, ctx, stack_level + 1))
                     .collect::<Result<Vec<_>>>()?,
             },
             (Schema::Null, Schema::Null) => Schema::Null,
@@ -326,14 +333,18 @@ impl Schema {
                     prefix1
                         .into_iter()
                         .zip(prefix2.into_iter())
-                        .map(|(item1, item2)| item1.intersect(item2, ctx))
+                        .map(|(item1, item2)| item1.intersect(item2, ctx, stack_level + 1))
                         .collect::<Result<Vec<_>>>()?
                 },
                 items: match (items1, items2) {
                     (None, None) => None,
                     (None, Some(item)) => Some(item),
                     (Some(item), None) => Some(item),
-                    (Some(item1), Some(item2)) => Some(Box::new((*item1).intersect(*item2, ctx)?)),
+                    (Some(item1), Some(item2)) => Some(Box::new((*item1).intersect(
+                        *item2,
+                        ctx,
+                        stack_level + 1,
+                    )?)),
                 },
             },
             (
@@ -354,11 +365,11 @@ impl Schema {
                         .shift_remove(&key)
                         .or_else(|| add2.as_deref().cloned())
                         .unwrap_or(Schema::Any);
-                    new_props.insert(key, prop1.intersect(prop2, ctx)?);
+                    new_props.insert(key, prop1.intersect(prop2, ctx, stack_level + 1)?);
                 }
                 for (key, prop2) in props2.into_iter() {
                     let prop1 = add1.as_deref().cloned().unwrap_or(Schema::Any);
-                    new_props.insert(key, prop1.intersect(prop2, ctx)?);
+                    new_props.insert(key, prop1.intersect(prop2, ctx, stack_level + 1)?);
                 }
                 let mut required = req1;
                 required.extend(req2);
@@ -368,7 +379,9 @@ impl Schema {
                         (None, None) => None,
                         (None, Some(add2)) => Some(add2),
                         (Some(add1), None) => Some(add1),
-                        (Some(add1), Some(add2)) => Some(Box::new((*add1).intersect(*add2, ctx)?)),
+                        (Some(add1), Some(add2)) => {
+                            Some(Box::new((*add1).intersect(*add2, ctx, stack_level + 1)?))
+                        }
                     },
                     required,
                 }
@@ -451,7 +464,7 @@ impl Schema {
             // TODO: Do const and enum really belong here? Maybe they should always take precedence as they are "literal" constraints?
             "const" => {
                 let schema = compile_const(v)?;
-                result = result.intersect(schema, ctx)?
+                result = result.intersect(schema, ctx, 0)?
             }
             "enum" => {
                 let instances = v
@@ -461,7 +474,7 @@ impl Schema {
                     .iter()
                     .map(compile_const)
                     .collect::<Result<Vec<_>>>()?;
-                result = result.intersect(Schema::AnyOf { options }, ctx)?;
+                result = result.intersect(Schema::AnyOf { options }, ctx, 0)?;
             }
             "allOf" => {
                 let all_of = v
@@ -469,7 +482,7 @@ impl Schema {
                     .ok_or_else(|| anyhow!("allOf must be an array"))?;
                 for value in all_of {
                     let schema = compile_resource(ctx, ctx.as_resource_ref(value))?;
-                    result = result.intersect(schema, ctx)?;
+                    result = result.intersect(schema, ctx, 0)?;
                 }
             }
             "anyOf" => {
@@ -480,7 +493,7 @@ impl Schema {
                     .iter()
                     .map(|value| compile_resource(ctx, ctx.as_resource_ref(value)))
                     .collect::<Result<Vec<_>>>()?;
-                result = result.intersect(Schema::AnyOf { options }, ctx)?;
+                result = result.intersect(Schema::AnyOf { options }, ctx, 0)?;
             }
             "oneOf" => {
                 let one_of = v
@@ -490,7 +503,7 @@ impl Schema {
                     .iter()
                     .map(|value| compile_resource(ctx, ctx.as_resource_ref(value)))
                     .collect::<Result<Vec<_>>>()?;
-                result = result.intersect(Schema::OneOf { options }, ctx)?;
+                result = result.intersect(Schema::OneOf { options }, ctx, 0)?;
             }
             "$ref" => {
                 let reference = v
@@ -502,7 +515,7 @@ impl Schema {
                     define_ref(ctx, &uri)?;
                     result = Schema::Ref { uri };
                 } else {
-                    result = intersect_ref(ctx, &uri, result, false)?;
+                    result = intersect_ref(ctx, &uri, result, false, 0)?;
                 }
             }
             _ => bail!("Unknown applicator: {}", applicator.0),
@@ -514,11 +527,15 @@ impl Schema {
 #[derive(Clone)]
 pub struct SchemaBuilderOptions {
     pub max_size: usize,
+    pub max_stack_level: usize,
 }
 
 impl Default for SchemaBuilderOptions {
     fn default() -> Self {
-        SchemaBuilderOptions { max_size: 50_000 }
+        SchemaBuilderOptions {
+            max_size: 50_000,
+            max_stack_level: 100,
+        }
     }
 }
 
@@ -637,7 +654,7 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
                     current.insert("type", types);
                 }
                 let current_schema = compile_contents_simple(ctx, std::mem::take(&mut current))?;
-                result = result.intersect(current_schema, ctx)?;
+                result = result.intersect(current_schema, ctx, 0)?;
             }
             // Finally apply the applicator
             result = result.apply((k, v), ctx)?;
@@ -667,7 +684,7 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
             current.insert("type", types);
         }
         let current_schema = compile_contents_simple(ctx, std::mem::take(&mut current))?;
-        result = result.intersect(current_schema, ctx)?;
+        result = result.intersect(current_schema, ctx, 0)?;
     }
     Ok(result)
 }
@@ -708,7 +725,13 @@ fn define_ref(ctx: &Context, ref_uri: &str) -> Result<()> {
     Ok(())
 }
 
-fn intersect_ref(ctx: &Context, ref_uri: &str, schema: Schema, ref_first: bool) -> Result<Schema> {
+fn intersect_ref(
+    ctx: &Context,
+    ref_uri: &str,
+    schema: Schema,
+    ref_first: bool,
+    stack_level: usize,
+) -> Result<Schema> {
     define_ref(ctx, ref_uri)?;
     let resolved_schema = ctx
         .get_ref_cloned(ref_uri)
@@ -723,9 +746,9 @@ fn intersect_ref(ctx: &Context, ref_uri: &str, schema: Schema, ref_first: bool) 
             )
         })?;
     if ref_first {
-        resolved_schema.intersect(schema, ctx)
+        resolved_schema.intersect(schema, ctx, stack_level + 1)
     } else {
-        schema.intersect(resolved_schema, ctx)
+        schema.intersect(resolved_schema, ctx, stack_level + 1)
     }
 }
 
@@ -1238,5 +1261,6 @@ mod tests {
           }
         });
         let (schema, _) = build_schema(schema, None).unwrap();
+        println!("Schema: {:?}", schema);
     }
 }
