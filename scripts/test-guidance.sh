@@ -106,6 +106,8 @@ else
     maturin develop --release
 fi
 
+(cd python && mypy)
+
 PYTEST_FLAGS=
 
 if test -f ../guidance/tests/unit/test_ll.py ; then
