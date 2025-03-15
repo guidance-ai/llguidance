@@ -509,15 +509,14 @@ fn compile_contents_inner(ctx: &Context, contents: &Value) -> Result<Schema> {
     compile_contents_map(ctx, schemadict)
 }
 
-fn only_meta_and_annotations(schemadict: &HashMap<&str, &Value>) -> bool {
-    schemadict.keys().all(|k| META_AND_ANNOTATIONS.contains(k))
-}
-
 fn compile_contents_map(ctx: &Context, mut schemadict: HashMap<&str, &Value>) -> Result<Schema> {
     ctx.increment()?;
 
     // We don't need to compile the schema if it's just meta and annotations
-    if only_meta_and_annotations(&schemadict) {
+    if schemadict
+        .keys()
+        .all(|k| META_AND_ANNOTATIONS.contains(k) || !ctx.draft.is_known_keyword(k))
+    {
         return Ok(Schema::Any);
     }
 
