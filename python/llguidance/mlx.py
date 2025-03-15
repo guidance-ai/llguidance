@@ -1,12 +1,14 @@
+# mypy: warn_unused_ignores = False
+
 from typing import Tuple, List, cast
 import numpy as np
-import mlx.core as mx
+import mlx.core as mx # type: ignore[import-not-found]
 from ._lib import LLInterpreter
 from .numpy import get_bitmask_shape, allocate_token_bitmask, fill_next_token_bitmask
 from numpy.typing import NDArray
 
 
-@mx.custom_function
+@mx.custom_function # type: ignore[misc]
 def apply_token_bitmask_kernel(data: mx.array, mask: mx.array) -> mx.array:
     source = """
         uint batch = thread_position_in_grid.y;  // Batch index
@@ -43,7 +45,7 @@ def apply_token_bitmask_kernel(data: mx.array, mask: mx.array) -> mx.array:
         threadgroup=(256, 1, 1),  # Optimize workgroups
         output_shapes=[data.shape],
         output_dtypes=[data.dtype],
-    )  # type: ignore
+    ) # type: ignore[operator]
 
     a: mx.array = outputs[0]
     return a
