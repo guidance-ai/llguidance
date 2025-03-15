@@ -548,8 +548,8 @@ fn quote_str(s: &str) -> String {
 
 #[test]
 fn test_large_select() {
-    let num_words = 500;
     // it's kind of slow in non-release mode
+    let num_words = if cfg!(debug_assertions) { 100 } else { 500 };
     let num_opt = if cfg!(debug_assertions) { 100 } else { 1500 };
 
     let t0 = std::time::Instant::now();

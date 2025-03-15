@@ -2,6 +2,7 @@ from typing import List, Tuple, Mapping, Optional, Sequence, Union
 from ._util import TokenId, StopReason
 from ._tokenizer import TokenizerWrapper
 
+
 class LLTokenizer:
     vocab_size: int
     eos_token: TokenId
@@ -70,7 +71,9 @@ class LLTokenizer:
         Check if the token is a special token.
         """
 
+
 class LLInterpreter:
+
     def __new__(
         cls,
         tokenizer: LLTokenizer,
@@ -146,15 +149,16 @@ class LLInterpreter:
         Returns: a JSON string.
         """
 
-    def unsafe_compute_mask_ptr(self, trg_pointer: int, trg_byte_size: int) -> str:
+    def unsafe_compute_mask_ptr(self, trg_pointer: int,
+                                trg_byte_size: int) -> str:
         """
         Perform next parsing step.
         Returns: a JSON string.
         """
 
     def commit_token(
-        self, sampled_token: Optional[TokenId]
-    ) -> Tuple[int, List[TokenId]]:
+            self,
+            sampled_token: Optional[TokenId]) -> Tuple[int, List[TokenId]]:
         """
         Perform any adjustments to the sampled token.
         Returns the number of tokens to remove from the prompt and the
@@ -168,7 +172,90 @@ class LLInterpreter:
         If true, next compute_mask() call will return stop
         """
 
+
+class LLMatcher:
+
+    def __new__(cls,
+                tokenizer: LLTokenizer,
+                grammar: str,
+                log_level: int = 1) -> "LLMatcher":
+        """
+        Create a new LLMatcher.
+        Args:
+            tokenizer: LLTokenizer - the tokenizer to use
+            grammar: str - either a Lark grammar or stringified JSON representation of LLGuidance grammar
+            log_level: int - verbosity level (0: silent, 1: warnings, 2: verbose)
+        """
+
+    def deep_copy(self) -> "LLMatcher":
+        """
+        Create a deep copy of the matcher.
+        """
+
+    def is_accepting(self) -> bool:
+        """
+        Check if the matcher is in an accepting state.
+        """
+
+    def stop_reason(self) -> StopReason:
+        """
+        Get the reason why the matcher stopped.
+        """
+
+    def rollback(self, num_tokens: int) -> None:
+        """
+        Rollback the last num_tokens consumed.
+        """
+
+    def compute_ff_tokens(self) -> List[TokenId]:
+        """
+        Compute and return the fast-forward tokens available in the current state.
+        """
+
+    def compute_ff_bytes(self) -> List[int]:
+        """
+        Compute and return the forced bytes available in the current state.
+        """
+
+    def try_consume_tokens(self, tokens: List[TokenId]) -> int:
+        """
+        Try consuming a list of tokens and return how many were successfully consumed.
+        """
+
+    def is_error(self) -> bool:
+        """
+        Check if the matcher is in an error state.
+        """
+
+    def get_error(self) -> Optional[str]:
+        """
+        Get the error message if the matcher is in an error state.
+        """
+
+    def consume_token(self, sampled_token: TokenId) -> None:
+        """
+        Consume a single token.
+        """
+
+    def validate_tokens(self, tokens: List[TokenId]) -> int:
+        """
+        Check how many of the tokens in the list can be committed in the current state.
+        """
+
+    def compute_mask(self) -> bytes:
+        """
+        Compute the token mask for the next parsing step.
+        """
+
+    def unsafe_compute_mask_ptr(self, trg_pointer: int,
+                                trg_byte_size: int) -> None:
+        """
+        Compute the token mask directly into memory at the specified pointer.
+        """
+
+
 class JsonCompiler:
+
     def __new__(
         cls,
         separators: Optional[Tuple[str, str]] = None,
@@ -189,10 +276,10 @@ class JsonCompiler:
         Compile the JSON representation of the AG2 grammar/constraint.
         """
 
+
 class LarkCompiler:
-    def __new__(
-        cls,
-    ) -> "LarkCompiler":
+
+    def __new__(cls, ) -> "LarkCompiler":
         """
         Create a new Lark compiler.
         """
@@ -205,10 +292,10 @@ class LarkCompiler:
         Compile the JSON representation of the AG2 grammar/constraint.
         """
 
+
 class RegexCompiler:
-    def __new__(
-        cls,
-    ) -> "RegexCompiler":
+
+    def __new__(cls, ) -> "RegexCompiler":
         """
         Create a new Regex compiler.
         """
@@ -222,7 +309,9 @@ class RegexCompiler:
         Compile the JSON representation of the AG2 grammar/constraint.
         """
 
+
 class LLExecutor:
+
     def __new__(
         cls,
         num_threads: Optional[int] = None,
@@ -236,7 +325,7 @@ class LLExecutor:
 
     def unsafe_compute_mask_ptr(
         self,
-        interpreters: List[LLInterpreter],
+        interpreters: List[LLMatcher],
         trg_pointer: int,
         one_mask_byte_size: int,
     ) -> str:

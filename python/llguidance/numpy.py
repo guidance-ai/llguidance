@@ -1,7 +1,7 @@
 from typing import Tuple, List
 import numpy as np
 from numpy.typing import NDArray
-from ._lib import LLInterpreter, LLExecutor
+from ._lib import LLMatcher, LLExecutor
 
 
 def get_bitmask_shape(batch_size: int, vocab_size: int) -> Tuple[int, int]:
@@ -42,21 +42,21 @@ def apply_token_bitmask_inplace(logits: NDArray[np.float32], mask: NDArray[np.in
 
 
 def fill_next_token_bitmask(
-    interp: LLInterpreter, bitmask: NDArray[np.int32], index: int = 0
-) -> str:
+    interp: LLMatcher, bitmask: NDArray[np.int32], index: int = 0
+) -> None:
     assert bitmask.dtype == np.int32, "Mask must be int32"
     assert bitmask.ndim == 2, "Mask must be 2D"
     v = bitmask[index, :]
     assert v.flags["C_CONTIGUOUS"], "Mask must be contiguous"
-    return interp.unsafe_compute_mask_ptr(v.ctypes.data, v.size * v.itemsize)
+    interp.unsafe_compute_mask_ptr(v.ctypes.data, v.size * v.itemsize)
 
 
 def fill_next_token_bitmask_par(
-    executor: LLExecutor, interps: List[LLInterpreter], bitmask: NDArray[np.int32]
-) -> str:
+    executor: LLExecutor, interps: List[LLMatcher], bitmask: NDArray[np.int32]
+) -> None:
     assert bitmask.dtype == np.int32, "Mask must be int32"
     assert bitmask.ndim == 2, "Mask must be 2D"
     batch, vocab = bitmask.shape
     assert bitmask.flags["C_CONTIGUOUS"], "Mask must be contiguous"
     assert len(interps) == batch, "Interpreter count mismatch"
-    return executor.unsafe_compute_mask_ptr(interps, bitmask.ctypes.data, vocab * 4)
+    executor.unsafe_compute_mask_ptr(interps, bitmask.ctypes.data, vocab * 4)

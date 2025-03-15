@@ -586,34 +586,28 @@ impl TokTrie {
     }
 
     pub fn greedy_tokenize(&self, bytes: &[u8]) -> Vec<TokenId> {
-        let mut r = Vec::new();
-        if bytes.is_empty() {
-            return r;
-        }
-
-        let mut n = self.root();
-        let mut last_tok = None;
-        let mut last_idx = 0;
-        let mut idx = 0;
-        while idx < bytes.len() {
-            match self.child_at_byte(n, bytes[idx]) {
-                Some(c) => {
-                    if let Some(tok) = c.token_id() {
+        let mut tokens = Vec::new();
+        let mut i = 0;
+        while i < bytes.len() {
+            let mut node = self.root();
+            let mut last_tok = None;
+            let mut last_idx = i;
+            #[allow(clippy::needless_range_loop)]
+            for j in i..bytes.len() {
+                if let Some(child) = self.child_at_byte(node, bytes[j]) {
+                    node = child;
+                    if let Some(tok) = node.token_id() {
                         last_tok = Some(tok);
-                        last_idx = idx;
+                        last_idx = j;
                     }
-                    n = c;
-                }
-                None => {
-                    r.push(last_tok.unwrap());
-                    idx = last_idx;
-                    n = self.root();
+                } else {
+                    break;
                 }
             }
-            idx += 1;
+            tokens.push(last_tok.expect("No valid token found at position"));
+            i = last_idx + 1;
         }
-        r.push(last_tok.unwrap());
-        r
+        tokens
     }
 
     pub fn tokenize_with_greedy_fallback(

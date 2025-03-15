@@ -1,6 +1,6 @@
 from typing import Tuple, List
 import torch
-from ._lib import LLInterpreter, LLExecutor
+from ._lib import LLMatcher, LLExecutor
 
 
 def get_bitmask_shape(batch_size: int, vocab_size: int) -> Tuple[int, int]:
@@ -45,23 +45,23 @@ def apply_token_bitmask_inplace(logits: torch.Tensor, mask: torch.Tensor) -> Non
 
 
 def fill_next_token_bitmask(
-    interp: LLInterpreter, bitmask: torch.Tensor, index: int = 0
-) -> str:
+    interp: LLMatcher, bitmask: torch.Tensor, index: int = 0
+) -> None:
     assert bitmask.dtype == torch.int32, "Mask must be int32"
     assert bitmask.is_cpu, "Mask must be on CPU"
     assert bitmask.dim() == 2, "Mask must be 2D"
     v = bitmask[index, :]
     assert v.is_contiguous(), "Mask must be contiguous"
-    return interp.unsafe_compute_mask_ptr(v.data_ptr(), v.numel() * v.element_size())
+    interp.unsafe_compute_mask_ptr(v.data_ptr(), v.numel() * v.element_size())
 
 
 def fill_next_token_bitmask_par(
-    executor: LLExecutor, interps: List[LLInterpreter], bitmask: torch.Tensor
-) -> str:
+    executor: LLExecutor, interps: List[LLMatcher], bitmask: torch.Tensor
+) -> None:
     assert bitmask.dtype == torch.int32, "Mask must be int32"
     assert bitmask.is_cpu, "Mask must be on CPU"
     assert bitmask.dim() == 2, "Mask must be 2D"
     batch, vocab = bitmask.shape
     assert bitmask.is_contiguous(), "Mask must be contiguous"
     assert len(interps) == batch, "Interpreter count mismatch"
-    return executor.unsafe_compute_mask_ptr(interps, bitmask.data_ptr(), vocab * 4)
+    executor.unsafe_compute_mask_ptr(interps, bitmask.data_ptr(), vocab * 4)

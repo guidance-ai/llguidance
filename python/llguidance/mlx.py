@@ -3,7 +3,7 @@
 from typing import Tuple, List, cast
 import numpy as np
 import mlx.core as mx # type: ignore[import-not-found]
-from ._lib import LLInterpreter
+from ._lib import LLMatcher
 from .numpy import get_bitmask_shape, allocate_token_bitmask, fill_next_token_bitmask
 from numpy.typing import NDArray
 

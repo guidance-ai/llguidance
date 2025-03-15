@@ -5,11 +5,13 @@ from ._lib import (
     LarkCompiler,
     RegexCompiler,
     LLExecutor,
+    LLMatcher,
 )
 from ._tokenizer import TokenizerWrapper
 
 __all__ = [
     "LLTokenizer",
+    "LLMatcher",
     "LLInterpreter",
     "LLExecutor",
     "JsonCompiler",
