@@ -1,0 +1,35 @@
+name: JSON Schema Test Suite
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Clone JSON Schema Test Suite
+        run: git clone https://github.com/json-schema-org/JSON-Schema-Test-Suite.git
+
+      - name: Run tests
+        working-directory: ./json_test_suite
+        run: |
+          cargo run --release -- --root-dir "../JSON-Schema-Test-Suite" --output-path "test_suite_results.json"
+          cat test_suite_results.json
+
+      - name: Upload test suite results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-suite-results
+          path: json_test_suite/test_suite_results.json
