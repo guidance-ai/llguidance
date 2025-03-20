@@ -41,6 +41,7 @@ if [ "$TEST_RUST" = 1 ] ; then
     cd "$TOP"
     cargo fmt --check
     ./scripts/cbindgen.sh --check
+    ./scripts/cxxbridge.sh --check
 
     cargo clippy --all-targets --all-features -- -D warnings
 

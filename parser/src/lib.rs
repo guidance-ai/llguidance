@@ -34,6 +34,8 @@ pub mod ffi;
 #[cfg(feature = "rayon")]
 mod ffi_par;
 
+pub mod cxx_ffi;
+
 mod grammar_builder;
 mod json;
 #[cfg(feature = "jsonschema_validation")]
