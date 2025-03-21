@@ -3941,9 +3941,7 @@
   "Github_hard---o67517.json": {},
   "Github_hard---o6761.json": {},
   "Github_hard---o6762.json": {},
-  "Github_hard---o6771.json": {
-    "validation_error": "test #4: token not accepted at ⟦{\"⟧ * ⟦version⟧ * ⟦\":\"‧1‧.‧0⟧ forced tokens \"⟦channels⟧\" != \"⟦version⟧\""
-  },
+  "Github_hard---o6771.json": {},
   "Github_hard---o68354.json": {},
   "Github_hard---o68391.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -5897,7 +5895,7 @@
     "json_error": "Unknown format: url"
   },
   "Github_medium---o55361.json": {
-    "json_error": "Unknown format: url"
+    "json_error": "Unknown format: ipandport"
   },
   "Github_medium---o55443.json": {},
   "Github_medium---o55444.json": {},
@@ -7308,7 +7306,7 @@
   },
   "Github_medium---o90938.json": {},
   "Github_medium---o90940.json": {
-    "json_error": "Unimplemented keys: [\"dependencies\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_medium---o90951.json": {},
   "Github_medium---o90954.json": {},
@@ -10492,7 +10490,7 @@
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Handwritten---mod309.json": {
-    "json_error": "Unimplemented keys: [\"not\"]"
+    "json_error": "Schema intersection stack level exceeded"
   },
   "Handwritten---notnames1.json": {
     "json_error": "Unimplemented keys: [\"not\", \"patternProperties\"]"
@@ -11063,7 +11061,7 @@
     "json_error": "Unimplemented keys: [\"patternProperties\"]"
   },
   "JsonSchemaStore---debugsettings.json": {
-    "json_error": "Unimplemented keys: [\"not\"]"
+    "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---dein.json": {
     "json_error": "Unimplemented keys: [\"patternProperties\"]"
@@ -13338,12 +13336,8 @@
   "Snowplow---sp_341_Normalized.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Snowplow---sp_342_Normalized.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧failure‧\":{\"‧messages‧\":[{\"⟧ * ⟦field⟧ * ⟦\":\"‧event‧\",\"‧error⟧ mask: TokenSet: 9/128256; ⟨e⟩ ⟨s⟩ ⟨er⟩ ⟨err⟩ ⟨error⟩ ⟨sc⟩ ⟨schema⟩ ⟨sch⟩ ⟨erro⟩"
-  },
-  "Snowplow---sp_343_Normalized.json": {
-    "validation_error": "test #0: token not accepted at ⟦0‧\",\"‧data‧\":{\"‧event‧\":\"‧Invalid‧ JSON‧\"}}‧}‧},{\"‧schema‧Criterion‧\":\"‧required‧\",\"‧schema‧Key‧\":\"‧ig‧lu‧:‧com‧.s‧now‧pl‧ow‧analytics‧.s‧now‧pl‧ow‧/un‧struct‧_event‧/json‧schema‧/‧1‧-‧0‧-‧0‧\"},{\"‧error‧\":{\"‧error‧\":\"‧ValidationError‧\",\"⟧ * ⟦data⟧ * ⟦Reports‧\":[{\"‧keyword‧\":\"⟧ forced tokens \"⟦schema‧Issues⟧\" != \"⟦data‧Reports⟧\""
-  },
+  "Snowplow---sp_342_Normalized.json": {},
+  "Snowplow---sp_343_Normalized.json": {},
   "Snowplow---sp_344_Normalized.json": {},
   "Snowplow---sp_345_Normalized.json": {},
   "Snowplow---sp_346_Normalized.json": {},
