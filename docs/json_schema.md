@@ -53,6 +53,46 @@ Number features (for both integer and number):
 
 ## Departures from JSON schema semantics
 
-- order of object properties is fixed to the order provided in `properties` field of schema
-  - note: the order of properties in schemas resulting from intersections (e.g., via `allOf`) is *unstable* and should not be relied upon.
+- order of object properties is fixed, see below
 - string `format` is enforced by default, with unrecognized or unimplemented formats returning errors
+
+## Property order
+
+### TL;DR
+
+Properties follow order in `properties` map.
+When schemas are merged with `allOf` etc., the `properties` maps are merged in order.
+
+Easiest way to override this, is to include `"my_property": true` in appropriate position in `"properties"`,
+before `anyOf/allOf/oneOf/$ref`.
+
+### Details, best ignored
+
+While this algorithm may not be the easiest to implement, we judge it to be the least surprising to the user.
+Basically, the schema is processed line-by-line, left-to-right, and property order is fixed as we go.
+
+The enforced property order during generation is as follows:
+1. Each property in the `"properties"` object, in order of appearance
+2. Each property in `"required"`, in order of appearance (if not already in `"properties"` they are constrained with `"additionalPropertie"`)
+
+When two schemas are joined (more than two is defined inductively), the resulting `"properties"` object will have order given by:
+1. Each property in the left schema, in order of appearance
+2. Each property in the right schema, in order of appearance (if not already in the left schema)
+3. Recursive cases: 
+   - If the left schema defines a property that is also found in the right schema, the schema of the resulting merged property will be the result of merging the two properties with the same left,right precedence
+   - If the left schema defines a property NOT found in the right schema, it will be merged on the right by the right schema's `additionalProperties`
+   - If the right schema defines a property NOT found in the left schema, it will be merged on the left by the left schema's `additionalProperties`
+
+When two schemas are joined, the resulting `"required"` array will have order given by:
+1. Each property in the left `"required"`, in order of appearance
+2. Each property in the right `"required"`, in order of appearance (if not in the left array)
+
+**Note**: precedence in `"properties"` and `"required"` are tracked *separately* as schemas are merged, with the order imposed by the final schema prioritizing `"properties"` over `"required"`.
+
+When a schema is built from multiple [applicators](https://json-schema.org/draft/2020-12/vocab/applicator), the applicators are processed *in order of appearance*.
+
+E.g., if a schema contains both `"properties"` and `"allOf"` (which has another `"properties"` definition nested inside), the resulting constraints will depend on which of these keys appears first. The one that appears first will have precedence.
+
+These semantics extend even to applicators that violate the typical [keyword independence](https://json-schema.org/draft/2020-12/json-schema-core#section-10.1) semantics of JSON keywords.
+
+E.g., even though the behavior of `additionalProperties` is defined in terms of `"properties"` and `"patternProperties"` its position in a schema determines its precedence independently of the location of `"properties"`. If it applies to a property defined in a subschema of `"allOf"` or `"anyOf"`, whether it applies before or after said definition is determined by its position relative to the `"allOf"` or `"anyOf"` keyword.
