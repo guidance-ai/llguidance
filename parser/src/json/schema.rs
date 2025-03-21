@@ -534,7 +534,7 @@ impl Default for SchemaBuilderOptions {
     fn default() -> Self {
         SchemaBuilderOptions {
             max_size: 50_000,
-            max_stack_level: 128,
+            max_stack_level: 128, // consumes ~2.5k of stack per level
         }
     }
 }
