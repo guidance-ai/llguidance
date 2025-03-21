@@ -10,7 +10,7 @@ use llguidance::{
 use serde_json::json;
 
 fn dump_tokenizer(name: &str) {
-    let btok = toktrie_hf_tokenizers::ByteTokenizer::from_name(name).unwrap();
+    let btok = toktrie_hf_downloader::byte_tokenizer_from_name(name).unwrap();
     let vecs = btok.token_bytes();
     for v in vecs.iter() {
         let v: String = v
@@ -106,9 +106,7 @@ fn main() {
 
     // you can implement TokEnv yourself, if you have the tokenizer
     // see the ByteTokenizerEnv for an example
-    let tok_env: TokEnv = toktrie_hf_tokenizers::ByteTokenizerEnv::from_name(&opts.tokenizer, None)
-        .unwrap()
-        .to_env();
+    let tok_env: TokEnv = toktrie_hf_downloader::tok_env_from_name(&opts.tokenizer).unwrap();
 
     // set to 2 for more output; 1 is warnings only
     let stderr_log_level = opts.log_level;

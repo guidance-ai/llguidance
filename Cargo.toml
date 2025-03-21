@@ -6,6 +6,7 @@ members = [
     "json_stats",
     "toktrie",
     "toktrie_hf_tokenizers",
+    "toktrie_hf_downloader",
 ]
 # just exclude python_ext since it doesn't build without maturin
 default-members = [
@@ -14,6 +15,7 @@ default-members = [
     "json_stats",
     "toktrie",
     "toktrie_hf_tokenizers",
+    "toktrie_hf_downloader",
 ]
 resolver = "2"
 
@@ -34,3 +36,4 @@ opt-level = 3
 toktrie = { path = "toktrie" }
 llguidance = { path = "parser" }
 toktrie_hf_tokenizers = { path = "toktrie_hf_tokenizers" }
+toktrie_hf_downloader = { path = "toktrie_hf_downloader" }

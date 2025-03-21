@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Any
 from ._util import TokenId
 
 
@@ -8,7 +8,7 @@ class TokenizerWrapper:
     tokens: Sequence[bytes]
     special_token_ids: Sequence[int]
 
-    def __init__(self, gtokenizer) -> None:
+    def __init__(self, gtokenizer: Any) -> None:
         # these are required by LLTokenizer:
         self.eos_token_id = gtokenizer.eos_token_id
         self.bos_token_id = gtokenizer.bos_token_id
@@ -29,13 +29,15 @@ class TokenizerWrapper:
         self._prefix_tokens = self._encode_string(self._prefix_string)
 
     def _encode_string(self, s: str) -> List[TokenId]:
+        r: List[TokenId]
         if self._accepts_bytes:
-            return self._gtokenizer(s.encode("utf-8"))
+            r = self._gtokenizer(s.encode("utf-8"))
         else:
-            return self._gtokenizer(s)
+            r = self._gtokenizer(s)
+        return r
 
     # required by LLTokenizer
-    def __call__(self, s: str):
+    def __call__(self, s: str) -> List[TokenId]:
         tokens = self._encode_string(self._prefix_string + s)
         assert tokens[: len(self._prefix_tokens)] == self._prefix_tokens
         return tokens[len(self._prefix_tokens) :]

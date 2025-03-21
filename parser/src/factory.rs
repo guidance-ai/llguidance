@@ -37,6 +37,19 @@ impl ParserFactory {
         })
     }
 
+    pub fn with_slices(&self, slices: &[String]) -> Result<Self> {
+        let slicer = Arc::new(SlicedBiasComputer::new(&self.tok_env, slices)?);
+        Ok(ParserFactory {
+            tok_env: self.tok_env.clone(),
+            slicer,
+            inference_caps: self.inference_caps.clone(),
+            stderr_log_level: self.stderr_log_level,
+            buffer_log_level: self.buffer_log_level,
+            seed: Mutex::new(XorShift::default()),
+            limits: self.limits.clone(),
+        })
+    }
+
     pub fn limits_mut(&mut self) -> &mut ParserLimits {
         &mut self.limits
     }

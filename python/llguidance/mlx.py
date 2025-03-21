@@ -1,11 +1,14 @@
-from typing import Tuple, List
+# mypy: warn_unused_ignores = False
+
+from typing import Tuple, List, cast
 import numpy as np
-import mlx.core as mx
-from ._lib import LLInterpreter
+import mlx.core as mx # type: ignore[import-not-found]
+from ._lib import LLMatcher
 from .numpy import get_bitmask_shape, allocate_token_bitmask, fill_next_token_bitmask
+from numpy.typing import NDArray
 
 
-@mx.custom_function
+@mx.custom_function # type: ignore[misc]
 def apply_token_bitmask_kernel(data: mx.array, mask: mx.array) -> mx.array:
     source = """
         uint batch = thread_position_in_grid.y;  // Batch index
@@ -37,16 +40,19 @@ def apply_token_bitmask_kernel(data: mx.array, mask: mx.array) -> mx.array:
     outputs = kernel(
         inputs=[data, mask, neg_inf],
         template=[("T", data.dtype)],  # Generic dtype support
-        grid=(data.shape[1], data.shape[0], 1),  # Process all elements across batches
+        grid=(data.shape[1], data.shape[0],
+              1),  # Process all elements across batches
         threadgroup=(256, 1, 1),  # Optimize workgroups
         output_shapes=[data.shape],
         output_dtypes=[data.dtype],
-    )  # type: ignore
+    ) # type: ignore[operator]
 
-    return outputs[0]
+    a: mx.array = outputs[0]
+    return a
 
 
-def apply_token_bitmask(logits: mx.array, mask_np: np.ndarray) -> mx.array:
+def apply_token_bitmask(logits: mx.array,
+                        mask_np: NDArray[np.int32]) -> mx.array:
     mask = mx.array(mask_np)
     if len(logits.shape) == 1:
         logits = mx.expand_dims(logits, axis=0)
@@ -57,5 +63,5 @@ def apply_token_bitmask(logits: mx.array, mask_np: np.ndarray) -> mx.array:
     batch, vocab = logits.shape
     m_batch, m_vocab = mask.shape
     assert batch == m_batch, "Batch size mismatch"
-    r = apply_token_bitmask_kernel(logits, mask)
-    return r  # type: ignore
+    r = cast(mx.array, apply_token_bitmask_kernel(logits, mask))
+    return r

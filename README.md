@@ -40,13 +40,13 @@ The library is currently integrated in:
 - [SGLang](https://github.com/sgl-project/sglang/pull/3298) -
   use `--grammar-backend llguidance`; when passing Lark grammar make
   sure to prefix them with `%llguidance {}`, just as in llama.cpp
+- vLLM - [merged V0 PR](https://github.com/vllm-project/vllm/pull/14589) and [pending V1 PR](https://github.com/vllm-project/vllm/pull/14779)
 - [LLGTRT](https://github.com/guidance-ai/llgtrt) - OpenAI-compatible REST server using NVIDIA's [TensorRT-LLM](https://github.com/NVIDIA/TensorRT-LLM)
 - [mistral.rs](https://github.com/EricLBuehler/mistral.rs/pull/899)
 
 The integration is ongoing in:
 - onnxruntime-genai - [draft PR](https://github.com/microsoft/onnxruntime-genai/pull/1038)
 - Chromium - [ongoing PR](https://chromium-review.googlesource.com/c/chromium/src/+/6232561)
-- vLLM - [draft PR](https://github.com/vllm-project/vllm/pull/10217)
 
 ## Technical details
 

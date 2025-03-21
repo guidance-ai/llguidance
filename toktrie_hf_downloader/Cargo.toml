@@ -1,0 +1,14 @@
+[package]
+name = "toktrie_hf_downloader"
+version = "0.7.7"
+edition = "2021"
+license = "MIT"
+description = "HuggingFace Hub download library support for toktrie and llguidance"
+repository = "https://github.com/guidance-ai/llguidance"
+
+[dependencies]
+toktrie = { workspace = true }
+toktrie_hf_tokenizers = { workspace = true }
+anyhow = "1.0.95"
+log = "0.4.25"
+hf-hub = "0.4.2"

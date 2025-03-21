@@ -935,10 +935,7 @@ fn main() {
         files.retain(|f2| f2.contains(f));
     }
 
-    let tok_env: TokEnv =
-        toktrie_hf_tokenizers::ByteTokenizerEnv::from_name(&options.tokenizer, None)
-            .unwrap()
-            .to_env();
+    let tok_env: TokEnv = toktrie_hf_downloader::tok_env_from_name(&options.tokenizer).unwrap();
 
     let mut slices = llguidance::earley::SlicedBiasComputer::json_slices();
     if options.llg_disable_slicer {

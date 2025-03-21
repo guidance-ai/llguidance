@@ -2,11 +2,10 @@
 // special case num_ch=0xff -> num_ch=0x100
 
 use core::str;
-use std::sync::Arc;
 
 use bytemuck_derive::{Pod, Zeroable};
 
-use crate::{bytes::to_hex_string, SimpleVob};
+use crate::{bytes::to_hex_string, tokenv::parse_numeric_token, SimpleVob};
 
 pub type TokenId = u32;
 
@@ -89,134 +88,16 @@ pub trait Recognizer {
     fn save_stats(&mut self, _nodes_walked: usize) {}
 }
 
-/// Parse a special token of the form \xFF [ 1 2 3 4 ]
-/// The initial \xFF is not included in the input.
-/// Returns the number of bytes consumed and the token id.
-pub fn parse_numeric_token(s: &[u8]) -> Option<(usize, TokenId)> {
-    let spec_len = s[0..std::cmp::min(s.len(), 20)]
-        .iter()
-        .position(|&x| x == b']');
-    if let Some(spec_len) = spec_len {
-        if s[0] != b'[' {
-            return None;
-        }
-        let inner_bytes = &s[1..spec_len];
-        if let Ok(inner_str) = std::str::from_utf8(inner_bytes) {
-            if let Ok(id) = inner_str.parse::<u32>() {
-                return Some((spec_len + 1, id as TokenId));
-            }
-        }
-    }
-    None
-}
-
-pub trait TokenizerEnv: Send {
-    /// Associated trie.
-    fn tok_trie(&self) -> &TokTrie;
-
-    /// Tokenize a given byte sequence.
-    /// It may or may not interpret <|special_tokens|> as special.
-    fn tokenize_bytes(&self, s: &[u8]) -> Vec<TokenId>;
-
-    /// Tokenize a given byte sequence.
-    /// It will interpret text starting with SPECIAL_TOKEN_MARKER as special tokens.
-    /// Returns tokens, and number of tokens are should never be re-tokenized
-    /// (because they were specified using the special token marker).
-    fn tokenize_bytes_marker(&self, s: &[u8]) -> (Vec<TokenId>, usize) {
-        let mut idx = 0;
-        let ff = TokTrie::SPECIAL_TOKEN_MARKER;
-        let mut result = Vec::new();
-        let trie = self.tok_trie();
-        let mut num_fixed_tokens = 0;
-        while idx < s.len() {
-            let normal_len = s[idx..]
-                .iter()
-                .position(|&x| x == ff)
-                .unwrap_or(s.len() - idx);
-            if normal_len != 0 {
-                result.extend_from_slice(&self.tokenize_bytes(&s[idx..idx + normal_len]));
-                idx += normal_len;
-            }
-            idx += 1; // skip ff
-            if idx + 2 < s.len() && s[idx] == b'<' {
-                // tokenize \xff<foobar> as special token <foobar>
-                let spec_len = s[idx..std::cmp::min(s.len(), idx + 100)]
-                    .iter()
-                    .position(|&x| x == b'>');
-                if let Some(mut spec_len) = spec_len {
-                    spec_len += 1;
-                    let spec_token = &s[idx - 1..idx + spec_len];
-                    if let Some(id) = trie.token_id_at_bytes(spec_token) {
-                        result.push(id);
-                        num_fixed_tokens = result.len();
-                        idx += spec_len;
-                    }
-                }
-            } else if idx < s.len() {
-                // tokenize \xff[1234] as token 1234
-                if let Some((n_bytes, tok_id)) = parse_numeric_token(&s[idx..]) {
-                    if tok_id < trie.vocab_size() as u32 {
-                        result.push(tok_id);
-                        num_fixed_tokens = result.len();
-                        idx += n_bytes;
-                    }
-                }
-            }
-        }
-
-        (result, num_fixed_tokens)
-    }
-
-    /// Tokenize a string coming from user. It may or may not interpret <|special_tokens|> as special.
-    fn tokenize(&self, s: &str) -> Vec<TokenId> {
-        self.tokenize_bytes(s.as_bytes())
-    }
-
-    /// Tokenize a string. It will interpret <|special_tokens|> as special.
-    fn tokenize_special(&self, s: &str) -> Vec<TokenId> {
-        self.tokenize(s)
-    }
-
-    /// End of sentence token
-    fn eos_token(&self) -> TokenId {
-        self.tok_trie().eos_token()
-    }
-
-    /// If this returns true, this tokenizer always returns canonical tokenizations
-    /// and can be used for forcing tokens.
-    /// Non-canonical tokenizers will typically just use TokTrie::greedy_tokenize().
-    fn tokenize_is_canonical(&self) -> bool {
-        true
-    }
-}
-
-pub type TokEnv = Arc<dyn TokenizerEnv + Sync + 'static>;
-
-pub struct TokEnvWithTrie {
-    base_env: TokEnv,
-    tok_trie: TokTrie,
-}
-
-impl TokEnvWithTrie {
-    pub fn new(base_env: TokEnv, tok_trie: TokTrie) -> Self {
-        Self { base_env, tok_trie }
-    }
-}
-
-impl TokenizerEnv for TokEnvWithTrie {
-    fn tok_trie(&self) -> &TokTrie {
-        &self.tok_trie
-    }
-
-    fn tokenize_bytes(&self, s: &[u8]) -> Vec<TokenId> {
-        self.base_env.tokenize_bytes(s)
-    }
+#[derive(Clone, Copy)]
+struct TokDesc {
+    len: u32,
+    off: u32,
 }
 
 #[derive(Clone)]
 pub struct TokTrie {
     info: TokRxInfo,
-    token_offsets: Vec<u32>,
+    token_offsets: Vec<TokDesc>,
     token_data: Vec<u8>,
     nodes: Vec<TrieNode>,
     max_token_len: usize,
@@ -268,9 +149,6 @@ impl TrieNode {
     }
 }
 
-// max length of token is 255 bytes
-const LEN_BITS: u32 = 8;
-
 impl TokTrie {
     // see https://github.com/microsoft/llguidance/blob/main/docs/special_tokens.md
     pub const SPECIAL_TOKEN_MARKER: u8 = 0xff;
@@ -286,9 +164,10 @@ impl TokTrie {
                 trie.insert(word, idx as u32);
                 max_token_len = std::cmp::max(max_token_len, word.len());
             }
-            assert!(word.len() < (1 << LEN_BITS));
-            assert!(token_data.len() < (1 << (32 - LEN_BITS)));
-            let desc = (word.len() as u32) | ((token_data.len() as u32) << LEN_BITS);
+            let desc = TokDesc {
+                len: word.len().try_into().unwrap(),
+                off: token_data.len().try_into().unwrap(),
+            };
             token_offsets.push(desc);
             token_data.extend_from_slice(word);
         }
@@ -485,10 +364,10 @@ impl TokTrie {
         if idx >= self.token_offsets.len() as u32 {
             return &[];
         }
-        let off = self.token_offsets[idx as usize];
-        let len = off & ((1 << LEN_BITS) - 1);
-        let off = (off >> LEN_BITS) as usize;
-        &self.token_data[off..(off + len as usize)]
+        let desc = self.token_offsets[idx as usize];
+        let len = desc.len as usize;
+        let off = desc.off as usize;
+        &self.token_data[off..(off + len)]
     }
 
     pub fn decode(&self, tokens: &[TokenId]) -> Vec<u8> {
@@ -586,34 +465,28 @@ impl TokTrie {
     }
 
     pub fn greedy_tokenize(&self, bytes: &[u8]) -> Vec<TokenId> {
-        let mut r = Vec::new();
-        if bytes.is_empty() {
-            return r;
-        }
-
-        let mut n = self.root();
-        let mut last_tok = None;
-        let mut last_idx = 0;
-        let mut idx = 0;
-        while idx < bytes.len() {
-            match self.child_at_byte(n, bytes[idx]) {
-                Some(c) => {
-                    if let Some(tok) = c.token_id() {
+        let mut tokens = Vec::new();
+        let mut i = 0;
+        while i < bytes.len() {
+            let mut node = self.root();
+            let mut last_tok = None;
+            let mut last_idx = i;
+            #[allow(clippy::needless_range_loop)]
+            for j in i..bytes.len() {
+                if let Some(child) = self.child_at_byte(node, bytes[j]) {
+                    node = child;
+                    if let Some(tok) = node.token_id() {
                         last_tok = Some(tok);
-                        last_idx = idx;
+                        last_idx = j;
                     }
-                    n = c;
-                }
-                None => {
-                    r.push(last_tok.unwrap());
-                    idx = last_idx;
-                    n = self.root();
+                } else {
+                    break;
                 }
             }
-            idx += 1;
+            tokens.push(last_tok.expect("No valid token found at position"));
+            i = last_idx + 1;
         }
-        r.push(last_tok.unwrap());
-        r
+        tokens
     }
 
     pub fn tokenize_with_greedy_fallback(
@@ -1175,26 +1048,13 @@ impl Recognizer for FixedRecognizer {
     }
 }
 
-pub struct ApproximateTokEnv {
-    trie: TokTrie,
-}
+pub struct AnythingGoes;
 
-impl ApproximateTokEnv {
-    pub fn new(trie: TokTrie) -> Self {
-        Self { trie }
-    }
-}
-
-impl TokenizerEnv for ApproximateTokEnv {
-    fn tok_trie(&self) -> &TokTrie {
-        &self.trie
-    }
-
-    fn tokenize_bytes(&self, s: &[u8]) -> Vec<TokenId> {
-        self.trie.greedy_tokenize(s)
-    }
-
-    fn tokenize_is_canonical(&self) -> bool {
-        false
+impl Recognizer for AnythingGoes {
+    fn collapse(&mut self) {}
+    fn trie_finished(&mut self) {}
+    fn pop_bytes(&mut self, _num: usize) {}
+    fn try_push_byte(&mut self, _byte: u8) -> bool {
+        true
     }
 }

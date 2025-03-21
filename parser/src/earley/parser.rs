@@ -1107,9 +1107,9 @@ impl ParserState {
                         }
                     }
                     bail!(
-                        "byte {:?} fails parse; applying {:?}",
+                        "token {:?} doesn't satisfy the grammar; byte {:?} fails parse",
+                        String::from_utf8_lossy(tok_bytes),
                         b as char,
-                        String::from_utf8_lossy(tok_bytes)
                     );
                 }
                 if bt > 0 {
@@ -1140,10 +1140,10 @@ impl ParserState {
                 }
                 if self.bytes[applied_idx] != b {
                     bail!(
-                        "expecting {:?} (forced bytes), got {:?}; applying {:?}",
+                        "token {:?} doesn't satisfy the grammar; forced bytes: got {:?}; applying {:?}",
+                        String::from_utf8_lossy(tok_bytes),
                         self.bytes[applied_idx] as char,
                         b as char,
-                        String::from_utf8_lossy(tok_bytes)
                     );
                 }
             }

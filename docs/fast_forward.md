@@ -131,3 +131,31 @@ above, and thus just compute once and for all the set of tokens that are not all
 as the last token in forced bytes.
 This drops the proportion of forced tokens in maskbench from `12.7%` to `12.1%`.
 
+## Using LLTokenizer to convert bytes to tokens
+
+You can use the `llguidance.LLTokenizer` class to convert forced bytes to tokens,
+even when not using constraints:
+
+```python
+import transformers
+import llguidance
+import llguidance.hf
+
+hf_tok = transformers.AutoTokenizer.from_pretrained(
+    "unsloth/Meta-Llama-3.1-8B-Instruct")
+ll = llguidance.hf.from_tokenizer(hf_tok)
+
+new_tok, leftover = ll.tokenize_partial(b'order')
+assert len(new_tok) == 0
+assert leftover == b'order'
+
+recent = ll.tokenize_bytes(b'{"')
+new_tok, leftover = ll.tokenize_partial(b'name_of_the_person"',
+                                        recent_tokens=recent)
+print(ll.dbg_tokens(new_tok))
+assert leftover == b'"'
+assert ll.decode_str(new_tok) == "name_of_the_person"
+```
+
+You can also pass a few recent tokens to `tokenize_partial()` to help with joint tokenization.
+It's only needed in some specific cases of punctuation following spaces.

@@ -7,6 +7,7 @@
 /// cbindgen:ignore
 pub mod earley;
 
+mod matcher;
 mod tokenparser;
 pub use tokenparser::TokenParser;
 pub mod api;
@@ -18,6 +19,7 @@ mod constraint;
 mod stop_controller;
 mod tokenizer_json;
 pub use constraint::{CommitResult, Constraint};
+pub use matcher::Matcher;
 
 mod factory;
 pub use factory::ParserFactory;
@@ -39,6 +41,7 @@ mod json_validation;
 pub mod substring;
 pub use grammar_builder::{GrammarBuilder, NodeRef};
 pub use json::compiler::JsonCompileOptions;
+pub use json::json_merge;
 pub use stop_controller::StopController;
 pub use tokenizer_json::token_bytes_from_tokenizer_json;
 

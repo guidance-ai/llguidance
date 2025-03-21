@@ -23,6 +23,7 @@ pub struct JsonCompileOptions {
     pub item_separator: String,
     pub key_separator: String,
     pub whitespace_flexible: bool,
+    pub whitespace_pattern: Option<String>,
     pub coerce_one_of: bool,
     #[serde(skip)]
     pub retriever: Option<RetrieveWrapper>,
@@ -69,6 +70,7 @@ impl Default for JsonCompileOptions {
         Self {
             item_separator: ",".to_string(),
             key_separator: ":".to_string(),
+            whitespace_pattern: None,
             whitespace_flexible: true,
             coerce_one_of: false,
             retriever: None,
@@ -118,7 +120,9 @@ impl Compiler {
     }
 
     pub fn execute(mut self, schema: Value) -> Result<GrammarResult> {
-        let skip = if self.options.whitespace_flexible {
+        let skip = if let Some(pattern) = &self.options.whitespace_pattern {
+            RegexAst::Regex(pattern.clone())
+        } else if self.options.whitespace_flexible {
             RegexAst::Regex(r"[\x20\x0A\x0D\x09]+".to_string())
         } else {
             RegexAst::NoMatch

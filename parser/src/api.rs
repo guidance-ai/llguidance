@@ -216,6 +216,7 @@ impl StopReason {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(default)]
 #[repr(C)]
 pub struct ParserLimits {
     /// For non-ambiguous grammars, this is the maximum "branching factor" of the grammar.
@@ -263,7 +264,7 @@ impl Default for ParserLimits {
 }
 
 impl TopLevelGrammar {
-    pub fn from_lark_or_json_schema(s: &str) -> Result<Self> {
+    pub fn from_lark_or_grammar_list(s: &str) -> Result<Self> {
         let first_non_whitespace = s.chars().find(|c| !c.is_whitespace());
         if first_non_whitespace.is_none() {
             bail!("Empty grammar");

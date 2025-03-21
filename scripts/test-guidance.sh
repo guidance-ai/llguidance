@@ -106,6 +106,9 @@ else
     maturin develop --release
 fi
 
+echo "Running mypy..."
+(cd python && mypy)
+
 PYTEST_FLAGS=
 
 if test -f ../guidance/tests/unit/test_ll.py ; then
@@ -120,6 +123,7 @@ else
     if test -f guidance/tests/unit/test_ll.py ; then
         echo "Guidance clone OK"
     else
+        echo "Cloning guidance"
         git clone -b main https://github.com/guidance-ai/guidance
     fi
     cd guidance

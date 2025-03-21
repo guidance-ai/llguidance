@@ -6,7 +6,10 @@ import sys
 import os
 
 pyproject_path = "pyproject.toml"
-cargo_paths = ["parser", "python_ext", "toktrie", "toktrie_hf_tokenizers"]
+cargo_paths = [
+    "parser", "python_ext", "toktrie", "toktrie_hf_tokenizers",
+    "toktrie_hf_downloader"
+]
 version_pattern = r'\nversion\s*=\s*"(\d+\.\d+\.\d+)([^"]*)"'
 
 
@@ -38,8 +41,7 @@ def update_version_in_file(file_path, new_version):
 
 def check_in_and_tag(version):
     subprocess.run(["git", "add", pyproject_path] +
-                   [p + "/Cargo.toml" for p in cargo_paths] +
-                   ["Cargo.lock"],
+                   [p + "/Cargo.toml" for p in cargo_paths] + ["Cargo.lock"],
                    check=True)
     subprocess.run(["git", "commit", "-m", f"Bump version to {version}"],
                    check=True)

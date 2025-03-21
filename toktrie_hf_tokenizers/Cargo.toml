@@ -1,6 +1,6 @@
 [package]
 name = "toktrie_hf_tokenizers"
-version = "0.7.0"
+version = "0.7.7"
 edition = "2021"
 license = "MIT"
 description = "HuggingFace tokenizers library support for toktrie and llguidance"
@@ -11,5 +11,5 @@ toktrie = { workspace = true }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
 anyhow = "1.0.95"
-tokenizers = { version = ">=0.20.0, <1.0.0", features = ["http"] }
+tokenizers = { version = ">=0.20.0, <1.0.0", default-features = false, features = ["onig"] }
 log = "0.4.25"

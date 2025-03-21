@@ -1,11 +1,11 @@
 import argparse
 import json
 import huggingface_hub
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer  # type: ignore[import-untyped]
 import llguidance
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Command line interface for LL Guidance."
     )
@@ -34,7 +34,7 @@ def main():
         with open(args.json_schema, "r") as f:
             grm["json_schema"] = json.loads(f.read())
 
-    if grm == {}:
+    if not grm:
         raise ValueError("No grammar provided; need --lark or --json-schema")
 
     tokens = []
@@ -63,6 +63,7 @@ def main():
                 print("\n  ", end="")
                 print(p)
         print(tok.dbg_tokens([t]), end=" ")
+        assert mask
         if mask[t] == 0:
             print("Token not in mask")
             break

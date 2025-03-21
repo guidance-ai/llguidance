@@ -29,12 +29,8 @@ lazy_static! {
 
 lazy_static! {
     static ref PARSER_FACTORY: ParserFactory = {
-        let env = toktrie_hf_tokenizers::ByteTokenizerEnv::from_name(
-            "unsloth/Meta-Llama-3.1-8B-Instruct",
-            None,
-        )
-        .unwrap()
-        .to_env();
+        let env =
+            toktrie_hf_downloader::tok_env_from_name("unsloth/Meta-Llama-3.1-8B-Instruct").unwrap();
         let mut fact = ParserFactory::new(
             &env,
             InferenceCapabilities {

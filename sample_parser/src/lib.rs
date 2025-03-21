@@ -341,9 +341,11 @@ fn tokenize_trace(tok_env: &TokEnv, s: &str) -> Vec<(bool, TokenId)> {
 
 lazy_static! {
     static ref PARSER_FACTORY: ParserFactory = {
-        let env = toktrie_hf_tokenizers::ByteTokenizerEnv::from_name("microsoft/Phi-3.5-mini-instruct", Some(35000))
+        let env =
+            toktrie_hf_downloader::byte_tokenizer_from_name("microsoft/Phi-3.5-mini-instruct")
             .unwrap()
-            .to_env();
+            .into_tok_env(Some(35000))
+            .unwrap();
         let mut fact = ParserFactory::new(&env,
             InferenceCapabilities {
                 ff_tokens: true, // can the engine append multiple tokens?

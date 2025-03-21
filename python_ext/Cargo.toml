@@ -1,6 +1,6 @@
 [package]
 name = "llguidance_py"
-version = "0.7.0"
+version = "0.7.7"
 edition = "2021"
 license = "MIT"
 description = "Super-fast Structured Outputs"
@@ -8,19 +8,16 @@ repository = "https://github.com/guidance-ai/llguidance"
 
 [dependencies]
 llguidance = { workspace = true }
-toktrie_hf_tokenizers = { workspace = true, optional = true }
+toktrie_hf_tokenizers = { workspace = true }
 bytemuck = "1.21.0"
 pyo3 = {version = "0.23.4", features = ["extension-module", "abi3-py39", "anyhow"]}
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
 rayon = "1.10.0"
+anyhow = "1.0.95"
 
 [lib]
 # See https://github.com/PyO3/pyo3 for details
 name = "_lib"
 crate-type = ["cdylib"]
 path = "src/lib.rs"
-
-[features]
-default = []
-tokenizers = ["toktrie_hf_tokenizers"]

@@ -1,9 +1,10 @@
 use anyhow::{anyhow, bail, Result};
 use std::{
     collections::{BTreeMap, HashMap},
+    path::Path,
     sync::Arc,
 };
-use tokenizers::{normalizers::Sequence, FromPretrainedParameters, NormalizerWrapper, Tokenizer};
+use tokenizers::{normalizers::Sequence, NormalizerWrapper, Tokenizer};
 use toktrie::{TokEnv, TokRxInfo, TokTrie, TokenId, TokenizerEnv};
 
 pub struct ByteTokenizer {
@@ -35,35 +36,17 @@ fn build_char_map() -> HashMap<char, u8> {
     res
 }
 
-fn strip_suffix(sep: &str, s: &mut String) -> Option<String> {
-    let mut parts = s.splitn(2, sep);
-    let core = parts.next().unwrap().to_string();
-    let suff = parts.next().map(|s| s.to_string());
-    *s = core;
-    suff
-}
-
 impl ByteTokenizer {
-    pub fn from_name(name: &str) -> Result<ByteTokenizer> {
-        let loaded = if name.starts_with(".") || name.starts_with("/") {
-            Tokenizer::from_file(name)
-        } else {
-            let mut name2 = name.to_string();
-            let mut args = FromPretrainedParameters::default();
-            if let Some(s) = strip_suffix("@", &mut name2) {
-                args.revision = s
-            }
-            Tokenizer::from_pretrained(name2, Some(args))
-        };
-
-        let tok = loaded.map_err(|e| anyhow!("error loading tokenizer: {}", e))?;
-
+    pub fn from_file(name: impl AsRef<Path>) -> Result<ByteTokenizer> {
+        let name_str = name.as_ref().display().to_string();
+        let tok = Tokenizer::from_file(name)
+            .map_err(|e| anyhow!("error loading tokenizer: {}: {}", name_str, e))?;
         ByteTokenizer::from_tokenizer(tok)
     }
 
-    pub fn from_file(name: &str) -> Result<ByteTokenizer> {
+    pub fn from_json_bytes(bytes: &[u8]) -> Result<ByteTokenizer> {
         let tok =
-            Tokenizer::from_file(name).map_err(|e| anyhow!("error loading tokenizer: {}", e))?;
+            Tokenizer::from_bytes(bytes).map_err(|e| anyhow!("error loading tokenizer: {}", e))?;
         ByteTokenizer::from_tokenizer(tok)
     }
 
@@ -133,8 +116,13 @@ impl ByteTokenizer {
         for (id, info) in added.iter() {
             if info.special {
                 match info.content.as_str() {
-                    "</s>" | "<|endoftext|>" | "<|end_of_text|>" => res.info.tok_eos = *id,
-                    "<|end|>" | "<|eot_id|>" => res.info.tok_end_of_turn = Some(*id),
+                    "</s>"
+                    | "<|endoftext|>"
+                    | "<|end_of_text|>"
+                    | "<｜end▁of▁sentence｜>" // funky bars from DeepSeek tokenizer
+                    | "<eos>" => res.info.tok_eos = *id,
+
+                    "<|end|>" | "<|eot_id|>" | "<|im_end|>" => res.info.tok_end_of_turn = Some(*id),
                     "<unk>" | "<|unk|>" => res.info.tok_unk = Some(*id),
                     "<pad>" | "<|pad|>" => res.info.tok_pad = Some(*id),
                     _ => {}
@@ -201,6 +189,10 @@ impl ByteTokenizer {
         self.token_bytes.clone()
     }
 
+    pub fn set_eos_token(&mut self, tok_id: u32) {
+        self.info.tok_eos = tok_id;
+    }
+
     pub fn add_missing_tokens(&mut self, vocab_size: usize) {
         assert!(self.info.vocab_size == self.token_bytes.len() as u32);
         assert!(vocab_size >= self.token_bytes.len());
@@ -213,6 +205,11 @@ impl ByteTokenizer {
             self.special.insert(name, idx as u32);
         }
     }
+
+    pub fn into_tok_env(self, n_vocab: Option<usize>) -> Result<TokEnv> {
+        let b = ByteTokenizerEnv::new(self, n_vocab)?;
+        Ok(b.to_env())
+    }
 }
 
 pub struct ByteTokenizerEnv {
@@ -221,11 +218,6 @@ pub struct ByteTokenizerEnv {
 }
 
 impl ByteTokenizerEnv {
-    pub fn from_name(name: &str, n_vocab: Option<usize>) -> Result<ByteTokenizerEnv> {
-        let tokenizer = ByteTokenizer::from_name(name)?;
-        ByteTokenizerEnv::new(tokenizer, n_vocab)
-    }
-
     pub fn new(tokenizer: ByteTokenizer, n_vocab: Option<usize>) -> Result<ByteTokenizerEnv> {
         let mut info = tokenizer.tokrx_info();
         let mut token_bytes = tokenizer.token_bytes();

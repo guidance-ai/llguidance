@@ -4,13 +4,12 @@ pub mod bytes;
 pub mod recognizer;
 pub mod rng;
 mod svob;
+mod tokenv;
 mod toktree;
 
 pub use svob::{SimpleVob, SimpleVobIter};
-pub use toktree::{
-    parse_numeric_token, ApproximateTokEnv, Recognizer, TokEnv, TokEnvWithTrie, TokRxInfo, TokTrie,
-    TokenId, TokenizerEnv, TrieNode, INVALID_TOKEN,
-};
+pub use tokenv::{parse_numeric_token, ApproximateTokEnv, TokEnv, TokEnvWithTrie, TokenizerEnv};
+pub use toktree::{AnythingGoes, Recognizer, TokRxInfo, TokTrie, TokenId, TrieNode, INVALID_TOKEN};
 
 /// Defines what is allowed in Branch
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]

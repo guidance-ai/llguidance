@@ -13,16 +13,15 @@ from llguidance.torch import (
     allocate_token_bitmask,
     fill_next_token_bitmask_par,
 )
-from llguidance import LLInterpreter, LLTokenizer, LLExecutor
+from llguidance import LLMatcher, LLTokenizer, LLExecutor
 
 import llguidance.hf
-import transformers
+import transformers  # type: ignore[import-untyped]
 
 
-def _build_tokenizer():
+def _build_tokenizer() -> LLTokenizer:
     hf_tok = transformers.AutoTokenizer.from_pretrained(
-        "unsloth/Meta-Llama-3.1-8B-Instruct"
-    )
+        "unsloth/Meta-Llama-3.1-8B-Instruct")
     return llguidance.hf.from_tokenizer(hf_tok)
 
 
@@ -36,19 +35,16 @@ def tokenizer() -> LLTokenizer:
     return _tokenizer
 
 
-def lark_interp(grm: str):
+def lark_matcher(grm: str) -> LLMatcher:
     gstr = json.dumps({"grammars": [{"lark_grammar": grm}]})
-    interp = LLInterpreter(
-        tokenizer(), gstr, enable_backtrack=False, enable_ff_tokens=False, log_level=1
-    )
-    interp.start_without_prompt()
+    interp = LLMatcher(tokenizer(), gstr, log_level=1)
     return interp
 
 
-def test_grammar():
+def test_grammar() -> None:
     t = tokenizer()
     mask = allocate_token_bitmask(2, t.vocab_size)
-    interp = lark_interp(r"start: /[A-Z ]*/")
+    interp = lark_matcher(r"start: /[A-Z ]*/")
     fill_next_token_bitmask(interp, mask)
     allowed = []
     for idx, v in enumerate(mask[0, :].tolist()):
@@ -62,17 +58,16 @@ def test_grammar():
                     assert c.isupper() or c.isspace()
                 allowed.append(tok_idx)
     assert len(allowed) > 100
-    bt, toks = interp.commit_token(allowed[3])
-    assert bt == 0
-    assert toks == [allowed[3]]
+    interp.consume_token(allowed[3])
     fill_next_token_bitmask(interp, mask, 1)
     assert torch.isclose(mask[1, :], mask[0, :]).all()
 
 
-def test_par_grammar():
+def test_par_grammar() -> None:
     n_gram = 50
     t = tokenizer()
-    grammars = [lark_interp(r"start: /[a-zA-Z ]*/") for _ in range(n_gram)]
+    grammars = [(lark_matcher(r"start: /[a-zA-Z ]*/"), idx)
+                for idx in range(n_gram)]
     mask = allocate_token_bitmask(n_gram, t.vocab_size)
     mask2 = allocate_token_bitmask(n_gram, t.vocab_size)
     exec = LLExecutor()
@@ -82,33 +77,41 @@ def test_par_grammar():
     for i in range(n_gram):
         assert torch.isclose(mask[i, :], mask[0, :]).all()
     t0 = time.monotonic()
-    for i in range(n_gram):
-        fill_next_token_bitmask(grammars[i], mask2, i)
+    for g, idx in grammars:
+        fill_next_token_bitmask(g, mask2, idx)
     seq_time = int((time.monotonic() - t0) * 1_000_000)
     assert torch.isclose(mask, mask2).all()
     print(f"Parallel: {par_time} us, Sequential: {seq_time} us")
 
 
-def asserts(msg: str, fn: Callable, *args):
-    try:
-        fn(*args)
-        raise AssertionError(f"Expected {msg}")
-    except Exception as e:
-        if msg in str(e):
-            return
-        raise AssertionError(f"Expected {msg}, got {e}")
+@pytest.mark.parametrize("recent_tokens", [[], [1000, 3003]])
+def test_tokenize_partial_basic(recent_tokens: List[int]) -> None:
+    """Test tokenize_partial with a simple sentence."""
+    ll_tok = tokenizer()
+    assert ll_tok.is_canonical
+    new_tokens, leftover = ll_tok.tokenize_partial(b" How are you",
+                                                   recent_tokens=recent_tokens)
+    assert isinstance(new_tokens, list)
+    assert isinstance(leftover, bytes)
+    assert len(new_tokens) >= 2
+    assert ll_tok.decode_bytes(new_tokens) + leftover == b" How are you"
+    for suff in ["", "r", "!", " "]:
+        tok2 = ll_tok.tokenize_str(" How are you" + suff)
+        assert tok2[0:len(new_tokens)] == new_tokens
 
 
-def test_par_errors():
-    t = tokenizer()
-    exec = LLExecutor()
-    g0 = lark_interp(r"start: /[a-zA-Z ]*/")
-    g1 = lark_interp(r"start: /[0-9 ]*/")
-    mask = allocate_token_bitmask(3, t.vocab_size)
-    asserts("count mismatch", fill_next_token_bitmask_par, exec, [g0, g1], mask)
-    asserts("Duplicate interpreter", fill_next_token_bitmask_par, exec, [g0, g1, g1], mask)
-    # should be OK
-    fill_next_token_bitmask_par(exec, [g0, g1], mask[0:2, :])
+def test_tokenize_partial_docs() -> None:
+    ll = tokenizer()
+    new_tok, leftover = ll.tokenize_partial(b'order')
+    assert len(new_tok) == 0
+    assert leftover == b'order'
+
+    recent = ll.tokenize_bytes(b'{"')
+    new_tok, leftover = ll.tokenize_partial(b'name_of_the_person"',
+                                            recent_tokens=recent)
+    print(ll.dbg_tokens(new_tok))
+    assert leftover == b'"'
+    assert ll.decode_str(new_tok) == "name_of_the_person"
 
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@ pub struct TokenParser {
     eos_token: TokenId,
 
     is_accepting_cache: Option<bool>,
+    ff_tokens_cache: Option<(Vec<TokenId>, Vec<u8>)>,
     stop_reason: StopReason,
     error_message: Option<String>,
     max_tokens_total: usize,
@@ -117,6 +118,7 @@ impl TokenParser {
             last_step_stats: ParserStats::default(),
             compute_mask_start_time,
             is_accepting_cache: None,
+            ff_tokens_cache: None,
             stop_reason: StopReason::NotStopped,
             error_message: None,
             parser,
@@ -281,6 +283,11 @@ impl TokenParser {
         res_prompt
     }
 
+    fn clear_caches(&mut self) {
+        self.is_accepting_cache = None;
+        self.ff_tokens_cache = None;
+    }
+
     fn stop(&mut self, warn: &str, reason: StopReason) -> anyhow::Error {
         if !warn.is_empty() {
             self.error_message = Some(warn.to_string());
@@ -313,6 +320,10 @@ impl TokenParser {
     pub fn validate_token(&mut self, token: TokenId) -> Result<bool> {
         self.check_initialized("validate_token")?;
         self.validate_tokens_raw(&[token]).map(|n| n > 0)
+    }
+
+    pub fn reset(&mut self) -> Result<()> {
+        self.rollback(self.llm_tokens.len())
     }
 
     pub fn rollback(&mut self, n_tokens: usize) -> Result<()> {
@@ -355,11 +366,11 @@ impl TokenParser {
 
         self.parser.rollback(bytes_to_drop)?;
 
-        self.is_accepting_cache = None;
         self.max_tokens_total = self.max_tokens_total.saturating_add(n_tokens);
         self.llm_tokens.truncate(new_len);
         self.llm_bytes
             .truncate(self.llm_bytes.len() - bytes_to_drop);
+        self.clear_caches();
 
         Ok(())
     }
@@ -372,6 +383,16 @@ impl TokenParser {
 
         if tokens.is_empty() {
             return Ok(0);
+        }
+
+        let n_vocab = self.tok_trie().vocab_size();
+        for &t in tokens {
+            if t as usize >= n_vocab {
+                return Err(self.stop(
+                    &format!("token id {} out of range", t),
+                    StopReason::InternalError,
+                ));
+            }
         }
 
         let n_valid = self.parser.validate_tokens(tokens);
@@ -402,9 +423,11 @@ impl TokenParser {
 
         infoln!(self, "compute_mask");
 
-        // if ff_tokens is enabled, we assume the user has already called compute_ff_tokens()
-        let prefix = if !self.inference_caps.ff_tokens && self.can_force_bytes() {
-            let (ff_tokens, token_prefix) = self.ff_tokens();
+        let prefix = if self.can_force_bytes() {
+            let (ff_tokens, token_prefix) = self
+                .ff_tokens_cache
+                .take()
+                .unwrap_or_else(|| self.ff_tokens());
             if !ff_tokens.is_empty() {
                 let t = ff_tokens[0];
                 infoln!(self, "forcing ff_token by mask: {}", t);
@@ -417,7 +440,7 @@ impl TokenParser {
             }
         } else {
             let mut trg = Vec::new();
-            self.compute_ff_bytes(&mut trg);
+            self.compute_ff_bytes_to(&mut trg);
             trg
         };
 
@@ -446,8 +469,17 @@ impl TokenParser {
     }
 
     fn apply_token(&mut self, tok_id: TokenId) -> Result<usize> {
+        self.clear_caches();
+
         let trie = self.token_env.tok_trie();
-        self.is_accepting_cache = None;
+
+        if (tok_id as usize) >= trie.vocab_size() {
+            return Err(self.stop(
+                &format!("token id {} out of range", tok_id),
+                StopReason::InternalError,
+            ));
+        }
+
         self.llm_tokens.push(tok_id);
 
         let tok_bytes = trie.decode_raw(&[tok_id]);
@@ -566,12 +598,22 @@ impl TokenParser {
         !self.parser.grammar().lexer_spec().no_forcing && self.token_env.tokenize_is_canonical()
     }
 
-    fn compute_ff_bytes(&mut self, trg: &mut Vec<u8>) {
+    pub fn force_bytes(&mut self) -> Vec<u8> {
+        self.parser.force_bytes();
+        let mut trg = Vec::new();
+        self.compute_ff_bytes_inner(&mut trg);
+        trg
+    }
+
+    fn compute_ff_bytes_to(&mut self, trg: &mut Vec<u8>) {
         // PERF: in some cases, this may be long
         if self.can_force_bytes() {
             self.parser.force_bytes();
         }
+        self.compute_ff_bytes_inner(trg);
+    }
 
+    fn compute_ff_bytes_inner(&mut self, trg: &mut Vec<u8>) {
         // handle grm_prefix we might have injected
         if self.llm_bytes.len() < self.grm_prefix.len() {
             let inject = &self.grm_prefix[self.llm_bytes.len()..];
@@ -601,7 +643,7 @@ impl TokenParser {
         };
         let num_existing_bytes = forced_bytes.len();
 
-        self.compute_ff_bytes(&mut forced_bytes);
+        self.compute_ff_bytes_to(&mut forced_bytes);
 
         let mut token_prefix = Vec::new();
 
@@ -650,10 +692,15 @@ impl TokenParser {
             self.parser.perf_counters().tokenize_ff.record(t0.elapsed());
 
             if !grm_tokens.is_empty() {
-                infoln!(self, "fixed_tokens: {}", trie.tokens_dbg(&grm_tokens));
+                infoln!(
+                    self,
+                    "fixed_tokens: {}; prefix len {}",
+                    trie.tokens_dbg(&grm_tokens),
+                    token_prefix.len()
+                );
                 return (grm_tokens, token_prefix);
             } else {
-                infoln!(self, "no fixed tokens");
+                infoln!(self, "no fixed tokens; prefix len {}", token_prefix.len());
             }
         } else if forced_bytes.len() > num_existing_bytes {
             infoln!(self, "not-forcing {} bytes", forced_bytes.len());
@@ -783,8 +830,11 @@ impl TokenParser {
     /// Check if there are any tokens to fast-forward, forced by the current
     /// parser state.
     pub fn compute_ff_tokens(&mut self) -> Vec<TokenId> {
-        // force after scanning tokens from LLM (this may walk the parser some more)
-        self.ff_tokens().0
+        let r = self.ff_tokens();
+        if self.can_force_bytes() {
+            self.ff_tokens_cache = Some(r.clone());
+        }
+        r.0
     }
 
     /// Compute and then consume fast-forward tokens.

@@ -1,6 +1,9 @@
+# mypy: ignore-errors
+
 import torch
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 from typing import List, Tuple
 
@@ -11,13 +14,13 @@ import llguidance.torch
 try:
     import llguidance.mlx as ll_mlx
 except ImportError:
-    ll_mlx = None
+    ll_mlx = None # type: ignore
 
 has_cuda = torch.cuda.is_available()
 dev = "cuda" if has_cuda else "cpu"
 
 
-def u32_to_bool(arr: np.ndarray) -> np.ndarray:
+def u32_to_bool(arr: NDArray[np.uint32]) -> NDArray[np.uint8]:
     arr = arr.astype(np.uint32)
     bool_arr = np.unpackbits(arr.view(np.uint8), bitorder="little").reshape(
         arr.shape[0], arr.shape[1] * 32
@@ -25,7 +28,7 @@ def u32_to_bool(arr: np.ndarray) -> np.ndarray:
     return bool_arr
 
 
-def measure_gpu_time(func, *args, **kwargs):
+def measure_gpu_time(func, *args, **kwargs): # type: ignore
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
 

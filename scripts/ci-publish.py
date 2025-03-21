@@ -27,6 +27,12 @@ def update_dependency(crate, version):
         f'toktrie = {{ version = "{version}" }}',
         content
     )
+    updated_content = re.sub(
+        r'toktrie_hf_tokenizers\s*=\s*\{ workspace = true \}',
+        f'toktrie_hf_tokenizers = {{ version = "{version}" }}',
+        updated_content
+    )
+
 
     with open(cargo_toml_path, "w") as f:
         f.write(updated_content)
@@ -51,7 +57,7 @@ def main():
     publish_crate("toktrie")
 
     # Publish dependent crates
-    for crate in ["toktrie_hf_tokenizers", "parser"]:
+    for crate in ["toktrie_hf_tokenizers", "toktrie_hf_downloader", "parser"]:
         print(f"Updating {crate} to use toktrie v{toktrie_version}...")
         original_content = update_dependency(crate, toktrie_version)
 
