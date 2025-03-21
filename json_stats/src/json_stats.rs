@@ -48,6 +48,10 @@ pub struct CliOptions {
     #[arg(long)]
     llg_masks: bool,
 
+    /// Don't run any llg tests, just re-write test files
+    #[arg(long)]
+    rewrite_files: bool,
+
     /// Disable the slicer optimization
     #[arg(long)]
     llg_disable_slicer: bool,
@@ -885,7 +889,11 @@ impl TestEnv {
 fn main() {
     let mut options = CliOptions::parse();
 
-    if !options.llg_validate_tokens && !options.llg_masks && !options.llg_compile {
+    if !options.llg_validate_tokens
+        && !options.llg_masks
+        && !options.llg_compile
+        && !options.rewrite_files
+    {
         options.llg_masks = true;
     }
     if options.llg_masks {
