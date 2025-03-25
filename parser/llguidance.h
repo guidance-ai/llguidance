@@ -417,11 +417,43 @@ struct LlgMatcher *llg_new_matcher(const struct LlgConstraintInit *init,
 /**
  * Compute the set of allowed tokens for the current state.
  * The result is written to mask_dest.
- * Returns 0 on success and -1 on error (use llg_matcher_get_error() to get the exact error).
+ * mask_byte_len must be equal to llg_matcher_get_mask_byte_size().
+ * Returns 0 on success and -1 on error.
  */
-int32_t llg_matcher_compute_mask(struct LlgMatcher *matcher,
-                                 uint32_t *mask_dest,
-                                 size_t mask_byte_len);
+int32_t llg_matcher_compute_mask_into(struct LlgMatcher *matcher,
+                                      uint32_t *mask_dest,
+                                      size_t mask_byte_len);
+
+/**
+ * Compute the set of allowed tokens for the current state.
+ * The pointer to the result is written to mask_dest.
+ * Returns 0 on success and -1 on error.
+ */
+int32_t llg_matcher_compute_mask(struct LlgMatcher *matcher);
+
+/**
+ * Return pointer to the mask computed by llg_matcher_compute_mask(), if any.
+ */
+const uint32_t *llg_matcher_get_mask(struct LlgMatcher *matcher);
+
+/**
+ * Return pointer to the mask computed by llg_matcher_compute_mask(), if any.
+ */
+size_t llg_matcher_get_mask_byte_size(struct LlgMatcher *matcher);
+
+/**
+ * Advance the matcher by one token.
+ * Returns 0 on success and -1 on error.
+ */
+int32_t llg_matcher_consume_token(struct LlgMatcher *matcher, uint32_t token);
+
+/**
+ * Advance the matcher by several tokens.
+ * Returns 0 on success and -1 on error.
+ */
+int32_t llg_matcher_consume_tokens(struct LlgMatcher *matcher,
+                                   const uint32_t *tokens,
+                                   size_t n_tokens);
 
 /**
  * Get the error message from the matcher or null if there is no error.
@@ -465,20 +497,6 @@ bool llg_matcher_is_accepting(struct LlgMatcher *matcher);
 bool llg_matcher_is_stopped(const struct LlgMatcher *matcher);
 
 /**
- * Advance the matcher by one token.
- * Returns 0 on success and -1 on error.
- */
-int32_t llg_matcher_consume_token(struct LlgMatcher *matcher, uint32_t token);
-
-/**
- * Advance the matcher by several tokens.
- * Returns 0 on success and -1 on error.
- */
-int32_t llg_matcher_consume_tokens(struct LlgMatcher *matcher,
-                                   const uint32_t *tokens,
-                                   size_t n_tokens);
-
-/**
  * Check how many tokens can be consumed from the given tokens.
  * Returns the number of tokens that can be consumed, or -1 on error.
  */
@@ -494,6 +512,11 @@ int32_t llg_matcher_validate_tokens(struct LlgMatcher *matcher,
 int32_t llg_matcher_compute_ff_tokens(struct LlgMatcher *matcher,
                                       uint32_t *output,
                                       size_t output_len);
+
+/**
+ * Clone the matcher.
+ */
+struct LlgMatcher *llg_clone_matcher(const struct LlgMatcher *matcher);
 
 #ifdef __cplusplus
 }  // extern "C"

@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::{bail, ensure, Result};
-use toktrie::{InferenceCapabilities, TokEnv, TokRxInfo, TokTrie, TokenizerEnv};
+use toktrie::{InferenceCapabilities, SimpleVob, TokEnv, TokRxInfo, TokTrie, TokenizerEnv};
 
 use crate::{
     api::{ParserLimits, TopLevelGrammar},
@@ -825,6 +825,25 @@ pub unsafe extern "C" fn llg_free_stop_controller(stop_ctrl: *mut LlgStopControl
 pub struct LlgMatcher {
     last_error: Option<String>,
     matcher: Matcher,
+    saved_mask: Option<SimpleVob>,
+    tok_env: TokEnv,
+}
+
+impl LlgMatcher {
+    fn wrap(&mut self, f: impl FnOnce(&mut Matcher) -> Result<i32>) -> i32 {
+        if self.matcher.is_error() {
+            return -1;
+        }
+        f(&mut self.matcher).unwrap_or(-1)
+    }
+
+    fn clear_mask(&mut self) {
+        self.saved_mask = None;
+    }
+
+    fn mask_elts(&self) -> usize {
+        (self.tok_env.tok_trie().vocab_size() + 31) / 32
+    }
 }
 
 /// Create a new matcher from the given ConstraintInit
@@ -858,41 +877,99 @@ pub unsafe extern "C" fn llg_new_matcher(
     Box::into_raw(Box::new(LlgMatcher {
         matcher,
         last_error: None,
+        saved_mask: None,
+        tok_env: init.tok_env().unwrap(),
     }))
-}
-
-impl LlgMatcher {
-    fn wrap(&mut self, f: impl FnOnce(&mut Matcher) -> Result<i32>) -> i32 {
-        if self.matcher.is_error() {
-            return -1;
-        }
-        f(&mut self.matcher).unwrap_or(-1)
-    }
 }
 
 /// Compute the set of allowed tokens for the current state.
 /// The result is written to mask_dest.
-/// Returns 0 on success and -1 on error (use llg_matcher_get_error() to get the exact error).
+/// mask_byte_len must be equal to llg_matcher_get_mask_byte_size().
+/// Returns 0 on success and -1 on error.
 /// # Safety
 /// This function should only be called from C code.
 #[no_mangle]
-pub unsafe extern "C" fn llg_matcher_compute_mask(
+pub unsafe extern "C" fn llg_matcher_compute_mask_into(
     matcher: &mut LlgMatcher,
     mask_dest: *mut u32,
     mask_byte_len: usize,
 ) -> i32 {
+    let n_elts = matcher.mask_elts();
     matcher.wrap(|m| {
-        let v = m.compute_mask()?;
-        let v = v.as_slice();
+        // this may become more optimized in the future (no copy)
+        let vob = m.compute_mask_or_eos()?;
+        let slc = &vob.as_slice()[0..n_elts];
         ensure!(
-            std::mem::size_of_val(v) == mask_byte_len,
+            std::mem::size_of_val(slc) == mask_byte_len,
             "mask_dest size mismatch: expected {}, got {}",
             mask_byte_len,
-            std::mem::size_of_val(v)
+            std::mem::size_of_val(slc)
         );
         unsafe {
-            std::ptr::copy_nonoverlapping(v.as_ptr(), mask_dest, v.len());
+            std::ptr::copy_nonoverlapping(slc.as_ptr(), mask_dest, slc.len());
         }
+        Ok(0)
+    })
+}
+
+/// Compute the set of allowed tokens for the current state.
+/// The pointer to the result is written to mask_dest.
+/// Returns 0 on success and -1 on error.
+#[no_mangle]
+pub extern "C" fn llg_matcher_compute_mask(matcher: &mut LlgMatcher) -> i32 {
+    matcher.clear_mask();
+    if matcher.matcher.is_error() {
+        return -1;
+    }
+
+    if let Ok(v) = matcher.matcher.compute_mask_or_eos() {
+        matcher.saved_mask = Some(v);
+        0
+    } else {
+        -1
+    }
+}
+
+/// Return pointer to the mask computed by llg_matcher_compute_mask(), if any.
+#[no_mangle]
+pub extern "C" fn llg_matcher_get_mask(matcher: &mut LlgMatcher) -> *const u32 {
+    matcher
+        .saved_mask
+        .as_ref()
+        .map_or(std::ptr::null(), |m| m.as_ptr())
+}
+
+/// Return pointer to the mask computed by llg_matcher_compute_mask(), if any.
+#[no_mangle]
+pub extern "C" fn llg_matcher_get_mask_byte_size(matcher: &mut LlgMatcher) -> usize {
+    matcher.mask_elts() * 4
+}
+
+/// Advance the matcher by one token.
+/// Returns 0 on success and -1 on error.
+#[no_mangle]
+pub extern "C" fn llg_matcher_consume_token(matcher: &mut LlgMatcher, token: u32) -> i32 {
+    matcher.clear_mask();
+    matcher.wrap(|m| {
+        m.consume_tokens(&[token])?;
+        Ok(0)
+    })
+}
+
+/// Advance the matcher by several tokens.
+/// Returns 0 on success and -1 on error.
+/// # Safety
+/// This function should only be called from C code.
+#[no_mangle]
+pub unsafe extern "C" fn llg_matcher_consume_tokens(
+    matcher: &mut LlgMatcher,
+    tokens: *const u32,
+    n_tokens: usize,
+) -> i32 {
+    matcher.clear_mask();
+    let tokens = unsafe { std::slice::from_raw_parts(tokens, n_tokens) };
+    matcher.wrap(|m| {
+        m.consume_tokens(tokens)?;
         Ok(0)
     })
 }
@@ -935,6 +1012,7 @@ pub unsafe extern "C" fn llg_free_matcher(matcher: *mut LlgMatcher) {
 /// Returns 0 on success and -1 on error.
 #[no_mangle]
 pub extern "C" fn llg_matcher_rollback(matcher: &mut LlgMatcher, num_tokens: usize) -> i32 {
+    matcher.clear_mask();
     matcher.wrap(|m| {
         m.rollback(num_tokens)?;
         Ok(0)
@@ -946,6 +1024,7 @@ pub extern "C" fn llg_matcher_rollback(matcher: &mut LlgMatcher, num_tokens: usi
 /// Returns 0 on success and -1 on error.
 #[no_mangle]
 pub extern "C" fn llg_matcher_reset(matcher: &mut LlgMatcher) -> i32 {
+    matcher.clear_mask();
     matcher.wrap(|m| {
         m.reset()?;
         Ok(0)
@@ -963,33 +1042,6 @@ pub extern "C" fn llg_matcher_is_accepting(matcher: &mut LlgMatcher) -> bool {
 #[no_mangle]
 pub extern "C" fn llg_matcher_is_stopped(matcher: &LlgMatcher) -> bool {
     matcher.matcher.is_stopped()
-}
-
-/// Advance the matcher by one token.
-/// Returns 0 on success and -1 on error.
-#[no_mangle]
-pub extern "C" fn llg_matcher_consume_token(matcher: &mut LlgMatcher, token: u32) -> i32 {
-    matcher.wrap(|m| {
-        m.consume_tokens(&[token])?;
-        Ok(0)
-    })
-}
-
-/// Advance the matcher by several tokens.
-/// Returns 0 on success and -1 on error.
-/// # Safety
-/// This function should only be called from C code.
-#[no_mangle]
-pub unsafe extern "C" fn llg_matcher_consume_tokens(
-    matcher: &mut LlgMatcher,
-    tokens: *const u32,
-    n_tokens: usize,
-) -> i32 {
-    let tokens = unsafe { std::slice::from_raw_parts(tokens, n_tokens) };
-    matcher.wrap(|m| {
-        m.consume_tokens(tokens)?;
-        Ok(0)
-    })
 }
 
 /// Check how many tokens can be consumed from the given tokens.
@@ -1026,4 +1078,15 @@ pub unsafe extern "C" fn llg_matcher_compute_ff_tokens(
         }
         Ok(len as i32)
     })
+}
+
+/// Clone the matcher.
+#[no_mangle]
+pub extern "C" fn llg_clone_matcher(matcher: &LlgMatcher) -> *mut LlgMatcher {
+    Box::into_raw(Box::new(LlgMatcher {
+        matcher: matcher.matcher.deep_clone(),
+        last_error: matcher.last_error.clone(),
+        saved_mask: None,
+        tok_env: matcher.tok_env.clone(),
+    }))
 }

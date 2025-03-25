@@ -57,6 +57,16 @@ impl Matcher {
         }
     }
 
+    pub fn deep_clone(&self) -> Self {
+        match &self.0 {
+            MatcherState::Normal(inner) => {
+                let parser = inner.parser.deep_clone();
+                Self::new(Ok(parser))
+            }
+            MatcherState::Error(_) => self.clone(),
+        }
+    }
+
     /// Advance the parser by one token.
     /// Also checks if the parser should stop after consuming the tokens
     /// and puts the parser in stop state if necessary.
@@ -82,6 +92,20 @@ impl Matcher {
     /// Compute which tokens can be consumed in the current state.
     pub fn compute_mask(&mut self) -> Result<SimpleVob> {
         self.with_inner(|inner| inner.parser.compute_mask())
+    }
+
+    /// Compute which tokens can be consumed in the current state.
+    /// Returns a mask with just the EOS token if the parser is stopped.
+    /// May still fail if the parser is in an error state.
+    pub fn compute_mask_or_eos(&mut self) -> Result<SimpleVob> {
+        self.with_inner(|inner| {
+            if inner.parser.stop_reason() != StopReason::NotStopped {
+                let trie = inner.parser.token_env.tok_trie();
+                Ok(trie.singleton_token_set(trie.eos_token()))
+            } else {
+                inner.parser.compute_mask()
+            }
+        })
     }
 
     /// Can the grammar be finished in the current state?
