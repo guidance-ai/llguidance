@@ -371,13 +371,21 @@ impl TokTrie {
     }
 
     pub fn decode(&self, tokens: &[TokenId]) -> Vec<u8> {
+        self.decode_ext(tokens, true)
+    }
+
+    pub fn decode_ext(&self, tokens: &[TokenId], include_special: bool) -> Vec<u8> {
         let mut res = Vec::with_capacity(tokens.len() * 6 + 32); // approximately
         for &tok in tokens {
             let t = self.token(tok);
             if t.is_empty() {
-                res.extend_from_slice(format!("<[{}]>", tok).as_bytes());
+                if include_special {
+                    res.extend_from_slice(format!("<[{}]>", tok).as_bytes());
+                }
             } else if t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
-                res.extend_from_slice(&t[1..]);
+                if include_special {
+                    res.extend_from_slice(&t[1..]);
+                }
             } else {
                 res.extend_from_slice(t);
             }

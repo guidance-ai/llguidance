@@ -7,6 +7,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define LLG_DECODE_NONE 0
+
+#define LLG_DECODE_INCLUDE_SPECIAL 1
+
+#define LLG_DECODE_VALID_UTF8 2
+
 typedef struct LlgConstraint LlgConstraint;
 
 typedef struct LlgMatcher LlgMatcher;
@@ -342,7 +348,7 @@ size_t llg_tokenize_bytes_marker(const struct LlgTokenizer *tok,
 
 /**
  * Return a string representation of the tokens, useful for debugging.
- * The output is null-terminated.
+ * The output is NUL-terminated.
  * Returns the number of bytes that would be written to output if output_len was large enough.
  */
 size_t llg_stringify_tokens(const struct LlgTokenizer *tok,
@@ -350,6 +356,19 @@ size_t llg_stringify_tokens(const struct LlgTokenizer *tok,
                             size_t n_tokens,
                             char *output,
                             size_t output_len);
+
+/**
+ * Return a string representation of the tokens, useful for debugging.
+ * The output is NUL-terminated.
+ * Returns the number of bytes that would be written to output if output_len was large enough.
+ * flags is one of LLG_DECODE_*
+ */
+size_t llg_decode_tokens(const struct LlgTokenizer *tok,
+                         const uint32_t *tokens,
+                         size_t n_tokens,
+                         char *output,
+                         size_t output_len,
+                         uint32_t flags);
 
 /**
  * Free the tokenizer. Should *NOT* be called while there are still constraints using it.

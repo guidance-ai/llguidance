@@ -677,7 +677,7 @@ pub unsafe extern "C" fn llg_tokenize_bytes_marker(
 }
 
 /// Return a string representation of the tokens, useful for debugging.
-/// The output is null-terminated.
+/// The output is NUL-terminated.
 /// Returns the number of bytes that would be written to output if output_len was large enough.
 /// # Safety
 /// This function should only be called from C code.
@@ -693,6 +693,47 @@ pub unsafe extern "C" fn llg_stringify_tokens(
     let tokens = unsafe { std::slice::from_raw_parts(tokens, n_tokens) };
     let s = trie.tokens_dbg(tokens);
     let s = s.as_bytes();
+    let len = std::cmp::min(s.len(), output_len - 1);
+    unsafe {
+        std::ptr::copy_nonoverlapping(s.as_ptr(), output as *mut u8, len);
+        *output.add(len) = 0;
+    }
+    s.len() + 1
+}
+
+/// Do not include special tokens, and keep invalid UTF-8 as is.
+pub const LLG_DECODE_NONE: u32 = 0;
+
+/// Include special tokens in the output.
+/// They may look like <|something|>, <something_else>, or <[12345]> if they don't have a name.
+pub const LLG_DECODE_INCLUDE_SPECIAL: u32 = 1;
+
+/// Replace invalid UTF-8 with the replacement character.
+pub const LLG_DECODE_VALID_UTF8: u32 = 2;
+
+/// Return a string representation of the tokens, useful for debugging.
+/// The output is NUL-terminated.
+/// Returns the number of bytes that would be written to output if output_len was large enough.
+/// flags is one of LLG_DECODE_*
+/// # Safety
+/// This function should only be called from C code.
+#[no_mangle]
+pub unsafe extern "C" fn llg_decode_tokens(
+    tok: &LlgTokenizer,
+    tokens: *const u32,
+    n_tokens: usize,
+    output: *mut c_char,
+    output_len: usize,
+    flags: u32,
+) -> usize {
+    let trie = tok.token_env.tok_trie();
+    let tokens = unsafe { std::slice::from_raw_parts(tokens, n_tokens) };
+    let s = trie.decode_ext(tokens, flags & LLG_DECODE_INCLUDE_SPECIAL != 0);
+    let s = if flags & LLG_DECODE_VALID_UTF8 != 0 {
+        String::from_utf8_lossy(&s).to_string().into()
+    } else {
+        s
+    };
     let len = std::cmp::min(s.len(), output_len - 1);
     unsafe {
         std::ptr::copy_nonoverlapping(s.as_ptr(), output as *mut u8, len);
