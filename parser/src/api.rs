@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display};
 use anyhow::{bail, Result};
 use derivre::RegexAst;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{
     earley::{lexerspec::LexerSpec, Grammar},
@@ -292,6 +292,26 @@ impl TopLevelGrammar {
         TopLevelGrammar {
             grammars: vec![grammar],
             max_tokens: None,
+        }
+    }
+
+    /// The data is of different format, depending on tag:
+    /// - "regex" - data is regular expression in rust regex format
+    ///   see https://docs.rs/regex/latest/regex/#syntax
+    /// - "json" or "json_schema" - data is (stringifed) JSON schema
+    ///   see https://github.com/guidance-ai/llguidance/blob/main/docs/json_schema.md
+    /// - "json_object" - equivalent to JSON schema: {"type":"object"}
+    /// - "lark" - data is grammar in a variant of Lark syntax
+    ///   see https://github.com/guidance-ai/llguidance/blob/main/docs/syntax.md
+    /// - "llguidance" or "guidance" - data is a list of Lark or JSON schemas in JSON format
+    pub fn from_tagged_str(tag: &str, data: &str) -> Result<Self> {
+        match tag {
+            "regex" => Ok(Self::from_regex(data)),
+            "json" | "json_schema" => Ok(Self::from_json_schema(serde_json::from_str(data)?)),
+            "json_object" => Ok(Self::from_json_schema(json!({"type": "object"}))),
+            "lark" => Ok(Self::from_lark(data.to_string())),
+            "llguidance" | "guidance" => Self::from_lark_or_grammar_list(data),
+            _ => bail!("unknown constraint type: {tag}"),
         }
     }
 }

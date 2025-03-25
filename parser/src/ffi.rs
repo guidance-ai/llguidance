@@ -9,7 +9,7 @@ use toktrie::{InferenceCapabilities, TokEnv, TokRxInfo, TokTrie, TokenizerEnv};
 
 use crate::{
     api::{ParserLimits, TopLevelGrammar},
-    CommitResult, Constraint, Logger, ParserFactory, StopController, TokenParser,
+    CommitResult, Constraint, Logger, Matcher, ParserFactory, StopController, TokenParser,
 };
 
 struct CTokenizerInner {
@@ -351,51 +351,39 @@ impl LlgCommitResult {
 }
 
 unsafe fn c_str_to_str<'a>(c_str: *const c_char, info: &str) -> Result<&'a str> {
+    ensure!(!c_str.is_null(), "{info} is null");
     CStr::from_ptr(c_str)
         .to_str()
         .map_err(|_| anyhow::anyhow!("Invalid UTF-8 in {}", info))
 }
 
-fn new_constraint_regex(init: &LlgConstraintInit, regex: *const c_char) -> Result<Constraint> {
-    let regex = unsafe { c_str_to_str(regex, "regex") }?;
-    let grammar = TopLevelGrammar::from_regex(regex);
+fn new_constraint_str_cstr(
+    init: &LlgConstraintInit,
+    constraint_type: &str,
+    data: *const c_char,
+) -> Result<Constraint> {
+    let data = unsafe { c_str_to_str(data, constraint_type) }?;
+    let grammar = TopLevelGrammar::from_tagged_str(constraint_type, data)?;
     init.build_constraint(grammar)
 }
 
-fn new_constraint_lark(init: &LlgConstraintInit, lark: *const c_char) -> Result<Constraint> {
-    let lark = unsafe { c_str_to_str(lark, "lark") }?;
-    let grammar = TopLevelGrammar::from_lark(lark.to_string());
-    init.build_constraint(grammar)
-}
-
-fn new_constraint_json(init: &LlgConstraintInit, json_schema: *const c_char) -> Result<Constraint> {
-    let json_schema = unsafe { c_str_to_str(json_schema, "json_schema") }?;
-    let json_schema = serde_json::from_str(json_schema)
-        .map_err(|e| anyhow::anyhow!("Invalid JSON in json_schema: {e}"))?;
-    let grammar = TopLevelGrammar::from_json_schema(json_schema);
-    init.build_constraint(grammar)
-}
-
-fn new_constraint(init: &LlgConstraintInit, grammar_json: *const c_char) -> Result<Constraint> {
-    let grammar_json = unsafe { c_str_to_str(grammar_json, "grammar_json") }?;
-    let grammar: TopLevelGrammar = serde_json::from_str(grammar_json)
-        .map_err(|e| anyhow::anyhow!("Invalid JSON in grammar_json: {e}"))?;
-    init.build_constraint(grammar)
-}
-
-fn new_constraint_any(
+fn new_constraint_cstr_cstr(
     init: &LlgConstraintInit,
     constraint_type: *const c_char,
     data: *const c_char,
 ) -> Result<Constraint> {
-    let tp = unsafe { c_str_to_str(constraint_type, "constraint_type") }?;
-    match tp {
-        "regex" => new_constraint_regex(init, data),
-        "json" | "json_schema" => new_constraint_json(init, data),
-        "lark" => new_constraint_lark(init, data),
-        "llguidance" | "guidance" => new_constraint(init, data),
-        _ => bail!("unknown constraint type: {tp}"),
-    }
+    let constraint_type = unsafe { c_str_to_str(constraint_type, "constraint_type") }?;
+    let data = unsafe { c_str_to_str(data, "data") }?;
+    let grammar = TopLevelGrammar::from_tagged_str(constraint_type, data)?;
+    init.build_constraint(grammar)
+}
+
+fn new_constraint_tagged(
+    init: &LlgConstraintInit,
+    constraint_type: &str,
+    data: *const c_char,
+) -> *mut LlgConstraint {
+    constraint_to_llg(new_constraint_str_cstr(init, constraint_type, data))
 }
 
 impl LlgConstraint {
@@ -455,9 +443,9 @@ pub fn constraint_to_llg(c: Result<Constraint>) -> *mut LlgConstraint {
 #[no_mangle]
 pub extern "C" fn llg_new_constraint(
     init: &LlgConstraintInit,
-    grammar_json: *const c_char,
+    llguidance: *const c_char,
 ) -> *mut LlgConstraint {
-    constraint_to_llg(new_constraint(init, grammar_json))
+    new_constraint_tagged(init, "llguidance", llguidance)
 }
 
 /// Create a new constraint from a given regular expression
@@ -467,7 +455,7 @@ pub extern "C" fn llg_new_constraint_regex(
     init: &LlgConstraintInit,
     regex: *const c_char,
 ) -> *mut LlgConstraint {
-    constraint_to_llg(new_constraint_regex(init, regex))
+    new_constraint_tagged(init, "regex", regex)
 }
 
 /// Create a new constraint from a given JSON schema
@@ -477,7 +465,7 @@ pub extern "C" fn llg_new_constraint_json(
     init: &LlgConstraintInit,
     json_schema: *const c_char,
 ) -> *mut LlgConstraint {
-    constraint_to_llg(new_constraint_json(init, json_schema))
+    new_constraint_tagged(init, "json_schema", json_schema)
 }
 
 /// Create a new constraint from a given lark grammar
@@ -487,7 +475,7 @@ pub extern "C" fn llg_new_constraint_lark(
     init: &LlgConstraintInit,
     lark: *const c_char,
 ) -> *mut LlgConstraint {
-    constraint_to_llg(new_constraint_lark(init, lark))
+    new_constraint_tagged(init, "lark", lark)
 }
 
 /// Create a new constraint with specified type
@@ -499,7 +487,7 @@ pub extern "C" fn llg_new_constraint_any(
     constraint_type: *const c_char,
     data: *const c_char,
 ) -> *mut LlgConstraint {
-    constraint_to_llg(new_constraint_any(init, constraint_type, data))
+    constraint_to_llg(new_constraint_cstr_cstr(init, constraint_type, data))
 }
 
 /// Get the error message from the constraint or null if there is no error.
@@ -832,4 +820,210 @@ pub unsafe extern "C" fn llg_free_stop_controller(stop_ctrl: *mut LlgStopControl
     unsafe {
         drop(Box::from_raw(stop_ctrl));
     }
+}
+
+pub struct LlgMatcher {
+    last_error: Option<String>,
+    matcher: Matcher,
+}
+
+/// Create a new matcher from the given ConstraintInit
+/// Always returns a non-null value. Call llg_matcher_get_error() on the result to check for errors.
+/// init.ff_tokens_ok and init.backtrack_ok are ignored
+/// (backtracking is always disabled, and ff_tokens can be retrieved using llg_matcher_compute_ff_tokens()).
+/// The data is of different format, depending on constraint_type:
+/// - "regex" - data is regular expression in rust regex format
+///   see https://docs.rs/regex/latest/regex/#syntax
+/// - "json" or "json_schema" - data is (stringifed) JSON schema
+///   see https://github.com/guidance-ai/llguidance/blob/main/docs/json_schema.md
+/// - "json_object" - equivalent to JSON schema: {"type":"object"}
+/// - "lark" - data is grammar in a variant of Lark syntax
+///   see https://github.com/guidance-ai/llguidance/blob/main/docs/syntax.md
+/// - "llguidance" or "guidance" - data is a list of Lark or JSON schemas in JSON format
+/// # Safety
+/// This function should only be called from C code.
+#[no_mangle]
+pub unsafe extern "C" fn llg_new_matcher(
+    init: &LlgConstraintInit,
+    constraint_type: *const c_char,
+    data: *const c_char,
+) -> *mut LlgMatcher {
+    let parser = || {
+        let tp = unsafe { c_str_to_str(constraint_type, "constraint_type") }?;
+        let data = unsafe { c_str_to_str(data, "data") }?;
+        let grammar = TopLevelGrammar::from_tagged_str(tp, data)?;
+        init.build_parser(grammar, vec![])
+    };
+    let matcher = Matcher::new(parser());
+    Box::into_raw(Box::new(LlgMatcher {
+        matcher,
+        last_error: None,
+    }))
+}
+
+impl LlgMatcher {
+    fn wrap(&mut self, f: impl FnOnce(&mut Matcher) -> Result<i32>) -> i32 {
+        if self.matcher.is_error() {
+            return -1;
+        }
+        f(&mut self.matcher).unwrap_or(-1)
+    }
+}
+
+/// Compute the set of allowed tokens for the current state.
+/// The result is written to mask_dest.
+/// Returns 0 on success and -1 on error (use llg_matcher_get_error() to get the exact error).
+/// # Safety
+/// This function should only be called from C code.
+#[no_mangle]
+pub unsafe extern "C" fn llg_matcher_compute_mask(
+    matcher: &mut LlgMatcher,
+    mask_dest: *mut u32,
+    mask_byte_len: usize,
+) -> i32 {
+    matcher.wrap(|m| {
+        let v = m.compute_mask()?;
+        let v = v.as_slice();
+        ensure!(
+            std::mem::size_of_val(v) == mask_byte_len,
+            "mask_dest size mismatch: expected {}, got {}",
+            mask_byte_len,
+            std::mem::size_of_val(v)
+        );
+        unsafe {
+            std::ptr::copy_nonoverlapping(v.as_ptr(), mask_dest, v.len());
+        }
+        Ok(0)
+    })
+}
+
+/// Get the error message from the matcher or null if there is no error.
+/// After it returns a non-null value, it will always return it until the matcher is freed
+/// using llg_free_matcher() (at which point the pointer will be invalid).
+/// # Safety
+/// This function should only be called from C code.
+#[no_mangle]
+pub unsafe extern "C" fn llg_matcher_get_error(matcher: &mut LlgMatcher) -> *const c_char {
+    if !matcher.matcher.is_error() {
+        return std::ptr::null();
+    }
+    if matcher.last_error.is_none() {
+        let mut err = matcher.matcher.get_error().unwrap();
+        err.push('\0');
+        matcher.last_error = Some(err);
+    }
+    matcher.last_error.as_ref().unwrap().as_ptr() as *const c_char
+}
+
+/// Check if the matcher is in an error state.
+#[no_mangle]
+pub extern "C" fn llg_matcher_is_error(matcher: &mut LlgMatcher) -> bool {
+    matcher.matcher.is_error()
+}
+
+/// Free the matcher.
+/// # Safety
+/// This function should only be called from C code.
+#[no_mangle]
+pub unsafe extern "C" fn llg_free_matcher(matcher: *mut LlgMatcher) {
+    unsafe {
+        drop(Box::from_raw(matcher));
+    }
+}
+
+/// Backtracks the matcher states by num_tokens.
+/// Returns 0 on success and -1 on error.
+#[no_mangle]
+pub extern "C" fn llg_matcher_rollback(matcher: &mut LlgMatcher, num_tokens: usize) -> i32 {
+    matcher.wrap(|m| {
+        m.rollback(num_tokens)?;
+        Ok(0)
+    })
+}
+
+/// Resets the matcher to the initial state.
+/// A matcher in error state cannot be reset.
+/// Returns 0 on success and -1 on error.
+#[no_mangle]
+pub extern "C" fn llg_matcher_reset(matcher: &mut LlgMatcher) -> i32 {
+    matcher.wrap(|m| {
+        m.reset()?;
+        Ok(0)
+    })
+}
+
+/// Check if the grammar can fully accept the input.
+#[no_mangle]
+pub extern "C" fn llg_matcher_is_accepting(matcher: &mut LlgMatcher) -> bool {
+    matcher.matcher.is_accepting().unwrap_or(false)
+}
+
+/// Check if the matcher will force EOS token.
+/// This returns true also in error state, as that is a forced stop.
+#[no_mangle]
+pub extern "C" fn llg_matcher_is_stopped(matcher: &LlgMatcher) -> bool {
+    matcher.matcher.is_stopped()
+}
+
+/// Advance the matcher by one token.
+/// Returns 0 on success and -1 on error.
+#[no_mangle]
+pub extern "C" fn llg_matcher_consume_token(matcher: &mut LlgMatcher, token: u32) -> i32 {
+    matcher.wrap(|m| {
+        m.consume_tokens(&[token])?;
+        Ok(0)
+    })
+}
+
+/// Advance the matcher by several tokens.
+/// Returns 0 on success and -1 on error.
+/// # Safety
+/// This function should only be called from C code.
+#[no_mangle]
+pub unsafe extern "C" fn llg_matcher_consume_tokens(
+    matcher: &mut LlgMatcher,
+    tokens: *const u32,
+    n_tokens: usize,
+) -> i32 {
+    let tokens = unsafe { std::slice::from_raw_parts(tokens, n_tokens) };
+    matcher.wrap(|m| {
+        m.consume_tokens(tokens)?;
+        Ok(0)
+    })
+}
+
+/// Check how many tokens can be consumed from the given tokens.
+/// Returns the number of tokens that can be consumed, or -1 on error.
+/// # Safety
+/// This function should only be called from C code.
+#[no_mangle]
+pub unsafe extern "C" fn llg_matcher_validate_tokens(
+    matcher: &mut LlgMatcher,
+    tokens: *const u32,
+    n_tokens: usize,
+) -> i32 {
+    let tokens = unsafe { std::slice::from_raw_parts(tokens, n_tokens) };
+    matcher.wrap(|m| m.validate_tokens(tokens).map(|v| v.try_into().unwrap()))
+}
+
+/// Compute the fast-forward (forced) tokens for the current state.
+/// The result is written to output.
+/// Returns the number of tokens written to output (which can be 0) or -1 on error.
+/// # Safety
+/// This function should only be called from C code.
+#[no_mangle]
+pub unsafe extern "C" fn llg_matcher_compute_ff_tokens(
+    matcher: &mut LlgMatcher,
+    output: *mut u32,
+    output_len: usize,
+) -> i32 {
+    matcher.wrap(|m| {
+        let v = m.compute_ff_tokens();
+        let v = v.as_slice();
+        let len = std::cmp::min(v.len(), output_len);
+        unsafe {
+            std::ptr::copy_nonoverlapping(v.as_ptr(), output, v.len());
+        }
+        Ok(len as i32)
+    })
 }
