@@ -8,12 +8,17 @@ use anyhow::{anyhow, bail, ensure, Result};
 pub struct Parser {
     tokens: Vec<Lexeme>,
     pos: usize,
+    pending_nested: Vec<Vec<Lexeme>>,
 }
 
 impl Parser {
     /// Creates a new parser instance.
     pub fn new(tokens: Vec<Lexeme>) -> Self {
-        Parser { tokens, pos: 0 }
+        Parser {
+            tokens,
+            pos: 0,
+            pending_nested: Vec::new(),
+        }
     }
 
     /// Parses the start symbol of the grammar.
@@ -245,6 +250,34 @@ impl Parser {
                 v => bail!("expected JSON value, got {}", v),
             };
             Ok(Statement::LLGuidance(value))
+        } else if self.match_token(Token::KwNest) {
+            let mut nesting_level = 1;
+            let mut endp = self.pos;
+            while endp < self.tokens.len() {
+                let t = self.tokens[endp].token;
+                if t == Token::KwNest {
+                    nesting_level += 1;
+                } else if t == Token::KwEndNest {
+                    nesting_level -= 1;
+                }
+                if nesting_level == 0 {
+                    break;
+                }
+                endp += 1;
+            }
+            if nesting_level > 0 {
+                bail!("Unmatched @{{");
+            }
+            self.pos = endp + 1;
+            let mut inner = Vec::with_capacity(endp - self.pos);
+            for t in self.tokens[self.pos..endp].iter_mut() {
+                inner.push(t.take());
+            }
+
+            self.pending_nested.push(inner);
+
+            // return no-op
+            Ok(Statement::LLGuidance(serde_json::json!({})))
         } else {
             bail!("expecting rule, token or statement")
         }
