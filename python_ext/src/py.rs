@@ -371,11 +371,18 @@ impl RegexCompiler {
     }
 }
 
+#[pyfunction]
+#[pyo3(signature = (regex, use_ascii = None))]
+fn regex_to_lark(regex: &str, use_ascii: Option<&str>) -> String {
+    llguidance::regex_to_lark(regex, use_ascii.unwrap_or(""))
+}
+
 pub(crate) fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<LLTokenizer>()?;
     m.add_class::<JsonCompiler>()?;
     m.add_class::<LarkCompiler>()?;
     m.add_class::<RegexCompiler>()?;
+    m.add_function(wrap_pyfunction!(regex_to_lark, m)?)?;
     Ok(())
 }
 

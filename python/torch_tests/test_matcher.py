@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Tuple, Union
 import llguidance
 from llguidance.numpy import fill_next_token_bitmask_par, allocate_token_bitmask
-from llguidance import LLMatcher, LLTokenizer, StructTag
+from llguidance import LLMatcher, LLTokenizer, StructTag, LLParserLimits
 import pytest
 from numpy.typing import NDArray
 import numpy as np
@@ -42,7 +42,7 @@ def check_one_grammar(grm: str, s: str, passing: bool) -> None:
         del tokens[-1]
     else:
         tokens = tokenizer().tokenize_str(s)
-    
+
     print("Check: " + tokenizer().dbg_tokens(tokens))
 
     for i, t in enumerate(tokens):
@@ -74,8 +74,7 @@ def check_one_grammar(grm: str, s: str, passing: bool) -> None:
     assert interp.is_accepting()
 
 
-def check_grammar(grm: str, passing: List[str],
-                  failing: List[str]) -> None:
+def check_grammar(grm: str, passing: List[str], failing: List[str]) -> None:
     for s in passing:
         check_one_grammar(grm, s, True)
     for s in failing:
@@ -391,6 +390,31 @@ def test_struct_tag_0() -> None:
                     # this should pass since it doesn't actually use special tokens:
                     '<|tool|>qux(1)',
                 ],
-                [
-                    "⁂<|tool|>qux(11)"
-                ])
+                ["⁂<|tool|>qux(11)"])
+
+
+def test_parser_limits() -> None:
+    # this one needs more than initial_lexer_fuel=20
+    m = LLMatcher(tokenizer(),
+                  "start: /(foo[12]23|bar)/",
+                  limits=LLParserLimits(initial_lexer_fuel=5))
+    assert "initial lexer configuration (grammar) too big" in m.get_error()
+
+    # m = LLMatcher(tokenizer(),
+    #               "start: /(foo[12]23|bar|qux|mux)/",
+    #               limits=LLParserLimits(
+    #                   step_lexer_fuel=1,
+    #                   precompute_large_lexemes=False,
+    #               ),
+    #               log_level=2)
+    # toks = tokenizer().tokenize_str("foo223")
+    # assert not m.get_error()
+    # m.consume_token(toks[0])
+    # mask = m.compute_logit_bias()
+    # assert not m.get_error()
+    # m.consume_token(toks[1])
+    # mask = m.compute_logit_bias()
+    # assert not m.get_error()
+    # m.consume_token(toks[2])
+    # mask = m.compute_logit_bias()
+    # assert not m.get_error()

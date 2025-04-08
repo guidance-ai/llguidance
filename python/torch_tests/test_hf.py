@@ -16,12 +16,12 @@ from llguidance.torch import (
 from llguidance import LLMatcher, LLTokenizer, LLExecutor
 
 import llguidance.hf
-import transformers  # type: ignore[import-untyped]
+
+from transformers import AutoTokenizer  # type: ignore[attr-defined]
 
 
 def _build_tokenizer() -> LLTokenizer:
-    hf_tok = transformers.AutoTokenizer.from_pretrained(
-        "unsloth/Meta-Llama-3.1-8B-Instruct")
+    hf_tok = AutoTokenizer.from_pretrained("unsloth/Meta-Llama-3.1-8B-Instruct")
     return llguidance.hf.from_tokenizer(hf_tok)
 
 
@@ -66,8 +66,7 @@ def test_grammar() -> None:
 def test_par_grammar() -> None:
     n_gram = 50
     t = tokenizer()
-    grammars = [(lark_matcher(r"start: /[a-zA-Z ]*/"), idx)
-                for idx in range(n_gram)]
+    grammars = [(lark_matcher(r"start: /[a-zA-Z ]*/"), idx) for idx in range(n_gram)]
     mask = allocate_token_bitmask(n_gram, t.vocab_size)
     mask2 = allocate_token_bitmask(n_gram, t.vocab_size)
     exec = LLExecutor()
@@ -89,42 +88,43 @@ def test_tokenize_partial_basic(recent_tokens: List[int]) -> None:
     """Test tokenize_partial with a simple sentence."""
     ll_tok = tokenizer()
     assert ll_tok.is_canonical
-    new_tokens, leftover = ll_tok.tokenize_partial(b" How are you",
-                                                   recent_tokens=recent_tokens)
+    new_tokens, leftover = ll_tok.tokenize_partial(
+        b" How are you", recent_tokens=recent_tokens
+    )
     assert isinstance(new_tokens, list)
     assert isinstance(leftover, bytes)
     assert len(new_tokens) >= 2
     assert ll_tok.decode_bytes(new_tokens) + leftover == b" How are you"
     for suff in ["", "r", "!", " "]:
         tok2 = ll_tok.tokenize_str(" How are you" + suff)
-        assert tok2[0:len(new_tokens)] == new_tokens
+        assert tok2[0 : len(new_tokens)] == new_tokens
 
 
 def test_tokenize_partial_docs() -> None:
     ll = tokenizer()
-    new_tok, leftover = ll.tokenize_partial(b'order')
+    new_tok, leftover = ll.tokenize_partial(b"order")
     assert len(new_tok) == 0
-    assert leftover == b'order'
+    assert leftover == b"order"
 
     recent = ll.tokenize_bytes(b'{"')
-    new_tok, leftover = ll.tokenize_partial(b'name_of_the_person"',
-                                            recent_tokens=recent)
+    new_tok, leftover = ll.tokenize_partial(
+        b'name_of_the_person"', recent_tokens=recent
+    )
     print(ll.dbg_tokens(new_tok))
     assert leftover == b'"'
     assert ll.decode_str(new_tok) == "name_of_the_person"
 
 
 def test_incomplete_tokenizer() -> None:
-    hf_tok = transformers.AutoTokenizer.from_pretrained(
-        "HuggingFaceTB/SmolLM-135M-Instruct")
+    hf_tok = AutoTokenizer.from_pretrained("HuggingFaceTB/SmolLM-135M-Instruct")
     ll_tok = llguidance.hf.from_tokenizer(hf_tok)
 
     # unknown bytes are to be skipped
     # see https://github.com/guidance-ai/llguidance/issues/138
-    assert len(ll_tok.tokenize_bytes(b"\xFF")) == 0
-    assert len(ll_tok.tokenize_bytes(b"\xFF\x80")) == 1
+    assert len(ll_tok.tokenize_bytes(b"\xff")) == 0
+    assert len(ll_tok.tokenize_bytes(b"\xff\x80")) == 1
     # make sure the special markers still work
-    assert ll_tok.tokenize_partial(b"\xFF[1234]") == ([1234], b"")
+    assert ll_tok.tokenize_partial(b"\xff[1234]") == ([1234], b"")
 
     tt = ll_tok.tokenize_str("\U00042000")
     tt2 = ll_tok.tokenize_bytes("\U00042000".encode()[1:])

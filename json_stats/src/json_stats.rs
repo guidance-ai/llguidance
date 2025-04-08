@@ -5,11 +5,7 @@ use json_stats::SchemaStats;
 use jsonschema::Validator;
 use llguidance::{
     api::{GrammarInit, StopReason, TopLevelGrammar},
-    earley::{
-        perf::{num_with_commas, ParserPerfCounters},
-        regexvec::LexerStats,
-        XorShift,
-    },
+    earley::{perf::num_with_commas, regexvec::LexerStats, XorShift},
     toktrie::{InferenceCapabilities, SimpleVob, TokEnv},
     Constraint, HashMap, JsonCompileOptions, ParserFactory, TokenParser,
 };
@@ -290,7 +286,6 @@ struct TestEnv {
     factory: Arc<ParserFactory>,
     ref_factory: Arc<ParserFactory>,
     file_name: String,
-    perf_counters: Arc<ParserPerfCounters>,
     hash_rnd: Arc<ahash::RandomState>,
 }
 
@@ -739,8 +734,7 @@ impl TestEnv {
 
         let t2 = std::time::Instant::now();
         let parser = match parser {
-            Ok(mut parser) => {
-                parser.parser.set_perf_counters(self.perf_counters.clone());
+            Ok(parser) => {
                 let mut constraint = Constraint::new(parser.clone());
                 constraint.compute_mask().unwrap();
                 res.first_mask_us = t2.elapsed().as_micros() as usize;
@@ -818,7 +812,7 @@ impl TestEnv {
             schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
         }
 
-        stats.file_info.id = file_name.split('/').last().unwrap().to_string();
+        stats.file_info.id = file_name.split('/').next_back().unwrap().to_string();
 
         match Validator::options()
             .with_retriever(DummyResolver {})
@@ -996,7 +990,6 @@ fn main() {
 
     let t0 = std::time::Instant::now();
     let par = num_threads > 1;
-    let perf_counters = Arc::new(ParserPerfCounters::new());
     let hash_rnd = Arc::new(ahash::RandomState::new());
     let do_file = |file: &String| {
         let env = TestEnv {
@@ -1005,7 +998,6 @@ fn main() {
             ref_factory: ref_factory.clone(),
             file_name: file.to_string(),
             cli: options.clone(),
-            perf_counters: perf_counters.clone(),
             hash_rnd: hash_rnd.clone(),
         };
         env.run_test()
@@ -1155,7 +1147,7 @@ fn main() {
         eprintln!(
             "{}\n{}",
             serde_json::to_string_pretty(&total).unwrap(),
-            perf_counters
+            &factory.perf_counters(),
         );
     }
     eprintln!(

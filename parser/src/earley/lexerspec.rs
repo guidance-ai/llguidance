@@ -48,7 +48,7 @@ pub struct LexemeSpec {
     pub(crate) name: String,
     pub(crate) rx: RegexAst,
     class: LexemeClass,
-    compiled_rx: ExprRef,
+    pub(crate) compiled_rx: ExprRef,
     ends_at_eos: bool,
     lazy: bool,
     contextual: bool,
@@ -299,6 +299,7 @@ impl LexerSpec {
         } else {
             compiled
         };
+
         if let Some(idx) = self.lexemes.iter().position(|lex| {
             lex.compiled_rx == compiled
                 && lex.class == spec.class

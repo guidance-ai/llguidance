@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 
 mod llinterpreter;
 mod llmatcher;
+mod parserlimits;
 mod py;
 mod pyjson;
 
@@ -9,6 +10,7 @@ mod pyjson;
 #[pymodule]
 fn _lib(_py: Python<'_>, m: &Bound<PyModule>) -> PyResult<()> {
     py::init(m)?;
+    parserlimits::init(m)?;
     llinterpreter::init(m)?;
     llmatcher::init(m)?;
     Ok(())

@@ -681,3 +681,94 @@ FILE_0: %regex {
         ],
     );
 }
+
+#[test]
+fn test_json_dw_pattern() {
+    lark_str_test_many(
+        r#"
+            start: %json { "type": "string", "pattern": "^\\d$" }
+        "#,
+        &["\"1\"", "\"2\""],
+        &[
+            "1", "\"12\"", "\"a\"", "\"\"",  // simple stuff
+            "\"১\"", // unicode should not match
+        ],
+    );
+
+    lark_str_test_many(
+        r#"
+            start: %json { "type": "string", "pattern": "^\\w$" }
+        "#,
+        &["\"1\"", "\"2\"", "\"a\"", "\"A\""],
+        &[
+            "1", "\"12\"", "\"\"", // simple stuff
+            "\"১\"", "\"ł\"", // unicode should not match
+        ],
+    );
+
+    lark_str_test_many(
+        r#"
+            start: %json { "type": "string", "pattern": "^\\s$" }
+        "#,
+        &[
+            // regular escapes:
+            "\" \"",
+            "\"\\t\"",
+            "\"\\n\"",
+            "\"\\r\"",
+            // unicode escapes:
+            "\"\\u0009\"",
+            "\"\\u000A\"",
+            "\"\\u000B\"",
+            "\"\\u000C\"",
+            // unicode whitespace:
+            "\"\u{00A0}\"",
+            "\"\u{2000}\"",
+            "\"\u{2008}\"",
+        ],
+        &[
+            // simple stuff
+            "1",
+            "\"12\"",
+            "\"\"",
+            // non-whitespace unicode
+            "\"১\"",
+            "\"ł\"",
+            // we do not allow \uXXXX outside of \u0000-0x001F
+            "\"\\u00A0\"",
+        ],
+    );
+}
+
+#[test]
+fn test_json_anchoring() {
+    lark_str_test_many(
+        r#"
+            start: %json { "type": "string", "pattern": "[ab]" }
+        "#,
+        &["\"a\"", "\"foobar\"", "\"\\nb\\n\\n\""],
+        &["1", "\"12\"", "\"\"", "\"১\"", "\"ł\""],
+    );
+
+    lark_str_test_many(
+        r#"
+            start: %json { "type": "string", "pattern": "^foo" }
+        "#,
+        &["\"foo\"", "\"foobar\""],
+        &["1", "\"afoo\"", "\"afooa\""],
+    );
+    lark_str_test_many(
+        r#"
+            start: %json { "type": "string", "pattern": "foo$" }
+        "#,
+        &["\"foo\"", "\"barfoo\""],
+        &["1", "\"fooa\"", "\"afooa\""],
+    );
+    lark_str_test_many(
+        r#"
+            start: %json { "type": "string", "pattern": "^foo$" }
+        "#,
+        &["\"foo\""],
+        &["1", "\"fooa\"", "\"afoo\"", "\"afooa\""],
+    );
+}

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file. Dates are d
 
 If a release doesn't introduce any interesting changes (build fixes etc.), it's skipped.
 
+#### [0.7.13](https://github.com/guidance-ai/llguidance/compare/v0.7.12...0.7.13) 2025-04-05
+
+- expose LLParserLimits in Python API [`598dc8f`](https://github.com/guidance-ai/llguidance/commit/598dc8f37f69f51244e54d9885445abf02a515a7)
+- pre-compute lexer states for particularly large regexes (can be disabled in ParserLimits)
+
+#### [0.7.12](https://github.com/guidance-ai/llguidance/compare/v0.7.11...0.7.12) 2025-04-04
+
+- performance optimizations
+- use factory in C FFI (otherwise slicer was not used)
+- add some null checks and safety comments in C FFI
+- implement subgrammar lexeme class merging; fixes [`#113`](https://github.com/guidance-ai/llguidance/issues/113)
+
 #### [0.7.11](https://github.com/guidance-ai/llguidance/compare/v0.7.10...0.7.11) 2025-03-27
 
 - add StructTag python API; fixes [`#146`](https://github.com/guidance-ai/llguidance/issues/146)
@@ -46,7 +58,7 @@ If a release doesn't introduce any interesting changes (build fixes etc.), it's 
 #### [v0.7.1](https://github.com/guidance-ai/llguidance/compare/v0.7.0...v0.7.1) 2025-03-18
 
 - add `LLMatcher` interface in python
-- add  whitespace_pattern to JsonCompileOptions [`04a5491`](https://github.com/guidance-ai/llguidance/commit/04a54912cf6d082669674340833f06385f7b66f8)
+- add whitespace_pattern to JsonCompileOptions [`04a5491`](https://github.com/guidance-ai/llguidance/commit/04a54912cf6d082669674340833f06385f7b66f8)
 - enable mypy in CI [`#140`](https://github.com/guidance-ai/llguidance/pull/140)
 - add py.typed for annotations information [`#139`](https://github.com/guidance-ai/llguidance/pull/139)
 - fix clippy warnings
@@ -59,7 +71,6 @@ If a release doesn't introduce any interesting changes (build fixes etc.), it's 
 
 - fix https://github.com/guidance-ai/guidance/issues/1131 - backtracking+prompt healing [`#1131`](https://github.com/guidance-ai/guidance/issues/1131)
 - optimize substring [`9950600`](https://github.com/guidance-ai/llguidance/commit/9950600f46e433b4c42506f8816f61cee331774f)
-
 
 #### [v0.6.29](https://github.com/guidance-ai/llguidance/compare/v0.6.28...v0.6.29) 2025-02-25
 
@@ -110,4 +121,3 @@ Plus a few releases messing with, deps, unsafe code cleanup.
 
 - fixes for numeric tokens [`b7c9970`](https://github.com/guidance-ai/llguidance/commit/b7c99709a9cb7f7a8a3c4716092e4d94fae2ff2c)
 - make capture explicit in lark syntax [`2a57678`](https://github.com/guidance-ai/llguidance/commit/2a57678d9397e8be54cb0c9f14c4270604f8e1a5)
-

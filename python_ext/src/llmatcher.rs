@@ -3,14 +3,15 @@ use std::fmt::Display;
 use std::ops::DerefMut;
 
 use anyhow::Result;
+use llguidance::api::GrammarInit;
 use llguidance::api::TopLevelGrammar;
-use llguidance::api::{GrammarInit, ParserLimits};
 use llguidance::toktrie::{InferenceCapabilities, SimpleVob, TokEnv, TokenId};
 use llguidance::{json_merge, Logger, Matcher, ParserFactory};
 use pyo3::types::{PyList, PyTuple};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use serde_json::json;
 
+use crate::parserlimits::LLParserLimits;
 use crate::py::LLTokenizer;
 use crate::pyjson::{str_or_dict_to_value, stringify_if_needed, to_json_value};
 
@@ -109,7 +110,7 @@ impl LLMatcher {
         if mask_ptr % 4 != 0 {
             return Err(PyValueError::new_err("Pointer not aligned"));
         }
-        let n_words = (self.tok_env.tok_trie().vocab_size() + 31) / 32;
+        let n_words = self.tok_env.tok_trie().vocab_size().div_ceil(32);
         if mask_bytes != n_words * 4 {
             return Err(PyValueError::new_err("Invalid buffer size"));
         }
@@ -144,6 +145,7 @@ fn new_matcher(
     fact: &ParserFactory,
     grammar: TopLevelGrammar,
     log_level: isize,
+    limits: Option<&LLParserLimits>,
     py: Python<'_>,
 ) -> Matcher {
     let logger = Logger::new(0, std::cmp::max(0, log_level) as u32);
@@ -154,7 +156,7 @@ fn new_matcher(
             GrammarInit::Serialized(grammar),
             logger,
             InferenceCapabilities::default(),
-            ParserLimits::default(),
+            LLParserLimits::from_option(limits),
         )
     });
     Matcher::new(inner)
@@ -172,16 +174,17 @@ fn extract_grammar(grammar: Bound<'_, PyAny>) -> Result<TopLevelGrammar> {
 #[pymethods]
 impl LLMatcher {
     #[new]
-    #[pyo3(signature = (tokenizer, grammar, log_level=None))]
+    #[pyo3(signature = (tokenizer, grammar, /, log_level=None, limits=None))]
     fn py_new(
         tokenizer: &LLTokenizer,
         grammar: Bound<'_, PyAny>,
         log_level: Option<isize>,
+        limits: Option<&LLParserLimits>,
         py: Python<'_>,
     ) -> Self {
         let fact = tokenizer.factory();
         let inner = match extract_grammar(grammar) {
-            Ok(grammar) => new_matcher(fact, grammar, log_level.unwrap_or(1), py),
+            Ok(grammar) => new_matcher(fact, grammar, log_level.unwrap_or(1), limits, py),
             Err(e) => Matcher::new(Err(e)),
         };
         LLMatcher {
@@ -191,10 +194,11 @@ impl LLMatcher {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (grammar, tokenizer=None))]
+    #[pyo3(signature = (grammar, tokenizer=None, /, limits=None))]
     fn validate_grammar(
         grammar: Bound<'_, PyAny>,
         tokenizer: Option<&LLTokenizer>,
+        limits: Option<&LLParserLimits>,
         py: Python<'_>,
     ) -> String {
         match extract_grammar(grammar) {
@@ -202,7 +206,7 @@ impl LLMatcher {
                 GrammarInit::Serialized(grammar)
                     .to_internal(
                         tokenizer.map(|t| t.factory().tok_env().clone()),
-                        ParserLimits::default(),
+                        LLParserLimits::from_option(limits),
                     )
                     .err()
                     .map(|e| e.to_string())

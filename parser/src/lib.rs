@@ -48,6 +48,8 @@ pub use tokenizer_json::token_bytes_from_tokenizer_json;
 
 #[cfg(feature = "lark")]
 mod lark;
+#[cfg(feature = "lark")]
+pub use lark::regex_to_lark;
 
 #[cfg(feature = "wasm")]
 pub use instant::Instant;

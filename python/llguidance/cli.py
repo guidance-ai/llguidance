@@ -1,7 +1,7 @@
 import argparse
 import json
 import huggingface_hub
-from transformers import AutoTokenizer  # type: ignore[import-untyped]
+from transformers import AutoTokenizer  # type: ignore[attr-defined]
 import llguidance
 
 
@@ -16,7 +16,9 @@ def main() -> None:
     parser.add_argument("--json-schema", help="JSON schema file")
     parser.add_argument("--text", help="File containing simulated generated text")
     parser.add_argument("--log-level", help="Log level", default=1, type=int)
-    parser.add_argument("--ff-tokens", help="Enable fast-forward tokens", action="store_true")
+    parser.add_argument(
+        "--ff-tokens", help="Enable fast-forward tokens", action="store_true"
+    )
     parser.add_argument("--backtrack", help="Enable backtracking", action="store_true")
     args = parser.parse_args()
     tokenizer: str = args.tokenizer

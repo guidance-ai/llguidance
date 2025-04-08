@@ -490,6 +490,11 @@ impl RegexVec {
         self.exprs.cost()
     }
 
+    pub fn lexeme_weight(&mut self, lexeme_idx: LexemeIdx) -> u32 {
+        let e = self.rx_list[lexeme_idx.as_usize()];
+        self.exprs.get_weight(e)
+    }
+
     pub fn set_max_states(&mut self, max_states: usize) {
         if !self.has_error() {
             self.max_states = max_states;

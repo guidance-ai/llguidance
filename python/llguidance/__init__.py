@@ -6,6 +6,8 @@ from ._lib import (
     RegexCompiler,
     LLExecutor,
     LLMatcher,
+    LLParserLimits,
+    regex_to_lark,
 )
 from ._tokenizer import TokenizerWrapper
 from ._grammar_from import GrammarFormat, grammar_from
@@ -16,6 +18,7 @@ __all__ = [
     "LLMatcher",
     "LLInterpreter",
     "LLExecutor",
+    "LLParserLimits",
     "JsonCompiler",
     "LarkCompiler",
     "RegexCompiler",
@@ -23,4 +26,5 @@ __all__ = [
     "grammar_from",
     "GrammarFormat",
     "StructTag",
+    "regex_to_lark",
 ]

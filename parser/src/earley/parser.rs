@@ -5,7 +5,7 @@
 // (Retrieved 18 Sep 2024).
 
 use std::{
-    fmt::Debug,
+    fmt::{Debug, Display},
     hash::Hash,
     ops::Range,
     sync::{Arc, Mutex},
@@ -204,6 +204,12 @@ impl ParserStats {
             slices_applied: self.slices_applied.max(other.slices_applied),
             trie_nodes_walked: self.trie_nodes_walked.max(other.trie_nodes_walked),
         }
+    }
+}
+
+impl Display for ParserStats {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string_pretty(self).unwrap())
     }
 }
 
@@ -580,9 +586,26 @@ impl ParserState {
         tok_env: TokEnv,
         grammar: Arc<CGrammar>,
         mut limits: ParserLimits,
+        perf_counters: Arc<ParserPerfCounters>,
     ) -> Result<(Self, Lexer)> {
         let start = grammar.start();
-        let lexer = Lexer::from(grammar.lexer_spec(), &mut limits, true)?;
+        let mut lexer = Lexer::from(grammar.lexer_spec(), &mut limits, true)?;
+        if limits.precompute_large_lexemes {
+            let t0 = crate::Instant::now();
+            for spec in &grammar.lexer_spec().lexemes {
+                let w = lexer.dfa.lexeme_weight(spec.idx);
+                if w > 1000 {
+                    // println!(
+                    //     "precomputing lexeme {} (w={w})",
+                    //     lexer.lexer_spec().lexeme_def_to_string(spec.idx)
+                    // );
+                    let mut allowed = grammar.lexer_spec().alloc_lexeme_set();
+                    allowed.add(spec.idx);
+                    lexer.precompute_for(tok_env.tok_trie(), &allowed);
+                }
+            }
+            perf_counters.precompute.record(t0.elapsed());
+        }
         let scratch = Scratch::new(Arc::clone(&grammar));
         let lexer_state = lexer.a_dead_state(); // placeholder
         let spec_tok = tok_env
@@ -626,7 +649,7 @@ impl ParserState {
             shared_box: Box::new(SharedState {
                 lexer_opt: Some(lexer),
             }),
-            perf_counters: Arc::new(ParserPerfCounters::new()),
+            perf_counters,
         };
 
         r.scratch.grammar_stack.push(GrammarStackNode {
@@ -2576,8 +2599,13 @@ impl ParserError {
 }
 
 impl Parser {
-    pub fn new(tok_env: TokEnv, grammar: Arc<CGrammar>, limits: ParserLimits) -> Result<Self> {
-        let (state, lexer) = ParserState::new(tok_env, grammar, limits)?;
+    pub fn new(
+        tok_env: TokEnv,
+        grammar: Arc<CGrammar>,
+        limits: ParserLimits,
+        perf_counters: Arc<ParserPerfCounters>,
+    ) -> Result<Self> {
+        let (state, lexer) = ParserState::new(tok_env, grammar, limits, perf_counters)?;
         let shared = Arc::new(Mutex::new(Box::new(SharedState {
             lexer_opt: Some(lexer),
         })));
@@ -2601,10 +2629,6 @@ impl Parser {
 
     pub fn stats(&self) -> &ParserStats {
         &self.state.stats
-    }
-
-    pub fn set_perf_counters(&mut self, counters: Arc<ParserPerfCounters>) {
-        self.state.perf_counters = counters;
     }
 
     #[inline(always)]

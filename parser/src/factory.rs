@@ -5,7 +5,7 @@ use toktrie::{InferenceCapabilities, TokEnv};
 
 use crate::{
     api::{GrammarInit, ParserLimits, TopLevelGrammar},
-    earley::{SlicedBiasComputer, XorShift},
+    earley::{perf::ParserPerfCounters, SlicedBiasComputer, XorShift},
     Logger, TokenParser,
 };
 
@@ -17,6 +17,7 @@ pub struct ParserFactory {
     buffer_log_level: u32,
     limits: ParserLimits,
     seed: Mutex<XorShift>,
+    perf_counters: Arc<ParserPerfCounters>,
 }
 
 impl ParserFactory {
@@ -34,7 +35,12 @@ impl ParserFactory {
             buffer_log_level: 0,
             seed: Mutex::new(XorShift::default()),
             limits: ParserLimits::default(),
+            perf_counters: Arc::new(ParserPerfCounters::default()),
         })
+    }
+
+    pub fn perf_counters(&self) -> Arc<ParserPerfCounters> {
+        self.perf_counters.clone()
     }
 
     pub fn new_simple(tok_env: &TokEnv) -> Result<Self> {
@@ -55,6 +61,7 @@ impl ParserFactory {
             buffer_log_level: self.buffer_log_level,
             seed: Mutex::new(XorShift::default()),
             limits: self.limits.clone(),
+            perf_counters: self.perf_counters.clone(),
         })
     }
 

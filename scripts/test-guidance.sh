@@ -42,7 +42,7 @@ if [ "$TEST_RUST" = 1 ] ; then
     cargo fmt --check
     ./scripts/cbindgen.sh --check
 
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --workspace --all-targets --all-features -- -D warnings
 
     cargo build --locked
     cargo test

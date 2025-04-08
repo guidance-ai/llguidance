@@ -241,13 +241,7 @@ impl SchemaStats {
 
     fn map_one_subschema(&mut self, v: &Value) -> Option<Value> {
         if looks_like_schema(v) {
-            match self.map_schema(v) {
-                Ok(new_v) => Some(new_v),
-                Err(_) => {
-                    // just ignore it
-                    None
-                }
-            }
+            self.map_schema(v).ok()
         } else {
             self.map_subschemas(v)
         }

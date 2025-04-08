@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::fmt::Debug;
-use toktrie::SimpleVob;
+use toktrie::{Recognizer, SimpleVob, TokTrie};
 
 use crate::api::ParserLimits;
 
@@ -59,6 +59,29 @@ pub enum LexerResult {
     Error,
 }
 
+struct LexerPrecomputer<'a> {
+    states: Vec<StateID>,
+    lex: &'a mut Lexer,
+}
+
+impl Recognizer for LexerPrecomputer<'_> {
+    fn collapse(&mut self) {}
+    fn trie_finished(&mut self) {}
+    fn pop_bytes(&mut self, num: usize) {
+        self.states.truncate(self.states.len() - num);
+    }
+    fn try_push_byte(&mut self, byte: u8) -> bool {
+        let state = *self.states.last().unwrap();
+        match self.lex.advance(state, byte, false) {
+            LexerResult::State(next_state, _) => {
+                self.states.push(next_state);
+                true
+            }
+            _ => false,
+        }
+    }
+}
+
 impl Lexer {
     pub fn from(spec: &LexerSpec, limits: &mut ParserLimits, dbg: bool) -> Result<Self> {
         let mut dfa = spec.to_regex_vec(limits)?;
@@ -90,6 +113,15 @@ impl Lexer {
 
     pub fn start_state(&mut self, allowed_lexemes: &LexemeSet) -> StateID {
         self.dfa.initial_state(allowed_lexemes)
+    }
+
+    pub fn precompute_for(&mut self, trie: &TokTrie, allowed_lexemes: &LexemeSet) {
+        let state = self.start_state(allowed_lexemes);
+        let mut states = Vec::with_capacity(300);
+        states.push(state);
+        let mut pre = LexerPrecomputer { states, lex: self };
+        let mut toks = trie.alloc_token_set();
+        trie.add_bias(&mut pre, &mut toks, &[]);
     }
 
     pub fn transition_start_state(&mut self, s: StateID, first_byte: Option<u8>) -> StateID {

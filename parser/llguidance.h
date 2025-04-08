@@ -70,6 +70,14 @@ typedef struct LlgParserLimits {
    * Default: 500_000 (a few megabytes of JSON)
    */
   size_t max_grammar_size;
+  /**
+   * If true, we'll run any extremely large regexes against the whole
+   * trie of the tokenizer while constructing the lexer.
+   * This reduces future mask computation time, but increases
+   * the time it takes to construct the lexer.
+   * Default: true
+   */
+  bool precompute_large_lexemes;
 } LlgParserLimits;
 
 typedef struct LlgConstraintInit {

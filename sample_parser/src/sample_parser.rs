@@ -60,6 +60,14 @@ pub struct CliOptions {
     #[arg(long, default_value = "1")]
     lexer_limit: usize,
 
+    /// Allowed startup lexer cost in thousands (default 1000)
+    #[arg(long)]
+    initial_lexer_fuel: Option<usize>,
+
+    /// Allowed startup lexer cost in thousands (default 200)
+    #[arg(long)]
+    step_lexer_fuel: Option<usize>,
+
     /// .ll.json/.schema.json/.lark/.txt file
     #[arg(value_name = "GRAMMAR")]
     file: String,
@@ -110,6 +118,13 @@ fn main() {
     factory.limits_mut().initial_lexer_fuel *= opts.lexer_limit as u64;
     factory.limits_mut().step_lexer_fuel *= opts.lexer_limit as u64;
 
+    if let Some(initial_lexer_fuel) = opts.initial_lexer_fuel {
+        factory.limits_mut().initial_lexer_fuel = initial_lexer_fuel as u64 * 1000;
+    }
+    if let Some(step_lexer_fuel) = opts.step_lexer_fuel {
+        factory.limits_mut().step_lexer_fuel = step_lexer_fuel as u64 * 1000;
+    }
+
     let factory = Arc::new(factory);
 
     let mut t0 = std::time::Instant::now();
@@ -134,6 +149,7 @@ fn main() {
             ttfm.push(times[0]);
             for _ in 0..max_tokens {
                 let mask = constraint.compute_mask().unwrap();
+                // eprintln!("stats: {}", constraint.last_step_stats().unwrap());
                 times.push(prev_time.elapsed().as_micros() as u64);
                 prev_time = std::time::Instant::now();
                 if constraint.is_stopped() {
@@ -150,6 +166,9 @@ fn main() {
                 let ff = constraint.consume_ff_tokens();
                 tokens.extend_from_slice(&ff);
                 lens.push(ff.len());
+                if constraint.is_stopped() {
+                    break;
+                }
             }
             if opts.repeat == 1 {
                 eprintln!("Lens: {:?}", lens);

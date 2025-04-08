@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 
 use crate::{
     earley::{lexerspec::LexerSpec, Grammar},
-    lark::lark_regex_quote,
+    lark::regex_to_lark,
 };
 
 /// This represents a collection of grammars, with a designated
@@ -249,6 +249,13 @@ pub struct ParserLimits {
     /// Maximum size of the grammar (symbols in productions)
     /// Default: 500_000 (a few megabytes of JSON)
     pub max_grammar_size: usize,
+
+    /// If true, we'll run any extremely large regexes against the whole
+    /// trie of the tokenizer while constructing the lexer.
+    /// This reduces future mask computation time, but increases
+    /// the time it takes to construct the lexer.
+    /// Default: true
+    pub precompute_large_lexemes: bool,
 }
 
 impl Default for ParserLimits {
@@ -260,6 +267,7 @@ impl Default for ParserLimits {
             max_lexer_states: 250_000,     //
             max_grammar_size: 500_000,     // fhir schema => 200k
             step_max_items: 50_000,        //
+            precompute_large_lexemes: true,
         }
     }
 }
@@ -335,7 +343,7 @@ impl GrammarWithLexer {
     }
 
     pub fn from_regex(rx: &str) -> Self {
-        let rx = lark_regex_quote(rx);
+        let rx = regex_to_lark(rx, "");
         let mut r = Self::from_lark(format!("start: /{}/", rx));
         r.name = Some("regex".to_string());
         r

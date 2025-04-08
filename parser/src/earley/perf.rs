@@ -87,6 +87,7 @@ pub struct ParserPerfCounters {
     pub tokenize_ff: PerfTimer,
     pub compute_bias: PerfTimer,
     pub compute_mask: PerfTimer,
+    pub precompute: PerfTimer,
 }
 
 impl Default for ParserPerfCounters {
@@ -104,6 +105,7 @@ impl ParserPerfCounters {
             tokenize_ff: PerfTimer::new("tokenize_ff"),
             compute_bias: PerfTimer::new("compute_bias"),
             compute_mask: PerfTimer::new("compute_mask"),
+            precompute: PerfTimer::new("precompute"),
         }
     }
 
@@ -115,6 +117,7 @@ impl ParserPerfCounters {
             &self.compute_bias,
             &self.compute_mask,
             &self.tmp_counter,
+            &self.precompute,
         ]
     }
 }
