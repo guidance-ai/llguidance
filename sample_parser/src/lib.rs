@@ -415,7 +415,25 @@ pub fn check_lark_grammar_nested(lark: &str, sub_lark: &str, output: &[&str]) ->
         "\nChecking nested grammars:\n{}\nNested:\n{}\nagainst: {:?}",
         lark, sub_lark, output
     );
-    check_grammar(&PARSER_FACTORY, "", top_grm, output, temp)
+    let r = check_grammar(&PARSER_FACTORY, "", top_grm, output, temp);
+
+    if false {
+        // also test the new syntax
+        let lark2 = format!(
+            "{}\n\n_sub: %lark {{\n{}\n}}",
+            lark.replace("@sub", "_sub"),
+            sub_lark
+        );
+        check_grammar(
+            &PARSER_FACTORY,
+            "",
+            TopLevelGrammar::from_lark(lark2),
+            output,
+            temp,
+        );
+    }
+
+    r
 }
 
 pub fn check_lark_json(lark: &str, json_schema: serde_json::Value, output: &[&str]) -> Constraint {

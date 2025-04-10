@@ -510,11 +510,11 @@ impl Parser {
             if nesting_level > 0 {
                 bail!("Unmatched %lark {{ ... }}");
             }
-            self.pos = endp + 1;
             let mut inner = Vec::with_capacity(endp - self.pos);
             for t in self.tokens[self.pos..endp].iter_mut() {
                 inner.push(t.take());
             }
+            self.pos = endp + 1;
 
             let inner = Parser::new(inner, self.nesting_level + 1).parse_start()?;
             Ok(Value::NestedLark(inner.items))

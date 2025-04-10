@@ -246,7 +246,7 @@ fn test_lark_syntax_general() {
     lark_err_test(
         r#"
             start: FOO
-            FOO: @1
+            FOO: @qux
         "#,
         "cannot be used in terminals",
     );
