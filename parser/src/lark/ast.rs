@@ -149,7 +149,7 @@ impl Rule {
         self.stop.as_ref().or(self.suffix.as_ref())
     }
     pub fn take_stop_like(&mut self) -> Option<Value> {
-        self.stop.take().or(self.suffix.take())
+        self.stop.take().or_else(|| self.suffix.take())
     }
     // follow guidance: "lazy": node.stop_regex != "",
     pub fn is_lazy(&self) -> bool {

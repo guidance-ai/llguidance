@@ -507,6 +507,7 @@ impl Compiler {
         }
 
         let id = if let Some(stop) = rule.stop_like() {
+            let is_suffix = rule.suffix.is_some();
             let is_empty = matches!(stop, Value::LiteralString(s, _) if s.is_empty());
             let lazy = rule.is_lazy();
             let stop_val = Atom::Value(rule.take_stop_like().unwrap());
@@ -524,7 +525,7 @@ impl Compiler {
                     stop_capture_name: rule.stop_capture_name.clone(),
                     lazy: Some(lazy),
                     temperature: rule.temperature,
-                    is_suffix: Some(rule.suffix.is_some()),
+                    is_suffix: Some(is_suffix),
                 },
                 props,
             )?
