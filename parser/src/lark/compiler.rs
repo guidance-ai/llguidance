@@ -39,6 +39,11 @@ impl Default for Grammar {
     }
 }
 
+enum PendingGrammar {
+    Json(serde_json::Value),
+    Lark(Vec<Item>),
+}
+
 struct Compiler {
     builder: GrammarBuilder,
     parsed: ParsedLark,
@@ -46,8 +51,7 @@ struct Compiler {
     node_ids: HashMap<String, NodeRef>,
     regex_ids: HashMap<String, RegexId>,
     in_progress: HashSet<String>,
-    pending_json_grammars: Vec<(NodeRef, Location, serde_json::Value)>,
-    gen_grammars: HashMap<String, Vec<NodeRef>>,
+    pending_grammars: Vec<(NodeRef, Location, PendingGrammar)>,
 }
 
 fn compile_lark(builder: GrammarBuilder, parsed: ParsedLark) -> Result<GrammarResult> {
@@ -58,8 +62,7 @@ fn compile_lark(builder: GrammarBuilder, parsed: ParsedLark) -> Result<GrammarRe
         node_ids: HashMap::default(),
         regex_ids: HashMap::default(),
         in_progress: HashSet::default(),
-        pending_json_grammars: vec![],
-        gen_grammars: HashMap::default(),
+        pending_grammars: vec![],
     };
     c.execute()
 }
@@ -228,6 +231,9 @@ impl Compiler {
                         g
                     );
                 }
+                Value::NestedLark(_) => {
+                    bail!("nested %lark {{ ... }} cannot be used in terminals");
+                }
                 Value::TemplateUsage { .. } => bail!("template usage not supported yet"),
             },
         }
@@ -290,6 +296,30 @@ impl Compiler {
         Ok(self.builder.lexeme(rx_id))
     }
 
+    fn do_nested(
+        &mut self,
+        loc: &Location,
+        v: Value,
+        temperature: Option<f32>,
+        props: NodeProps,
+    ) -> Result<NodeRef> {
+        let inner = match v {
+            Value::NestedLark(items) => PendingGrammar::Lark(items),
+            Value::Json(json) => PendingGrammar::Json(json),
+            _ => bail!("expected %lark or %json, got {:?}", v),
+        };
+        let name = format!("%nested---{}", self.builder.num_nodes());
+        let gg = self.builder.gen_grammar(
+            GenGrammarOptions {
+                grammar: GrammarId::Name(name),
+                temperature,
+            },
+            props,
+        );
+        self.pending_grammars.push((gg, loc.clone(), inner));
+        Ok(gg)
+    }
+
     fn do_atom(&mut self, loc: &Location, expr: Atom) -> Result<NodeRef> {
         match expr {
             Atom::Group(expansions) => self.do_expansions(expansions),
@@ -337,24 +367,8 @@ impl Compiler {
                     Value::GrammarRef(g) => {
                         return self.gen_grammar(g, None, NodeProps::default());
                     }
-                    Value::Json(_) => {
-                        // consume value
-                        let json_schema = match value {
-                            Value::Json(s) => s,
-                            _ => unreachable!(),
-                        };
-
-                        let name = format!("%json---{}", self.builder.num_nodes());
-                        let gg = self.builder.gen_grammar(
-                            GenGrammarOptions {
-                                grammar: GrammarId::Name(name),
-                                temperature: None, // TODO?
-                            },
-                            NodeProps::default(),
-                        );
-                        self.pending_json_grammars
-                            .push((gg, loc.clone(), json_schema));
-                        return Ok(gg);
+                    Value::NestedLark(_) | Value::Json(_) => {
+                        return self.do_nested(loc, value, None, NodeProps::default());
                     }
                     // special case "" literal, so it doesn't pollute grammar with epsilon regex
                     Value::LiteralString(s, _) if s.is_empty() => return Ok(self.builder.empty()),
@@ -472,7 +486,6 @@ impl Compiler {
             },
             props,
         );
-        self.gen_grammars.entry(name).or_default().push(id);
         Ok(id)
     }
 
@@ -524,6 +537,14 @@ impl Compiler {
                 match rule.expansions.single_atom() {
                     Some(Atom::Value(Value::GrammarRef(g))) => {
                         return self.gen_grammar(g, rule.temperature, props);
+                    }
+                    Some(Atom::Value(Value::Json(_) | Value::NestedLark(_))) => {
+                        if let Atom::Value(x) = rule.expansions.1[0].expansion.0.pop().unwrap().atom
+                        {
+                            return self.do_nested(&rule.expansions.0, x, rule.temperature, props);
+                        } else {
+                            unreachable!();
+                        }
                     }
                     _ => {
                         // try as terminal
@@ -590,24 +611,17 @@ impl Compiler {
         self.builder.set_start_node(start);
 
         let mut builder = self.builder;
-        for (gg, loc, json_schema) in self.pending_json_grammars {
-            let opts = JsonCompileOptions::default();
-            let res = opts
-                .json_to_llg_no_validate(builder, json_schema)
-                .map_err(|e| loc.augment(anyhow!("failed to compile JSON schema: {}", e)))?;
+        for (gg, loc, grm) in self.pending_grammars {
+            let res = match grm {
+                PendingGrammar::Json(json_schema) => {
+                    let opts = JsonCompileOptions::default();
+                    opts.json_to_llg_no_validate(builder, json_schema)
+                        .map_err(|e| loc.augment(anyhow!("failed to compile JSON schema: {}", e)))?
+                }
+                PendingGrammar::Lark(items) => compile_lark(builder, ParsedLark { items })?,
+            };
             builder = res.builder;
             builder.link_gen_grammar(gg, res.start_node)?;
-        }
-
-        for n in self.parsed.nested {
-            let name = n.name.clone();
-            let res = compile_lark(builder, n)?;
-            builder = res.builder;
-            if let Some(name) = name {
-                for n_id in self.gen_grammars.remove(&name).unwrap_or_default() {
-                    builder.link_gen_grammar(n_id, res.start_node)?;
-                }
-            }
         }
 
         Ok(builder.finalize(id))

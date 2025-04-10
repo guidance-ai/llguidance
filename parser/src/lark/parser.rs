@@ -4,27 +4,32 @@ use super::{
 };
 use anyhow::{anyhow, bail, ensure, Result};
 
+const MAX_NESTING: usize = 30;
+
 /// The parser struct that holds the tokens and current position.
 pub struct Parser {
     tokens: Vec<Lexeme>,
     pos: usize,
-    pending_nested: Vec<Vec<Lexeme>>,
+    nesting_level: usize,
 }
 
 impl Parser {
     /// Creates a new parser instance.
-    pub fn new(tokens: Vec<Lexeme>) -> Self {
+    pub fn new(tokens: Vec<Lexeme>, nesting: usize) -> Self {
         Parser {
             tokens,
             pos: 0,
-            pending_nested: Vec::new(),
+            nesting_level: nesting,
         }
     }
 
     /// Parses the start symbol of the grammar.
-    pub fn parse_start(&mut self, nesting: usize) -> Result<ParsedLark> {
-        ensure!(nesting < 20, "lark grammar too deeply nested");
-        self.parse_start_inner(nesting).map_err(|e| {
+    pub fn parse_start(&mut self) -> Result<ParsedLark> {
+        ensure!(
+            self.nesting_level < MAX_NESTING,
+            "lark grammar too deeply nested"
+        );
+        self.parse_start_inner().map_err(|e| {
             if let Some(tok) = self.peek_token() {
                 anyhow!(
                     "{}({}): {} (at {} ({:?}))",
@@ -41,13 +46,7 @@ impl Parser {
     }
 
     /// Parses the start symbol of the grammar.
-    fn parse_start_inner(&mut self, nesting: usize) -> Result<ParsedLark> {
-        let mut name = None;
-        if nesting > 0 && self.has_token(Token::GrammarRef) {
-            name = Some(self.take_token_value().get_string()?[1..].to_string());
-            self.expect_token(Token::Newline)?;
-        }
-
+    fn parse_start_inner(&mut self) -> Result<ParsedLark> {
         let mut items = Vec::new();
         while !self.is_at_end() {
             self.consume_newlines();
@@ -57,17 +56,7 @@ impl Parser {
             items.push(self.parse_item()?);
             self.consume_newlines();
         }
-        let mut res = ParsedLark {
-            name,
-            items,
-            nested: Vec::new(),
-        };
-        while !self.pending_nested.is_empty() {
-            let inner = self.pending_nested.remove(0);
-            res.nested
-                .push(Parser::new(inner).parse_start(nesting + 1)?);
-        }
-        Ok(res)
+        Ok(ParsedLark { items })
     }
 
     /// Parses an item (rule, token, or statement).
@@ -285,34 +274,6 @@ impl Parser {
                 v => bail!("expected JSON value, got {}", v),
             };
             Ok(Statement::LLGuidance(value))
-        } else if self.match_token(Token::KwNest) {
-            let mut nesting_level = 1;
-            let mut endp = self.pos;
-            while endp < self.tokens.len() {
-                let t = self.tokens[endp].token;
-                if t == Token::KwNest {
-                    nesting_level += 1;
-                } else if t == Token::KwEndNest {
-                    nesting_level -= 1;
-                }
-                if nesting_level == 0 {
-                    break;
-                }
-                endp += 1;
-            }
-            if nesting_level > 0 {
-                bail!("Unmatched @{{");
-            }
-            self.pos = endp + 1;
-            let mut inner = Vec::with_capacity(endp - self.pos);
-            for t in self.tokens[self.pos..endp].iter_mut() {
-                inner.push(t.take());
-            }
-
-            self.pending_nested.push(inner);
-
-            // return no-op
-            Ok(Statement::LLGuidance(serde_json::json!({})))
         } else {
             bail!("expecting rule, token or statement")
         }
@@ -361,6 +322,18 @@ impl Parser {
 
     /// Parses expansions.
     fn parse_expansions(&mut self) -> Result<Expansions> {
+        ensure!(
+            self.nesting_level + 1 < MAX_NESTING,
+            "lark grammar too deeply nested"
+        );
+        self.nesting_level += 1;
+        let expansions = self.parse_expansions_inner();
+        self.nesting_level -= 1;
+        expansions
+    }
+
+    /// Parses expansions.
+    fn parse_expansions_inner(&mut self) -> Result<Expansions> {
         let loc = self.location();
         let mut aliases = Vec::new();
         aliases.push(self.parse_alias()?);
@@ -516,6 +489,32 @@ impl Parser {
                 LexemeValue::Regex(v) => Ok(Value::RegexExt(v)),
                 v => bail!("expected regex JSON value, got {}", v),
             }
+        } else if self.match_token(Token::KwNest) {
+            let mut nesting_level = 1;
+            let mut endp = self.pos;
+            while endp < self.tokens.len() {
+                let t = self.tokens[endp].token;
+                if t == Token::KwNest {
+                    nesting_level += 1;
+                } else if t == Token::KwEndNest {
+                    nesting_level -= 1;
+                }
+                if nesting_level == 0 {
+                    break;
+                }
+                endp += 1;
+            }
+            if nesting_level > 0 {
+                bail!("Unmatched %lark {{ ... }}");
+            }
+            self.pos = endp + 1;
+            let mut inner = Vec::with_capacity(endp - self.pos);
+            for t in self.tokens[self.pos..endp].iter_mut() {
+                inner.push(t.take());
+            }
+
+            let inner = Parser::new(inner, self.nesting_level + 1).parse_start()?;
+            Ok(Value::NestedLark(inner.items))
         } else if let Some(name_token) = self
             .match_token_with_value(Token::Rule)
             .or_else(|| self.match_token_with_value(Token::Token))
@@ -692,12 +691,10 @@ impl Parser {
 }
 
 pub struct ParsedLark {
-    pub name: Option<String>,
     pub items: Vec<Item>,
-    pub nested: Vec<ParsedLark>,
 }
 
 pub fn parse_lark(input: &str) -> Result<ParsedLark> {
     let tokens = lex_lark(input)?;
-    Parser::new(tokens).parse_start(0)
+    Parser::new(tokens, 0).parse_start()
 }
