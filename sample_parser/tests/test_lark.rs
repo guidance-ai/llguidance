@@ -772,3 +772,17 @@ fn test_json_anchoring() {
         &["1", "\"fooa\"", "\"afoo\"", "\"afooa\""],
     );
 }
+
+#[test]
+fn test_nested_lark() {
+    lark_str_test_many(
+        r#"
+            start: /[ab]+/ foobar
+            foobar: %lark {
+                start: "foo" | "Bar"
+            }
+        "#,
+        &["afoo", "abfoo", "aaaaaaBar"],
+        &["FINAL_REJECT:a", "afooa"],
+    );
+}

@@ -325,6 +325,19 @@ fn test_ll_lexeme_subgrammar_max_tokens() {
 }
 
 #[test]
+fn test_ll_nested_temp() {
+    check_lark_grammar(
+        r#"start: /[xy]/ sub_temp
+           sub_temp[temperature=0.5]: %lark {
+                start: "[" ("A")* "]"
+                %ignore /[ \t]+/
+           }
+        "#,
+        &["", "x‧[‧]"],
+    );
+}
+
+#[test]
 fn test_ll_temperature() {
     check_lark_json(
         r#"start: "JSON" j

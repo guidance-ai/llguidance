@@ -417,13 +417,9 @@ pub fn check_lark_grammar_nested(lark: &str, sub_lark: &str, output: &[&str]) ->
     );
     let r = check_grammar(&PARSER_FACTORY, "", top_grm, output, temp);
 
-    if false {
+    if true {
         // also test the new syntax
-        let lark2 = format!(
-            "{}\n\n_sub: %lark {{\n{}\n}}",
-            lark.replace("@sub", "_sub"),
-            sub_lark
-        );
+        let lark2 = lark.replace("@sub", &format!("%lark {{\n{}\n}}", sub_lark));
         check_grammar(
             &PARSER_FACTORY,
             "",
