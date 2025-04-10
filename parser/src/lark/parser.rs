@@ -22,7 +22,32 @@ impl Parser {
     }
 
     /// Parses the start symbol of the grammar.
-    pub fn parse_start(&mut self) -> Result<ParsedLark> {
+    pub fn parse_start(&mut self, nesting: usize) -> Result<ParsedLark> {
+        ensure!(nesting < 20, "lark grammar too deeply nested");
+        self.parse_start_inner(nesting).map_err(|e| {
+            if let Some(tok) = self.peek_token() {
+                anyhow!(
+                    "{}({}): {} (at {} ({:?}))",
+                    tok.line,
+                    tok.column,
+                    e,
+                    tok.value,
+                    tok.token
+                )
+            } else {
+                anyhow!("at EOF: {}", e)
+            }
+        })
+    }
+
+    /// Parses the start symbol of the grammar.
+    fn parse_start_inner(&mut self, nesting: usize) -> Result<ParsedLark> {
+        let mut name = None;
+        if nesting > 0 && self.has_token(Token::GrammarRef) {
+            name = Some(self.take_token_value().get_string()?[1..].to_string());
+            self.expect_token(Token::Newline)?;
+        }
+
         let mut items = Vec::new();
         while !self.is_at_end() {
             self.consume_newlines();
@@ -32,7 +57,17 @@ impl Parser {
             items.push(self.parse_item()?);
             self.consume_newlines();
         }
-        Ok(ParsedLark { items })
+        let mut res = ParsedLark {
+            name,
+            items,
+            nested: Vec::new(),
+        };
+        while !self.pending_nested.is_empty() {
+            let inner = self.pending_nested.remove(0);
+            res.nested
+                .push(Parser::new(inner).parse_start(nesting + 1)?);
+        }
+        Ok(res)
     }
 
     /// Parses an item (rule, token, or statement).
@@ -657,24 +692,12 @@ impl Parser {
 }
 
 pub struct ParsedLark {
+    pub name: Option<String>,
     pub items: Vec<Item>,
+    pub nested: Vec<ParsedLark>,
 }
 
 pub fn parse_lark(input: &str) -> Result<ParsedLark> {
     let tokens = lex_lark(input)?;
-    let mut parser = Parser::new(tokens);
-    parser.parse_start().map_err(|e| {
-        if let Some(tok) = parser.peek_token() {
-            anyhow!(
-                "{}({}): {} (at {} ({:?}))",
-                tok.line,
-                tok.column,
-                e,
-                tok.value,
-                tok.token
-            )
-        } else {
-            anyhow!("at EOF: {}", e)
-        }
-    })
+    Parser::new(tokens).parse_start(0)
 }

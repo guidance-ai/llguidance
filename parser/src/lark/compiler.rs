@@ -47,6 +47,7 @@ struct Compiler {
     regex_ids: HashMap<String, RegexId>,
     in_progress: HashSet<String>,
     pending_json_grammars: Vec<(NodeRef, Location, serde_json::Value)>,
+    gen_grammars: HashMap<String, Vec<NodeRef>>,
 }
 
 fn compile_lark(builder: GrammarBuilder, parsed: ParsedLark) -> Result<GrammarResult> {
@@ -58,6 +59,7 @@ fn compile_lark(builder: GrammarBuilder, parsed: ParsedLark) -> Result<GrammarRe
         regex_ids: HashMap::default(),
         in_progress: HashSet::default(),
         pending_json_grammars: vec![],
+        gen_grammars: HashMap::default(),
     };
     c.execute()
 }
@@ -288,16 +290,6 @@ impl Compiler {
         Ok(self.builder.lexeme(rx_id))
     }
 
-    fn get_grammar_id(g: &str) -> Result<GrammarId> {
-        assert!(g.starts_with("@"));
-        // see if g[1..] is an integer
-        if g[1..].parse::<usize>().is_ok() {
-            bail!("numeric grammar references no longer supported");
-        } else {
-            Ok(GrammarId::Name(g[1..].to_string()))
-        }
-    }
-
     fn do_atom(&mut self, loc: &Location, expr: Atom) -> Result<NodeRef> {
         match expr {
             Atom::Group(expansions) => self.do_expansions(expansions),
@@ -343,13 +335,7 @@ impl Compiler {
                         return self.builder.special_token(s);
                     }
                     Value::GrammarRef(g) => {
-                        return Ok(self.builder.gen_grammar(
-                            GenGrammarOptions {
-                                grammar: Compiler::get_grammar_id(g)?,
-                                temperature: None,
-                            },
-                            NodeProps::default(),
-                        ));
+                        return self.gen_grammar(g, None, NodeProps::default());
                     }
                     Value::Json(_) => {
                         // consume value
@@ -466,6 +452,30 @@ impl Compiler {
         Ok(id)
     }
 
+    fn gen_grammar(
+        &mut self,
+        name: &str,
+        temperature: Option<f32>,
+        props: NodeProps,
+    ) -> Result<NodeRef> {
+        assert!(name.starts_with("@"));
+        // see if name[1..] is an integer
+        let name = if name[1..].parse::<usize>().is_ok() {
+            bail!("numeric grammar references no longer supported");
+        } else {
+            name[1..].to_string()
+        };
+        let id = self.builder.gen_grammar(
+            GenGrammarOptions {
+                grammar: GrammarId::Name(name.clone()),
+                temperature,
+            },
+            props,
+        );
+        self.gen_grammars.entry(name).or_default().push(id);
+        Ok(id)
+    }
+
     fn do_rule_core(&mut self, name: &str) -> Result<NodeRef> {
         let rule = self
             .grammar
@@ -513,13 +523,7 @@ impl Compiler {
             if rule.temperature.is_some() || rule.max_tokens.is_some() {
                 match rule.expansions.single_atom() {
                     Some(Atom::Value(Value::GrammarRef(g))) => {
-                        return Ok(self.builder.gen_grammar(
-                            GenGrammarOptions {
-                                grammar: Compiler::get_grammar_id(g)?,
-                                temperature: rule.temperature,
-                            },
-                            props,
-                        ));
+                        return self.gen_grammar(g, rule.temperature, props);
                     }
                     _ => {
                         // try as terminal
@@ -593,6 +597,17 @@ impl Compiler {
                 .map_err(|e| loc.augment(anyhow!("failed to compile JSON schema: {}", e)))?;
             builder = res.builder;
             builder.link_gen_grammar(gg, res.start_node)?;
+        }
+
+        for n in self.parsed.nested {
+            let name = n.name.clone();
+            let res = compile_lark(builder, n)?;
+            builder = res.builder;
+            if let Some(name) = name {
+                for n_id in self.gen_grammars.remove(&name).unwrap_or_default() {
+                    builder.link_gen_grammar(n_id, res.start_node)?;
+                }
+            }
         }
 
         Ok(builder.finalize(id))
