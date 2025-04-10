@@ -477,7 +477,7 @@ impl Compiler {
     }
 
     fn do_rule_core(&mut self, name: &str) -> Result<NodeRef> {
-        let rule = self
+        let mut rule = self
             .grammar
             .rules
             .remove(name)
@@ -495,8 +495,8 @@ impl Compiler {
 
         let id = if let Some(stop) = rule.stop_like() {
             let is_empty = matches!(stop, Value::LiteralString(s, _) if s.is_empty());
-            let stop_val = Atom::Value(stop.clone());
             let lazy = rule.is_lazy();
+            let stop_val = Atom::Value(rule.take_stop_like().unwrap());
             let rx_id = self.do_token_expansions(rule.expansions)?;
             let stop_id = self.do_token_atom(stop_val)?;
 
@@ -638,7 +638,7 @@ impl Grammar {
                 }],
             ),
         };
-        self.tokens.insert(t.name.clone(), t.clone());
+        self.tokens.insert(t.name.clone(), t);
         Ok(())
     }
 
