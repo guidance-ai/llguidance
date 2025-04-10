@@ -489,14 +489,17 @@ impl Parser {
                 LexemeValue::Regex(v) => Ok(Value::RegexExt(v)),
                 v => bail!("expected regex JSON value, got {}", v),
             }
-        } else if self.match_token(Token::KwNest) {
+        } else if self.match_token(Token::KwLark) {
+            if !self.match_token(Token::LBrace) {
+                bail!("Expected '{{' after %lark")
+            }
             let mut nesting_level = 1;
             let mut endp = self.pos;
             while endp < self.tokens.len() {
                 let t = self.tokens[endp].token;
-                if t == Token::KwNest {
+                if t == Token::LBrace {
                     nesting_level += 1;
-                } else if t == Token::KwEndNest {
+                } else if t == Token::RBrace {
                     nesting_level -= 1;
                 }
                 if nesting_level == 0 {
