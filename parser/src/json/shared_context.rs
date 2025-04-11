@@ -10,6 +10,7 @@ pub struct SharedContext {
     defs: HashMap<String, Schema>,
     seen: HashSet<String>,
     n_compiled: usize,
+    pending_errors: Vec<String>,
 }
 
 impl SharedContext {
@@ -18,6 +19,7 @@ impl SharedContext {
             defs: HashMap::default(),
             seen: HashSet::default(),
             n_compiled: 0,
+            pending_errors: Vec::new(),
         }
     }
 }
@@ -59,6 +61,10 @@ impl Context<'_> {
             bail!("schema too large");
         }
         Ok(())
+    }
+
+    pub fn record_error(&self, error: String) {
+        self.shared.borrow_mut().pending_errors.push(error);
     }
 
     pub fn take_defs(&self) -> HashMap<String, Schema> {

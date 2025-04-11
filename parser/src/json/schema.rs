@@ -1,4 +1,4 @@
-use crate::{regex_to_lark, HashMap};
+use crate::{regex_to_lark, HashMap, JsonCompileOptions};
 use anyhow::{anyhow, bail, Result};
 use derivre::RegexAst;
 use indexmap::{IndexMap, IndexSet};
@@ -8,7 +8,6 @@ use std::mem;
 use super::context::{Context, Draft, PreContext, ResourceRef};
 use super::formats::lookup_format;
 use super::numeric::Decimal;
-use super::RetrieveWrapper;
 
 const TYPES: [&str; 6] = ["null", "boolean", "number", "string", "array", "object"];
 
@@ -528,6 +527,7 @@ impl Schema {
 pub struct SchemaBuilderOptions {
     pub max_size: usize,
     pub max_stack_level: usize,
+    pub lenient: bool,
 }
 
 impl Default for SchemaBuilderOptions {
@@ -535,13 +535,14 @@ impl Default for SchemaBuilderOptions {
         SchemaBuilderOptions {
             max_size: 50_000,
             max_stack_level: 128, // consumes ~2.5k of stack per level
+            lenient: false,
         }
     }
 }
 
 pub fn build_schema(
     contents: Value,
-    retriever: Option<RetrieveWrapper>,
+    options: &JsonCompileOptions,
 ) -> Result<(Schema, HashMap<String, Schema>)> {
     if let Some(b) = contents.as_bool() {
         if b {
@@ -551,8 +552,10 @@ pub fn build_schema(
         }
     }
 
-    let pre_ctx = PreContext::new(contents, retriever)?;
-    let ctx = Context::new(&pre_ctx)?;
+    let pre_ctx = PreContext::new(contents, options.retriever.clone())?;
+    let mut ctx = Context::new(&pre_ctx)?;
+
+    ctx.options.lenient = options.lenient;
 
     let root_resource = ctx.lookup_resource(&pre_ctx.base_uri)?;
     let schema = compile_resource(&ctx, root_resource)?;
@@ -611,7 +614,12 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
     if !unimplemented_keys.is_empty() {
         // ensure consistent order for tests
         unimplemented_keys.sort();
-        bail!("Unimplemented keys: {:?}", unimplemented_keys);
+        let msg = format!("Unimplemented keys: {:?}", unimplemented_keys);
+        if ctx.options.lenient {
+            ctx.record_error(msg);
+        } else {
+            bail!(msg);
+        }
     }
 
     // Some dummy values to use for properties and prefixItems if we need to apply additionalProperties or items
@@ -837,6 +845,7 @@ fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Resu
             get("multipleOf"),
         ),
         "string" => compile_string(
+            ctx,
             get("minLength"),
             get("maxLength"),
             get("pattern"),
@@ -928,6 +937,7 @@ fn compile_numeric(
 }
 
 fn compile_string(
+    ctx: &Context,
     min_length: Option<&Value>,
     max_length: Option<&Value>,
     pattern: Option<&Value>,
@@ -958,14 +968,24 @@ fn compile_string(
     };
     let format_rx = match format {
         None => None,
-        Some(val) => Some({
+        Some(val) => {
             let key = val
                 .as_str()
                 .ok_or_else(|| anyhow!("Expected string for 'format', got {}", limited_str(val)))?
                 .to_string();
-            let fmt = lookup_format(&key).ok_or_else(|| anyhow!("Unknown format: {}", key))?;
-            RegexAst::Regex(fmt.to_string())
-        }),
+
+            if let Some(fmt) = lookup_format(&key) {
+                Some(RegexAst::Regex(fmt.to_string()))
+            } else {
+                let msg = format!("Unknown format: {}", key);
+                if ctx.options.lenient {
+                    ctx.record_error(msg);
+                    None
+                } else {
+                    bail!(msg);
+                }
+            }
+        }
     };
     let regex = match (pattern_rx, format_rx) {
         (None, None) => None,
@@ -1116,6 +1136,7 @@ fn opt_min<T: PartialOrd>(a: Option<T>, b: Option<T>) -> Option<T> {
 #[cfg(all(test, feature = "referencing"))]
 mod test_retriever {
     use crate::json::{Retrieve, RetrieveWrapper};
+    use crate::JsonCompileOptions;
 
     use super::{build_schema, Schema};
     use serde_json::{json, Value};
@@ -1161,7 +1182,11 @@ mod test_retriever {
             .collect(),
         };
         let wrapper = RetrieveWrapper::new(Arc::new(retriever));
-        let (schema, defs) = build_schema(schema, Some(wrapper)).unwrap();
+        let options = JsonCompileOptions {
+            retriever: Some(wrapper.clone()),
+            ..Default::default()
+        };
+        let (schema, defs) = build_schema(schema, &options).unwrap();
         match schema {
             Schema::Ref { uri } => {
                 assert_eq!(uri, key);
@@ -1214,6 +1239,7 @@ mod tests {
             }
         });
         // Test failure amounts to this resulting in a stack overflow
-        let _ = build_schema(schema, None);
+        let options = JsonCompileOptions::default();
+        let _ = build_schema(schema, &options);
     }
 }

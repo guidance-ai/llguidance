@@ -15,7 +15,7 @@ Following JSON schema features are supported.
 Core features:
 
 - `anyOf`
-- `oneOf` - not supported right now, use `anyOf` instead, [issue](https://github.com/microsoft/llguidance/issues/77)
+- `oneOf` - converted to `anyOf` only when provably equivalent
 - `allOf` - intersection of certain schemas is not supported right now
 - `$ref` - external/remote refs unsupported
 - `const`
@@ -40,7 +40,7 @@ String features:
 
 - `minLength`
 - `maxLength`
-- `pattern` (though we always anchor them, [issue](https://github.com/microsoft/llguidance/issues/66))
+- `pattern`
 - `format`, with the following formats: `date-time`, `time`, `date`, `duration`, `email`, `hostname`, `ipv4`, `ipv6`, `uuid`,
 
 Number features (for both integer and number):
@@ -71,6 +71,7 @@ Following keys are available inside of it:
 - `whitespace_pattern`, optional string, overrides `whitespace_flexible`;
   `whitespace_flexible: true` is equivalent to `whitespace_pattern: r"[\x20\x0A\x0D\x09]+"`
 - `coerce_one_of`, defaults to `false`; when set to `true`, the `"oneOf"` will be treated as `"anyOf"`
+- `lenient`, defaults to `false`; when set to `true`, the unsupported keywords and formats will be ignored; implies `coerce_one_of: true`
 
 For example:
 

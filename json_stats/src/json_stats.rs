@@ -68,6 +68,10 @@ pub struct CliOptions {
     #[arg(long)]
     compact: bool,
 
+    /// Ignore unknown features in JSON schema
+    #[arg(long)]
+    lenient: bool,
+
     /// Validate results against known good results; similar to 'diff FILE tmp/llg_sem_results.json'
     #[arg(long)]
     expected: Option<String>,
@@ -667,6 +671,7 @@ impl TestEnv {
     fn run_llg_compile(&self, id: &str, test_file: &JsonTest) -> LlgResult {
         let opts = JsonCompileOptions {
             whitespace_flexible: !self.cli.compact,
+            lenient: self.cli.lenient,
             ..Default::default()
         };
         let mut res = LlgResult {

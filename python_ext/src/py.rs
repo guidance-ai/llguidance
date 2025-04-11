@@ -317,6 +317,7 @@ impl JsonCompiler {
             whitespace_flexible: self.whitespace_flexible,
             coerce_one_of: self.coerce_one_of,
             whitespace_pattern: self.whitespace_pattern.clone(),
+            lenient: false,
             retriever: None,
         };
         compile_options.apply_to(&mut schema);
