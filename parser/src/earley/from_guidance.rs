@@ -85,10 +85,14 @@ impl CompileCtx {
             .collect();
 
         let builder = self.builder.unwrap();
+        let warnings = builder.get_warnings();
         let mut grammar = builder.grammar;
         let mut lexer_spec = builder.regex.spec;
 
         grammar.resolve_grammar_refs(&mut lexer_spec, &grammar_by_idx)?;
+
+        assert!(lexer_spec.grammar_warnings.is_empty());
+        lexer_spec.grammar_warnings = warnings;
 
         Ok((grammar, lexer_spec))
     }

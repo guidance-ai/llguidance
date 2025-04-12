@@ -133,7 +133,11 @@ impl Compiler {
             .builder
             .add_grammar(LLGuidanceOptions::default(), skip)?;
 
-        let (compiled_schema, definitions) = build_schema(schema, &self.options)?;
+        let (compiled_schema, definitions, warnings) = build_schema(schema, &self.options)?;
+
+        for w in warnings {
+            self.builder.add_warning(w);
+        }
 
         let root = self.gen_json(&compiled_schema)?;
         self.builder.set_start_node(root);

@@ -2705,6 +2705,10 @@ impl Parser {
         self.with_shared(|state| state.scan_eos())
     }
 
+    pub fn grammar_warnings(&mut self) -> String {
+        self.with_shared(|state| state.lexer_spec().render_warnings())
+    }
+
     pub(crate) fn apply_forced(&mut self, byte_idx: usize) {
         self.state.byte_to_token_idx.resize(byte_idx, 0);
     }

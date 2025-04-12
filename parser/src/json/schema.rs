@@ -543,13 +543,14 @@ impl Default for SchemaBuilderOptions {
 pub fn build_schema(
     contents: Value,
     options: &JsonCompileOptions,
-) -> Result<(Schema, HashMap<String, Schema>)> {
+) -> Result<(Schema, HashMap<String, Schema>, Vec<String>)> {
     if let Some(b) = contents.as_bool() {
-        if b {
-            return Ok((Schema::Any, HashMap::default()));
+        let s = if b {
+            Schema::Any
         } else {
-            return Ok((Schema::false_schema(), HashMap::default()));
-        }
+            Schema::false_schema()
+        };
+        return Ok((s, HashMap::default(), Vec::new()));
     }
 
     let pre_ctx = PreContext::new(contents, options.retriever.clone())?;
@@ -559,7 +560,7 @@ pub fn build_schema(
 
     let root_resource = ctx.lookup_resource(&pre_ctx.base_uri)?;
     let schema = compile_resource(&ctx, root_resource)?;
-    Ok((schema, ctx.take_defs()))
+    Ok((schema, ctx.take_defs(), ctx.take_warnings()))
 }
 
 fn compile_resource(ctx: &Context, resource: ResourceRef) -> Result<Schema> {
@@ -616,7 +617,7 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
         unimplemented_keys.sort();
         let msg = format!("Unimplemented keys: {:?}", unimplemented_keys);
         if ctx.options.lenient {
-            ctx.record_error(msg);
+            ctx.record_warning(msg);
         } else {
             bail!(msg);
         }
@@ -979,7 +980,7 @@ fn compile_string(
             } else {
                 let msg = format!("Unknown format: {}", key);
                 if ctx.options.lenient {
-                    ctx.record_error(msg);
+                    ctx.record_warning(msg);
                     None
                 } else {
                     bail!(msg);
@@ -1186,7 +1187,7 @@ mod test_retriever {
             retriever: Some(wrapper.clone()),
             ..Default::default()
         };
-        let (schema, defs) = build_schema(schema, &options).unwrap();
+        let (schema, defs, _) = build_schema(schema, &options).unwrap();
         match schema {
             Schema::Ref { uri } => {
                 assert_eq!(uri, key);

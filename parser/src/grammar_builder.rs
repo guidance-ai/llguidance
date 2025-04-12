@@ -38,6 +38,7 @@ pub struct GrammarBuilder {
     pub regex: RegexBuilder,
     tok_env: Option<TokEnv>,
     limits: ParserLimits,
+    warnings: HashMap<String, usize>,
 
     strings: HashMap<String, NodeRef>,
     at_most_cache: HashMap<(NodeRef, usize), NodeRef>,
@@ -150,6 +151,7 @@ impl GrammarBuilder {
             regex: RegexBuilder::new(),
             at_most_cache: HashMap::default(),
             repeat_exact_cache: HashMap::default(),
+            warnings: HashMap::default(),
             limits,
             tok_env,
         }
@@ -170,6 +172,17 @@ impl GrammarBuilder {
         );
 
         Ok(())
+    }
+
+    pub fn add_warning(&mut self, msg: String) {
+        let count = self.warnings.entry(msg).or_insert(0);
+        *count += 1;
+    }
+
+    pub fn get_warnings(&self) -> Vec<(String, usize)> {
+        let mut warnings: Vec<_> = self.warnings.iter().map(|(k, v)| (k.clone(), *v)).collect();
+        warnings.sort_by(|a, b| a.0.cmp(&b.0));
+        warnings
     }
 
     pub fn add_grammar(&mut self, options: LLGuidanceOptions, skip: RegexAst) -> Result<SymIdx> {

@@ -10,7 +10,7 @@ pub struct SharedContext {
     defs: HashMap<String, Schema>,
     seen: HashSet<String>,
     n_compiled: usize,
-    pending_errors: Vec<String>,
+    pending_warnings: Vec<String>,
 }
 
 impl SharedContext {
@@ -19,7 +19,7 @@ impl SharedContext {
             defs: HashMap::default(),
             seen: HashSet::default(),
             n_compiled: 0,
-            pending_errors: Vec::new(),
+            pending_warnings: Vec::new(),
         }
     }
 }
@@ -63,11 +63,15 @@ impl Context<'_> {
         Ok(())
     }
 
-    pub fn record_error(&self, error: String) {
-        self.shared.borrow_mut().pending_errors.push(error);
+    pub fn record_warning(&self, msg: String) {
+        self.shared.borrow_mut().pending_warnings.push(msg);
     }
 
     pub fn take_defs(&self) -> HashMap<String, Schema> {
         std::mem::take(&mut self.shared.borrow_mut().defs)
+    }
+
+    pub fn take_warnings(&self) -> Vec<String> {
+        std::mem::take(&mut self.shared.borrow_mut().pending_warnings)
     }
 }
