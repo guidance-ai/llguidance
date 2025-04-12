@@ -198,7 +198,7 @@ impl Compiler {
         if self.options.coerce_one_of || self.options.lenient {
             self.process_any_of(options)
         } else {
-            Err(anyhow!("oneOf constraints are not supported. Enable 'coerce_one_of' or 'lenient' option to approximate oneOf with anyOf"))
+            Err(anyhow!("oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"))
         }
     }
 
