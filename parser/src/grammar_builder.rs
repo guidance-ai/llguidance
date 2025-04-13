@@ -269,6 +269,10 @@ impl GrammarBuilder {
             }
         }
 
+        if trie.is_none() {
+            self.add_warning("no tokenizer - can't validate <[...]>".to_string());
+        }
+
         let id = self.regex.spec.add_special_token(name, token_ranges)?;
         Ok(self.lexeme_to_node(id))
     }
@@ -289,6 +293,7 @@ impl GrammarBuilder {
                 );
             }
         } else {
+            self.add_warning("no tokenizer - can't validate <special_token>".to_string());
             INVALID_TOKEN
         };
 

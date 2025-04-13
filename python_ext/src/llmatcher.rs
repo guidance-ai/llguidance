@@ -194,23 +194,22 @@ impl LLMatcher {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (grammar, tokenizer=None, *, limits=None))]
+    #[pyo3(signature = (grammar, tokenizer=None, *, limits=None, warnings=false))]
     fn validate_grammar(
         grammar: Bound<'_, PyAny>,
         tokenizer: Option<&LLTokenizer>,
         limits: Option<&LLParserLimits>,
+        warnings: bool,
         py: Python<'_>,
     ) -> String {
         match extract_grammar(grammar) {
             Ok(grammar) => py.allow_threads(|| {
                 GrammarInit::Serialized(grammar)
-                    .to_internal(
+                    .validate(
                         tokenizer.map(|t| t.factory().tok_env().clone()),
                         LLParserLimits::from_option(limits),
                     )
-                    .err()
-                    .map(|e| e.to_string())
-                    .unwrap_or_default()
+                    .render(warnings)
             }),
             Err(e) => e.to_string(),
         }

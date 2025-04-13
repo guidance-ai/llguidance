@@ -11,7 +11,7 @@ use toktrie::{
 
 use crate::{
     api::{GrammarInit, ParserLimits, TopLevelGrammar},
-    earley::SlicedBiasComputer,
+    earley::{SlicedBiasComputer, ValidationResult},
     CommitResult, Constraint, Logger, Matcher, ParserFactory, StopController, TokenParser,
 };
 
@@ -983,21 +983,25 @@ fn validate_grammar(
     init: &LlgConstraintInit,
     constraint_type: *const c_char,
     data: *const c_char,
-) -> Result<()> {
+) -> Result<String> {
     let tp = unsafe { c_str_to_str(constraint_type, "constraint_type") }?;
     let data = unsafe { c_str_to_str(data, "data") }?;
     let grammar = TopLevelGrammar::from_tagged_str(tp, data)?;
     let tok_env = init.factory()?.tok_env().clone();
-    let _ = GrammarInit::Serialized(grammar).to_internal(Some(tok_env), init.limits.clone())?;
-    Ok(())
+    match GrammarInit::Serialized(grammar).validate(Some(tok_env), init.limits.clone()) {
+        ValidationResult::Valid => Ok(String::new()),
+        ValidationResult::Error(e) => bail!(e),
+        ValidationResult::Warning(w) => Ok(w),
+    }
 }
 
 /// Check if given grammar is valid.
 /// This about twice as fast as creating a matcher (which also validates).
 /// See llg_new_matcher() for the grammar format.
-/// Returns 0 on success and -1 on error.
+/// Returns 0 on success and -1 on error and 1 on warning.
 /// The error message is written to error_string.
 /// The error_string is NUL-terminated.
+/// Same for warning_string.
 /// # Safety
 /// This function should only be called from C code.
 #[no_mangle]
@@ -1007,12 +1011,22 @@ pub unsafe extern "C" fn llg_validate_grammar(
     data: *const c_char,
     error_string: *mut c_char,
     error_string_len: usize,
+    warning_string: *mut c_char,
+    warning_string_len: usize,
 ) -> i32 {
-    if let Err(e) = validate_grammar(init, constraint_type, data) {
-        save_error_string(e, error_string, error_string_len);
-        -1
-    } else {
-        0
+    match validate_grammar(init, constraint_type, data) {
+        Err(e) => {
+            save_error_string(e, error_string, error_string_len);
+            -1
+        }
+        Ok(s) => {
+            if !s.is_empty() {
+                save_error_string(s, warning_string, warning_string_len);
+                1
+            } else {
+                0
+            }
+        }
     }
 }
 

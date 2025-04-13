@@ -256,10 +256,12 @@ class LLMatcher:
         tokenizer: Optional[LLTokenizer] = None,
         *,
         limits: Optional[LLParserLimits] = None,
+        warnings: bool = False,
     ) -> str:
         """
         Validate the grammar, for example one returned by LLMatcher.grammar_from_*().
         Returns empty string if the grammar is valid, otherwise an error message.
+        If warnings is true and there are no errors, it will return "WARNING: ..." if there are warnings.
         """
 
     @staticmethod
