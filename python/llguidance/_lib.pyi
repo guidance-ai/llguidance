@@ -261,7 +261,14 @@ class LLMatcher:
         """
         Validate the grammar, for example one returned by LLMatcher.grammar_from_*().
         Returns empty string if the grammar is valid, otherwise an error message.
-        If warnings is true and there are no errors, it will return "WARNING: ..." if there are warnings.
+        If warnings is true and there are no errors, it will return "WARNING: ..." if there are warnings;
+        you can use LLMatcher.is_validate_warning() to check for that.
+        """
+
+    @staticmethod
+    def is_validate_warning(message: str) -> bool:
+        """
+        Check if the message is a warning from validate_grammar().
         """
 
     @staticmethod
@@ -309,6 +316,12 @@ class LLMatcher:
     def get_error(self) -> str:
         """
         Get the error message if the matcher is in an error state, empty string otherwise.
+        """
+
+    def get_grammar_warnings(self) -> str:
+        """
+        Get the warnings about the grammar if any.
+        Returns empty string if there are no warnings.
         """
 
     def deep_copy(self) -> "LLMatcher":
@@ -523,6 +536,8 @@ class JsonCompileOptions(TypedDict, total=False):
     whitespace_flexible: Optional[bool]
     # defaults to false
     coerce_one_of: Optional[bool]
+    # ignore unimplemented keywords; defaults to false
+    lenient: Optional[bool]
 
 
 class LLParserLimits:

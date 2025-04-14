@@ -216,6 +216,11 @@ impl LLMatcher {
     }
 
     #[staticmethod]
+    fn is_validate_warning(message: &str) -> bool {
+        message.starts_with("WARNING: ")
+    }
+
+    #[staticmethod]
     #[pyo3(signature = (schema, defaults=None, overrides=None))]
     fn grammar_from_json_schema(
         schema: Bound<'_, PyAny>,
@@ -260,6 +265,10 @@ impl LLMatcher {
     #[staticmethod]
     fn grammar_from_regex(regex: &str) -> String {
         serde_json::to_string(&TopLevelGrammar::from_regex(regex)).unwrap()
+    }
+
+    fn get_grammar_warnings(&mut self) -> String {
+        self.inner.grammar_warnings()
     }
 
     fn deep_copy(&self) -> Self {

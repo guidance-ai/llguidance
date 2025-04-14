@@ -400,21 +400,54 @@ def test_parser_limits() -> None:
                   limits=LLParserLimits(initial_lexer_fuel=5))
     assert "initial lexer configuration (grammar) too big" in m.get_error()
 
-    # m = LLMatcher(tokenizer(),
-    #               "start: /(foo[12]23|bar|qux|mux)/",
-    #               limits=LLParserLimits(
-    #                   step_lexer_fuel=1,
-    #                   precompute_large_lexemes=False,
-    #               ),
-    #               log_level=2)
-    # toks = tokenizer().tokenize_str("foo223")
-    # assert not m.get_error()
-    # m.consume_token(toks[0])
-    # mask = m.compute_logit_bias()
-    # assert not m.get_error()
-    # m.consume_token(toks[1])
-    # mask = m.compute_logit_bias()
-    # assert not m.get_error()
-    # m.consume_token(toks[2])
-    # mask = m.compute_logit_bias()
-    # assert not m.get_error()
+
+def check_json_schema_error(msg: str, json_schema: Dict[str, Any]) -> None:
+    for lenient in [True, False]:
+        grm = LLMatcher.grammar_from_json_schema(
+            json_schema, overrides={"lenient": lenient})
+        err = LLMatcher.validate_grammar(
+            grm,
+            tokenizer=tokenizer(),
+            warnings=True,
+        )
+        assert msg in err
+        if lenient:
+            assert LLMatcher.is_validate_warning(err)
+        else:
+            assert not LLMatcher.is_validate_warning(err)
+
+        m = LLMatcher(tokenizer(), grm)
+
+        if lenient:
+            assert msg in m.get_grammar_warnings()
+        else:
+            assert m.is_error()
+            assert msg in m.get_error()
+
+
+def test_grammar_warnings() -> None:
+    err = LLMatcher.validate_grammar(
+        "start: <[128]>* <[123]>",
+        tokenizer=None,
+        warnings=True,
+    )
+    assert LLMatcher.is_validate_warning(err)
+    assert err.startswith("WARNING: ")
+    assert "no tokenizer" in err
+
+    check_json_schema_error(
+        "Unknown format", {
+            "type": "object",
+            "properties": {
+                "foo": {
+                    "type": "string",
+                    "format": "my_custom_format"
+                }
+            },
+            "required": ["foo"]
+        })
+
+    check_json_schema_error('Unimplemented keys: ["not"]',
+                            {"not": {
+                                "type": "object"
+                            }})
