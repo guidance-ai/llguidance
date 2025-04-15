@@ -171,7 +171,6 @@ impl Compiler {
             Schema::Ref(uri) => self.get_definition(uri),
 
             Schema::Null
-            | Schema::Boolean
             | Schema::LiteralBool(_)
             | Schema::String(_)
             | Schema::Number(_) => {
@@ -511,8 +510,8 @@ impl Compiler {
 
         let r = match schema {
             Schema::Null => literal_regex("null"),
-            Schema::Boolean => Some(RegexAst::Regex("true|false".to_string())),
-            Schema::LiteralBool(value) => literal_regex(if *value { "true" } else { "false" }),
+            Schema::LiteralBool(None) => Some(RegexAst::Regex("true|false".to_string())),
+            Schema::LiteralBool(Some(value)) => literal_regex(if *value { "true" } else { "false" }),
 
             Schema::Number(num) => Some(if num.integer {
                 self.json_int(num)?

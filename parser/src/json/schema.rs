@@ -79,12 +79,11 @@ pub enum Schema {
     Any,
     Unsatisfiable(String),
     Null,
-    Boolean,
     Number(NumberSchema),
     String(StringSchema),
     Array(ArraySchema),
     Object(ObjectSchema),
-    LiteralBool(bool),
+    LiteralBool(Option<bool>),
     AnyOf(Vec<Schema>),
     OneOf(Vec<Schema>),
     Ref(String),
@@ -300,12 +299,11 @@ impl Schema {
                     .collect::<Result<Vec<_>>>()?,
             ),
             (Schema::Null, Schema::Null) => Schema::Null,
-            (Schema::Boolean, Schema::Boolean) => Schema::Boolean,
-            (Schema::Boolean, Schema::LiteralBool(value)) => Schema::LiteralBool(value),
-            (Schema::LiteralBool(value), Schema::Boolean) => Schema::LiteralBool(value),
             (Schema::LiteralBool(value1), Schema::LiteralBool(value2)) => {
-                if value1 == value2 {
+                if value1 == value2 || value2.is_none() {
                     Schema::LiteralBool(value1)
+                } else if value1.is_none() {
+                    Schema::LiteralBool(value2)
                 } else {
                     Schema::unsat("incompatible boolean values")
                 }
@@ -399,11 +397,11 @@ impl Schema {
             (_, Schema::Unsatisfiable(_)) => true,
             (Schema::Any, _) => false,
             (_, Schema::Any) => false,
-            (Schema::Boolean, Schema::LiteralBool(_)) => false,
-            (Schema::LiteralBool(_), Schema::Boolean) => false,
             (Schema::Ref(_), _) => false, // TODO: could resolve
             (_, Schema::Ref(_)) => false, // TODO: could resolve
-            (Schema::LiteralBool(value1), Schema::LiteralBool(value2)) => value1 != value2,
+            (Schema::LiteralBool(value1), Schema::LiteralBool(value2)) => {
+                value1.is_some() && value2.is_some() && value1 != value2
+            }
             (Schema::AnyOf(options), _) => options
                 .iter()
                 .all(|opt| opt.is_verifiably_disjoint_from(other)),
@@ -754,7 +752,7 @@ fn intersect_ref(
 fn compile_const(instance: &Value) -> Result<Schema> {
     match instance {
         Value::Null => Ok(Schema::Null),
-        Value::Bool(b) => Ok(Schema::LiteralBool(*b)),
+        Value::Bool(b) => Ok(Schema::LiteralBool(Some(*b))),
         Value::Number(n) => {
             let value = n.as_f64().ok_or_else(|| {
                 anyhow!(
@@ -827,7 +825,7 @@ fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Resu
 
     match tp {
         "null" => Ok(Schema::Null),
-        "boolean" => Ok(Schema::Boolean),
+        "boolean" => Ok(Schema::LiteralBool(None)),
         "number" | "integer" => compile_numeric(
             get("minimum"),
             get("maximum"),
