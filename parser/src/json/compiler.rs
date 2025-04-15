@@ -407,6 +407,7 @@ impl Compiler {
             .map(|n| self.builder.regex.literal(n.to_string()))
             .collect::<Vec<_>>();
 
+        let mut pattern_options = vec![];
         for (pattern, schema) in obj.pattern_properties.iter() {
             let regex = self
                 .builder
@@ -439,9 +440,13 @@ impl Compiler {
             };
 
             let name = self.builder.lexeme(regex);
-            let item = self.builder.join(&[name, colon, schema]);
-            let item = self.sequence(item);
-            items.push((item, false));
+            pattern_options.push(self.builder.join(&[name, colon, schema]));
+        }
+
+        if !pattern_options.is_empty() {
+            let pattern = self.builder.select(&pattern_options);
+            let seq = self.sequence(pattern);
+            items.push((seq, false));
         }
 
         match self.gen_json(obj.additional_properties.schema_ref()) {

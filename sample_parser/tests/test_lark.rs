@@ -833,9 +833,9 @@ fn test_json_pattern_properties() {
             "additionalProperties": {
                 "type": "boolean",
             },
-            "required": ["foo"],
         }),
         &[
+            json!({}),
             json!({
                 "foo": "bar"
             }),
@@ -844,20 +844,82 @@ fn test_json_pattern_properties() {
                 "foo1": 123,
                 "bar": [],
                 "foo2": 456,
-                // "bar1": [],
-                // "qux": true,
-                // "mux": false,
+                "bar1": [],
+                "qux": true,
+                "mux": false,
             }),
-            // json!({
-            //     "foo": "bar",
-            //     "foo1": 123,
-            //     "bar": [],
-            //     "foo2": 456,
-            //     "bar1": [],
-            //     "qux": true,
-            //     "mux": false,
-            // }),
+            json!({
+                "bar": []
+            }),
+            json!({
+                "muxxx": false
+            }),
         ],
-        &[],
+        &[
+            json!({
+                "foo": 123
+            }),
+            json!({
+                "foo1": "blah"
+            }),
+            json!({
+                "foo1": true
+            }),
+            json!({
+                "bar11": true
+            }),
+        ],
+    );
+
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+            },
+            "patternProperties": {
+                "^foo": { "type": "integer" },
+                "^bar": { "type": "array" },
+            },
+            "additionalProperties": {
+                "type": "boolean",
+            },
+            "required": ["foo", "mux", "foo1", "bar1"],
+        }),
+        &[
+            json!({
+                "foo": "bar",
+                "mux": false,
+                "foo1": 123,
+                "bar1": [],
+            }),
+            json!({
+                "foo": "bar",
+                "mux": false,
+                "foo1": 123,
+                "bar1": [],
+                "blah": true
+            }),
+        ],
+        &[
+            json!({
+                "foo": "bar",
+                "mux": false,
+                "bar1": [],
+                "foo1": 123,
+            }),
+            json!({
+                "foo": "bar",
+                "mux": "blah",
+                "foo1": 123,
+                "bar1": [],
+            }),
+            json!({
+                "foo": "bar",
+                "mux": false,
+                "foo1": "aaa",
+                "bar1": [],
+            }),
+        ],
     );
 }
