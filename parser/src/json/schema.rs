@@ -77,47 +77,49 @@ fn limited_str(node: &Value) -> String {
 #[derive(Debug, Clone)]
 pub enum Schema {
     Any,
-    Unsatisfiable {
-        reason: String,
-    },
+    Unsatisfiable(String),
     Null,
     Boolean,
-    Number {
-        minimum: Option<f64>,
-        maximum: Option<f64>,
-        exclusive_minimum: Option<f64>,
-        exclusive_maximum: Option<f64>,
-        multiple_of: Option<Decimal>,
-        integer: bool,
-    },
-    String {
-        min_length: u64,
-        max_length: Option<u64>,
-        regex: Option<RegexAst>,
-    },
-    Array {
-        min_items: u64,
-        max_items: Option<u64>,
-        prefix_items: Vec<Schema>,
-        items: Option<Box<Schema>>,
-    },
-    Object {
-        properties: IndexMap<String, Schema>,
-        additional_properties: Option<Box<Schema>>,
-        required: IndexSet<String>,
-    },
-    LiteralBool {
-        value: bool,
-    },
-    AnyOf {
-        options: Vec<Schema>,
-    },
-    OneOf {
-        options: Vec<Schema>,
-    },
-    Ref {
-        uri: String,
-    },
+    Number(NumberSchema),
+    String(StringSchema),
+    Array(ArraySchema),
+    Object(ObjectSchema),
+    LiteralBool(bool),
+    AnyOf(Vec<Schema>),
+    OneOf(Vec<Schema>),
+    Ref(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct NumberSchema {
+    pub minimum: Option<f64>,
+    pub maximum: Option<f64>,
+    pub exclusive_minimum: Option<f64>,
+    pub exclusive_maximum: Option<f64>,
+    pub integer: bool,
+    pub multiple_of: Option<Decimal>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StringSchema {
+    pub min_length: u64,
+    pub max_length: Option<u64>,
+    pub regex: Option<RegexAst>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ArraySchema {
+    pub min_items: u64,
+    pub max_items: Option<u64>,
+    pub prefix_items: Vec<Schema>,
+    pub items: Option<Box<Schema>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ObjectSchema {
+    pub properties: IndexMap<String, Schema>,
+    pub additional_properties: Option<Box<Schema>>,
+    pub required: IndexSet<String>,
 }
 
 impl Schema {
