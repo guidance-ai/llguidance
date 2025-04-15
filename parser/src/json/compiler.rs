@@ -170,10 +170,7 @@ impl Compiler {
             Schema::OneOf(options) => self.process_one_of(options),
             Schema::Ref(uri) => self.get_definition(uri),
 
-            Schema::Null
-            | Schema::Boolean(_)
-            | Schema::String(_)
-            | Schema::Number(_) => {
+            Schema::Null | Schema::Boolean(_) | Schema::String(_) | Schema::Number(_) => {
                 unreachable!("should be handled in regex_compile()")
             }
         }
