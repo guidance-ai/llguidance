@@ -83,7 +83,7 @@ pub enum Schema {
     String(StringSchema),
     Array(ArraySchema),
     Object(ObjectSchema),
-    LiteralBool(Option<bool>),
+    Boolean(Option<bool>),
     AnyOf(Vec<Schema>),
     OneOf(Vec<Schema>),
     Ref(String),
@@ -299,11 +299,11 @@ impl Schema {
                     .collect::<Result<Vec<_>>>()?,
             ),
             (Schema::Null, Schema::Null) => Schema::Null,
-            (Schema::LiteralBool(value1), Schema::LiteralBool(value2)) => {
+            (Schema::Boolean(value1), Schema::Boolean(value2)) => {
                 if value1 == value2 || value2.is_none() {
-                    Schema::LiteralBool(value1)
+                    Schema::Boolean(value1)
                 } else if value1.is_none() {
-                    Schema::LiteralBool(value2)
+                    Schema::Boolean(value2)
                 } else {
                     Schema::unsat("incompatible boolean values")
                 }
@@ -399,7 +399,7 @@ impl Schema {
             (_, Schema::Any) => false,
             (Schema::Ref(_), _) => false, // TODO: could resolve
             (_, Schema::Ref(_)) => false, // TODO: could resolve
-            (Schema::LiteralBool(value1), Schema::LiteralBool(value2)) => {
+            (Schema::Boolean(value1), Schema::Boolean(value2)) => {
                 value1.is_some() && value2.is_some() && value1 != value2
             }
             (Schema::AnyOf(options), _) => options
@@ -752,7 +752,7 @@ fn intersect_ref(
 fn compile_const(instance: &Value) -> Result<Schema> {
     match instance {
         Value::Null => Ok(Schema::Null),
-        Value::Bool(b) => Ok(Schema::LiteralBool(Some(*b))),
+        Value::Bool(b) => Ok(Schema::Boolean(Some(*b))),
         Value::Number(n) => {
             let value = n.as_f64().ok_or_else(|| {
                 anyhow!(
@@ -825,7 +825,7 @@ fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Resu
 
     match tp {
         "null" => Ok(Schema::Null),
-        "boolean" => Ok(Schema::LiteralBool(None)),
+        "boolean" => Ok(Schema::Boolean(None)),
         "number" | "integer" => compile_numeric(
             get("minimum"),
             get("maximum"),
