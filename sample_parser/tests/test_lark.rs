@@ -7,6 +7,7 @@ use llguidance::{
     TokenParser,
 };
 use sample_parser::*;
+use serde_json::{json, Value};
 
 fn make_parser(lark: &str, quiet: bool) -> Result<TokenParser> {
     let grm = TopLevelGrammar::from_lark(lark.to_string());
@@ -104,6 +105,18 @@ fn lark_str_test_many_ext(quiet: bool, lark: &str, passing: &[&str], failing: &[
     }
     for s in failing {
         lark_str_test(lark, false, s, quiet);
+    }
+}
+
+fn json_test_many(schema: &Value, passing: &[Value], failing: &[Value]) {
+    let lark = format!(r#"start: %json {}"#, serde_json::to_string(schema).unwrap());
+    for s in passing {
+        let s = serde_json::to_string(s).unwrap();
+        lark_str_test(&lark, true, &s, false);
+    }
+    for s in failing {
+        let s = serde_json::to_string(s).unwrap();
+        lark_str_test(&lark, false, &s, false);
     }
 }
 
@@ -803,4 +816,48 @@ fn test_large_real_substring() {
         .join("");
     let no_mtch = format!("{}{}", mtch, "XXX");
     lark_str_test_many_quiet(&grm, &[&mtch], &[&no_mtch]);
+}
+
+#[test]
+fn test_json_pattern_properties() {
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+            },
+            "patternProperties": {
+                "^foo": { "type": "integer" },
+                "^bar": { "type": "array" },
+            },
+            "additionalProperties": {
+                "type": "boolean",
+            },
+            "required": ["foo"],
+        }),
+        &[
+            json!({
+                "foo": "bar"
+            }),
+            json!({
+                "foo": "bar",
+                "foo1": 123,
+                "bar": [],
+                "foo2": 456,
+                // "bar1": [],
+                // "qux": true,
+                // "mux": false,
+            }),
+            // json!({
+            //     "foo": "bar",
+            //     "foo1": 123,
+            //     "bar": [],
+            //     "foo2": 456,
+            //     "bar1": [],
+            //     "qux": true,
+            //     "mux": false,
+            // }),
+        ],
+        &[],
+    );
 }

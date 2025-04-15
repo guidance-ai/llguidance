@@ -8,11 +8,12 @@ use std::mem;
 use super::context::{Context, Draft, PreContext, ResourceRef};
 use super::formats::lookup_format;
 use super::numeric::Decimal;
+use super::shared_context::BuiltSchema;
 
 const TYPES: [&str; 6] = ["null", "boolean", "number", "string", "array", "object"];
 
 // Keywords that are implemented in this module
-pub(crate) const IMPLEMENTED: [&str; 24] = [
+pub(crate) const IMPLEMENTED: [&str; 25] = [
     // Core
     "anyOf",
     "oneOf",
@@ -30,6 +31,7 @@ pub(crate) const IMPLEMENTED: [&str; 24] = [
     // Object
     "properties",
     "additionalProperties",
+    "patternProperties",
     "required",
     // String
     "minLength",
@@ -149,6 +151,7 @@ pub struct ArraySchema {
 #[derive(Debug, Clone)]
 pub struct ObjectSchema {
     pub properties: IndexMap<String, Schema>,
+    pub pattern_properties: IndexMap<String, Schema>,
     pub additional_properties: Option<Box<Schema>>,
     pub required: IndexSet<String>,
 }
@@ -188,7 +191,7 @@ impl Schema {
     }
 
     /// Shallowly normalize the schema, removing any unnecessary nesting or empty options.
-    fn normalize(self) -> Schema {
+    fn normalize(self, ctx: &Context) -> Schema {
         match self {
             Schema::AnyOf(options) => {
                 let mut unsats = Vec::new();
@@ -244,7 +247,7 @@ impl Schema {
                     valid
                         .iter()
                         .skip(i + 1) // "upper diagonal"
-                        .all(|y| x.is_verifiably_disjoint_from(y))
+                        .all(|y| x.is_verifiably_disjoint_from(y, ctx))
                 }) {
                     Schema::AnyOf(valid)
                 } else {
@@ -354,33 +357,59 @@ impl Schema {
                 },
             }),
 
-            (Schema::Object(o1), Schema::Object(mut o2)) => {
-                let mut new_props = IndexMap::new();
-                for (key, prop1) in o1.properties.into_iter() {
-                    let prop2 = o2
-                        .properties
-                        .shift_remove(&key)
-                        .unwrap_or_else(|| o2.additional_properties.schema());
-                    new_props.insert(key, prop1.intersect(prop2, ctx, stack_level + 1)?);
+            (Schema::Object(mut o1), Schema::Object(mut o2)) => {
+                let mut properties = IndexMap::new();
+                for (key, prop1) in std::mem::take(&mut o1.properties).into_iter() {
+                    let prop2 = ctx.property_schema(&o2, &key)?;
+                    properties.insert(key, prop1.intersect(prop2.clone(), ctx, stack_level + 1)?);
                 }
                 for (key, prop2) in o2.properties.into_iter() {
-                    let prop1 = o1.additional_properties.schema();
-                    new_props.insert(key, prop1.intersect(prop2, ctx, stack_level + 1)?);
+                    if properties.contains_key(&key) {
+                        continue;
+                    }
+                    let prop1 = ctx.property_schema(&o1, &key)?;
+                    properties.insert(key, prop1.clone().intersect(prop2, ctx, stack_level + 1)?);
                 }
                 let mut required = o1.required;
                 required.extend(o2.required);
-                Schema::Object(ObjectSchema {
-                    properties: new_props,
-                    additional_properties: match (
-                        o1.additional_properties,
-                        o2.additional_properties,
-                    ) {
+
+                let mut pattern_properties = IndexMap::new();
+                for (key, prop1) in o1.pattern_properties.into_iter() {
+                    if let Some(prop2) = o2.pattern_properties.get_mut(&key) {
+                        let prop2 = std::mem::replace(prop2, Schema::Null);
+                        pattern_properties.insert(
+                            key.clone(),
+                            prop1.intersect(prop2.clone(), ctx, stack_level + 1)?,
+                        );
+                    } else {
+                        pattern_properties.insert(key.clone(), prop1);
+                    }
+                }
+                for (key, prop2) in o2.pattern_properties.into_iter() {
+                    if pattern_properties.contains_key(&key) {
+                        continue;
+                    }
+                    pattern_properties.insert(key.clone(), prop2);
+                }
+
+                let keys = pattern_properties.keys().collect::<Vec<_>>();
+                if !keys.is_empty() {
+                    ctx.check_disjoint_pattern_properties(&keys)?;
+                }
+
+                let additional_properties =
+                    match (o1.additional_properties, o2.additional_properties) {
                         (None, None) => None,
                         (None, Some(p)) | (Some(p), None) => Some(p),
                         (Some(p1), Some(p2)) => {
                             Some(Box::new((*p1).intersect(*p2, ctx, stack_level + 1)?))
                         }
-                    },
+                    };
+
+                Schema::Object(ObjectSchema {
+                    properties,
+                    pattern_properties,
+                    additional_properties,
                     required,
                 })
             }
@@ -388,10 +417,10 @@ impl Schema {
             //TODO: get types for error message
             _ => Schema::unsat("incompatible types"),
         };
-        Ok(merged.normalize())
+        Ok(merged.normalize(ctx))
     }
 
-    fn is_verifiably_disjoint_from(&self, other: &Schema) -> bool {
+    fn is_verifiably_disjoint_from(&self, other: &Schema, ctx: &Context) -> bool {
         match (self, other) {
             (Schema::Unsatisfiable(_), _) => true,
             (_, Schema::Unsatisfiable(_)) => true,
@@ -404,16 +433,16 @@ impl Schema {
             }
             (Schema::AnyOf(options), _) => options
                 .iter()
-                .all(|opt| opt.is_verifiably_disjoint_from(other)),
+                .all(|opt| opt.is_verifiably_disjoint_from(other, ctx)),
             (_, Schema::AnyOf(options)) => options
                 .iter()
-                .all(|opt| self.is_verifiably_disjoint_from(opt)),
+                .all(|opt| self.is_verifiably_disjoint_from(opt, ctx)),
             (Schema::OneOf(options), _) => options
                 .iter()
-                .all(|opt| opt.is_verifiably_disjoint_from(other)),
+                .all(|opt| opt.is_verifiably_disjoint_from(other, ctx)),
             (_, Schema::OneOf(options)) => options
                 .iter()
-                .all(|opt| self.is_verifiably_disjoint_from(opt)),
+                .all(|opt| self.is_verifiably_disjoint_from(opt, ctx)),
             // TODO: could actually compile the regexes and check for overlap
             (
                 Schema::String(StringSchema {
@@ -427,15 +456,9 @@ impl Schema {
             ) => lit1 != lit2,
             (Schema::Object(o1), Schema::Object(o2)) => {
                 o1.required.union(&o2.required).any(|key| {
-                    let prop1 = o1
-                        .properties
-                        .get(key)
-                        .unwrap_or(o1.additional_properties.schema_ref());
-                    let prop2 = o2
-                        .properties
-                        .get(key)
-                        .unwrap_or(o2.additional_properties.schema_ref());
-                    prop1.is_verifiably_disjoint_from(prop2)
+                    let prop1 = ctx.property_schema(o1, key).unwrap_or(&Schema::Any);
+                    let prop2 = ctx.property_schema(o2, key).unwrap_or(&Schema::Any);
+                    prop1.is_verifiably_disjoint_from(prop2, ctx)
                 })
             }
             _ => {
@@ -529,17 +552,14 @@ impl Default for SchemaBuilderOptions {
     }
 }
 
-pub fn build_schema(
-    contents: Value,
-    options: &JsonCompileOptions,
-) -> Result<(Schema, HashMap<String, Schema>, Vec<String>)> {
+pub fn build_schema(contents: Value, options: &JsonCompileOptions) -> Result<BuiltSchema> {
     if let Some(b) = contents.as_bool() {
         let s = if b {
             Schema::Any
         } else {
             Schema::false_schema()
         };
-        return Ok((s, HashMap::default(), Vec::new()));
+        return Ok(BuiltSchema::simple(s));
     }
 
     let pre_ctx = PreContext::new(contents, options.retriever.clone())?;
@@ -549,7 +569,7 @@ pub fn build_schema(
 
     let root_resource = ctx.lookup_resource(&pre_ctx.base_uri)?;
     let schema = compile_resource(&ctx, root_resource)?;
-    Ok((schema, ctx.take_defs(), ctx.take_warnings()))
+    Ok(ctx.into_result(schema))
 }
 
 fn compile_resource(ctx: &Context, resource: ResourceRef) -> Result<Schema> {
@@ -558,7 +578,7 @@ fn compile_resource(ctx: &Context, resource: ResourceRef) -> Result<Schema> {
 }
 
 fn compile_contents(ctx: &Context, contents: &Value) -> Result<Schema> {
-    compile_contents_inner(ctx, contents).map(|schema| schema.normalize())
+    compile_contents_inner(ctx, contents).map(|schema| schema.normalize(ctx))
 }
 
 fn compile_contents_inner(ctx: &Context, contents: &Value) -> Result<Schema> {
@@ -794,6 +814,7 @@ fn compile_const(instance: &Value) -> Result<Schema> {
             let required = properties.keys().cloned().collect();
             Ok(Schema::Object(ObjectSchema {
                 properties,
+                pattern_properties: IndexMap::default(),
                 additional_properties: Some(Box::new(Schema::false_schema())),
                 required,
             }))
@@ -852,6 +873,7 @@ fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Resu
         "object" => compile_object(
             ctx,
             get("properties"),
+            get("patternProperties"),
             get("additionalProperties"),
             get("required"),
         ),
@@ -1049,21 +1071,32 @@ fn compile_array(
     }))
 }
 
+fn compile_prop_map(
+    ctx: &Context,
+    lbl: &str,
+    prop_map: Option<&Value>,
+) -> Result<IndexMap<String, Schema>> {
+    match prop_map {
+        None => Ok(IndexMap::new()),
+        Some(val) => val
+            .as_object()
+            .ok_or_else(|| anyhow!("Expected object for '{lbl}', got {}", limited_str(val)))?
+            .iter()
+            .map(|(k, v)| compile_resource(ctx, ctx.as_resource_ref(v)).map(|v| (k.clone(), v)))
+            .collect(),
+    }
+}
+
 fn compile_object(
     ctx: &Context,
     properties: Option<&Value>,
+    pattern_properties: Option<&Value>,
     additional_properties: Option<&Value>,
     required: Option<&Value>,
 ) -> Result<Schema> {
-    let properties = match properties {
-        None => IndexMap::new(),
-        Some(val) => val
-            .as_object()
-            .ok_or_else(|| anyhow!("Expected object for 'properties', got {}", limited_str(val)))?
-            .iter()
-            .map(|(k, v)| compile_resource(ctx, ctx.as_resource_ref(v)).map(|v| (k.clone(), v)))
-            .collect::<Result<IndexMap<String, Schema>>>()?,
-    };
+    let properties = compile_prop_map(ctx, "properties", properties)?;
+    let pattern_properties = compile_prop_map(ctx, "patternProperties", pattern_properties)?;
+    // TODO check for disjointness of patternProperties
     let additional_properties = match additional_properties {
         None => None,
         Some(val) => Some(Box::new(compile_resource(ctx, ctx.as_resource_ref(val))?)),
@@ -1089,6 +1122,7 @@ fn compile_object(
     Ok(Schema::Object(ObjectSchema {
         properties,
         additional_properties,
+        pattern_properties,
         required,
     }))
 }
@@ -1176,7 +1210,9 @@ mod test_retriever {
             retriever: Some(wrapper.clone()),
             ..Default::default()
         };
-        let (schema, defs, _) = build_schema(schema, &options).unwrap();
+        let r = build_schema(schema, &options).unwrap();
+        let schema = r.schema;
+        let defs = r.definitions;
         match schema {
             Schema::Ref(uri) => {
                 assert_eq!(uri, key);
