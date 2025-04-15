@@ -387,20 +387,19 @@ impl Compiler {
         })
     }
 
-    fn gen_json_object(&mut self, options: &ObjectSchema) -> Result<NodeRef> {
+    fn gen_json_object(&mut self, obj: &ObjectSchema) -> Result<NodeRef> {
         let mut taken_names: Vec<String> = vec![];
         let mut items: Vec<(NodeRef, bool)> = vec![];
-        for name in options.properties.keys().chain(
-            options
-                .required
+        for name in obj.properties.keys().chain(
+            obj.required
                 .iter()
-                .filter(|n| !options.properties.contains_key(n.as_str())),
+                .filter(|n| !obj.properties.contains_key(n.as_str())),
         ) {
-            let property_schema = options
+            let property_schema = obj
                 .properties
                 .get(name)
-                .unwrap_or_else(|| options.additional_properties.schema_ref());
-            let is_required = options.required.contains(name);
+                .unwrap_or_else(|| obj.additional_properties.schema_ref());
+            let is_required = obj.required.contains(name);
             // Quote (and escape) the name
             let quoted_name = json_dumps(&json!(name));
             let property = match self.gen_json(property_schema) {
@@ -428,7 +427,7 @@ impl Compiler {
             items.push((item, is_required));
         }
 
-        match self.gen_json(options.additional_properties.schema_ref()) {
+        match self.gen_json(obj.additional_properties.schema_ref()) {
             Err(e) => {
                 if e.downcast_ref::<UnsatisfiableSchemaError>().is_none() {
                     // Propagate errors that aren't UnsatisfiableSchemaError
@@ -709,9 +708,9 @@ impl Compiler {
         }
     }
 
-    fn gen_json_array(&mut self, options: &ArraySchema) -> Result<NodeRef> {
-        let mut max_items = options.max_items;
-        let min_items = options.min_items;
+    fn gen_json_array(&mut self, arr: &ArraySchema) -> Result<NodeRef> {
+        let mut max_items = arr.max_items;
+        let min_items = arr.min_items;
 
         if let Some(max_items) = max_items {
             if min_items > max_items {
@@ -724,13 +723,13 @@ impl Compiler {
             }
         }
 
-        let additional_item_grm = match self.gen_json(options.items.schema_ref()) {
+        let additional_item_grm = match self.gen_json(arr.items.schema_ref()) {
             Ok(node) => Some(node),
             Err(e) => match e.downcast_ref::<UnsatisfiableSchemaError>() {
                 // If it's not an UnsatisfiableSchemaError, just propagate it normally
                 None => return Err(e),
                 // Item is optional; don't raise UnsatisfiableSchemaError
-                Some(_) if options.prefix_items.len() >= min_items as usize => None,
+                Some(_) if arr.prefix_items.len() >= min_items as usize => None,
                 // Item is required; add context and propagate UnsatisfiableSchemaError
                 Some(_) => {
                     return Err(e.context(UnsatisfiableSchemaError {
@@ -744,14 +743,13 @@ impl Compiler {
         let mut optional_items = vec![];
 
         // If max_items is None, we can add an infinite tail of items later
-        let n_to_add = max_items
-            .map_or(options.prefix_items.len().max(min_items as usize), |max| {
-                max as usize
-            });
+        let n_to_add = max_items.map_or(arr.prefix_items.len().max(min_items as usize), |max| {
+            max as usize
+        });
 
         for i in 0..n_to_add {
-            let item = if i < options.prefix_items.len() {
-                match self.gen_json(&options.prefix_items[i]) {
+            let item = if i < arr.prefix_items.len() {
+                match self.gen_json(&arr.prefix_items[i]) {
                     Ok(node) => node,
                     Err(e) => match e.downcast_ref::<UnsatisfiableSchemaError>() {
                         // If it's not an UnsatisfiableSchemaError, just propagate it normally
