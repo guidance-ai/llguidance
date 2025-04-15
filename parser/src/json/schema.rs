@@ -339,10 +339,8 @@ impl Schema {
                 max_items: opt_min(a1.max_items, a2.max_items),
                 prefix_items: {
                     let len = a1.prefix_items.len().max(a2.prefix_items.len());
-                    a1.prefix_items
-                        .resize_with(len, || a1.items.as_deref().cloned().unwrap_or(Schema::Any));
-                    a2.prefix_items
-                        .resize_with(len, || a2.items.as_deref().cloned().unwrap_or(Schema::Any));
+                    a1.prefix_items.resize_with(len, || a1.items.schema());
+                    a2.prefix_items.resize_with(len, || a2.items.schema());
                     a1.prefix_items
                         .into_iter()
                         .zip(a2.prefix_items.into_iter())
