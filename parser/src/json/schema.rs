@@ -365,14 +365,14 @@ impl Schema {
 
     fn is_verifiably_disjoint_from(&self, other: &Schema) -> bool {
         match (self, other) {
-            (Schema::Unsatisfiable { .. }, _) => true,
-            (_, Schema::Unsatisfiable { .. }) => true,
+            (Schema::Unsatisfiable(_), _) => true,
+            (_, Schema::Unsatisfiable(_)) => true,
             (Schema::Any, _) => false,
             (_, Schema::Any) => false,
-            (Schema::Boolean, Schema::LiteralBool { .. }) => false,
-            (Schema::LiteralBool { .. }, Schema::Boolean) => false,
-            (Schema::Ref { .. }, _) => false, // TODO: could resolve
-            (_, Schema::Ref { .. }) => false, // TODO: could resolve
+            (Schema::Boolean, Schema::LiteralBool(_)) => false,
+            (Schema::LiteralBool(_), Schema::Boolean) => false,
+            (Schema::Ref(_), _) => false, // TODO: could resolve
+            (_, Schema::Ref(_)) => false, // TODO: could resolve
             (Schema::LiteralBool(value1), Schema::LiteralBool(value2)) => value1 != value2,
             (Schema::AnyOf(options), _) => options
                 .iter()

@@ -164,10 +164,8 @@ impl Compiler {
                 message: reason.to_string(),
             })),
 
-            Schema::Array(options) => self.gen_json_array(options),
-
-            Schema::Object(options) => self.gen_json_object(options),
-
+            Schema::Array(arr) => self.gen_json_array(arr),
+            Schema::Object(obj) => self.gen_json_object(obj),
             Schema::AnyOf(options) => self.process_any_of(options),
             Schema::OneOf(options) => self.process_one_of(options),
             Schema::Ref(uri) => self.get_definition(uri),
@@ -595,33 +593,22 @@ impl Compiler {
                 })
             }
 
-            Schema::String(StringSchema {
-                min_length,
-                max_length,
-                regex,
-            }) => {
-                return self
-                    .gen_json_string(*min_length, *max_length, regex.clone())
-                    .map(Some)
-            }
+            Schema::String(opts) => return self.gen_json_string(opts.clone()).map(Some),
 
             Schema::Any
-            | Schema::Unsatisfiable { .. }
-            | Schema::Array { .. }
-            | Schema::Object { .. }
-            | Schema::AnyOf { .. }
-            | Schema::OneOf { .. }
-            | Schema::Ref { .. } => None,
+            | Schema::Unsatisfiable(_)
+            | Schema::Array(_)
+            | Schema::Object(_)
+            | Schema::AnyOf(_)
+            | Schema::OneOf(_)
+            | Schema::Ref(_) => None,
         };
         Ok(r)
     }
 
-    fn gen_json_string(
-        &self,
-        min_length: u64,
-        max_length: Option<u64>,
-        regex: Option<RegexAst>,
-    ) -> Result<RegexAst> {
+    fn gen_json_string(&self, opts: StringSchema) -> Result<RegexAst> {
+        let min_length = opts.min_length;
+        let max_length = opts.max_length;
         if let Some(max_length) = max_length {
             if min_length > max_length {
                 return Err(anyhow!(UnsatisfiableSchemaError {
@@ -632,10 +619,10 @@ impl Compiler {
                 }));
             }
         }
-        if min_length == 0 && max_length.is_none() && regex.is_none() {
+        if min_length == 0 && max_length.is_none() && opts.regex.is_none() {
             return Ok(self.json_quote(RegexAst::Regex("(?s:.*)".to_string())));
         }
-        if let Some(mut ast) = regex {
+        if let Some(mut ast) = opts.regex {
             let mut positive = false;
 
             fn mk_rx_repr(ast: &RegexAst) -> String {
