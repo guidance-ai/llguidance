@@ -8,7 +8,7 @@ use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::numeric::{check_number_bounds, rx_float_range, rx_int_range, Decimal};
+use super::numeric::{check_number_bounds, rx_float_range, rx_int_range};
 use super::schema::{build_schema, ArraySchema, ObjectSchema, OptSchemaExt, Schema};
 use super::RetrieveWrapper;
 
@@ -239,28 +239,13 @@ impl Compiler {
         }
     }
 
-    fn json_int(
-        &mut self,
-        minimum: Option<f64>,
-        maximum: Option<f64>,
-        exclusive_minimum: bool,
-        exclusive_maximum: bool,
-        multiple_of: Option<Decimal>,
-    ) -> Result<RegexAst> {
-        check_number_bounds(
-            minimum,
-            maximum,
-            exclusive_minimum,
-            exclusive_maximum,
-            false,
-            multiple_of.clone(),
-        )
-        .map_err(|e| {
+    fn json_int(&mut self, num: &NumberSchema) -> Result<RegexAst> {
+        check_number_bounds(num).map_err(|e| {
             anyhow!(UnsatisfiableSchemaError {
                 message: e.to_string(),
             })
         })?;
-        let minimum = match (minimum, exclusive_minimum) {
+        let minimum = match num.get_minimum() {
             (Some(min_val), true) => {
                 if min_val.fract() != 0.0 {
                     Some(min_val.ceil())
@@ -272,7 +257,7 @@ impl Compiler {
             _ => None,
         }
         .map(|val| val as i64);
-        let maximum = match (maximum, exclusive_maximum) {
+        let maximum = match num.get_maximum() {
             (Some(max_val), true) => {
                 if max_val.fract() != 0.0 {
                     Some(max_val.floor())
@@ -291,33 +276,20 @@ impl Compiler {
             )
         })?;
         let mut ast = RegexAst::Regex(rx);
-        if let Some(d) = multiple_of {
+        if let Some(d) = num.multiple_of.as_ref() {
             ast = RegexAst::And(vec![ast, RegexAst::MultipleOf(d.coef, d.exp)]);
         }
         Ok(ast)
     }
 
-    fn json_number(
-        &mut self,
-        minimum: Option<f64>,
-        maximum: Option<f64>,
-        exclusive_minimum: bool,
-        exclusive_maximum: bool,
-        multiple_of: Option<Decimal>,
-    ) -> Result<RegexAst> {
-        check_number_bounds(
-            minimum,
-            maximum,
-            exclusive_minimum,
-            exclusive_maximum,
-            false,
-            multiple_of.clone(),
-        )
-        .map_err(|e| {
+    fn json_number(&mut self, num: &NumberSchema) -> Result<RegexAst> {
+        check_number_bounds(num).map_err(|e| {
             anyhow!(UnsatisfiableSchemaError {
                 message: e.to_string(),
             })
         })?;
+        let (minimum, exclusive_minimum) = num.get_minimum();
+        let (maximum, exclusive_maximum) = num.get_maximum();
         let rx = rx_float_range(minimum, maximum, !exclusive_minimum, !exclusive_maximum)
             .with_context(|| {
                 format!(
@@ -326,7 +298,7 @@ impl Compiler {
                 )
             })?;
         let mut ast = RegexAst::Regex(rx);
-        if let Some(d) = multiple_of {
+        if let Some(d) = num.multiple_of.as_ref() {
             ast = RegexAst::And(vec![ast, RegexAst::MultipleOf(d.coef, d.exp)]);
         }
         Ok(ast)
@@ -358,7 +330,7 @@ impl Compiler {
         cache!(self.any_cache, {
             let json_any = self.builder.new_node("json_any");
             self.any_cache = Some(json_any); // avoid infinite recursion
-            let num = self.json_number(None, None, false, false, None).unwrap();
+            let num = self.json_number(&NumberSchema::default()).unwrap();
             let tf = self.builder.regex.regex("true|false").unwrap();
             let options = vec![
                 self.builder.string("null"),
@@ -542,56 +514,11 @@ impl Compiler {
             Schema::Boolean => Some(RegexAst::Regex("true|false".to_string())),
             Schema::LiteralBool(value) => literal_regex(if *value { "true" } else { "false" }),
 
-            Schema::Number(NumberSchema {
-                minimum,
-                maximum,
-                exclusive_minimum,
-                exclusive_maximum,
-                integer,
-                multiple_of,
-            }) => {
-                let (minimum, exclusive_minimum) = match (minimum, exclusive_minimum) {
-                    (Some(min), Some(xmin)) => {
-                        if xmin >= min {
-                            (Some(*xmin), true)
-                        } else {
-                            (Some(*min), false)
-                        }
-                    }
-                    (Some(min), None) => (Some(*min), false),
-                    (None, Some(xmin)) => (Some(*xmin), true),
-                    (None, None) => (None, false),
-                };
-                let (maximum, exclusive_maximum) = match (maximum, exclusive_maximum) {
-                    (Some(max), Some(xmax)) => {
-                        if xmax <= max {
-                            (Some(*xmax), true)
-                        } else {
-                            (Some(*max), false)
-                        }
-                    }
-                    (Some(max), None) => (Some(*max), false),
-                    (None, Some(xmax)) => (Some(*xmax), true),
-                    (None, None) => (None, false),
-                };
-                Some(if *integer {
-                    self.json_int(
-                        minimum,
-                        maximum,
-                        exclusive_minimum,
-                        exclusive_maximum,
-                        multiple_of.clone(),
-                    )?
-                } else {
-                    self.json_number(
-                        minimum,
-                        maximum,
-                        exclusive_minimum,
-                        exclusive_maximum,
-                        multiple_of.clone(),
-                    )?
-                })
-            }
+            Schema::Number(num) => Some(if num.integer {
+                self.json_int(num)?
+            } else {
+                self.json_number(num)?
+            }),
 
             Schema::String(opts) => return self.gen_json_string(opts.clone()).map(Some),
 

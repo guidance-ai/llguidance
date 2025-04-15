@@ -90,7 +90,7 @@ pub enum Schema {
     Ref(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct NumberSchema {
     pub minimum: Option<f64>,
     pub maximum: Option<f64>,
@@ -98,6 +98,38 @@ pub struct NumberSchema {
     pub exclusive_maximum: Option<f64>,
     pub integer: bool,
     pub multiple_of: Option<Decimal>,
+}
+
+impl NumberSchema {
+    pub fn get_minimum(&self) -> (Option<f64>, bool) {
+        match (self.minimum, self.exclusive_minimum) {
+            (Some(min), Some(xmin)) => {
+                if xmin >= min {
+                    (Some(xmin), true)
+                } else {
+                    (Some(min), false)
+                }
+            }
+            (Some(min), None) => (Some(min), false),
+            (None, Some(xmin)) => (Some(xmin), true),
+            (None, None) => (None, false),
+        }
+    }
+
+    pub fn get_maximum(&self) -> (Option<f64>, bool) {
+        match (self.maximum, self.exclusive_maximum) {
+            (Some(max), Some(xmax)) => {
+                if xmax <= max {
+                    (Some(xmax), true)
+                } else {
+                    (Some(max), false)
+                }
+            }
+            (Some(max), None) => (Some(max), false),
+            (None, Some(xmax)) => (Some(xmax), true),
+            (None, None) => (None, false),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
