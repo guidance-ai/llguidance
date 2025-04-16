@@ -405,35 +405,32 @@ def check_json_schema_error(msg: str, json_schema: Dict[str, Any]) -> None:
     for lenient in [True, False]:
         grm = LLMatcher.grammar_from_json_schema(
             json_schema, overrides={"lenient": lenient})
-        err = LLMatcher.validate_grammar(
+        is_err, msgs = LLMatcher.validate_grammar_with_warnings(
             grm,
             tokenizer=tokenizer(),
-            warnings=True,
         )
-        assert msg in err
+        assert msg in msgs[0]
         if lenient:
-            assert LLMatcher.is_validate_warning(err)
+            assert not is_err
         else:
-            assert not LLMatcher.is_validate_warning(err)
+            assert is_err
 
         m = LLMatcher(tokenizer(), grm)
 
         if lenient:
-            assert msg in m.get_grammar_warnings()
+            assert msg in m.get_grammar_warnings()[0]
         else:
             assert m.is_error()
             assert msg in m.get_error()
 
 
 def test_grammar_warnings() -> None:
-    err = LLMatcher.validate_grammar(
+    is_err, msgs = LLMatcher.validate_grammar_with_warnings(
         "start: <[128]>* <[123]>",
         tokenizer=None,
-        warnings=True,
     )
-    assert LLMatcher.is_validate_warning(err)
-    assert err.startswith("WARNING: ")
-    assert "no tokenizer" in err
+    assert not is_err
+    assert "no tokenizer" in msgs[0]
 
     check_json_schema_error(
         "Unknown format", {

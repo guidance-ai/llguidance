@@ -256,7 +256,6 @@ class LLMatcher:
         tokenizer: Optional[LLTokenizer] = None,
         *,
         limits: Optional[LLParserLimits] = None,
-        warnings: bool = False,
     ) -> str:
         """
         Validate the grammar, for example one returned by LLMatcher.grammar_from_*().
