@@ -1096,7 +1096,7 @@ fn compile_object(
 ) -> Result<Schema> {
     let properties = compile_prop_map(ctx, "properties", properties)?;
     let pattern_properties = compile_prop_map(ctx, "patternProperties", pattern_properties)?;
-    // TODO check for disjointness of patternProperties
+    ctx.check_disjoint_pattern_properties(&pattern_properties.keys().collect::<Vec<_>>())?;
     let additional_properties = match additional_properties {
         None => None,
         Some(val) => Some(Box::new(compile_resource(ctx, ctx.as_resource_ref(val))?)),

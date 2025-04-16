@@ -46,6 +46,13 @@ fn lark_err_test(lark: &str, err: &str) {
     }
 }
 
+fn json_err_test(schema: &Value, err: &str) {
+    lark_err_test(
+        &format!(r#"start: %json {}"#, serde_json::to_string(schema).unwrap()),
+        err,
+    );
+}
+
 fn lark_str_test(lark: &str, should_accept: bool, input: &str, quiet: bool) {
     let trie = get_tok_env().tok_trie();
     let (final_reject, input) = if let Some(input) = input.strip_prefix("FINAL_REJECT:") {
@@ -820,6 +827,69 @@ fn test_large_real_substring() {
 
 #[test]
 fn test_json_pattern_properties() {
+    json_err_test(
+        &json!({
+            "type": "object",
+            "patternProperties": {
+                "^fo": { "type": "integer" },
+                "^foo": { "type": "number" },
+            },
+        }),
+        "are not disjoint",
+    );
+
+    json_err_test(
+        &json!({
+            "type": "object",
+            "patternProperties": {
+                "foo": { "type": "integer" },
+                "bar": { "type": "number" },
+            },
+        }),
+        "are not disjoint",
+    );
+
+    json_err_test(
+        &json!({
+            "allOf": [
+                {
+                    "type": "object",
+                    "patternProperties": {
+                        "^fo": { "type": "integer" },
+                    },
+                },
+                {
+                    "type": "object",
+                    "patternProperties": {
+                        "^foo": { "type": "number" },
+                    },
+                },
+            ],
+        }),
+        "are not disjoint",
+    );
+
+    json_err_test(
+        &json!({
+            "allOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "foo": { "type": "string" },
+                    },
+                    "required": ["foo"],
+                },
+                {
+                    "type": "object",
+                    "patternProperties": {
+                        "^f": { "type": "number" },
+                    },
+                },
+            ],
+        }),
+        "required property 'foo' is unsatisfiable",
+    );
+
     json_test_many(
         &json!({
             "type": "object",
