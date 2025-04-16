@@ -388,6 +388,9 @@ impl GrammarBuilder {
 
     pub fn select(&mut self, options: &[NodeRef]) -> NodeRef {
         let ch = self.child_nodes(options);
+        if options.len() == 1 {
+            return options[0];
+        }
         let r = self.new_node("");
         let empty = self.empty().idx;
         for n in &ch {
