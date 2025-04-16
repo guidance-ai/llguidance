@@ -128,7 +128,7 @@ else
         echo "Guidance clone OK"
     else
         echo "Cloning guidance"
-        git clone -b main https://github.com/guidance-ai/guidance
+        git clone -b llg_warnings https://github.com/guidance-ai/guidance
     fi
     cd guidance
     echo "Branch: $(git branch --show-current), Remote URL: $(git remote get-url origin), HEAD: $(git rev-parse HEAD)"
