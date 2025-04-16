@@ -1187,9 +1187,7 @@
   "Github_easy---o14452.json": {},
   "Github_easy---o14461.json": {},
   "Github_easy---o14464.json": {},
-  "Github_easy---o14471.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o14471.json": {},
   "Github_easy---o14479.json": {},
   "Github_easy---o14490.json": {},
   "Github_easy---o14491.json": {},
@@ -1311,9 +1309,7 @@
   "Github_easy---o21499.json": {},
   "Github_easy---o21500.json": {},
   "Github_easy---o21725.json": {},
-  "Github_easy---o21729.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o21729.json": {},
   "Github_easy---o21730.json": {},
   "Github_easy---o21733.json": {},
   "Github_easy---o21735.json": {},
@@ -1321,12 +1317,8 @@
   "Github_easy---o21833.json": {
     "json_error": "lookarounds not supported yet; End in regex /\\/^[0-9]{4}-[0-9]{2}-[0-9]{2}$\\//"
   },
-  "Github_easy---o21847.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_easy---o21848.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o21847.json": {},
+  "Github_easy---o21848.json": {},
   "Github_easy---o21855.json": {},
   "Github_easy---o21858.json": {},
   "Github_easy---o21860.json": {},
@@ -1498,9 +1490,7 @@
   "Github_easy---o31276.json": {},
   "Github_easy---o31277.json": {},
   "Github_easy---o31279.json": {},
-  "Github_easy---o31293.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o31293.json": {},
   "Github_easy---o31545.json": {},
   "Github_easy---o31608.json": {},
   "Github_easy---o31646.json": {},
@@ -1574,9 +1564,7 @@
   "Github_easy---o3620.json": {},
   "Github_easy---o36222.json": {},
   "Github_easy---o36270.json": {},
-  "Github_easy---o36272.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o36272.json": {},
   "Github_easy---o36399.json": {},
   "Github_easy---o36441.json": {},
   "Github_easy---o36460.json": {},
@@ -1590,9 +1578,7 @@
   "Github_easy---o36641.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_easy---o37070.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o37070.json": {},
   "Github_easy---o37085.json": {},
   "Github_easy---o37087.json": {},
   "Github_easy---o37088.json": {},
@@ -1616,13 +1602,13 @@
     "json_error": "Unknown format: semver"
   },
   "Github_easy---o37786.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_easy---o37787.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_easy---o37788.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_easy---o38444.json": {},
   "Github_easy---o38553.json": {},
@@ -1750,9 +1736,7 @@
   "Github_easy---o42308.json": {},
   "Github_easy---o42312.json": {},
   "Github_easy---o42521.json": {},
-  "Github_easy---o42523.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o42523.json": {},
   "Github_easy---o42525.json": {},
   "Github_easy---o42534.json": {},
   "Github_easy---o42536.json": {},
@@ -1766,9 +1750,7 @@
   "Github_easy---o4267.json": {},
   "Github_easy---o4268.json": {},
   "Github_easy---o42792.json": {},
-  "Github_easy---o42980.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o42980.json": {},
   "Github_easy---o42982.json": {},
   "Github_easy---o42983.json": {},
   "Github_easy---o42984.json": {},
@@ -1899,9 +1881,7 @@
   "Github_easy---o45217.json": {},
   "Github_easy---o45219.json": {},
   "Github_easy---o45223.json": {},
-  "Github_easy---o45260.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o45260.json": {},
   "Github_easy---o45261.json": {},
   "Github_easy---o45307.json": {},
   "Github_easy---o45388.json": {},
@@ -2143,9 +2123,7 @@
   "Github_easy---o57386.json": {},
   "Github_easy---o57387.json": {},
   "Github_easy---o57450.json": {},
-  "Github_easy---o57452.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o57452.json": {},
   "Github_easy---o57603.json": {},
   "Github_easy---o57639.json": {},
   "Github_easy---o57642.json": {},
@@ -2189,9 +2167,7 @@
   },
   "Github_easy---o58636.json": {},
   "Github_easy---o58637.json": {},
-  "Github_easy---o58839.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o58839.json": {},
   "Github_easy---o58863.json": {},
   "Github_easy---o58905.json": {},
   "Github_easy---o58906.json": {
@@ -2268,12 +2244,8 @@
   "Github_easy---o6187.json": {},
   "Github_easy---o6188.json": {},
   "Github_easy---o6191.json": {},
-  "Github_easy---o6201.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_easy---o6202.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o6201.json": {},
+  "Github_easy---o6202.json": {},
   "Github_easy---o6205.json": {},
   "Github_easy---o6210.json": {},
   "Github_easy---o62138.json": {},
@@ -2327,9 +2299,7 @@
   "Github_easy---o6324.json": {},
   "Github_easy---o63285.json": {},
   "Github_easy---o63288.json": {},
-  "Github_easy---o63299.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o63299.json": {},
   "Github_easy---o6331.json": {},
   "Github_easy---o63317.json": {
     "json_error": "Unknown format: path"
@@ -2340,9 +2310,7 @@
   "Github_easy---o63378.json": {
     "json_error": "Unknown format: positiveInteger"
   },
-  "Github_easy---o63476.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o63476.json": {},
   "Github_easy---o63477.json": {},
   "Github_easy---o63534.json": {},
   "Github_easy---o63554.json": {},
@@ -2372,7 +2340,7 @@
   "Github_easy---o64705.json": {},
   "Github_easy---o64717.json": {},
   "Github_easy---o64731.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_easy---o64737.json": {},
   "Github_easy---o64816.json": {},
@@ -2468,7 +2436,7 @@
   "Github_easy---o66587.json": {},
   "Github_easy---o66589.json": {},
   "Github_easy---o67010.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_easy---o67056.json": {},
   "Github_easy---o67175.json": {},
@@ -2549,9 +2517,7 @@
   "Github_easy---o69519.json": {},
   "Github_easy---o69520.json": {},
   "Github_easy---o69521.json": {},
-  "Github_easy---o69533.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o69533.json": {},
   "Github_easy---o69579.json": {},
   "Github_easy---o69602.json": {},
   "Github_easy---o69635.json": {
@@ -2618,9 +2584,7 @@
     "json_error": "Unknown format: url"
   },
   "Github_easy---o72186.json": {},
-  "Github_easy---o72194.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o72194.json": {},
   "Github_easy---o72212.json": {},
   "Github_easy---o72221.json": {},
   "Github_easy---o7230.json": {},
@@ -2683,9 +2647,7 @@
   "Github_easy---o74459.json": {},
   "Github_easy---o74547.json": {},
   "Github_easy---o74555.json": {},
-  "Github_easy---o74561.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o74561.json": {},
   "Github_easy---o74592.json": {},
   "Github_easy---o74595.json": {},
   "Github_easy---o7462.json": {},
@@ -2773,9 +2735,7 @@
   "Github_easy---o79428.json": {},
   "Github_easy---o79434.json": {},
   "Github_easy---o79441.json": {},
-  "Github_easy---o79442.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o79442.json": {},
   "Github_easy---o79443.json": {
     "json_error": "Unknown format: uri"
   },
@@ -2867,9 +2827,7 @@
   "Github_easy---o81575.json": {},
   "Github_easy---o81576.json": {},
   "Github_easy---o81578.json": {},
-  "Github_easy---o81581.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o81581.json": {},
   "Github_easy---o81583.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
@@ -2899,24 +2857,16 @@
   "Github_easy---o82256.json": {},
   "Github_easy---o82257.json": {},
   "Github_easy---o82290.json": {},
-  "Github_easy---o82294.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o82294.json": {},
   "Github_easy---o82307.json": {},
   "Github_easy---o82640.json": {},
-  "Github_easy---o82716.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_easy---o82718.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o82716.json": {},
+  "Github_easy---o82718.json": {},
   "Github_easy---o82723.json": {},
   "Github_easy---o82725.json": {},
   "Github_easy---o8278.json": {},
   "Github_easy---o83109.json": {},
-  "Github_easy---o83129.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o83129.json": {},
   "Github_easy---o83141.json": {},
   "Github_easy---o83154.json": {},
   "Github_easy---o83161.json": {},
@@ -2944,9 +2894,7 @@
     "json_error": "Unimplemented keys: [\"maxProperties\", \"minProperties\"]"
   },
   "Github_easy---o83696.json": {},
-  "Github_easy---o83697.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o83697.json": {},
   "Github_easy---o83698.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
@@ -2975,9 +2923,7 @@
   "Github_easy---o84027.json": {},
   "Github_easy---o84028.json": {},
   "Github_easy---o8403.json": {},
-  "Github_easy---o84043.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o84043.json": {},
   "Github_easy---o84097.json": {},
   "Github_easy---o84101.json": {},
   "Github_easy---o8412.json": {},
@@ -3029,9 +2975,7 @@
   "Github_easy---o85253.json": {},
   "Github_easy---o85254.json": {},
   "Github_easy---o85256.json": {},
-  "Github_easy---o85467.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o85467.json": {},
   "Github_easy---o85667.json": {},
   "Github_easy---o85906.json": {},
   "Github_easy---o85918.json": {},
@@ -3053,9 +2997,7 @@
   "Github_easy---o87817.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
-  "Github_easy---o87825.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o87825.json": {},
   "Github_easy---o87829.json": {},
   "Github_easy---o87848.json": {},
   "Github_easy---o87861.json": {},
@@ -3069,7 +3011,7 @@
   "Github_easy---o88587.json": {},
   "Github_easy---o88588.json": {},
   "Github_easy---o88596.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_easy---o88674.json": {},
   "Github_easy---o88675.json": {},
@@ -3120,9 +3062,7 @@
   "Github_easy---o89823.json": {},
   "Github_easy---o89824.json": {},
   "Github_easy---o89833.json": {},
-  "Github_easy---o89900.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o89900.json": {},
   "Github_easy---o89984.json": {},
   "Github_easy---o89985.json": {},
   "Github_easy---o89987.json": {},
@@ -3308,61 +3248,43 @@
   "Github_easy---o9789.json": {},
   "Github_easy---o9791.json": {},
   "Github_easy---o9799.json": {},
-  "Github_easy---o9801.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o9801.json": {},
   "Github_easy---o9806.json": {},
   "Github_easy---o9811.json": {},
   "Github_easy---o9812.json": {},
-  "Github_easy---o9814.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_easy---o9815.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o9814.json": {},
+  "Github_easy---o9815.json": {},
   "Github_easy---o9825.json": {},
   "Github_easy---o9826.json": {},
   "Github_easy---o9828.json": {},
   "Github_easy---o9829.json": {},
   "Github_easy---o9835.json": {},
-  "Github_easy---o9839.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_easy---o9841.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o9839.json": {},
+  "Github_easy---o9841.json": {},
   "Github_easy---o9842.json": {},
   "Github_easy---o9850.json": {},
   "Github_easy---o9851.json": {},
   "Github_easy---o9857.json": {},
   "Github_easy---o9858.json": {},
-  "Github_easy---o9861.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o9861.json": {},
   "Github_easy---o9863.json": {},
   "Github_easy---o9867.json": {},
   "Github_easy---o9870.json": {},
   "Github_easy---o9871.json": {},
-  "Github_easy---o9876.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o9876.json": {},
   "Github_easy---o9883.json": {},
   "Github_easy---o9884.json": {},
   "Github_easy---o9885.json": {},
   "Github_easy---o9892.json": {},
   "Github_easy---o9893.json": {},
-  "Github_easy---o9896.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o9896.json": {},
   "Github_easy---o9900.json": {},
   "Github_easy---o9901.json": {},
   "Github_easy---o9905.json": {},
   "Github_easy---o9909.json": {},
   "Github_easy---o9910.json": {},
   "Github_easy---o9918.json": {},
-  "Github_easy---o9924.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o9924.json": {},
   "Github_easy---o9925.json": {},
   "Github_easy---o9931.json": {},
   "Github_easy---o9938.json": {},
@@ -3374,12 +3296,8 @@
   "Github_easy---o9953.json": {},
   "Github_easy---o9955.json": {},
   "Github_easy---o9959.json": {},
-  "Github_easy---o9961.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_easy---o9962.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_easy---o9961.json": {},
+  "Github_easy---o9962.json": {},
   "Github_easy---o9963.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -3392,13 +3310,13 @@
     "json_error": "Unknown format: path"
   },
   "Github_hard---o10293.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o10296.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o10346.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unsatisfiable schema: required property 'id' is unsatisfiable"
   },
   "Github_hard---o10347.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -3430,13 +3348,13 @@
     "json_error": "Unknown format: basic-authentication-user"
   },
   "Github_hard---o12335.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: certificate"
   },
   "Github_hard---o12336.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: certificate"
   },
   "Github_hard---o12337.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: url"
   },
   "Github_hard---o12346.json": {},
   "Github_hard---o12409.json": {},
@@ -3444,27 +3362,21 @@
     "json_error": "Unknown format: uri-reference"
   },
   "Github_hard---o12454.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
-  "Github_hard---o12457.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o12457.json": {},
   "Github_hard---o12459.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\", \"propertyNames\"]"
+    "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "Github_hard---o12460.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\", \"propertyNames\"]"
+    "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "Github_hard---o12477.json": {},
   "Github_hard---o12498.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_hard---o12499.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o12613.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o12499.json": {},
+  "Github_hard---o12613.json": {},
   "Github_hard---o12958.json": {},
   "Github_hard---o12972.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -3474,13 +3386,9 @@
   "Github_hard---o13024.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o13029.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o13029.json": {},
   "Github_hard---o13112.json": {},
-  "Github_hard---o13124.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o13124.json": {},
   "Github_hard---o13134.json": {},
   "Github_hard---o13151.json": {
     "json_error": "Unknown format: color"
@@ -3496,23 +3404,19 @@
   "Github_hard---o13457.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
-  "Github_hard---o13663.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o13663.json": {},
   "Github_hard---o13693.json": {
     "validation_error": "test #4: token not accepted at ⟦-‧My‧Project‧-‧123‧45‧\",\"‧version‧\":\"‧1‧.‧2‧.‧3‧\",\"‧type‧\":\"‧real‧time‧\",\"‧workflow‧\":{\"‧id‧\":\"‧WF‧-‧123‧45‧\",\"‧version‧\":\"‧1‧.‧2‧.‧3‧\",\"‧parameters‧\":{\"‧param‧1‧\":\"‧value‧1‧\",\"‧param‧2‧\":\"‧value‧2⟧ * ⟦\"}}⟧ * ⟦,\"‧priority‧\":‧50⟧ mask: TokenSet: 123310/128256; ALL EXCEPT EOS ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ⟨\\u{5}⟩ ..."
   },
   "Github_hard---o13954.json": {},
   "Github_hard---o14077.json": {},
-  "Github_hard---o14390.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o14390.json": {},
   "Github_hard---o14404.json": {},
   "Github_hard---o14495.json": {},
   "Github_hard---o14513.json": {},
   "Github_hard---o14514.json": {},
   "Github_hard---o14528.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_hard---o14723.json": {},
   "Github_hard---o15103.json": {
@@ -3547,7 +3451,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o17944.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o17954.json": {},
   "Github_hard---o17984.json": {},
@@ -3571,7 +3475,7 @@
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_hard---o20390.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o2045.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -3590,57 +3494,57 @@
   "Github_hard---o21075.json": {},
   "Github_hard---o21076.json": {},
   "Github_hard---o21156.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21157.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21159.json": {},
   "Github_hard---o21160.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21163.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21164.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21165.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21167.json": {},
   "Github_hard---o21168.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21169.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21171.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21172.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21175.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21176.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21184.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21187.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21188.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21191.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21192.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21195.json": {},
   "Github_hard---o21196.json": {
@@ -3653,49 +3557,45 @@
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21200.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21202.json": {},
   "Github_hard---o21203.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21207.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21211.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21215.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21216.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21218.json": {},
-  "Github_hard---o21222.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o21222.json": {},
   "Github_hard---o21223.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21224.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21226.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o21226.json": {},
   "Github_hard---o21227.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21228.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21230.json": {},
   "Github_hard---o21231.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21232.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21234.json": {
     "json_error": "Unknown format: uri"
@@ -3704,122 +3604,122 @@
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21239.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21240.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21242.json": {},
   "Github_hard---o21243.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21244.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21246.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21247.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21248.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21250.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21251.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21252.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21254.json": {},
   "Github_hard---o21255.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21256.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21258.json": {},
   "Github_hard---o21259.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21260.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21262.json": {},
   "Github_hard---o21263.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21264.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21266.json": {},
   "Github_hard---o21267.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21268.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21270.json": {},
   "Github_hard---o21271.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21272.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21274.json": {},
   "Github_hard---o21275.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21276.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21278.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21279.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21280.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21282.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21283.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21284.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21286.json": {},
   "Github_hard---o21287.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21288.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21290.json": {},
   "Github_hard---o21291.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21292.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21294.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21299.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21300.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21302.json": {},
   "Github_hard---o21303.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21306.json": {
     "json_error": "Unknown format: uri"
@@ -3828,187 +3728,187 @@
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21311.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21314.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21315.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21316.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21318.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21319.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21320.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21322.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21323.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21324.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21326.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21327.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21330.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21331.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21332.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21334.json": {},
   "Github_hard---o21335.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21339.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21343.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21344.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21346.json": {},
   "Github_hard---o21351.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21352.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21354.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21355.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21356.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21358.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21359.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21360.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21362.json": {},
   "Github_hard---o21363.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21364.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21366.json": {},
   "Github_hard---o21367.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21368.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21370.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21371.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21372.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21374.json": {},
   "Github_hard---o21379.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21382.json": {},
   "Github_hard---o21383.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21384.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21386.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21387.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21388.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21390.json": {},
   "Github_hard---o21391.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21392.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21394.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21395.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21396.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21398.json": {},
   "Github_hard---o21399.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21400.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21402.json": {},
   "Github_hard---o21403.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21404.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21406.json": {},
   "Github_hard---o21407.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21408.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21410.json": {},
   "Github_hard---o21411.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21412.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21414.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21415.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21418.json": {},
   "Github_hard---o21419.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21420.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21422.json": {},
   "Github_hard---o21423.json": {
@@ -4024,42 +3924,36 @@
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21428.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21429.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21431.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o21432.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21436.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21439.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_hard---o21442.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o21442.json": {},
   "Github_hard---o21480.json": {},
   "Github_hard---o21699.json": {
     "json_error": "Unknown format: html"
   },
-  "Github_hard---o21727.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o21727.json": {},
   "Github_hard---o21780.json": {
     "json_error": "Unknown format: regex"
   },
   "Github_hard---o21819.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o23178.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o23178.json": {},
   "Github_hard---o23230.json": {
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
@@ -4073,7 +3967,7 @@
   "Github_hard---o26566.json": {},
   "Github_hard---o26603.json": {},
   "Github_hard---o26621.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_hard---o26649.json": {},
   "Github_hard---o26690.json": {
@@ -4087,10 +3981,10 @@
   "Github_hard---o27217.json": {},
   "Github_hard---o27224.json": {},
   "Github_hard---o27348.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o27790.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "patternProperty regexes /.*/ and /additionalProperties/ are not disjoint"
   },
   "Github_hard---o27793.json": {
     "json_error": "Unimplemented keys: [\"minProperties\"]"
@@ -4099,13 +3993,11 @@
   "Github_hard---o28618.json": {},
   "Github_hard---o29019.json": {},
   "Github_hard---o29388.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o29389.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o29389.json": {},
   "Github_hard---o29445.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o29764.json": {},
   "Github_hard---o29813.json": {},
@@ -4163,7 +4055,7 @@
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "Github_hard---o32807.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o32921.json": {},
   "Github_hard---o32922.json": {},
@@ -4199,7 +4091,7 @@
   "Github_hard---o34897.json": {},
   "Github_hard---o34899.json": {},
   "Github_hard---o35186.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o35767.json": {},
   "Github_hard---o35867.json": {
@@ -4208,16 +4100,16 @@
   "Github_hard---o36010.json": {},
   "Github_hard---o36011.json": {},
   "Github_hard---o36012.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "Github_hard---o36016.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_hard---o36153.json": {},
   "Github_hard---o36452.json": {},
   "Github_hard---o36573.json": {},
   "Github_hard---o366.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o36779.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -4228,9 +4120,7 @@
   "Github_hard---o37102.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_hard---o37603.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o37603.json": {},
   "Github_hard---o37609.json": {},
   "Github_hard---o37682.json": {},
   "Github_hard---o37717.json": {},
@@ -4248,7 +4138,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o38538.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\"]"
   },
   "Github_hard---o38732.json": {
     "json_error": "Unknown format: uri"
@@ -4344,7 +4234,7 @@
   "Github_hard---o41383.json": {},
   "Github_hard---o41388.json": {},
   "Github_hard---o4139.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o41390.json": {},
   "Github_hard---o41399.json": {},
@@ -4444,18 +4334,14 @@
   "Github_hard---o46658.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o47090.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o47090.json": {},
   "Github_hard---o47095.json": {},
   "Github_hard---o47097.json": {},
   "Github_hard---o47100.json": {},
   "Github_hard---o47102.json": {},
   "Github_hard---o47110.json": {},
   "Github_hard---o47116.json": {},
-  "Github_hard---o47121.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o47121.json": {},
   "Github_hard---o47195.json": {},
   "Github_hard---o47197.json": {},
   "Github_hard---o47199.json": {},
@@ -4467,20 +4353,14 @@
   "Github_hard---o47658.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o47670.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o47674.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o47670.json": {},
+  "Github_hard---o47674.json": {},
   "Github_hard---o47675.json": {},
   "Github_hard---o47976.json": {},
   "Github_hard---o47979.json": {},
   "Github_hard---o48013.json": {},
   "Github_hard---o48022.json": {},
-  "Github_hard---o48094.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o48094.json": {},
   "Github_hard---o48241.json": {},
   "Github_hard---o48243.json": {},
   "Github_hard---o48245.json": {},
@@ -4490,16 +4370,12 @@
   "Github_hard---o48271.json": {},
   "Github_hard---o48311.json": {},
   "Github_hard---o48422.json": {},
-  "Github_hard---o48423.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o48425.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o48423.json": {},
+  "Github_hard---o48425.json": {},
   "Github_hard---o4846.json": {},
   "Github_hard---o48493.json": {},
   "Github_hard---o4851.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unsatisfiable schema: required property 'id' is unsatisfiable"
   },
   "Github_hard---o48512.json": {},
   "Github_hard---o48515.json": {},
@@ -4517,12 +4393,8 @@
     "json_error": "Unknown format: url"
   },
   "Github_hard---o51088.json": {},
-  "Github_hard---o51168.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o51169.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o51168.json": {},
+  "Github_hard---o51169.json": {},
   "Github_hard---o5210.json": {},
   "Github_hard---o5247.json": {},
   "Github_hard---o52723.json": {},
@@ -4532,9 +4404,7 @@
   "Github_hard---o52904.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_hard---o53038.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o53038.json": {},
   "Github_hard---o53084.json": {
     "json_error": "Unknown format: uri-reference"
   },
@@ -4608,9 +4478,7 @@
     "validation_error": "test #0: token not accepted at ⟦{\"‧client‧\":\"‧ABC‧ Corporation‧\",\"‧contacts‧\":[\"‧John‧ Doe‧\",\"‧Jane‧ Smith‧\"],\"‧project‧\":\"‧Contract‧ Review‧\",\"‧service‧\":[{\"‧n‧arr‧ative‧\":[\"‧Review‧ contract‧ for‧ compliance‧\",\"‧Research‧ relevant‧ laws‧ and‧ regulations‧\"],\"‧time‧\":‧2‧.‧0⟧ * ⟦,\"⟧ * ⟦date‧\":\"‧202‧2⟧ forced tokens \"⟦0⟧\" != \"⟦,\\\"⟧\""
   },
   "Github_hard---o55184.json": {},
-  "Github_hard---o55320.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o55320.json": {},
   "Github_hard---o55639.json": {},
   "Github_hard---o55640.json": {
     "json_error": "Unknown format: uri"
@@ -4618,9 +4486,7 @@
   "Github_hard---o55657.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
-  "Github_hard---o55668.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o55668.json": {},
   "Github_hard---o55827.json": {
     "json_error": "Unknown format: uri"
   },
@@ -4640,11 +4506,9 @@
   "Github_hard---o57110.json": {},
   "Github_hard---o57111.json": {},
   "Github_hard---o57145.json": {},
-  "Github_hard---o57432.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o57432.json": {},
   "Github_hard---o57433.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o57503.json": {},
   "Github_hard---o57571.json": {},
@@ -4664,7 +4528,7 @@
   "Github_hard---o5790.json": {},
   "Github_hard---o57978.json": {},
   "Github_hard---o58218.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_hard---o58281.json": {
     "json_error": "Unknown format: url"
@@ -4701,9 +4565,7 @@
   },
   "Github_hard---o59981.json": {},
   "Github_hard---o59999.json": {},
-  "Github_hard---o60038.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o60038.json": {},
   "Github_hard---o60168.json": {},
   "Github_hard---o60171.json": {},
   "Github_hard---o60179.json": {},
@@ -4721,21 +4583,19 @@
   "Github_hard---o60299.json": {},
   "Github_hard---o60309.json": {},
   "Github_hard---o60312.json": {},
-  "Github_hard---o60731.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o60731.json": {},
   "Github_hard---o60756.json": {},
   "Github_hard---o60759.json": {},
   "Github_hard---o60770.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o6084.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o60844.json": {},
   "Github_hard---o60849.json": {},
   "Github_hard---o6085.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o60871.json": {},
   "Github_hard---o60887.json": {},
@@ -4777,9 +4637,7 @@
   "Github_hard---o61003.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o61006.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o61006.json": {},
   "Github_hard---o61026.json": {
     "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/params"
   },
@@ -4790,7 +4648,7 @@
   "Github_hard---o6138.json": {},
   "Github_hard---o61422.json": {},
   "Github_hard---o61423.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o61527.json": {},
   "Github_hard---o61535.json": {},
@@ -4810,11 +4668,9 @@
   },
   "Github_hard---o61774.json": {},
   "Github_hard---o61781.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o62015.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o62015.json": {},
   "Github_hard---o62057.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -4828,9 +4684,7 @@
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_hard---o62943.json": {},
-  "Github_hard---o62947.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o62947.json": {},
   "Github_hard---o62961.json": {},
   "Github_hard---o63004.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -4849,7 +4703,7 @@
   "Github_hard---o63300.json": {},
   "Github_hard---o63309.json": {},
   "Github_hard---o63369.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o63417.json": {},
   "Github_hard---o6344.json": {},
@@ -4912,7 +4766,7 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o65730.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o65753.json": {},
   "Github_hard---o65826.json": {
@@ -4930,9 +4784,7 @@
   },
   "Github_hard---o65978.json": {},
   "Github_hard---o66068.json": {},
-  "Github_hard---o66237.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o66237.json": {},
   "Github_hard---o66267.json": {},
   "Github_hard---o66331.json": {
     "json_error": "Unimplemented keys: [\"minProperties\"]"
@@ -4946,7 +4798,7 @@
   "Github_hard---o66713.json": {},
   "Github_hard---o66717.json": {},
   "Github_hard---o67017.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o67026.json": {
     "json_error": "Unknown format: uri"
@@ -4963,7 +4815,7 @@
   "Github_hard---o67450.json": {},
   "Github_hard---o67456.json": {},
   "Github_hard---o67457.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\", \"propertyNames\"]"
+    "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "Github_hard---o67517.json": {},
   "Github_hard---o6761.json": {},
@@ -4974,17 +4826,13 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o68409.json": {},
-  "Github_hard---o68416.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o68416.json": {},
   "Github_hard---o68598.json": {},
   "Github_hard---o68728.json": {},
   "Github_hard---o69083.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o69091.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o69091.json": {},
   "Github_hard---o69190.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -5000,11 +4848,9 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o69474.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
-  "Github_hard---o69582.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o69582.json": {},
   "Github_hard---o69584.json": {},
   "Github_hard---o69586.json": {},
   "Github_hard---o69719.json": {
@@ -5020,9 +4866,7 @@
   "Github_hard---o69965.json": {},
   "Github_hard---o69969.json": {},
   "Github_hard---o69970.json": {},
-  "Github_hard---o69972.json": {
-    "validation_error": "test #0: token not accepted at ⟦loc‧-‧1‧\",\"‧code‧\":\"‧LOC‧-‧1‧\",\"‧name‧\":\"‧Main‧ Library‧\",\"‧library‧\":{\"‧$‧ref‧\":\"‧https‧://‧ils‧.r‧ero‧.ch‧/api‧/lib‧raries‧/lib‧-‧1‧\"},\"‧allow‧_request‧\":‧true‧,\"‧send‧_notification‧\":‧true‧,\"‧notification‧_email‧\":\"‧library‧@example‧.com‧\",\"⟧ * ⟦is⟧ * ⟦_online‧\":‧false‧,\"⟧ forced tokens \"⟦restrict‧_pick‧up‧_to⟧\" != \"⟦is‧_online‧\\\":‧false⟧\""
-  },
+  "Github_hard---o69972.json": {},
   "Github_hard---o69976.json": {},
   "Github_hard---o70037.json": {},
   "Github_hard---o70295.json": {},
@@ -5041,7 +4885,7 @@
   },
   "Github_hard---o71307.json": {},
   "Github_hard---o71321.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o71412.json": {},
   "Github_hard---o71453.json": {
@@ -5066,7 +4910,7 @@
   "Github_hard---o72193.json": {},
   "Github_hard---o72247.json": {},
   "Github_hard---o72527.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: interval"
   },
   "Github_hard---o72528.json": {},
   "Github_hard---o72536.json": {},
@@ -5098,25 +4942,23 @@
   "Github_hard---o74004.json": {},
   "Github_hard---o74005.json": {},
   "Github_hard---o74015.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o74367.json": {},
   "Github_hard---o74372.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o74445.json": {},
   "Github_hard---o74446.json": {},
-  "Github_hard---o74466.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o74466.json": {},
   "Github_hard---o74488.json": {},
   "Github_hard---o74560.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_hard---o74930.json": {},
   "Github_hard---o7514.json": {},
   "Github_hard---o75202.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o75284.json": {},
   "Github_hard---o75287.json": {},
@@ -5132,40 +4974,36 @@
   },
   "Github_hard---o76546.json": {},
   "Github_hard---o76577.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o76580.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: bigipv4"
   },
   "Github_hard---o76581.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: bigipv4"
   },
   "Github_hard---o76582.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: bigipv4"
   },
-  "Github_hard---o76669.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o76669.json": {},
   "Github_hard---o76745.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o76776.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
-  "Github_hard---o76944.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o76944.json": {},
   "Github_hard---o77264.json": {},
   "Github_hard---o77276.json": {},
   "Github_hard---o77302.json": {},
   "Github_hard---o77303.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_hard---o77304.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_hard---o77312.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_hard---o77317.json": {},
   "Github_hard---o77367.json": {
@@ -5175,14 +5013,14 @@
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o77405.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_hard---o77406.json": {},
   "Github_hard---o77732.json": {},
   "Github_hard---o78015.json": {},
   "Github_hard---o78037.json": {},
   "Github_hard---o78043.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o78059.json": {},
   "Github_hard---o78081.json": {},
@@ -5191,44 +5029,38 @@
   "Github_hard---o78474.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o78777.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o78777.json": {},
   "Github_hard---o78891.json": {},
   "Github_hard---o78893.json": {},
   "Github_hard---o79008.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o79015.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri-reference"
   },
   "Github_hard---o79080.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_hard---o79409.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o79409.json": {},
   "Github_hard---o79440.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o79613.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o79656.json": {},
   "Github_hard---o79664.json": {},
-  "Github_hard---o79669.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o79669.json": {},
   "Github_hard---o79850.json": {},
   "Github_hard---o80234.json": {},
   "Github_hard---o80248.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o80249.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o80251.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o80302.json": {},
   "Github_hard---o80303.json": {
@@ -5263,101 +5095,69 @@
   },
   "Github_hard---o81498.json": {},
   "Github_hard---o81650.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_hard---o81652.json": {},
   "Github_hard---o82144.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "patternProperty regexes /.*/ and /github/ are not disjoint"
   },
   "Github_hard---o82151.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "patternProperty regexes /hipchat/ and /github/ are not disjoint"
   },
   "Github_hard---o82250.json": {},
   "Github_hard---o82251.json": {},
   "Github_hard---o82258.json": {},
   "Github_hard---o82273.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o82282.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o82282.json": {},
   "Github_hard---o82339.json": {},
   "Github_hard---o82369.json": {},
   "Github_hard---o82503.json": {},
   "Github_hard---o82544.json": {},
   "Github_hard---o82555.json": {},
-  "Github_hard---o82571.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o82573.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o82618.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o82571.json": {},
+  "Github_hard---o82573.json": {},
+  "Github_hard---o82618.json": {},
   "Github_hard---o82632.json": {},
   "Github_hard---o82680.json": {},
-  "Github_hard---o82726.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o82728.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o82730.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o82726.json": {},
+  "Github_hard---o82728.json": {},
+  "Github_hard---o82730.json": {},
   "Github_hard---o82738.json": {},
   "Github_hard---o82740.json": {},
   "Github_hard---o82746.json": {},
-  "Github_hard---o82764.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o82764.json": {},
   "Github_hard---o82766.json": {},
   "Github_hard---o82773.json": {},
   "Github_hard---o82811.json": {},
-  "Github_hard---o82821.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o82821.json": {},
   "Github_hard---o82824.json": {},
   "Github_hard---o82825.json": {},
-  "Github_hard---o82827.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o82827.json": {},
   "Github_hard---o82829.json": {},
   "Github_hard---o82831.json": {},
-  "Github_hard---o82849.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o82851.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o82849.json": {},
+  "Github_hard---o82851.json": {},
   "Github_hard---o82914.json": {},
   "Github_hard---o82943.json": {},
   "Github_hard---o82974.json": {},
   "Github_hard---o83016.json": {},
   "Github_hard---o83026.json": {},
-  "Github_hard---o83034.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o83034.json": {},
   "Github_hard---o83048.json": {},
   "Github_hard---o83058.json": {},
   "Github_hard---o83066.json": {},
   "Github_hard---o83111.json": {},
-  "Github_hard---o83132.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o83133.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o83132.json": {},
+  "Github_hard---o83133.json": {},
   "Github_hard---o83410.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o83677.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"minProperties\", \"patternProperties\", \"propertyNames\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\", \"minProperties\", \"propertyNames\"]"
   },
-  "Github_hard---o8370.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o8370.json": {},
   "Github_hard---o83745.json": {},
   "Github_hard---o83748.json": {
     "json_error": "Unknown format: uri"
@@ -5367,39 +5167,39 @@
   },
   "Github_hard---o83834.json": {},
   "Github_hard---o83837.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o83838.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o83839.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o83840.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o83841.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o83844.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o83845.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o83846.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o83847.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o83850.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_hard---o83990.json": {},
   "Github_hard---o83993.json": {},
   "Github_hard---o84042.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_hard---o84047.json": {},
   "Github_hard---o84048.json": {},
@@ -5410,7 +5210,7 @@
   "Github_hard---o84055.json": {},
   "Github_hard---o84069.json": {},
   "Github_hard---o84134.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o84200.json": {},
   "Github_hard---o84201.json": {
@@ -5427,7 +5227,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o84331.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o84346.json": {},
   "Github_hard---o84348.json": {},
@@ -5457,7 +5257,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o8777.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o87865.json": {},
   "Github_hard---o89194.json": {},
@@ -5500,7 +5300,7 @@
     "json_error": "Unknown format: uri"
   },
   "Github_hard---o90420.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o90607.json": {
     "json_error": "Unknown format: uri"
@@ -5539,14 +5339,12 @@
   "Github_hard---o90939.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
-  "Github_hard---o90957.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o90957.json": {},
   "Github_hard---o90970.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_hard---o90971.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri-reference"
   },
   "Github_hard---o90972.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -5591,47 +5389,29 @@
   "Github_hard---o9808.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o9823.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o9830.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o9831.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o9832.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o9836.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o9837.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o9838.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o9843.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_hard---o9864.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o9823.json": {},
+  "Github_hard---o9830.json": {},
+  "Github_hard---o9831.json": {},
+  "Github_hard---o9832.json": {},
+  "Github_hard---o9836.json": {},
+  "Github_hard---o9837.json": {},
+  "Github_hard---o9838.json": {},
+  "Github_hard---o9843.json": {},
+  "Github_hard---o9864.json": {},
   "Github_hard---o9882.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o9904.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o9915.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o9916.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o9917.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o9919.json": {},
   "Github_hard---o9920.json": {},
@@ -5646,9 +5426,7 @@
   "Github_hard---o9946.json": {
     "json_error": "Unknown format: url"
   },
-  "Github_hard---o9969.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_hard---o9969.json": {},
   "Github_medium---o1.json": {},
   "Github_medium---o10078.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -5656,9 +5434,7 @@
   "Github_medium---o10079.json": {},
   "Github_medium---o102.json": {},
   "Github_medium---o10217.json": {},
-  "Github_medium---o10297.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o10297.json": {},
   "Github_medium---o10310.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
@@ -5673,7 +5449,7 @@
   "Github_medium---o1053.json": {},
   "Github_medium---o10530.json": {},
   "Github_medium---o10566.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o10617.json": {
     "json_error": "Unknown format: uri"
@@ -5701,7 +5477,7 @@
   "Github_medium---o11803.json": {},
   "Github_medium---o1191.json": {},
   "Github_medium---o11975.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o12077.json": {
     "json_error": "Unknown format: url"
@@ -5733,20 +5509,14 @@
   "Github_medium---o12378.json": {
     "json_error": "Unknown format: partial-date"
   },
-  "Github_medium---o12455.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o12456.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o12458.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o12455.json": {},
+  "Github_medium---o12456.json": {},
+  "Github_medium---o12458.json": {},
   "Github_medium---o12487.json": {},
   "Github_medium---o12496.json": {},
   "Github_medium---o12505.json": {},
   "Github_medium---o12562.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_medium---o12603.json": {},
   "Github_medium---o12605.json": {},
@@ -5791,9 +5561,7 @@
   "Github_medium---o13945.json": {},
   "Github_medium---o13952.json": {},
   "Github_medium---o14076.json": {},
-  "Github_medium---o14405.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o14405.json": {},
   "Github_medium---o14412.json": {},
   "Github_medium---o14421.json": {
     "validation_error": "test #0: token not accepted at ⟦{\"‧Sensor⟧ * ⟦\":{\"⟧ * ⟦timestamp‧\":{\"‧$‧date⟧ mask: TokenSet: 17/128256; ⟨\"⟩ ⟨\"\\n⟩ ⟨\":⟩ ⟨\"\\n\\n⟩ ⟨\":\"⟩ ⟨\":\\n⟩ ⟨\"\\r\\n⟩ ⟨\"\\n\\n\\n⟩ ⟨\"\\r\\n\\r\\n⟩ ⟨\":\\r\\n⟩ ⟨\"\\n\\n\\n\\n⟩ ⟨\":\\n\\n⟩ ⟨\":\"/⟩ ⟨\":\"\"⟩ ⟨\":\"+⟩ ⟨\":\"'⟩ ⟨\"\\r\\n\\r\\n\\r\\n⟩"
@@ -5808,9 +5576,7 @@
   "Github_medium---o14475.json": {},
   "Github_medium---o14478.json": {},
   "Github_medium---o14497.json": {},
-  "Github_medium---o14512.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o14512.json": {},
   "Github_medium---o14633.json": {},
   "Github_medium---o14742.json": {},
   "Github_medium---o14744.json": {},
@@ -5824,9 +5590,7 @@
   "Github_medium---o15201.json": {},
   "Github_medium---o15203.json": {},
   "Github_medium---o15210.json": {},
-  "Github_medium---o15221.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o15221.json": {},
   "Github_medium---o1529.json": {},
   "Github_medium---o15292.json": {},
   "Github_medium---o15330.json": {},
@@ -5835,17 +5599,13 @@
   },
   "Github_medium---o15725.json": {},
   "Github_medium---o15735.json": {},
-  "Github_medium---o16047.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o16047.json": {},
   "Github_medium---o16067.json": {},
   "Github_medium---o16373.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_medium---o16736.json": {},
-  "Github_medium---o16744.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o16744.json": {},
   "Github_medium---o16791.json": {},
   "Github_medium---o1707.json": {},
   "Github_medium---o17121.json": {},
@@ -5853,9 +5613,7 @@
   "Github_medium---o17127.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_medium---o17131.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o17131.json": {},
   "Github_medium---o17132.json": {},
   "Github_medium---o17133.json": {},
   "Github_medium---o17404.json": {},
@@ -5866,9 +5624,7 @@
   "Github_medium---o17563.json": {},
   "Github_medium---o17600.json": {},
   "Github_medium---o17602.json": {},
-  "Github_medium---o17648.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o17648.json": {},
   "Github_medium---o17688.json": {},
   "Github_medium---o17941.json": {},
   "Github_medium---o17988.json": {},
@@ -5902,9 +5658,7 @@
   "Github_medium---o20258.json": {},
   "Github_medium---o20259.json": {},
   "Github_medium---o20375.json": {},
-  "Github_medium---o20377.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o20377.json": {},
   "Github_medium---o20453.json": {},
   "Github_medium---o20460.json": {},
   "Github_medium---o20464.json": {},
@@ -5960,21 +5714,11 @@
   "Github_medium---o21771.json": {},
   "Github_medium---o21779.json": {},
   "Github_medium---o21846.json": {},
-  "Github_medium---o21849.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o21850.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o21851.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o21852.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o21862.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o21849.json": {},
+  "Github_medium---o21850.json": {},
+  "Github_medium---o21851.json": {},
+  "Github_medium---o21852.json": {},
+  "Github_medium---o21862.json": {},
   "Github_medium---o21909.json": {},
   "Github_medium---o22092.json": {},
   "Github_medium---o22093.json": {},
@@ -6023,9 +5767,7 @@
   "Github_medium---o25979.json": {},
   "Github_medium---o25980.json": {},
   "Github_medium---o26111.json": {},
-  "Github_medium---o26197.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o26197.json": {},
   "Github_medium---o26201.json": {},
   "Github_medium---o26217.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -6088,9 +5830,7 @@
   "Github_medium---o28617.json": {},
   "Github_medium---o28953.json": {},
   "Github_medium---o28956.json": {},
-  "Github_medium---o29393.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o29393.json": {},
   "Github_medium---o29812.json": {},
   "Github_medium---o29932.json": {},
   "Github_medium---o29934.json": {},
@@ -6222,9 +5962,7 @@
   "Github_medium---o32672.json": {
     "json_error": "Unknown format: path"
   },
-  "Github_medium---o32806.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o32806.json": {},
   "Github_medium---o32847.json": {},
   "Github_medium---o33011.json": {},
   "Github_medium---o33033.json": {},
@@ -6270,14 +6008,12 @@
   "Github_medium---o35773.json": {},
   "Github_medium---o35815.json": {},
   "Github_medium---o35830.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o35868.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o35870.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o35870.json": {},
   "Github_medium---o35905.json": {},
   "Github_medium---o36008.json": {},
   "Github_medium---o36073.json": {},
@@ -6293,7 +6029,7 @@
     "json_error": "Unknown format: ^\\d{4}-\\d{2}-\\d{2}$"
   },
   "Github_medium---o36591.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o36600.json": {},
   "Github_medium---o36797.json": {
@@ -6336,9 +6072,7 @@
   "Github_medium---o3907.json": {},
   "Github_medium---o39075.json": {},
   "Github_medium---o39078.json": {},
-  "Github_medium---o39080.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o39080.json": {},
   "Github_medium---o39086.json": {},
   "Github_medium---o39088.json": {},
   "Github_medium---o39097.json": {},
@@ -6361,9 +6095,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_medium---o39225.json": {},
-  "Github_medium---o39256.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o39256.json": {},
   "Github_medium---o393.json": {},
   "Github_medium---o39426.json": {},
   "Github_medium---o39435.json": {},
@@ -6374,9 +6106,7 @@
   "Github_medium---o39500.json": {},
   "Github_medium---o39527.json": {},
   "Github_medium---o39529.json": {},
-  "Github_medium---o39749.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o39749.json": {},
   "Github_medium---o39780.json": {
     "json_error": "Unknown format: uri"
   },
@@ -6440,15 +6170,13 @@
   "Github_medium---o4177.json": {},
   "Github_medium---o41780.json": {},
   "Github_medium---o4179.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
-  "Github_medium---o4180.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧$‧schema‧Ref‧\":\"‧https‧://‧ed‧dn‧.ed‧cd‧.io‧/s‧chemas‧/out‧fit‧ting‧/‧2‧\",\"‧header‧\":{\"⟧ * ⟦uploader⟧ * ⟦ID‧\":\"‧Cmd‧r⟧ mask: TokenSet: 8/128256; ⟨g⟩ ⟨s⟩ ⟨so⟩ ⟨soft⟩ ⟨ga⟩ ⟨gate⟩ ⟨software⟩ ⟨gateway⟩"
-  },
+  "Github_medium---o4180.json": {},
   "Github_medium---o41800.json": {},
   "Github_medium---o4181.json": {},
   "Github_medium---o41810.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o42021.json": {
     "json_error": "Unimplemented keys: [\"maxProperties\"]"
@@ -6468,11 +6196,9 @@
   "Github_medium---o42148.json": {},
   "Github_medium---o42179.json": {},
   "Github_medium---o42186.json": {},
-  "Github_medium---o42216.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o42216.json": {},
   "Github_medium---o42217.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o42282.json": {},
   "Github_medium---o42283.json": {},
@@ -6514,15 +6240,9 @@
   "Github_medium---o42855.json": {},
   "Github_medium---o42866.json": {},
   "Github_medium---o42888.json": {},
-  "Github_medium---o42889.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o42890.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o42892.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o42889.json": {},
+  "Github_medium---o42890.json": {},
+  "Github_medium---o42892.json": {},
   "Github_medium---o42976.json": {
     "json_error": "Unknown format: uri"
   },
@@ -6601,12 +6321,8 @@
   "Github_medium---o45226.json": {},
   "Github_medium---o45227.json": {},
   "Github_medium---o45232.json": {},
-  "Github_medium---o45263.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o45264.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o45263.json": {},
+  "Github_medium---o45264.json": {},
   "Github_medium---o45281.json": {},
   "Github_medium---o45282.json": {},
   "Github_medium---o45283.json": {},
@@ -6662,9 +6378,7 @@
   "Github_medium---o47115.json": {},
   "Github_medium---o47120.json": {},
   "Github_medium---o47122.json": {},
-  "Github_medium---o47158.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o47158.json": {},
   "Github_medium---o47239.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -6689,44 +6403,38 @@
   "Github_medium---o48021.json": {},
   "Github_medium---o48024.json": {},
   "Github_medium---o48073.json": {},
-  "Github_medium---o48095.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o48095.json": {},
   "Github_medium---o48116.json": {},
   "Github_medium---o48248.json": {},
   "Github_medium---o48313.json": {},
   "Github_medium---o4832.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
-  "Github_medium---o4833.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o4833.json": {},
   "Github_medium---o48339.json": {},
   "Github_medium---o4836.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_medium---o4837.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_medium---o4838.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_medium---o48406.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o4841.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o48419.json": {},
   "Github_medium---o4842.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_medium---o48420.json": {},
   "Github_medium---o48421.json": {},
   "Github_medium---o48424.json": {},
-  "Github_medium---o48427.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o48427.json": {},
   "Github_medium---o4844.json": {},
   "Github_medium---o48454.json": {},
   "Github_medium---o4849.json": {},
@@ -6748,9 +6456,7 @@
   "Github_medium---o5026.json": {},
   "Github_medium---o5027.json": {},
   "Github_medium---o5028.json": {},
-  "Github_medium---o50479.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o50479.json": {},
   "Github_medium---o50504.json": {},
   "Github_medium---o50667.json": {
     "json_error": "Unknown format: url"
@@ -6761,15 +6467,13 @@
   "Github_medium---o50680.json": {},
   "Github_medium---o50681.json": {},
   "Github_medium---o50683.json": {},
-  "Github_medium---o50685.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o50685.json": {},
   "Github_medium---o51080.json": {},
   "Github_medium---o51161.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o51177.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "patternProperty regexes /^[a-zA-Z0-9_-]{1,}$/ and /^MD5$/ are not disjoint"
   },
   "Github_medium---o51260.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -6817,7 +6521,7 @@
   },
   "Github_medium---o53025.json": {},
   "Github_medium---o53033.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o53044.json": {},
   "Github_medium---o53085.json": {},
@@ -6837,11 +6541,9 @@
   "Github_medium---o53515.json": {},
   "Github_medium---o53518.json": {},
   "Github_medium---o5352.json": {},
-  "Github_medium---o53523.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o53523.json": {},
   "Github_medium---o53524.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o5355.json": {},
   "Github_medium---o5356.json": {},
@@ -6934,18 +6636,12 @@
   "Github_medium---o56020.json": {},
   "Github_medium---o56021.json": {},
   "Github_medium---o56024.json": {},
-  "Github_medium---o56041.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o56043.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o56041.json": {},
+  "Github_medium---o56043.json": {},
   "Github_medium---o56103.json": {},
   "Github_medium---o56171.json": {},
   "Github_medium---o56227.json": {},
-  "Github_medium---o56232.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o56232.json": {},
   "Github_medium---o56531.json": {},
   "Github_medium---o56748.json": {},
   "Github_medium---o57217.json": {},
@@ -6962,7 +6658,7 @@
     "validation_error": "test #0: token not accepted at ⟦5‧,\"‧grid‧type‧\":\"‧Regular‧\",\"‧height‧\":‧100‧.‧0‧,\"‧rows‧\":‧5‧,\"‧shape‧\":\"‧Ellipse‧\",\"‧spacing‧\":‧20‧.‧0‧,\"‧width‧\":‧100‧.‧0‧},\"‧ro‧is‧\":[‧6‧,‧7‧,‧8‧,‧9‧,‧10‧]}‧],\"‧RO‧Is‧\":[{\"⟧ * ⟦id⟧ * ⟦\":‧1‧,\"‧group⟧ mask: TokenSet: 9/128256; ⟨a⟩ ⟨g⟩ ⟨an⟩ ⟨ang⟩ ⟨gr⟩ ⟨angle⟩ ⟨group⟩ ⟨gro⟩ ⟨angl⟩"
   },
   "Github_medium---o57644.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o57649.json": {},
   "Github_medium---o57650.json": {},
@@ -7020,9 +6716,7 @@
   "Github_medium---o58620.json": {
     "json_error": "Unknown format: chickenbutt"
   },
-  "Github_medium---o58622.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o58622.json": {},
   "Github_medium---o58623.json": {},
   "Github_medium---o58629.json": {},
   "Github_medium---o58661.json": {
@@ -7053,7 +6747,7 @@
   "Github_medium---o59669.json": {},
   "Github_medium---o59694.json": {},
   "Github_medium---o5988.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o59980.json": {},
   "Github_medium---o60099.json": {
@@ -7085,24 +6779,16 @@
   "Github_medium---o60846.json": {},
   "Github_medium---o60847.json": {},
   "Github_medium---o60848.json": {},
-  "Github_medium---o60861.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o60861.json": {},
   "Github_medium---o60863.json": {},
-  "Github_medium---o60864.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o60864.json": {},
   "Github_medium---o60865.json": {},
   "Github_medium---o60866.json": {},
   "Github_medium---o60870.json": {},
   "Github_medium---o60874.json": {},
   "Github_medium---o60876.json": {},
-  "Github_medium---o60879.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o60880.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o60879.json": {},
+  "Github_medium---o60880.json": {},
   "Github_medium---o60973.json": {
     "json_error": "Unknown format: uri"
   },
@@ -7154,9 +6840,7 @@
   "Github_medium---o61004.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o61121.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o61121.json": {},
   "Github_medium---o61348.json": {
     "validation_error": "test #3: token not accepted at ⟦{\"‧custom‧Types‧\":[{\"‧name‧\":\"‧Custom‧Type‧1‧\",\"‧params‧\":[{\"‧name‧\":\"‧param‧1‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧String‧\",\"‧nullable⟧ forced tokens \"⟦nullable⟧\" != \"⟦type⟧\""
   },
@@ -7166,7 +6850,7 @@
   "Github_medium---o6137.json": {},
   "Github_medium---o6152.json": {},
   "Github_medium---o61532.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o61533.json": {},
   "Github_medium---o61534.json": {},
@@ -7251,9 +6935,7 @@
   "Github_medium---o6249.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_medium---o6256.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o6256.json": {},
   "Github_medium---o6257.json": {},
   "Github_medium---o62651.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -7315,14 +6997,12 @@
     "json_error": "Unknown format: path"
   },
   "Github_medium---o63382.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: positiveInteger"
   },
   "Github_medium---o63383.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: positiveInteger"
   },
-  "Github_medium---o63475.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o63475.json": {},
   "Github_medium---o63514.json": {},
   "Github_medium---o63552.json": {
     "json_error": "Unknown format: uri"
@@ -7392,14 +7072,10 @@
   "Github_medium---o65476.json": {},
   "Github_medium---o65477.json": {},
   "Github_medium---o65485.json": {},
-  "Github_medium---o65486.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o65486.json": {},
   "Github_medium---o65503.json": {},
   "Github_medium---o65504.json": {},
-  "Github_medium---o65507.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o65507.json": {},
   "Github_medium---o65515.json": {},
   "Github_medium---o65677.json": {},
   "Github_medium---o65678.json": {},
@@ -7467,12 +7143,12 @@
     "json_error": "Unknown format: code"
   },
   "Github_medium---o67371.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: host-name"
   },
   "Github_medium---o674.json": {},
   "Github_medium---o67449.json": {},
   "Github_medium---o67465.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o67500.json": {},
   "Github_medium---o67549.json": {},
@@ -7511,11 +7187,9 @@
   "Github_medium---o68601.json": {},
   "Github_medium---o68602.json": {},
   "Github_medium---o68603.json": {},
-  "Github_medium---o68630.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o68630.json": {},
   "Github_medium---o68694.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o68724.json": {},
   "Github_medium---o68725.json": {},
@@ -7528,9 +7202,7 @@
   "Github_medium---o69100.json": {},
   "Github_medium---o69138.json": {},
   "Github_medium---o69158.json": {},
-  "Github_medium---o69161.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o69161.json": {},
   "Github_medium---o69202.json": {
     "json_error": "Resource 'json-schema:///schemata/app' is not present in a registry and retrieving it failed: Retrieving external resources is not supported once the registry is populated"
   },
@@ -7600,9 +7272,7 @@
   "Github_medium---o70464.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_medium---o70611.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o70611.json": {},
   "Github_medium---o71157.json": {},
   "Github_medium---o71260.json": {},
   "Github_medium---o71265.json": {
@@ -7656,9 +7326,7 @@
   "Github_medium---o72180.json": {},
   "Github_medium---o72181.json": {},
   "Github_medium---o72184.json": {},
-  "Github_medium---o72189.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o72189.json": {},
   "Github_medium---o72192.json": {},
   "Github_medium---o72196.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
@@ -7703,16 +7371,12 @@
   "Github_medium---o7377.json": {},
   "Github_medium---o7378.json": {},
   "Github_medium---o7380.json": {},
-  "Github_medium---o7381.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o7381.json": {},
   "Github_medium---o73815.json": {},
   "Github_medium---o73816.json": {},
   "Github_medium---o7382.json": {},
   "Github_medium---o7383.json": {},
-  "Github_medium---o73913.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o73913.json": {},
   "Github_medium---o73914.json": {},
   "Github_medium---o73919.json": {
     "json_error": "Unknown format: uri"
@@ -7737,9 +7401,7 @@
   "Github_medium---o73996.json": {},
   "Github_medium---o74003.json": {},
   "Github_medium---o74175.json": {},
-  "Github_medium---o74176.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o74176.json": {},
   "Github_medium---o74180.json": {},
   "Github_medium---o74194.json": {},
   "Github_medium---o74246.json": {},
@@ -7760,9 +7422,7 @@
   "Github_medium---o74553.json": {},
   "Github_medium---o74554.json": {},
   "Github_medium---o74556.json": {},
-  "Github_medium---o74562.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o74562.json": {},
   "Github_medium---o74563.json": {},
   "Github_medium---o74564.json": {},
   "Github_medium---o74591.json": {},
@@ -7799,18 +7459,14 @@
   "Github_medium---o75602.json": {},
   "Github_medium---o75613.json": {},
   "Github_medium---o7574.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o7579.json": {},
   "Github_medium---o7633.json": {},
   "Github_medium---o76440.json": {},
   "Github_medium---o76459.json": {},
-  "Github_medium---o76463.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o76465.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o76463.json": {},
+  "Github_medium---o76465.json": {},
   "Github_medium---o76473.json": {},
   "Github_medium---o76474.json": {},
   "Github_medium---o76475.json": {},
@@ -7818,7 +7474,7 @@
     "json_error": "Unknown format: uri"
   },
   "Github_medium---o76576.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o76740.json": {},
   "Github_medium---o76743.json": {},
@@ -7831,7 +7487,7 @@
   },
   "Github_medium---o76853.json": {},
   "Github_medium---o76905.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o76906.json": {
     "json_error": "Unknown format: country-code"
@@ -7839,7 +7495,7 @@
   "Github_medium---o76907.json": {},
   "Github_medium---o77307.json": {},
   "Github_medium---o77340.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o77397.json": {},
   "Github_medium---o77402.json": {},
@@ -7869,9 +7525,7 @@
   },
   "Github_medium---o78895.json": {},
   "Github_medium---o78896.json": {},
-  "Github_medium---o78957.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o78957.json": {},
   "Github_medium---o78964.json": {
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
@@ -7885,9 +7539,7 @@
   "Github_medium---o79423.json": {},
   "Github_medium---o79425.json": {},
   "Github_medium---o79429.json": {},
-  "Github_medium---o79452.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o79452.json": {},
   "Github_medium---o79458.json": {
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
@@ -7981,9 +7633,7 @@
   "Github_medium---o82380.json": {},
   "Github_medium---o82481.json": {},
   "Github_medium---o82569.json": {},
-  "Github_medium---o82570.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o82570.json": {},
   "Github_medium---o82616.json": {},
   "Github_medium---o82635.json": {},
   "Github_medium---o82637.json": {},
@@ -7997,12 +7647,8 @@
   "Github_medium---o82655.json": {},
   "Github_medium---o82657.json": {},
   "Github_medium---o82663.json": {},
-  "Github_medium---o82664.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o82666.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o82664.json": {},
+  "Github_medium---o82666.json": {},
   "Github_medium---o82667.json": {},
   "Github_medium---o82669.json": {},
   "Github_medium---o82671.json": {},
@@ -8020,9 +7666,7 @@
   "Github_medium---o82712.json": {},
   "Github_medium---o82714.json": {},
   "Github_medium---o82853.json": {},
-  "Github_medium---o82963.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o82963.json": {},
   "Github_medium---o83077.json": {
     "json_error": "Unknown format: host-name"
   },
@@ -8033,7 +7677,7 @@
   "Github_medium---o83130.json": {},
   "Github_medium---o83131.json": {},
   "Github_medium---o83151.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: expose"
   },
   "Github_medium---o83155.json": {},
   "Github_medium---o83167.json": {},
@@ -8060,9 +7704,7 @@
   "Github_medium---o83292.json": {},
   "Github_medium---o83293.json": {},
   "Github_medium---o83312.json": {},
-  "Github_medium---o83341.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o83341.json": {},
   "Github_medium---o83357.json": {},
   "Github_medium---o83391.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -8096,9 +7738,7 @@
   "Github_medium---o83864.json": {},
   "Github_medium---o83938.json": {},
   "Github_medium---o83992.json": {},
-  "Github_medium---o84044.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o84044.json": {},
   "Github_medium---o84051.json": {},
   "Github_medium---o84052.json": {},
   "Github_medium---o84111.json": {},
@@ -8107,7 +7747,7 @@
   "Github_medium---o84138.json": {},
   "Github_medium---o84139.json": {},
   "Github_medium---o84154.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_medium---o84199.json": {
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
@@ -8224,7 +7864,7 @@
   "Github_medium---o90323.json": {},
   "Github_medium---o90333.json": {},
   "Github_medium---o90347.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_medium---o90352.json": {
     "json_error": "Unknown format: cidr"
@@ -8234,9 +7874,7 @@
   "Github_medium---o90391.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o90425.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o90425.json": {},
   "Github_medium---o90485.json": {},
   "Github_medium---o90608.json": {},
   "Github_medium---o90617.json": {},
@@ -8327,29 +7965,19 @@
   "Github_medium---o90967.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o91012.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o91012.json": {},
   "Github_medium---o91018.json": {},
   "Github_medium---o91023.json": {},
   "Github_medium---o91036.json": {},
   "Github_medium---o91038.json": {},
-  "Github_medium---o91088.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o91089.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o91088.json": {},
+  "Github_medium---o91089.json": {},
   "Github_medium---o91100.json": {},
   "Github_medium---o91102.json": {},
   "Github_medium---o91129.json": {},
   "Github_medium---o91132.json": {},
-  "Github_medium---o91593.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o91594.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o91593.json": {},
+  "Github_medium---o91594.json": {},
   "Github_medium---o9187.json": {},
   "Github_medium---o9198.json": {},
   "Github_medium---o9207.json": {},
@@ -8383,9 +8011,7 @@
   "Github_medium---o9386.json": {
     "json_error": "Unknown format: topic"
   },
-  "Github_medium---o9388.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9388.json": {},
   "Github_medium---o9390.json": {},
   "Github_medium---o9397.json": {
     "json_error": "Unknown format: topic"
@@ -8452,78 +8078,42 @@
   "Github_medium---o9805.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o9807.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9807.json": {},
   "Github_medium---o9810.json": {},
   "Github_medium---o9813.json": {},
-  "Github_medium---o9819.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9819.json": {},
   "Github_medium---o9822.json": {},
   "Github_medium---o9852.json": {},
   "Github_medium---o9853.json": {},
   "Github_medium---o9856.json": {},
-  "Github_medium---o9860.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9862.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9860.json": {},
+  "Github_medium---o9862.json": {},
   "Github_medium---o9869.json": {},
   "Github_medium---o9872.json": {},
-  "Github_medium---o9873.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9874.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9875.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9877.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9878.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9879.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9880.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9881.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9873.json": {},
+  "Github_medium---o9874.json": {},
+  "Github_medium---o9875.json": {},
+  "Github_medium---o9877.json": {},
+  "Github_medium---o9878.json": {},
+  "Github_medium---o9879.json": {},
+  "Github_medium---o9880.json": {},
+  "Github_medium---o9881.json": {},
   "Github_medium---o9886.json": {},
   "Github_medium---o9887.json": {
     "json_error": "Unknown format: url"
   },
-  "Github_medium---o9888.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9889.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9888.json": {},
+  "Github_medium---o9889.json": {},
   "Github_medium---o9890.json": {
     "json_error": "Unknown format: url"
   },
   "Github_medium---o9891.json": {},
   "Github_medium---o9894.json": {},
-  "Github_medium---o9895.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9897.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9898.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9895.json": {},
+  "Github_medium---o9897.json": {},
+  "Github_medium---o9898.json": {},
   "Github_medium---o9899.json": {},
-  "Github_medium---o9902.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9902.json": {},
   "Github_medium---o9903.json": {},
   "Github_medium---o9906.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -8535,21 +8125,15 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o9914.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o9932.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9932.json": {},
   "Github_medium---o9940.json": {},
   "Github_medium---o9942.json": {},
   "Github_medium---o9943.json": {},
   "Github_medium---o9944.json": {},
-  "Github_medium---o9950.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_medium---o9957.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_medium---o9950.json": {},
+  "Github_medium---o9957.json": {},
   "Github_medium---o9958.json": {},
   "Github_medium---o9965.json": {},
   "Github_medium---o9968.json": {},
@@ -8660,12 +8244,8 @@
   "Github_trivial---o26958.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_trivial---o27031.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_trivial---o27032.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o27031.json": {},
+  "Github_trivial---o27032.json": {},
   "Github_trivial---o27825.json": {},
   "Github_trivial---o27830.json": {},
   "Github_trivial---o27832.json": {},
@@ -8682,15 +8262,11 @@
   "Github_trivial---o34208.json": {},
   "Github_trivial---o34209.json": {},
   "Github_trivial---o34210.json": {},
-  "Github_trivial---o34211.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o34211.json": {},
   "Github_trivial---o35155.json": {},
   "Github_trivial---o3616.json": {},
   "Github_trivial---o36250.json": {},
-  "Github_trivial---o36264.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o36264.json": {},
   "Github_trivial---o36276.json": {},
   "Github_trivial---o36464.json": {},
   "Github_trivial---o36645.json": {},
@@ -8785,9 +8361,7 @@
   "Github_trivial---o47152.json": {},
   "Github_trivial---o47153.json": {},
   "Github_trivial---o47165.json": {},
-  "Github_trivial---o47168.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o47168.json": {},
   "Github_trivial---o47925.json": {},
   "Github_trivial---o48017.json": {},
   "Github_trivial---o48162.json": {},
@@ -8810,11 +8384,9 @@
   "Github_trivial---o53538.json": {},
   "Github_trivial---o53905.json": {},
   "Github_trivial---o53906.json": {},
-  "Github_trivial---o53908.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o53908.json": {},
   "Github_trivial---o53909.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_trivial---o54984.json": {},
   "Github_trivial---o55101.json": {},
@@ -8892,9 +8464,7 @@
   "Github_trivial---o65653.json": {},
   "Github_trivial---o65654.json": {},
   "Github_trivial---o66073.json": {},
-  "Github_trivial---o66311.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o66311.json": {},
   "Github_trivial---o66644.json": {},
   "Github_trivial---o66685.json": {},
   "Github_trivial---o67193.json": {},
@@ -8935,9 +8505,7 @@
   "Github_trivial---o70564.json": {},
   "Github_trivial---o71534.json": {},
   "Github_trivial---o71844.json": {},
-  "Github_trivial---o71845.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o71845.json": {},
   "Github_trivial---o72207.json": {},
   "Github_trivial---o72209.json": {},
   "Github_trivial---o73042.json": {},
@@ -8968,19 +8536,13 @@
   "Github_trivial---o76554.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_trivial---o76654.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_trivial---o76865.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o76654.json": {},
+  "Github_trivial---o76865.json": {},
   "Github_trivial---o76868.json": {},
   "Github_trivial---o76869.json": {},
   "Github_trivial---o76899.json": {},
   "Github_trivial---o77414.json": {},
-  "Github_trivial---o77420.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o77420.json": {},
   "Github_trivial---o77425.json": {},
   "Github_trivial---o77428.json": {},
   "Github_trivial---o77740.json": {},
@@ -8988,12 +8550,10 @@
   "Github_trivial---o78102.json": {},
   "Github_trivial---o78110.json": {},
   "Github_trivial---o78117.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_trivial---o78127.json": {},
-  "Github_trivial---o78129.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o78129.json": {},
   "Github_trivial---o78398.json": {},
   "Github_trivial---o78404.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
@@ -9051,24 +8611,18 @@
   "Github_trivial---o85922.json": {},
   "Github_trivial---o85930.json": {},
   "Github_trivial---o85940.json": {},
-  "Github_trivial---o85971.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_trivial---o86372.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o85971.json": {},
+  "Github_trivial---o86372.json": {},
   "Github_trivial---o86532.json": {},
   "Github_trivial---o87854.json": {},
   "Github_trivial---o87858.json": {},
-  "Github_trivial---o88603.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o88603.json": {},
   "Github_trivial---o88605.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_trivial---o88607.json": {},
   "Github_trivial---o88608.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Github_trivial---o89088.json": {},
   "Github_trivial---o89135.json": {},
@@ -9098,26 +8652,16 @@
   "Github_trivial---o9500.json": {},
   "Github_trivial---o9777.json": {},
   "Github_trivial---o9790.json": {},
-  "Github_trivial---o9803.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_trivial---o9816.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o9803.json": {},
+  "Github_trivial---o9816.json": {},
   "Github_trivial---o9817.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_trivial---o9818.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o9818.json": {},
   "Github_trivial---o9824.json": {},
   "Github_trivial---o9827.json": {},
-  "Github_trivial---o9840.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Github_trivial---o9908.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_trivial---o9840.json": {},
+  "Github_trivial---o9908.json": {},
   "Github_trivial---o9912.json": {},
   "Github_trivial---o9933.json": {},
   "Github_trivial---o9941.json": {},
@@ -9127,13 +8671,13 @@
   "Github_ultra---o10420.json": {},
   "Github_ultra---o12343.json": {},
   "Github_ultra---o12344.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_ultra---o12652.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_ultra---o12653.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_ultra---o13020.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -9157,7 +8701,7 @@
   },
   "Github_ultra---o18949.json": {},
   "Github_ultra---o19184.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o19343.json": {
     "json_error": "Unknown format: color"
@@ -9166,58 +8710,58 @@
   "Github_ultra---o21136.json": {},
   "Github_ultra---o21137.json": {},
   "Github_ultra---o21161.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21173.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21185.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21189.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21193.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21219.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21220.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21304.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21307.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21308.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21312.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21328.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21375.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21376.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21378.json": {
     "json_error": "Unknown format: uri"
   },
   "Github_ultra---o21380.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21416.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21437.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o21764.json": {},
   "Github_ultra---o21840.json": {
@@ -9228,7 +8772,7 @@
   "Github_ultra---o26314.json": {},
   "Github_ultra---o32645.json": {},
   "Github_ultra---o33032.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o34345.json": {},
   "Github_ultra---o358.json": {},
@@ -9236,9 +8780,7 @@
     "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧My‧Pipeline‧\",\"‧properties‧\":{\"‧description‧\":\"‧This‧ is‧ a‧ sample‧ pipeline‧.\",\"‧activities‧\":[{\"‧name‧\":\"‧Copy‧Activity‧\",\"‧type‧\":\"‧Copy‧\",\"‧type‧Properties‧\":{\"‧source‧\":{\"‧type‧\":\"‧Azure‧Table‧Source‧\",\"‧azure‧Table‧Source‧Query⟧ * ⟦\":\"⟧ * ⟦SELECT‧ *‧ FROM‧ My⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]�.. (104 more)"
   },
   "Github_ultra---o360.json": {},
-  "Github_ultra---o3625.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_ultra---o3625.json": {},
   "Github_ultra---o38670.json": {
     "json_error": "Unknown format: color"
   },
@@ -9267,9 +8809,7 @@
     "validation_error": "test #0: token not accepted at ⟦\":‧100‧0‧,\"‧pro‧portion‧Interest‧Allow‧ance‧H‧RT‧\":‧500‧,\"‧pro‧portion‧Div‧idend‧Allow‧ance‧\":‧200‧0‧,\"‧pro‧portion‧Pay‧P‧ensions‧Profit‧At‧ART‧\":‧300‧00‧,\"‧pro‧portion‧Income‧Tax‧On‧Pay‧P‧ensions‧Profit‧At‧ART‧\":‧600‧0⟧ * ⟦.⟧ * ⟦0‧,\"‧pro‧portion⟧ mask: TokenSet: 1548/128256; ⟨,⟩ ⟨0⟩ ⟨1⟩ ⟨2⟩ ⟨3⟩ ⟨4⟩ ⟨5⟩ ⟨6⟩ ⟨7⟩ ⟨8⟩ ⟨9⟩ ⟨}⟩ ⟨\\t⟩ ⟨\\n⟩ ⟨\\r⟩ ⟨ ⟩ ⟨  ⟩ ⟨    ⟩ ⟨        ⟩ ⟨   ⟩ ⟨\\n\\n⟩ ⟨       ⟩ ⟨\\t\\t⟩ ⟨           ⟩ ⟨\\r\\n⟩ ⟨ }⟩ ⟨                ⟩ ⟨,\\n⟩ ⟨               ⟩ ⟨00⟩ ⟨     ⟩ ⟨\\t\\t\\t\\t⟩ ⟨                   ⟩ ⟨20⟩ ⟨\\t\\t\\t⟩ ⟨10⟩ ⟨                       ⟩ ⟨201⟩ ⟨         ⟩ ⟨12⟩ ⟨ \\n⟩ ⟨19⟩ ⟨                                ⟩ ⟨11⟩ ⟨32⟩ ⟨16⟩ ⟨15⟩ ⟨\\r\\n\\r\\n⟩ ⟨25⟩ ⟨000⟩ ..."
   },
   "Github_ultra---o46393.json": {},
-  "Github_ultra---o47109.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_ultra---o47109.json": {},
   "Github_ultra---o4826.json": {},
   "Github_ultra---o48403.json": {
     "json_error": "Unknown format: color"
@@ -9278,7 +8818,7 @@
     "json_error": "Unknown format: uri"
   },
   "Github_ultra---o48661.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "schema too large"
   },
   "Github_ultra---o48781.json": {
     "json_error": "Unknown format: color"
@@ -9302,9 +8842,7 @@
   },
   "Github_ultra---o57878.json": {},
   "Github_ultra---o58767.json": {},
-  "Github_ultra---o58926.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_ultra---o58926.json": {},
   "Github_ultra---o60252.json": {},
   "Github_ultra---o60790.json": {},
   "Github_ultra---o61647.json": {},
@@ -9341,10 +8879,10 @@
   "Github_ultra---o6374.json": {},
   "Github_ultra---o6375.json": {},
   "Github_ultra---o65323.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_ultra---o65325.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "Github_ultra---o65414.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -9394,9 +8932,7 @@
   },
   "Github_ultra---o66714.json": {},
   "Github_ultra---o66715.json": {},
-  "Github_ultra---o68411.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Github_ultra---o68411.json": {},
   "Github_ultra---o68588.json": {},
   "Github_ultra---o69206.json": {
     "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/CommandInputType"
@@ -11311,7 +10847,7 @@
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Handwritten---allOfPProp10.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\"]"
   },
   "Handwritten---allOfPProp2.json": {
     "json_error": "Unimplemented keys: [\"minProperties\", \"not\"]"
@@ -11329,13 +10865,13 @@
     "json_error": "Unimplemented keys: [\"maxProperties\"]"
   },
   "Handwritten---allOfPProp7.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\"]"
   },
   "Handwritten---allOfPProp8.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\"]"
   },
   "Handwritten---allOfPProp9.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\"]"
   },
   "Handwritten---allany1.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -11407,7 +10943,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Handwritten---dep10.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Handwritten---dep2.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
@@ -11416,22 +10952,22 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Handwritten---dep4.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Handwritten---dep5.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Handwritten---dep6.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Handwritten---dep7.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\"]"
   },
   "Handwritten---dep8.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\"]"
   },
   "Handwritten---dep9.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Handwritten---existsName1.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -11500,7 +11036,7 @@
     "json_error": "Schema intersection stack level exceeded"
   },
   "Handwritten---notnames1.json": {
-    "json_error": "Unimplemented keys: [\"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---notnames10.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -11537,7 +11073,7 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---num5.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---object1.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -11567,7 +11103,7 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---object9.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---oneOf4.json": {
     "json_error": "Unimplemented keys: [\"maxProperties\"]"
@@ -11585,13 +11121,13 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---oneof1_2.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Handwritten---oneof2_2.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Handwritten---oneof3_2.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Handwritten---oneof5.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -11657,19 +11193,19 @@
     "json_error": "Unimplemented keys: [\"contains\"]"
   },
   "Handwritten---oneofpr1.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---oneofpr2.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---oneofpr3.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---oneofpr4.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---oneofpr5.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---pNameFalse.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -11681,40 +11217,40 @@
     "json_error": "Unimplemented keys: [\"minProperties\", \"not\"]"
   },
   "Handwritten---pnmp2.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\", \"not\"]"
   },
   "Handwritten---pnmp3.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\", \"not\"]"
   },
   "Handwritten---pnmp4.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\", \"not\"]"
   },
   "Handwritten---pnmp5.json": {
-    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\"]"
   },
   "Handwritten---pnmp6.json": {
-    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\"]"
   },
   "Handwritten---pnmp7.json": {
-    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\"]"
   },
   "Handwritten---pnmp8.json": {
-    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\"]"
   },
   "Handwritten---pnmp9.json": {
-    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\", \"maxProperties\", \"not\"]"
   },
   "Handwritten---pp1.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "patternProperty regexes /a/ and /additionalProperties/ are not disjoint"
   },
   "Handwritten---pp2.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "patternProperty regexes /a/ and /additionalProperties/ are not disjoint"
   },
   "Handwritten---pp3.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---pp4.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "patternProperty regexes /a/ and /additionalProperties/ are not disjoint"
   },
   "Handwritten---string1.json": {
     "json_error": "Unable to determine if regex is empty:  (And (SearchRegex /^([a-z][0-9])+$/) (Regex /(?s:.{10000,})/))"
@@ -11744,9 +11280,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "JME_0.json": {},
-  "JME_1.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JME_1.json": {},
   "JME_10.json": {},
   "JME_11.json": {},
   "JME_12.json": {},
@@ -11852,9 +11386,7 @@
   "JsonSchemaStore---0.5.2.json": {
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
-  "JsonSchemaStore---1.0.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---1.0.schema.json": {},
   "JsonSchemaStore---2021-07.json": {},
   "JsonSchemaStore---3.0.schema.json": {
     "json_error": "Unimplemented keys: [\"minProperties\"]"
@@ -11885,28 +11417,24 @@
   "JsonSchemaStore---airlock-microgateway-3.2.json": {
     "json_error": "regex parse error:\n    ^(?![ \\t\\n]*\\(default(.*)\\))[\\s\\S]*\n     ^^^\nerror: look-around, including look-ahead and look-behind, is not supported"
   },
-  "JsonSchemaStore---aliases.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---aliases.json": {},
   "JsonSchemaStore---all-contributors.json": {},
   "JsonSchemaStore---ansible-lint-config.json": {
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "JsonSchemaStore---ansible-navigator.json": {},
   "JsonSchemaStore---ansible.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "JsonSchemaStore---anywork-ac-1.1.json": {
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
-  "JsonSchemaStore---apibuilder.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---apibuilder.json": {},
   "JsonSchemaStore---appsemblerc.schema.json": {
     "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---appsettings.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---appsscript.json": {
     "json_error": "Unknown format: uri"
@@ -11925,28 +11453,18 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---aurora-1.0.json": {},
-  "JsonSchemaStore---ava.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---ava.json": {},
   "JsonSchemaStore---avro-avsc.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "JsonSchemaStore---azure-devops-extension-manifest-1.0.json": {},
-  "JsonSchemaStore---azure-iot-edge-deployment-2.0.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "JsonSchemaStore---azure-iot-edgeagent-deployment-1.1.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "JsonSchemaStore---azure-iot-edgehub-deployment-1.2.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---azure-iot-edge-deployment-2.0.json": {},
+  "JsonSchemaStore---azure-iot-edgeagent-deployment-1.1.json": {},
+  "JsonSchemaStore---azure-iot-edgehub-deployment-1.2.json": {},
   "JsonSchemaStore---backportrc.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
-  "JsonSchemaStore---bamboo-spec.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---bamboo-spec.json": {},
   "JsonSchemaStore---band-manifest.json": {
     "json_error": "Unknown format: uri"
   },
@@ -11967,20 +11485,16 @@
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "JsonSchemaStore---bitbucket-pipelines.schema.json": {
-    "json_error": "Unimplemented keys: [\"not\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
-  "JsonSchemaStore---bitrise-step.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "JsonSchemaStore---bitrise.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---bitrise-step.json": {},
+  "JsonSchemaStore---bitrise.json": {},
   "JsonSchemaStore---block-metadata.json": {},
   "JsonSchemaStore---block.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---blueprint-spec2-schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---bootstraprc.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11989,7 +11503,7 @@
     "json_error": "Unknown format: uri-reference"
   },
   "JsonSchemaStore---bower.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---bowerrc.json": {
     "json_error": "Unknown format: uri"
@@ -12005,14 +11519,12 @@
     "validation_error": "test #0: token not accepted at ⟦\"}}‧]}‧,\"‧storage‧\":{\"‧account‧\":[{\"‧name‧\":\"‧account‧\",\"‧credential‧provider‧\":\"‧account‧\",\"‧secret‧\":{\"‧key‧\":\"‧account‧secret‧\"},\"‧metadata‧\":{\"‧description‧\":\"‧Azure‧ Storage‧ Account‧\"},\"‧account‧name‧\":{\"‧key‧\":\"‧example‧1‧\"},\"‧account‧key‧\":{\"‧key‧\":\"‧account‧key‧1‧\"},\"‧secret‧type⟧ * ⟦\":{\"⟧ * ⟦key‧\":\"‧key‧\"}}⟧ mask: TokenSet: 123244/128256; ALL EXCEPT EOS ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX.. (164 more)"
   },
   "JsonSchemaStore---browser.i18n.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "regex parse error:\n    ^(?!@@)[@a-zA-Z0-9_-]+$\n     ^^^\nerror: look-around, including look-ahead and look-behind, is not supported"
   },
   "JsonSchemaStore---build-cache-node-config-schema-5.json": {
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
-  "JsonSchemaStore---buildinfo-schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---buildinfo-schema.json": {},
   "JsonSchemaStore---bukkit-plugin.json": {
     "json_error": "Unknown format: uri"
   },
@@ -12040,10 +11552,10 @@
     "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---chisel-slices.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---chrome-extension-locales-messages.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "regex parse error:\n    ^(?!@@)[[0-9a-zA-Z_]@]+$\n     ^^^\nerror: look-around, including look-ahead and look-behind, is not supported"
   },
   "JsonSchemaStore---chrome-manifest.json": {
     "json_error": "Unimplemented keys: [\"dependencies\", \"else\", \"if\", \"then\"]"
@@ -12052,38 +11564,32 @@
     "json_error": "Unknown format: regex"
   },
   "JsonSchemaStore---ci.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---circleciconfig.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\", \"minProperties\"]"
   },
   "JsonSchemaStore---cityjson.min.schema.json": {
     "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---clang-format.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"contains\"]"
   },
   "JsonSchemaStore---clib.json": {},
   "JsonSchemaStore---cloud-sdk-pipeline-config-schema.json": {},
   "JsonSchemaStore---cloudformation.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\", \"minProperties\"]"
   },
   "JsonSchemaStore---cloudify.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
-  "JsonSchemaStore---cluster.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "JsonSchemaStore---cluster.yml.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---cluster.json": {},
+  "JsonSchemaStore---cluster.yml.json": {},
   "JsonSchemaStore---codeclimate.json": {
     "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---codecov.json": {},
-  "JsonSchemaStore---codemagic-schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---codemagic-schema.json": {},
   "JsonSchemaStore---codeship-services.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -12104,7 +11610,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---compose-spec.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---composer-schema.json": {
     "json_error": "Unknown format: uri"
@@ -12113,18 +11619,18 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---config.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---config.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "JsonSchemaStore---configSchema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---config_schema.json": {},
   "JsonSchemaStore---configuration.json": {},
   "JsonSchemaStore---conjure.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "JsonSchemaStore---cosmos-config.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -12171,17 +11677,15 @@
     "json_error": "Unknown format: password"
   },
   "JsonSchemaStore---dbt_project.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---debugsettings.json": {
     "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---dein.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "JsonSchemaStore---dependabot-2.0.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---dependabot-2.0.json": {},
   "JsonSchemaStore---dependabot.json": {},
   "JsonSchemaStore---detekt-1.22.0.json": {},
   "JsonSchemaStore---devinit.schema-6.0.json": {},
@@ -12265,12 +11769,10 @@
   "JsonSchemaStore---foundryvtt-template.json": {},
   "JsonSchemaStore---foxx-manifest.json": {},
   "JsonSchemaStore---func_yaml-schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---galaxy.json": {},
-  "JsonSchemaStore---gcp-blueprint-metadata.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---gcp-blueprint-metadata.json": {},
   "JsonSchemaStore---geojson.json": {},
   "JsonSchemaStore---github-discussion.json": {},
   "JsonSchemaStore---github-funding.json": {
@@ -12299,7 +11801,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---hayson-json-schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "circular references with sibling keys are not supported: https://raw.githubusercontent.com/j2inn/hayson/master/hayson-json-schema.json#/definitions/hval"
   },
   "JsonSchemaStore---hazelcast-config-5.3.json": {
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
@@ -12307,9 +11809,7 @@
   "JsonSchemaStore---helm-testsuite.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "JsonSchemaStore---helmfile.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---helmfile.json": {},
   "JsonSchemaStore---host-meta.json": {
     "json_error": "Unknown format: uri"
   },
@@ -12317,11 +11817,9 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---htmlhint.json": {},
-  "JsonSchemaStore---httpmockrc.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---httpmockrc.json": {},
   "JsonSchemaStore---hugo.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---huskyrc.json": {},
   "JsonSchemaStore---ide.host.json": {},
@@ -12329,16 +11827,12 @@
   "JsonSchemaStore---img-catapult-psp-1.0.0.json": {},
   "JsonSchemaStore---imgbotconfig.json": {},
   "JsonSchemaStore---importmap.json": {},
-  "JsonSchemaStore---inventory.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---inventory.json": {},
   "JsonSchemaStore---io-package.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\", \"minProperties\"]"
   },
   "JsonSchemaStore---iobroker.json": {},
-  "JsonSchemaStore---ize-spec.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---ize-spec.json": {},
   "JsonSchemaStore---jasmine.json": {},
   "JsonSchemaStore---jdt.json": {},
   "JsonSchemaStore---jfrog-pipelines.json": {
@@ -12346,9 +11840,7 @@
   },
   "JsonSchemaStore---jmdsl-config-schema.json": {},
   "JsonSchemaStore---jovo-language-model.json": {},
-  "JsonSchemaStore---jreleaser-1.7.0.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---jreleaser-1.7.0.json": {},
   "JsonSchemaStore---jsbeautifyrc.json": {},
   "JsonSchemaStore---jsconfig.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -12373,18 +11865,12 @@
   "JsonSchemaStore---jsonld.json": {
     "json_error": "Unknown format: uri"
   },
-  "JsonSchemaStore---jx-requirements.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "JsonSchemaStore---jx-schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---jx-requirements.json": {},
+  "JsonSchemaStore---jx-schema.json": {},
   "JsonSchemaStore---kode-ci-build-1.0.0.json": {},
-  "JsonSchemaStore---kong_json_schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---kong_json_schema.json": {},
   "JsonSchemaStore---kustomization.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---label-commenter-config.json": {},
   "JsonSchemaStore---launchsettings.json": {
@@ -12400,7 +11886,7 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---lego.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---lerna.json": {},
   "JsonSchemaStore---lgtm.json": {},
@@ -12418,7 +11904,7 @@
   "JsonSchemaStore---local.settings.json": {},
   "JsonSchemaStore---loobin-1.0.json": {},
   "JsonSchemaStore---machine.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---madness.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -12447,9 +11933,7 @@
   "JsonSchemaStore---micro.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
-  "JsonSchemaStore---mimetypes.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---mimetypes.json": {},
   "JsonSchemaStore---minecraft-biome.json": {
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
@@ -12502,7 +11986,7 @@
   },
   "JsonSchemaStore---nightwatch.json": {},
   "JsonSchemaStore---ninjs-1.3.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---nlu.schema.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -12511,7 +11995,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "JsonSchemaStore---noodl.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "JsonSchemaStore---now.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -12520,9 +12004,7 @@
   "JsonSchemaStore---npmpackagejsonlintrc.json": {},
   "JsonSchemaStore---nswag.json": {},
   "JsonSchemaStore---ntangle.json": {},
-  "JsonSchemaStore---nuclei-jsonschema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---nuclei-jsonschema.json": {},
   "JsonSchemaStore---nuget-project.json": {},
   "JsonSchemaStore---nycrc.json": {},
   "JsonSchemaStore---omnisharp.json": {},
@@ -12536,7 +12018,7 @@
   "JsonSchemaStore---openweather.current.json": {},
   "JsonSchemaStore---openweather.roadrisk.json": {},
   "JsonSchemaStore---opspec-io-0.1.7.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: regex"
   },
   "JsonSchemaStore---package-configuration-schema.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -12545,10 +12027,10 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---packer.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---paf-module.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---pantsbuild-2.16.0.json": {},
   "JsonSchemaStore---paper-plugin.json": {
@@ -12566,9 +12048,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---plagiarize.json": {},
-  "JsonSchemaStore---pm2-ecosystem.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---pm2-ecosystem.json": {},
   "JsonSchemaStore---pocketmine-plugin.json": {
     "json_error": "Unknown format: iri"
   },
@@ -12603,20 +12083,16 @@
   },
   "JsonSchemaStore---projektor.json": {},
   "JsonSchemaStore---prometheus.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri-reference"
   },
   "JsonSchemaStore---prometheus.rules.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "JsonSchemaStore---prometheus.rules.test.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---prometheus.rules.test.json": {},
   "JsonSchemaStore---proxies.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
-  "JsonSchemaStore---pterodactyl.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---pterodactyl.json": {},
   "JsonSchemaStore---publiccode.json": {
     "json_error": "Unknown format: uri"
   },
@@ -12628,15 +12104,13 @@
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "JsonSchemaStore---pyrseas-0.8.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---qfconfig.json": {},
   "JsonSchemaStore---qodana-1.0.json": {},
-  "JsonSchemaStore---ray-schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---ray-schema.json": {},
   "JsonSchemaStore---red_cog.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---red_cog_repo.schema.json": {},
   "JsonSchemaStore---renovate-schema.json": {
@@ -12669,9 +12143,7 @@
   },
   "JsonSchemaStore---rustfmt.json": {},
   "JsonSchemaStore---safebox-schema-v1.0.0.json": {},
-  "JsonSchemaStore---samcli.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---samcli.json": {},
   "JsonSchemaStore---samt.json": {
     "json_error": "Unknown format: uri-reference"
   },
@@ -12704,25 +12176,23 @@
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "JsonSchemaStore---schema-app.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "JsonSchemaStore---schema-catalog.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---schema-kas.json": {},
   "JsonSchemaStore---schema-project.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---schema-store-talismanrc.json": {},
-  "JsonSchemaStore---schema-table.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---schema-table.json": {},
   "JsonSchemaStore---schema.json": {
     "json_error": "Unknown format: html-selector"
   },
   "JsonSchemaStore---sdf-schema-1.1.json": {},
   "JsonSchemaStore---secrethub.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---semgrep.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -12733,11 +12203,9 @@
   "JsonSchemaStore---server.json": {
     "json_error": "Unknown format: uri-reference"
   },
-  "JsonSchemaStore---server.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---server.schema.json": {},
   "JsonSchemaStore---service-schema.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "JsonSchemaStore---servicehub.config.schema.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -12771,7 +12239,7 @@
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "JsonSchemaStore---sourcemap-v3.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sourcery_yaml_schema.json": {
     "json_error": "Unknown format: uri"
@@ -12787,29 +12255,27 @@
   "JsonSchemaStore---ssh-agent-config.json": {},
   "JsonSchemaStore---stale.json": {},
   "JsonSchemaStore---statamic.blueprint.schema.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
-  "JsonSchemaStore---staticwebapp.config.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---staticwebapp.config.json": {},
   "JsonSchemaStore---strings.json": {},
   "JsonSchemaStore---stripe-app.schema.json": {
     "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---strmprivacy.api.entities.v1.BatchJob.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---strmprivacy.api.entities.v1.DataConnector.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---strmprivacy.api.entities.v1.DataContract.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---strmprivacy.api.entities.v1.Schema.SimpleSchemaDefinition.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---strmprivacy.api.entities.v1.Stream.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---stryker-core.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -12819,10 +12285,10 @@
   },
   "JsonSchemaStore---swa-cli.config.json": {},
   "JsonSchemaStore---swagger-2.0.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---task.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unknown format: regex"
   },
   "JsonSchemaStore---taurus.json": {},
   "JsonSchemaStore---template.json": {
@@ -12836,7 +12302,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---theme.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---tikibase.schema.json": {},
   "JsonSchemaStore---tizen_workspace.json": {},
@@ -12853,9 +12319,7 @@
   "JsonSchemaStore---tools-schema.json": {
     "json_error": "Unknown format: uri"
   },
-  "JsonSchemaStore---traefik-v2.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "JsonSchemaStore---traefik-v2.json": {},
   "JsonSchemaStore---transcend-yml-schema-v4.json": {},
   "JsonSchemaStore---travis.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -12903,16 +12367,16 @@
     "json_error": "Unimplemented keys: [\"if\"]"
   },
   "JsonSchemaStore---vars.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "regex parse error:\n    ^(?!(False|None|True|and|any_errors_fatal|as|assert|async|await|become|become_exe|become_flags|become_method|become_user|break|check_mode|class|collections|connection|continue|debugger|def|del|diff|elif|else|environment|except|fact_path|finally|for|force_handlers|from|gather_facts|gather_subset|gather_timeout|global|handlers|hosts|if|ignore_errors|ignore_unreachable|import|in|is|lambda|max_fail_percentage|module_defaults|name|no_log|nonlocal|not|or|order|pass|port|post_tasks|pre_tasks|raise|remote_user|return|roles|run_once|serial|strategy|tags|tasks|throttle|timeout|try|vars|vars_files|vars_prompt|while|with|yield)$)[a-zA-Z_][[0-9a-zA-Z_]]*$\n     ^^^\nerror: look-around, including look-ahead and look-behind, is not supported"
   },
   "JsonSchemaStore---vega.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "JsonSchemaStore---venvironment-basic-schema.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---vercel.json": {
-    "json_error": "Unimplemented keys: [\"maxProperties\", \"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"maxProperties\", \"minProperties\"]"
   },
   "JsonSchemaStore---vim-addon-info.json": {
     "json_error": "Unknown format: uri"
@@ -12937,7 +12401,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---web-types.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "circular references with sibling keys are not supported: https://json.schemastore.org/web-types.json#/definitions/base-contribution"
   },
   "JsonSchemaStore---webextension.json": {
     "json_error": "Unknown format: uri"
@@ -14206,9 +13670,7 @@
   "Snowplow---sp_150_Normalized.json": {},
   "Snowplow---sp_151_Normalized.json": {},
   "Snowplow---sp_152_Normalized.json": {},
-  "Snowplow---sp_153_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Snowplow---sp_153_Normalized.json": {},
   "Snowplow---sp_154_Normalized.json": {},
   "Snowplow---sp_155_Normalized.json": {},
   "Snowplow---sp_156_Normalized.json": {},
@@ -14266,12 +13728,8 @@
   "Snowplow---sp_201_Normalized.json": {},
   "Snowplow---sp_202_Normalized.json": {},
   "Snowplow---sp_203_Normalized.json": {},
-  "Snowplow---sp_204_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Snowplow---sp_205_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Snowplow---sp_204_Normalized.json": {},
+  "Snowplow---sp_205_Normalized.json": {},
   "Snowplow---sp_209_Normalized.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -14297,9 +13755,7 @@
     "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Snowplow---sp_226_Normalized.json": {},
-  "Snowplow---sp_227_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Snowplow---sp_227_Normalized.json": {},
   "Snowplow---sp_22_Normalized.json": {},
   "Snowplow---sp_230_Normalized.json": {},
   "Snowplow---sp_232_Normalized.json": {},
@@ -14357,15 +13813,9 @@
   "Snowplow---sp_276_Normalized.json": {},
   "Snowplow---sp_277_Normalized.json": {},
   "Snowplow---sp_278_Normalized.json": {},
-  "Snowplow---sp_279_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Snowplow---sp_280_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
-  "Snowplow---sp_281_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Snowplow---sp_279_Normalized.json": {},
+  "Snowplow---sp_280_Normalized.json": {},
+  "Snowplow---sp_281_Normalized.json": {},
   "Snowplow---sp_282_Normalized.json": {},
   "Snowplow---sp_283_Normalized.json": {},
   "Snowplow---sp_284_Normalized.json": {},
@@ -14397,14 +13847,14 @@
   "Snowplow---sp_307_Normalized.json": {},
   "Snowplow---sp_308_Normalized.json": {},
   "Snowplow---sp_309_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Snowplow---sp_30_Normalized.json": {},
   "Snowplow---sp_310_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Snowplow---sp_311_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"minProperties\", \"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"minProperties\"]"
   },
   "Snowplow---sp_312_Normalized.json": {},
   "Snowplow---sp_313_Normalized.json": {},
@@ -14474,9 +13924,7 @@
   },
   "Snowplow---sp_354_Normalized.json": {},
   "Snowplow---sp_355_Normalized.json": {},
-  "Snowplow---sp_356_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Snowplow---sp_356_Normalized.json": {},
   "Snowplow---sp_357_Normalized.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -14622,9 +14070,7 @@
   "Snowplow---sp_97_Normalized.json": {},
   "Snowplow---sp_98_Normalized.json": {},
   "Snowplow---sp_99_Normalized.json": {},
-  "Snowplow---sp_9_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "Snowplow---sp_9_Normalized.json": {},
   "Synthesized---draft2019_09_nonvalid_additionalItems_id2_subschema1_not_2.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
@@ -15868,7 +15314,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "WashingtonPost---wp_100_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "WashingtonPost---wp_101_Normalized.json": {},
   "WashingtonPost---wp_102_Normalized.json": {},
@@ -15879,9 +15325,7 @@
   },
   "WashingtonPost---wp_106_Normalized.json": {},
   "WashingtonPost---wp_107_Normalized.json": {},
-  "WashingtonPost---wp_108_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "WashingtonPost---wp_108_Normalized.json": {},
   "WashingtonPost---wp_109_Normalized.json": {},
   "WashingtonPost---wp_10_Normalized.json": {},
   "WashingtonPost---wp_110_Normalized.json": {},
@@ -15892,9 +15336,7 @@
   },
   "WashingtonPost---wp_114_Normalized.json": {},
   "WashingtonPost---wp_115_Normalized.json": {},
-  "WashingtonPost---wp_116_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "WashingtonPost---wp_116_Normalized.json": {},
   "WashingtonPost---wp_117_Normalized.json": {},
   "WashingtonPost---wp_118_Normalized.json": {},
   "WashingtonPost---wp_119_Normalized.json": {},
@@ -15927,7 +15369,7 @@
   },
   "WashingtonPost---wp_20_Normalized.json": {},
   "WashingtonPost---wp_21_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "WashingtonPost---wp_22_Normalized.json": {},
   "WashingtonPost---wp_23_Normalized.json": {},
@@ -15978,12 +15420,10 @@
   "WashingtonPost---wp_51_Normalized.json": {},
   "WashingtonPost---wp_52_Normalized.json": {},
   "WashingtonPost---wp_53_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "WashingtonPost---wp_54_Normalized.json": {},
-  "WashingtonPost---wp_55_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "WashingtonPost---wp_55_Normalized.json": {},
   "WashingtonPost---wp_56_Normalized.json": {},
   "WashingtonPost---wp_57_Normalized.json": {},
   "WashingtonPost---wp_58_Normalized.json": {},
@@ -15996,14 +15436,10 @@
   "WashingtonPost---wp_62_Normalized.json": {},
   "WashingtonPost---wp_63_Normalized.json": {},
   "WashingtonPost---wp_64_Normalized.json": {},
-  "WashingtonPost---wp_65_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "WashingtonPost---wp_65_Normalized.json": {},
   "WashingtonPost---wp_66_Normalized.json": {},
   "WashingtonPost---wp_67_Normalized.json": {},
-  "WashingtonPost---wp_68_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "WashingtonPost---wp_68_Normalized.json": {},
   "WashingtonPost---wp_69_Normalized.json": {},
   "WashingtonPost---wp_6_Normalized.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
@@ -16017,19 +15453,17 @@
   "WashingtonPost---wp_76_Normalized.json": {},
   "WashingtonPost---wp_77_Normalized.json": {},
   "WashingtonPost---wp_78_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "WashingtonPost---wp_79_Normalized.json": {},
   "WashingtonPost---wp_7_Normalized.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "WashingtonPost---wp_80_Normalized.json": {},
-  "WashingtonPost---wp_81_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "WashingtonPost---wp_81_Normalized.json": {},
   "WashingtonPost---wp_82_Normalized.json": {},
   "WashingtonPost---wp_83_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "WashingtonPost---wp_84_Normalized.json": {},
   "WashingtonPost---wp_85_Normalized.json": {},
@@ -16041,19 +15475,15 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "WashingtonPost---wp_90_Normalized.json": {},
-  "WashingtonPost---wp_91_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "WashingtonPost---wp_91_Normalized.json": {},
   "WashingtonPost---wp_92_Normalized.json": {},
-  "WashingtonPost---wp_93_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
-  },
+  "WashingtonPost---wp_93_Normalized.json": {},
   "WashingtonPost---wp_94_Normalized.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "WashingtonPost---wp_95_Normalized.json": {},
   "WashingtonPost---wp_96_Normalized.json": {
-    "json_error": "Unimplemented keys: [\"patternProperties\"]"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "WashingtonPost---wp_97_Normalized.json": {},
   "WashingtonPost---wp_98_Normalized.json": {
