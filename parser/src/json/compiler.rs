@@ -152,7 +152,10 @@ impl Compiler {
                 .definitions
                 .get(&path)
                 .ok_or_else(|| anyhow!("Definition not found: {}", path))?;
-            let compiled = self.gen_json(schema)?;
+            let compiled = self.gen_json(schema).map_err(|e| {
+                let top_level = anyhow!("{e}\n  while processing {path}");
+                e.context(top_level)
+            })?;
             self.builder.set_placeholder(pl, compiled);
         }
 
