@@ -34,6 +34,7 @@ Object features:
 
 - `properties` - order of properties is fixed to the order in schema
 - `additionalProperties`
+- `patternProperties` - they have to be disjoint
 - `required`
 
 String features:
@@ -100,6 +101,7 @@ The `"x-guidance"` key is only recognized at the top level of the schema.
 
 Properties follow order in `properties` map.
 When schemas are merged with `allOf` etc., the `properties` maps are merged in order.
+Any `additionalProperties` or `patternProperties` come in any order, but after `properties` and `required`.
 
 Easiest way to override this, is to include `"my_property": true` in appropriate position in `"properties"`,
 before `anyOf/allOf/oneOf/$ref`.
@@ -111,7 +113,7 @@ Basically, the schema is processed line-by-line, left-to-right, and property ord
 
 The enforced property order during generation is as follows:
 1. Each property in the `"properties"` object, in order of appearance
-2. Each property in `"required"`, in order of appearance (if not already in `"properties"` they are constrained with `"additionalPropertie"`)
+2. Each property in `"required"`, in order of appearance (if not already in `"properties"` they are constrained with `"additionalProperties"`)
 
 When two schemas are joined (more than two is defined inductively), the resulting `"properties"` object will have order given by:
 1. Each property in the left schema, in order of appearance

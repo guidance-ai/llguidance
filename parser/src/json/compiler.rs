@@ -446,12 +446,6 @@ impl Compiler {
             pattern_options.push(self.builder.join(&[name, colon, schema]));
         }
 
-        if !pattern_options.is_empty() {
-            let pattern = self.builder.select(&pattern_options);
-            let seq = self.sequence(pattern);
-            items.push((seq, false));
-        }
-
         match self.gen_json(obj.additional_properties.schema_ref()) {
             Err(e) => {
                 if e.downcast_ref::<UnsatisfiableSchemaError>().is_none() {
@@ -474,10 +468,16 @@ impl Compiler {
                     self.builder.lexeme(valid_and_not_taken)
                 };
                 let item = self.builder.join(&[name, colon, property]);
-                let seq = self.sequence(item);
-                items.push((seq, false));
+                pattern_options.push(item);
             }
         }
+
+        if !pattern_options.is_empty() {
+            let pattern = self.builder.select(&pattern_options);
+            let seq = self.sequence(pattern);
+            items.push((seq, false));
+        }
+
         let opener = self.builder.string("{");
         let inner = self.ordered_sequence(&items, false, &mut HashMap::default());
         let closer = self.builder.string("}");

@@ -913,9 +913,9 @@ fn test_json_pattern_properties() {
                 "foo": "bar",
                 "foo1": 123,
                 "bar": [],
+                "qux": true,
                 "foo2": 456,
                 "bar1": [],
-                "qux": true,
                 "mux": false,
             }),
             json!({
