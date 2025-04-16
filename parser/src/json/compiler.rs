@@ -187,7 +187,7 @@ impl Compiler {
     fn process_one_of(&mut self, options: &[Schema]) -> Result<NodeRef> {
         if self.options.coerce_one_of || self.options.lenient {
             self.builder
-                .add_warning("oneOf coerced to anyOf".to_string());
+                .add_warning("oneOf not fully supported, falling back to anyOf. This may cause validation errors in some cases.".to_string());
             self.process_any_of(options)
         } else {
             Err(anyhow!("oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"))
