@@ -194,12 +194,11 @@ impl LLMatcher {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (grammar, tokenizer=None, *, limits=None, warnings=false))]
+    #[pyo3(signature = (grammar, tokenizer=None, *, limits=None))]
     fn validate_grammar(
         grammar: Bound<'_, PyAny>,
         tokenizer: Option<&LLTokenizer>,
         limits: Option<&LLParserLimits>,
-        warnings: bool,
         py: Python<'_>,
     ) -> String {
         match extract_grammar(grammar) {
@@ -209,15 +208,32 @@ impl LLMatcher {
                         tokenizer.map(|t| t.factory().tok_env().clone()),
                         LLParserLimits::from_option(limits),
                     )
-                    .render(warnings)
+                    .into_error()
+                    .unwrap_or_default()
             }),
             Err(e) => e.to_string(),
         }
     }
 
     #[staticmethod]
-    fn is_validate_warning(message: &str) -> bool {
-        message.starts_with("WARNING: ")
+    #[pyo3(signature = (grammar, tokenizer=None, *, limits=None))]
+    fn validate_grammar_with_warnings(
+        grammar: Bound<'_, PyAny>,
+        tokenizer: Option<&LLTokenizer>,
+        limits: Option<&LLParserLimits>,
+        py: Python<'_>,
+    ) -> (bool, Vec<String>) {
+        match extract_grammar(grammar) {
+            Ok(grammar) => py.allow_threads(|| {
+                GrammarInit::Serialized(grammar)
+                    .validate(
+                        tokenizer.map(|t| t.factory().tok_env().clone()),
+                        LLParserLimits::from_option(limits),
+                    )
+                    .into_tuple()
+            }),
+            Err(e) => (true, vec![e.to_string()]),
+        }
     }
 
     #[staticmethod]
@@ -267,7 +283,7 @@ impl LLMatcher {
         serde_json::to_string(&TopLevelGrammar::from_regex(regex)).unwrap()
     }
 
-    fn get_grammar_warnings(&mut self) -> String {
+    fn get_grammar_warnings(&mut self) -> Vec<String> {
         self.inner.grammar_warnings()
     }
 

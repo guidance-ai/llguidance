@@ -147,20 +147,22 @@ impl LexerSpec {
         })
     }
 
-    pub fn render_warnings(&self) -> String {
-        let mut s = String::new();
+    pub fn render_warnings(&self) -> Vec<String> {
+        let mut total_len = 0;
+        let mut r = vec![];
         for (msg, count) in &self.grammar_warnings {
-            s.push_str(msg);
+            let mut s = msg.clone();
             if count > &1 {
                 s.push_str(&format!(" ({} times)", count));
             }
-            s.push('\n');
-            if s.len() > 16 * 1024 {
-                s.push_str("...\n");
+            total_len += s.len();
+            r.push(s);
+            if total_len > 16 * 1024 {
+                r.push("...".to_string());
                 break;
             }
         }
-        s
+        r
     }
 
     pub fn can_rollback(&self) -> bool {

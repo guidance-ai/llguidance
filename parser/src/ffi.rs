@@ -991,7 +991,7 @@ fn validate_grammar(
     match GrammarInit::Serialized(grammar).validate(Some(tok_env), init.limits.clone()) {
         ValidationResult::Valid => Ok(String::new()),
         ValidationResult::Error(e) => bail!(e),
-        ValidationResult::Warning(w) => Ok(w),
+        r => Ok(r.render(true)),
     }
 }
 

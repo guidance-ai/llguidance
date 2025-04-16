@@ -262,13 +262,22 @@ class LLMatcher:
         Validate the grammar, for example one returned by LLMatcher.grammar_from_*().
         Returns empty string if the grammar is valid, otherwise an error message.
         If warnings is true and there are no errors, it will return "WARNING: ..." if there are warnings;
-        you can use LLMatcher.is_validate_warning() to check for that.
+        you can use LLMatcher.is_validate_warning() to check for that,
+        or LLMatcher.parse_validate_message() to parse the message.
         """
 
     @staticmethod
-    def is_validate_warning(message: str) -> bool:
+    def validate_grammar_with_warnings(
+        grammar: str,
+        tokenizer: Optional[LLTokenizer] = None,
+        *,
+        limits: Optional[LLParserLimits] = None,
+    ) -> Tuple[bool, List[str]]:
         """
-        Check if the message is a warning from validate_grammar().
+        Validate the grammar, for example one returned by LLMatcher.grammar_from_*().
+        Returns a tuple of (is_error, [list of errors or warnings]).
+        If is_error is true, the list will contain exactly one error message.
+        If there are no errors, nor warnings, it will return (False, []).
         """
 
     @staticmethod
@@ -318,10 +327,10 @@ class LLMatcher:
         Get the error message if the matcher is in an error state, empty string otherwise.
         """
 
-    def get_grammar_warnings(self) -> str:
+    def get_grammar_warnings(self) -> List[str]:
         """
         Get the warnings about the grammar if any.
-        Returns empty string if there are no warnings.
+        Returns an empty list if there are no warnings.
         """
 
     def deep_copy(self) -> "LLMatcher":

@@ -113,7 +113,7 @@ impl TokenParser {
         })
     }
 
-    pub fn grammar_warnings(&mut self) -> String {
+    pub fn grammar_warnings(&mut self) -> Vec<String> {
         self.parser.grammar_warnings()
     }
 

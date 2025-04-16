@@ -186,10 +186,10 @@ impl Matcher {
         }
     }
 
-    pub fn grammar_warnings(&mut self) -> String {
+    pub fn grammar_warnings(&mut self) -> Vec<String> {
         match &mut self.0 {
             MatcherState::Normal(inner) => inner.parser.grammar_warnings(),
-            MatcherState::Error(_) => String::new(),
+            MatcherState::Error(_) => vec![],
         }
     }
 

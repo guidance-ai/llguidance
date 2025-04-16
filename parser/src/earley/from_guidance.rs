@@ -98,27 +98,47 @@ impl CompileCtx {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum ValidationResult {
     Valid,
-    Warning(String),
+    Warnings(Vec<String>),
     Error(String),
 }
 
 impl ValidationResult {
-    pub fn from_warning(w: String) -> Self {
+    pub fn from_warning(w: Vec<String>) -> Self {
         if w.is_empty() {
             ValidationResult::Valid
         } else {
-            ValidationResult::Warning(w)
+            ValidationResult::Warnings(w)
+        }
+    }
+
+    pub fn into_tuple(self) -> (bool, Vec<String>) {
+        match self {
+            ValidationResult::Valid => (false, vec![]),
+            ValidationResult::Warnings(w) => (false, w),
+            ValidationResult::Error(e) => (true, vec![e]),
+        }
+    }
+
+    pub fn into_error(self) -> Option<String> {
+        match self {
+            ValidationResult::Valid => None,
+            ValidationResult::Warnings(_) => None,
+            ValidationResult::Error(e) => Some(e),
         }
     }
 
     pub fn render(&self, with_warnings: bool) -> String {
         match self {
             ValidationResult::Valid => String::new(),
-            ValidationResult::Warning(w) => {
+            ValidationResult::Warnings(w) => {
                 if with_warnings {
-                    format!("WARNING: {}", w)
+                    w.iter()
+                        .map(|w| format!("WARNING: {}", w))
+                        .collect::<Vec<_>>()
+                        .join("\n")
                 } else {
                     String::new()
                 }

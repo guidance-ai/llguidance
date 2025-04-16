@@ -2705,7 +2705,7 @@ impl Parser {
         self.with_shared(|state| state.scan_eos())
     }
 
-    pub fn grammar_warnings(&mut self) -> String {
+    pub fn grammar_warnings(&mut self) -> Vec<String> {
         self.with_shared(|state| state.lexer_spec().render_warnings())
     }
 
