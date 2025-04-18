@@ -2,7 +2,7 @@ use crate::api::LLGuidanceOptions;
 use crate::grammar_builder::GrammarResult;
 use crate::json::schema::{NumberSchema, StringSchema};
 use crate::{regex_to_lark, HashMap};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use derivre::{JsonQuoteOptions, RegexAst};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
@@ -353,6 +353,8 @@ impl Compiler {
                     additional_properties: Schema::any_box(),
                     required: IndexSet::new(),
                     pattern_properties: IndexMap::new(),
+                    min_properties: 0,
+                    max_properties: None,
                 })
                 .unwrap(),
             ];
@@ -368,6 +370,9 @@ impl Compiler {
         let mut items: Vec<(NodeRef, bool)> = vec![];
 
         let colon = self.builder.string(&self.options.key_separator);
+
+        let mut num_required = 0;
+        let mut num_optional = 0;
 
         for name in obj.properties.keys().chain(
             obj.required
@@ -403,6 +408,23 @@ impl Compiler {
             taken_names.push(quoted_name);
             let item = self.builder.join(&[name, colon, property]);
             items.push((item, is_required));
+            if is_required {
+                num_required += 1;
+            } else {
+                num_optional += 1;
+            }
+        }
+
+        let min_properties = obj.min_properties.saturating_sub(num_required);
+        let max_properties = obj.max_properties.map(|v| v.saturating_sub(num_required));
+
+        if num_optional > 0 && (min_properties > 0 || max_properties.is_some()) {
+            let msg = "min/maxProperties only supported when all keys listed in \"properties\" are required";
+            if self.options.lenient {
+                self.builder.add_warning(msg.to_string());
+            } else {
+                bail!(msg);
+            }
         }
 
         let mut taken_name_ids = taken_names
@@ -472,10 +494,18 @@ impl Compiler {
             }
         }
 
-        if !pattern_options.is_empty() {
+        if !pattern_options.is_empty() && max_properties != Some(0) {
             let pattern = self.builder.select(&pattern_options);
-            let seq = self.sequence(pattern);
-            items.push((seq, false));
+            let required = min_properties > 0;
+            let seq = self.bounded_sequence(pattern, min_properties, max_properties);
+            items.push((seq, required));
+        } else if min_properties > 0 {
+            return Err(anyhow!(UnsatisfiableSchemaError {
+                message: format!(
+                    "minProperties ({}) is greater than number of properties ({})",
+                    min_properties, num_required
+                ),
+            }));
         }
 
         let opener = self.builder.string("{");
@@ -533,6 +563,20 @@ impl Compiler {
         };
         cache.insert((items, prefixed), node);
         node
+    }
+
+    fn bounded_sequence(
+        &mut self,
+        item: NodeRef,
+        min_elts: usize,
+        max_elts: Option<usize>,
+    ) -> NodeRef {
+        let min_elts = min_elts.saturating_sub(1);
+        let max_elts = max_elts.map(|v| v.saturating_sub(1));
+        let comma = self.builder.string(&self.options.item_separator);
+        let item_comma = self.builder.join(&[item, comma]);
+        let item_comma_rep = self.builder.repeat(item_comma, min_elts, max_elts);
+        self.builder.join(&[item_comma_rep, item])
     }
 
     fn sequence(&mut self, item: NodeRef) -> NodeRef {

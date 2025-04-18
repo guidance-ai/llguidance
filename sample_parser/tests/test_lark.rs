@@ -993,3 +993,178 @@ fn test_json_pattern_properties() {
         ],
     );
 }
+
+#[test]
+fn test_json_min_max_properties() {
+    json_err_test(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+            },
+            "maxProperties": 7
+        }),
+        "min/maxProperties only supported when all keys listed in \"properties\" are required",
+    );
+
+    json_err_test(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+            },
+            "minProperties": 1
+        }),
+        "min/maxProperties only supported when all keys listed in \"properties\" are required",
+    );
+
+    json_err_test(
+        &json!({
+            "type": "object",
+            "minProperties": 7,
+            "maxProperties": 1,
+        }),
+        "minProperties > maxProperties",
+    );
+
+    json_err_test(
+        &json!({
+            "type": "object",
+            "required": ["foo", "bar"],
+            "maxProperties": 1,
+        }),
+        "required > maxProperties",
+    );
+
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+                "bar": { "type": "array" },
+            },
+            "additionalProperties": {
+                "type": "integer",
+            },
+            "required": ["foo", "mux"],
+            // doesn't actually do anything, since at least 2 are required
+            "minProperties": 2,
+        }),
+        &[
+            json!({
+                "foo": "bar",
+                "mux": 7,
+            }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+                "mux2": 7,
+            }),
+        ],
+        &[json!({
+            "foo": "bar",
+        })],
+    );
+
+    json_test_many(
+        &json!({
+            "type": "object",
+            "minProperties": 1,
+        }),
+        &[
+            json!({
+                "foo": "bar",
+            }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+            }),
+        ],
+        &[json!({})],
+    );
+
+    json_test_many(
+        &json!( {
+            "type": "object",
+            "description": "Output file",
+            "patternProperties": {
+              "^.*$": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "maxProperties": 1
+        }),
+        &[
+            json!({}),
+            json!({
+                "foo": {},
+            }),
+            json!({
+                "metric.txt": {"bar": 42},
+            }),
+        ],
+        &[
+            json!({
+                "foo": 7,
+            }),
+            json!({
+                "foo": {},
+                "bar": {},
+            }),
+        ],
+    );
+
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+            },
+            "additionalProperties": {
+                "type": "integer",
+            },
+            "required": ["foo", "mux"],
+            "minProperties": 3,
+            "maxProperties": 5,
+        }),
+        &[
+            json!({
+                "foo": "bar",
+                "mux": 7,
+                "mux2": 7,
+            }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+                "mux2": 7,
+                "mux3": 7,
+                "mux4": 7,
+            }),
+        ],
+        &[
+            json!({
+                "foo": "bar",
+            }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+            }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+                "mux2": 7,
+                "mux3": 7,
+                "mux4": true,
+            }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+                "mux2": 7,
+                "mux3": 7,
+                "mux4": 7,
+                "mux5": 7,
+            }),
+        ],
+    );
+}
