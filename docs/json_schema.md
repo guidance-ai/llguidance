@@ -8,6 +8,9 @@ but [see below](#departures-from-json-schema-semantics) for some known differenc
 There are various limits on the size of the input schema and the resulting grammar.
 However, we've successfully processed schemas up to 4 MB in size.
 
+For features that are not fully supported, we provide percentages of support among
+the 11k [maskbench](https://github.com/guidance-ai/jsonschemabench/tree/main/maskbench) schemas.
+
 ## Supported JSON schema features
 
 Following JSON schema features are supported.
@@ -15,8 +18,8 @@ Following JSON schema features are supported.
 Core features:
 
 - `anyOf`
-- `oneOf` - converted to `anyOf` only when provably equivalent
-- `allOf` - intersection of certain schemas is not supported right now
+- `oneOf` (68%) - converted to `anyOf` only when provably equivalent
+- `allOf` (98%) - intersection of certain schemas is not supported right now
 - `$ref` - external/remote refs unsupported
 - `const`
 - `enum`
@@ -34,18 +37,20 @@ Object features:
 
 - `properties` - order of properties is fixed to the order in schema
 - `additionalProperties`
-- `patternProperties` - they have to be disjoint
+- `patternProperties` (98%) - they have to be disjoint
 - `required`
-- `minProperties` and `maxProperties` - only supported when everything defined in `properties`
-  is `required` (i.e., it only limits `additionalProperties` or `patternProperties`);
-  there is also some special handling for either/both being `0` or `1`
+- `minProperties` and `maxProperties` (90%) - only supported when everything defined in `properties`
+  is `required` (i.e., it only limits `additionalProperties` or `patternProperties`) - this covers
+  case of an object used as a map with upper/lower bounds on the number of keys;
+  there is also some special handling for either/both being `0` or `1` -
+  mostly for the case of at-least-one-property-required
 
 String features:
 
 - `minLength`
 - `maxLength`
-- `pattern`
-- `format`, with the following formats: `date-time`, `time`, `date`, `duration`, `email`, `hostname`, `ipv4`, `ipv6`, `uuid`,
+- `pattern` (99%) - lookarounds not supported
+- `format` (74%), with the following formats: `date-time`, `time`, `date`, `duration`, `email`, `hostname`, `ipv4`, `ipv6`, `uuid`,
 
 Number features (for both integer and number):
 
