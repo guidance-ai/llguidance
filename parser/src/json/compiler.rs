@@ -721,9 +721,9 @@ impl Compiler {
 
             // special-case literals - the length is easy to check
             if let RegexAst::Literal(s) = &ast {
-                let l = s.chars().count() as u64;
+                let l = s.chars().count();
 
-                if l < min_length || l > max_length.unwrap_or(u64::MAX) {
+                if l < min_length || l > max_length.unwrap_or(usize::MAX) {
                     return Err(anyhow!(UnsatisfiableSchemaError {
                         message: format!("Constant {:?} doesn't match length constraints", s)
                     }));
@@ -804,7 +804,7 @@ impl Compiler {
                 // If it's not an UnsatisfiableSchemaError, just propagate it normally
                 None => return Err(e),
                 // Item is optional; don't raise UnsatisfiableSchemaError
-                Some(_) if arr.prefix_items.len() >= min_items as usize => None,
+                Some(_) if arr.prefix_items.len() >= min_items => None,
                 // Item is required; add context and propagate UnsatisfiableSchemaError
                 Some(_) => {
                     return Err(e.context(UnsatisfiableSchemaError {
@@ -818,9 +818,7 @@ impl Compiler {
         let mut optional_items = vec![];
 
         // If max_items is None, we can add an infinite tail of items later
-        let n_to_add = max_items.map_or(arr.prefix_items.len().max(min_items as usize), |max| {
-            max as usize
-        });
+        let n_to_add = max_items.map_or(arr.prefix_items.len().max(min_items), |max| max);
 
         for i in 0..n_to_add {
             let item = if i < arr.prefix_items.len() {
@@ -831,8 +829,8 @@ impl Compiler {
                         None => return Err(e),
                         // Item is optional; don't raise UnsatisfiableSchemaError.
                         // Set max_items to the current index, as we can't satisfy any more items.
-                        Some(_) if i >= min_items as usize => {
-                            max_items = Some(i as u64);
+                        Some(_) if i >= min_items => {
+                            max_items = Some(i);
                             break;
                         }
                         // Item is required; add context and propagate UnsatisfiableSchemaError
@@ -852,7 +850,7 @@ impl Compiler {
                 break;
             };
 
-            if i < min_items as usize {
+            if i < min_items {
                 required_items.push(item);
             } else {
                 optional_items.push(item);
