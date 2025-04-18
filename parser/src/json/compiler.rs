@@ -419,6 +419,69 @@ impl Compiler {
         let max_properties = obj.max_properties.map(|v| v.saturating_sub(num_required));
 
         if num_optional > 0 && (min_properties > 0 || max_properties.is_some()) {
+            // special case for min/maxProperties == 1
+            // this is sometimes used to indicate that at least one property is required
+            if min_properties <= 1
+                && max_properties.unwrap_or(1) == 1
+                && obj.pattern_properties.is_empty()
+                && obj
+                    .additional_properties
+                    .as_ref()
+                    .map(|s| s.is_unsat())
+                    .unwrap_or(false)
+            {
+                let mut options: Vec<Vec<(NodeRef, bool)>> = vec![];
+                if max_properties == Some(1) {
+                    // at most one
+                    for idx in 0..items.len() {
+                        let (_, required) = items[idx];
+                        if !required {
+                            options.push(
+                                items
+                                    .iter()
+                                    .enumerate()
+                                    .filter_map(|(i2, (n, r))| {
+                                        if i2 == idx || *r {
+                                            Some((*n, true))
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .collect(),
+                            );
+                        }
+                    }
+                    if min_properties == 1 {
+                        // exactly one - done
+                    } else {
+                        // at most one - add empty option
+                        assert!(min_properties == 0);
+                        options.push(items.into_iter().filter(|(_, r)| *r).collect());
+                    }
+                } else {
+                    assert!(max_properties.is_none());
+                    assert!(min_properties == 1);
+                    // at least one
+                    for idx in 0..items.len() {
+                        let (_, required) = items[idx];
+                        if !required {
+                            options.push(
+                                items
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(i2, (n, r))| (*n, *r || i2 == idx))
+                                    .collect(),
+                            );
+                        }
+                    }
+                }
+                let sel_options = options
+                    .iter()
+                    .map(|v| self.object_fields(v))
+                    .collect::<Vec<_>>();
+                return Ok(self.builder.select(&sel_options));
+            }
+
             let msg = "min/maxProperties only supported when all keys listed in \"properties\" are required";
             if self.options.lenient {
                 self.builder.add_warning(msg.to_string());
@@ -508,10 +571,14 @@ impl Compiler {
             }));
         }
 
+        Ok(self.object_fields(&items))
+    }
+
+    fn object_fields(&mut self, items: &[(NodeRef, bool)]) -> NodeRef {
         let opener = self.builder.string("{");
-        let inner = self.ordered_sequence(&items, false, &mut HashMap::default());
+        let inner = self.ordered_sequence(items, false, &mut HashMap::default());
         let closer = self.builder.string("}");
-        Ok(self.builder.join(&[opener, inner, closer]))
+        self.builder.join(&[opener, inner, closer])
     }
 
     #[allow(clippy::type_complexity)]

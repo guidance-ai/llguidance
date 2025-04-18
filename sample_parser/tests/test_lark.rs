@@ -1167,4 +1167,128 @@ fn test_json_min_max_properties() {
             }),
         ],
     );
+
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+                "bar": { "type": "array" },
+                "mux": { "type": "integer" },
+            },
+            "minProperties": 1,
+            "additionalProperties": false
+        }),
+        &[
+            json!({
+                "foo": "bar",
+            }),
+            json!({
+                "bar": [],
+            }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+            }),
+        ],
+        &[json!({}), json!({ "foo": 7 })],
+    );
+
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+                "bar": { "type": "array" },
+                "mux": { "type": "integer" },
+            },
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": false
+        }),
+        &[json!({ "foo": "bar" }), json!({ "bar": [] })],
+        &[
+            json!({}),
+            json!({ "foo": 7 }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+            }),
+        ],
+    );
+
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+                "bar": { "type": "array" },
+                "mux": { "type": "integer" },
+            },
+            "maxProperties": 1,
+            "additionalProperties": false
+        }),
+        &[json!({}), json!({ "foo": "bar" }), json!({ "bar": [] })],
+        &[
+            json!({ "foo": 7 }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+            }),
+        ],
+    );
+
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+                "bar": { "type": "array" },
+                "mux": { "type": "integer" },
+            },
+            "required": ["bar"],
+            "minProperties": 2, // we subtract required properties
+            "additionalProperties": false
+        }),
+        &[
+            json!({ "foo": "a", "bar": [] }),
+            json!({ "bar": [], "mux": 1 }),
+            json!({ "foo": "a", "bar": [], "mux": 1 }),
+        ],
+        &[
+            json!({ "foo": 7 }),
+            json!({ "bar": [] }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+            }),
+        ],
+    );
+
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "foo": { "type": "string" },
+                "bar": { "type": "array" },
+                "mux": { "type": "integer" },
+            },
+            "required": ["bar"],
+            "maxProperties": 2, // we subtract required properties
+            "additionalProperties": false
+        }),
+        &[
+            json!({ "foo": "a", "bar": [] }),
+            json!({ "bar": [], "mux": 1 }),
+            json!({ "bar": [] }),
+        ],
+        &[
+            json!({ "foo": 7 }),
+            json!({
+                "foo": "bar",
+                "mux": 7,
+            }),
+            json!({ "foo": "a", "bar": [], "mux": 1 }),
+        ],
+    );
 }

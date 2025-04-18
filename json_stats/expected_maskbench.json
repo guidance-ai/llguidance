@@ -1404,9 +1404,7 @@
   "Github_easy---o27352.json": {},
   "Github_easy---o27354.json": {},
   "Github_easy---o27355.json": {},
-  "Github_easy---o27356.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_easy---o27356.json": {},
   "Github_easy---o27357.json": {},
   "Github_easy---o27358.json": {},
   "Github_easy---o27360.json": {},
@@ -2160,14 +2158,10 @@
   "Github_easy---o58839.json": {},
   "Github_easy---o58863.json": {},
   "Github_easy---o58905.json": {},
-  "Github_easy---o58906.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_easy---o58906.json": {},
   "Github_easy---o58907.json": {},
   "Github_easy---o58909.json": {},
-  "Github_easy---o58910.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_easy---o58910.json": {},
   "Github_easy---o58913.json": {},
   "Github_easy---o58914.json": {},
   "Github_easy---o58915.json": {},
@@ -2408,9 +2402,7 @@
   "Github_easy---o66195.json": {},
   "Github_easy---o66201.json": {},
   "Github_easy---o66204.json": {},
-  "Github_easy---o66294.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_easy---o66294.json": {},
   "Github_easy---o66297.json": {},
   "Github_easy---o66299.json": {},
   "Github_easy---o66302.json": {},
@@ -2782,9 +2774,7 @@
   "Github_easy---o80280.json": {},
   "Github_easy---o80287.json": {},
   "Github_easy---o80292.json": {},
-  "Github_easy---o80293.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_easy---o80293.json": {},
   "Github_easy---o80298.json": {},
   "Github_easy---o80622.json": {},
   "Github_easy---o80790.json": {},
@@ -3445,9 +3435,7 @@
   "Github_hard---o19342.json": {},
   "Github_hard---o19353.json": {},
   "Github_hard---o20271.json": {},
-  "Github_hard---o20272.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_hard---o20272.json": {},
   "Github_hard---o20390.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
@@ -4039,9 +4027,7 @@
   "Github_hard---o33131.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
-  "Github_hard---o33426.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_hard---o33426.json": {},
   "Github_hard---o33698.json": {},
   "Github_hard---o33704.json": {},
   "Github_hard---o33778.json": {
@@ -4652,9 +4638,7 @@
   "Github_hard---o62368.json": {},
   "Github_hard---o62382.json": {},
   "Github_hard---o62383.json": {},
-  "Github_hard---o62820.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required\n  while processing json-schema:///#/definitions/QueryCondition"
-  },
+  "Github_hard---o62820.json": {},
   "Github_hard---o62943.json": {},
   "Github_hard---o62947.json": {},
   "Github_hard---o62961.json": {},
@@ -4711,9 +4695,7 @@
   "Github_hard---o64563.json": {},
   "Github_hard---o64619.json": {},
   "Github_hard---o64680.json": {},
-  "Github_hard---o64686.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_hard---o64686.json": {},
   "Github_hard---o64819.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -4758,9 +4740,7 @@
   "Github_hard---o66068.json": {},
   "Github_hard---o66237.json": {},
   "Github_hard---o66267.json": {},
-  "Github_hard---o66331.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_hard---o66331.json": {},
   "Github_hard---o66683.json": {
     "json_error": "Unknown format: uri"
   },
@@ -4842,9 +4822,7 @@
   "Github_hard---o69976.json": {},
   "Github_hard---o70037.json": {},
   "Github_hard---o70295.json": {},
-  "Github_hard---o70296.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_hard---o70296.json": {},
   "Github_hard---o70377.json": {},
   "Github_hard---o70378.json": {},
   "Github_hard---o70918.json": {},
@@ -5029,9 +5007,7 @@
     "json_error": "Unknown format: expose"
   },
   "Github_hard---o80302.json": {},
-  "Github_hard---o80303.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_hard---o80303.json": {},
   "Github_hard---o80324.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
@@ -5179,9 +5155,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o84200.json": {},
-  "Github_hard---o84201.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_hard---o84201.json": {},
   "Github_hard---o84205.json": {
     "json_error": "Unknown format: textarea"
   },
@@ -5229,9 +5203,7 @@
   "Github_hard---o89194.json": {},
   "Github_hard---o89496.json": {},
   "Github_hard---o89524.json": {},
-  "Github_hard---o89629.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_hard---o89629.json": {},
   "Github_hard---o89700.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
@@ -5271,9 +5243,7 @@
   "Github_hard---o90607.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_hard---o90610.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_hard---o90610.json": {},
   "Github_hard---o90612.json": {},
   "Github_hard---o90613.json": {},
   "Github_hard---o90615.json": {},
@@ -6681,9 +6651,7 @@
     "json_error": "Unknown format: path"
   },
   "Github_medium---o58866.json": {},
-  "Github_medium---o58917.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_medium---o58917.json": {},
   "Github_medium---o58927.json": {},
   "Github_medium---o58928.json": {},
   "Github_medium---o59186.json": {
@@ -7234,9 +7202,7 @@
   "Github_medium---o71299.json": {
     "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
   },
-  "Github_medium---o71300.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_medium---o71300.json": {},
   "Github_medium---o71302.json": {},
   "Github_medium---o71310.json": {},
   "Github_medium---o71311.json": {},
@@ -7464,9 +7430,7 @@
   "Github_medium---o78895.json": {},
   "Github_medium---o78896.json": {},
   "Github_medium---o78957.json": {},
-  "Github_medium---o78964.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required\n  while processing http://pinpoint.navercorp.com/type-provider.schema#/definitions/annotationKey"
-  },
+  "Github_medium---o78964.json": {},
   "Github_medium---o79016.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
@@ -7519,9 +7483,7 @@
   "Github_medium---o81108.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/component"
   },
-  "Github_medium---o81167.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_medium---o81167.json": {},
   "Github_medium---o81186.json": {},
   "Github_medium---o81496.json": {},
   "Github_medium---o81522.json": {},
@@ -7694,9 +7656,7 @@
   "Github_medium---o8452.json": {
     "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
   },
-  "Github_medium---o8453.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Github_medium---o8453.json": {},
   "Github_medium---o8454.json": {
     "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
   },
@@ -11305,9 +11265,7 @@
   "JME_97.json": {},
   "JME_98.json": {},
   "JME_99.json": {},
-  "JsonSchemaStore---0.5.2.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "JsonSchemaStore---0.5.2.json": {},
   "JsonSchemaStore---1.0.schema.json": {},
   "JsonSchemaStore---2021-07.json": {},
   "JsonSchemaStore---3.0.schema.json": {
@@ -11489,7 +11447,7 @@
     "json_error": "Unknown format: uri"
   },
   "JsonSchemaStore---circleciconfig.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required\n  while processing https://json.schemastore.org/circleciconfig.json#/definitions/logical"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/circleciconfig.json#/definitions/jobs"
   },
   "JsonSchemaStore---cityjson.min.schema.json": {
     "json_error": "Unknown format: uri"
@@ -12297,9 +12255,7 @@
   "JsonSchemaStore---venvironment-basic-schema.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "JsonSchemaStore---vercel.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "JsonSchemaStore---vercel.json": {},
   "JsonSchemaStore---vim-addon-info.json": {
     "json_error": "Unknown format: uri"
   },
@@ -13771,9 +13727,7 @@
   "Snowplow---sp_312_Normalized.json": {},
   "Snowplow---sp_313_Normalized.json": {},
   "Snowplow---sp_314_Normalized.json": {},
-  "Snowplow---sp_315_Normalized.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Snowplow---sp_315_Normalized.json": {},
   "Snowplow---sp_316_Normalized.json": {},
   "Snowplow---sp_317_Normalized.json": {},
   "Snowplow---sp_318_Normalized.json": {},
@@ -13812,12 +13766,8 @@
   "Snowplow---sp_344_Normalized.json": {},
   "Snowplow---sp_345_Normalized.json": {},
   "Snowplow---sp_346_Normalized.json": {},
-  "Snowplow---sp_347_Normalized.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
-  "Snowplow---sp_348_Normalized.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Snowplow---sp_347_Normalized.json": {},
+  "Snowplow---sp_348_Normalized.json": {},
   "Snowplow---sp_349_Normalized.json": {},
   "Snowplow---sp_34_Normalized.json": {},
   "Snowplow---sp_350_Normalized.json": {},
@@ -13827,9 +13777,7 @@
   "Snowplow---sp_352_Normalized.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Snowplow---sp_353_Normalized.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Snowplow---sp_353_Normalized.json": {},
   "Snowplow---sp_354_Normalized.json": {},
   "Snowplow---sp_355_Normalized.json": {},
   "Snowplow---sp_356_Normalized.json": {},
@@ -13908,9 +13856,7 @@
   "Snowplow---sp_413_Normalized.json": {},
   "Snowplow---sp_414_Normalized.json": {},
   "Snowplow---sp_415_Normalized.json": {},
-  "Snowplow---sp_416_Normalized.json": {
-    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
-  },
+  "Snowplow---sp_416_Normalized.json": {},
   "Snowplow---sp_417_Normalized.json": {},
   "Snowplow---sp_418_Normalized.json": {},
   "Snowplow---sp_419_Normalized.json": {},

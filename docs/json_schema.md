@@ -37,7 +37,8 @@ Object features:
 - `patternProperties` - they have to be disjoint
 - `required`
 - `minProperties` and `maxProperties` - only supported when everything defined in `properties`
-  is `required` (i.e., it only limits `additionalProperties` or `patternProperties`)
+  is `required` (i.e., it only limits `additionalProperties` or `patternProperties`);
+  there is also some special handling for either/both being `0` or `1`
 
 String features:
 

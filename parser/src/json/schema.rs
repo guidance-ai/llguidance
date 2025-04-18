@@ -194,6 +194,10 @@ impl Schema {
         Some(Box::new(Schema::Any))
     }
 
+    pub fn is_unsat(&self) -> bool {
+        matches!(self, Schema::Unsatisfiable(_))
+    }
+
     /// Shallowly normalize the schema, removing any unnecessary nesting or empty options.
     fn normalize(self, ctx: &Context) -> Schema {
         match self {
