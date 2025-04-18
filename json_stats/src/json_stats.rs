@@ -1206,12 +1206,13 @@ fn main() {
             serde_json::from_str(&read_file_to_string(expected_file_name)).unwrap();
         let mut num_err = 0;
         let mut num_warn = 0;
+        let mut num_improvements = 0;
         for (id, r) in llg_sem_results.iter() {
             if let Some(exp) = expected_map.remove(id) {
                 if r != &exp {
                     #[allow(clippy::comparison_chain)]
                     let status = if r.error_badness() < exp.error_badness() {
-                        num_err += 1;
+                        num_improvements += 1;
                         "improvement"
                     } else if r.error_badness() == exp.error_badness() {
                         if options.ballpark {
@@ -1244,8 +1245,11 @@ fn main() {
             }
         }
 
-        if num_err > 0 {
-            eprintln!("FAILED: {} errors, {} warnings", num_err, num_warn);
+        if num_err + num_improvements > 0 {
+            eprintln!(
+                "FAILED: {} errors, {} improvements, {} warnings",
+                num_err, num_improvements, num_warn
+            );
             eprintln!("MISMATCH: tmp/llg_sem_results.json {}", expected_file_name);
             std::process::exit(1);
         } else if num_warn > 0 {
