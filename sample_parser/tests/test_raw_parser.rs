@@ -196,8 +196,8 @@ fn test_ff_json4() {
 #[test]
 fn test_ff_early() {
     let lark = r#"
-        start: lst
-        lst: "," lst | ""
+        start: lst "x"
+        lst: lst "," | ","
     "#;
 
     let mut parser = make_parser(lark);

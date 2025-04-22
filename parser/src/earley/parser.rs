@@ -567,7 +567,11 @@ impl Scratch {
     // and add 'item' to 'self' if it is not there already.
     #[inline(always)]
     fn add_unique(&mut self, item: Item, origin_item_idx: usize, info: &str) {
-        if self.find_item(item).is_none() {
+        if let Some(idx) = self.find_item(item) {
+            if self.definitive {
+                debug!("      add2: {} ({})", self.item_to_string(idx), info);
+            }
+        } else {
             self.just_add(item, origin_item_idx, info);
         }
     }
