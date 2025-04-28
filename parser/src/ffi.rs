@@ -554,9 +554,9 @@ pub extern "C" fn llg_get_temperature(cc: &LlgConstraint) -> f32 {
 /// Check if constraint is stopped (cannot be extended further).
 #[no_mangle]
 pub extern "C" fn llg_is_stopped(cc: &LlgConstraint) -> bool {
-    cc.constraint
+    !cc.constraint
         .as_ref()
-        .is_none_or(|c| c.step_result().is_stop())
+        .is_some_and(|c| !c.step_result().is_stop())
 }
 
 /// Compute mask for the next token sampling
