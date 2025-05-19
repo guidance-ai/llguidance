@@ -23,10 +23,6 @@ class TokenizerWrapper:
             gtokenizer(b"test")
         except:
             self._accepts_bytes = False
-        # If the tokenizer used bytes, then b"\xff" would be better (since it's invalid UTF-8)
-        # For now, we'll settle for "\x02" as assume it doesn't start any other token
-        self._prefix_string = "\x02"
-        self._prefix_tokens = self._encode_string(self._prefix_string)
 
     def _encode_string(self, s: str) -> List[TokenId]:
         r: List[TokenId]
@@ -37,7 +33,4 @@ class TokenizerWrapper:
         return r
 
     # required by LLTokenizer
-    def __call__(self, s: str) -> List[TokenId]:
-        tokens = self._encode_string(self._prefix_string + s)
-        assert tokens[: len(self._prefix_tokens)] == self._prefix_tokens
-        return tokens[len(self._prefix_tokens) :]
+    __call__ = _encode_string
