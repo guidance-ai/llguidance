@@ -1,13 +1,26 @@
 import llguidance.llamacpp
 import llama_cpp
-from huggingface_hub import hf_hub_download
+import os
+import requests # type: ignore
+from typing import Any
+
+def get_llama_vocab_file(pytestconfig: Any) -> str:
+    url = "https://raw.githubusercontent.com/ggml-org/llama.cpp/f4ab2a41476600a98067a9474ea8f9e6db41bcfa/models/ggml-vocab-llama-bpe.gguf"
+    cache_dir = pytestconfig.cache.makedir("llama_vocab")
+    file_name = "vocab.gguf"
+    file_path = os.path.join(cache_dir, file_name)
+
+    if not os.path.exists(file_path):
+        r = requests.get(url)
+        r.raise_for_status()
+        with open(file_path, "wb") as f:
+            f.write(r.content)
+
+    return file_path
 
 
-def test_llama_cpp() -> None:
-    filepath = hf_hub_download(
-        repo_id="bartowski/Llama-3.2-1B-Instruct-GGUF",
-        filename="Llama-3.2-1B-Instruct-Q4_K_M.gguf",
-    )
+def test_llama_cpp(pytestconfig: Any) -> None:
+    filepath = get_llama_vocab_file(pytestconfig)
     p = llama_cpp.llama_model_params()
     p.vocab_only = True
     model = llama_cpp.llama_model_load_from_file(filepath.encode(), p)

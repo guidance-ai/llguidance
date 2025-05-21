@@ -25,7 +25,7 @@ def lltokenizer_from_vocab(
 
     ntok = llama_cpp.llama_vocab_n_tokens(vocab)
     if eos_token is None:
-        eos_token = llama_cpp.llama_vocab_eos(vocab) # type: ignore
+        eos_token = llama_cpp.llama_vocab_eos(vocab)
     buffer_len = 16 * 1024
     buffer = ctypes.create_string_buffer(buffer_len + 1)
     tokens: List[bytes] = []
@@ -42,7 +42,7 @@ def lltokenizer_from_vocab(
         if n < 0:
             raise ValueError(f"Error writing token {token} to buffer of size {buffer_len}. Error: {n}")
         assert n <= buffer_len
-        tok = bytes(buffer[:n])
+        tok = bytes(buffer[:n]) # type: ignore
         attr = llama_cpp.llama_token_get_attr(vocab, token)
         if attr & llama_cpp.LLAMA_TOKEN_ATTR_CONTROL:
             tok = b"\xFF" + tok
