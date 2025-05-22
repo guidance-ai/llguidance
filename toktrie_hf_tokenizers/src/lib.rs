@@ -102,7 +102,11 @@ impl ByteTokenizer {
         }
 
         let vocab_size = hft.get_vocab_size(true) as u32;
-        let added = hft.get_added_tokens_decoder();
+        let mut added = hft
+            .get_added_tokens_decoder()
+            .into_iter()
+            .collect::<Vec<_>>();
+        added.sort_by_key(|(id, _)| *id);
 
         let mut res = ByteTokenizer {
             hf_model: "foobar".to_string(),

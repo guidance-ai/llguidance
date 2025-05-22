@@ -720,7 +720,7 @@ fn test_ll_special_token() {
             start: /[a-z]/
         "#,
         "</s>",
-        &["≺EOS≻", "a"],
+        &["</s>", "a"],
     );
 
     check_lark_grammar(
