@@ -114,7 +114,8 @@ impl ByteTokenizer {
         let mut specials = HashSet::new();
 
         for (id, info) in added.iter() {
-            if info.special {
+            // we treat all added tokens of the form <...> as special tokens
+            if info.special || (info.content.starts_with("<") && info.content.ends_with(">")) {
                 match info.content.as_str() {
                     "</s>"
                     | "<|endoftext|>"
