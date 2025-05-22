@@ -23,6 +23,7 @@ def test_llama_cpp(pytestconfig: Any) -> None:
     filepath = get_llama_vocab_file(pytestconfig)
     p = llama_cpp.llama_model_params()
     p.vocab_only = True
+    p.split_mode = llama_cpp.LLAMA_SPLIT_MODE_LAYER
     model = llama_cpp.llama_model_load_from_file(filepath.encode(), p)
     assert model is not None
     vocab = llama_cpp.llama_model_get_vocab(model)
