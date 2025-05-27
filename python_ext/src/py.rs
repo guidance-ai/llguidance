@@ -105,8 +105,13 @@ impl LLTokenizer {
         })
     }
 
-    fn tokenize_bytes(&self, utf8bytes: &[u8]) -> Vec<TokenId> {
-        self.tok_env().tokenize_bytes(utf8bytes)
+    #[pyo3(signature = (utf8bytes, *, parse_special = false))]
+    fn tokenize_bytes(&self, utf8bytes: &[u8], parse_special: bool) -> Vec<TokenId> {
+        if parse_special {
+            self.tok_env().tokenize_bytes_special(utf8bytes)
+        } else {
+            self.tok_env().tokenize_bytes(utf8bytes)
+        }
     }
 
     #[getter]
@@ -124,8 +129,13 @@ impl LLTokenizer {
         SlicedBiasComputer::json_slices()
     }
 
-    fn tokenize_str(&self, text: &str) -> Vec<TokenId> {
-        self.tokenize_bytes(text.as_bytes())
+    #[pyo3(signature = (text, *, parse_special = false))]
+    fn tokenize_str(&self, text: &str, parse_special: bool) -> Vec<TokenId> {
+        if parse_special {
+            self.tok_env().tokenize_bytes_special(text.as_bytes())
+        } else {
+            self.tok_env().tokenize_bytes(text.as_bytes())
+        }
     }
 
     fn greedy_tokenize(&self, text: &str) -> Vec<u32> {

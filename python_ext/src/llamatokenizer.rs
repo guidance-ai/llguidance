@@ -25,7 +25,11 @@ unsafe impl Send for LlamaTokenizer {}
 unsafe impl Sync for LlamaTokenizer {}
 
 impl LlamaTokenizer {
-    fn tokenize_with_sentinel(&self, s: &[u8]) -> Result<Vec<toktrie::TokenId>> {
+    fn tokenize_with_sentinel(
+        &self,
+        s: &[u8],
+        parse_special: bool,
+    ) -> Result<Vec<toktrie::TokenId>> {
         if s.is_empty() {
             return Ok(vec![]);
         }
@@ -34,7 +38,7 @@ impl LlamaTokenizer {
             let mut b = Vec::with_capacity(s.len() + 1);
             b.push(sentinel);
             b.extend_from_slice(s);
-            let mut res = self.raw_tokenize(&b);
+            let mut res = self.raw_tokenize(&b, parse_special);
             ensure!(
                 res.len() > self.sentinel_tokens.len(),
                 "tokenize_with_sentinel: res.len() <= sentinel_tokens.len()"
@@ -46,11 +50,11 @@ impl LlamaTokenizer {
             res.splice(0..self.sentinel_tokens.len(), []);
             Ok(res)
         } else {
-            Ok(self.raw_tokenize(s))
+            Ok(self.raw_tokenize(s, parse_special))
         }
     }
 
-    fn raw_tokenize(&self, s: &[u8]) -> Vec<toktrie::TokenId> {
+    fn raw_tokenize(&self, s: &[u8], parse_special: bool) -> Vec<toktrie::TokenId> {
         let mut res_toks = vec![0u32; s.len() / 4 + 5];
         let res = unsafe {
             (self.tokenize_fn)(
@@ -60,7 +64,7 @@ impl LlamaTokenizer {
                 res_toks.as_mut_ptr() as *mut i32,
                 res_toks.len().try_into().unwrap(),
                 false,
-                false,
+                parse_special,
             )
         };
 
@@ -75,7 +79,7 @@ impl LlamaTokenizer {
                     res_toks.as_mut_ptr() as *mut i32,
                     res_toks.len().try_into().unwrap(),
                     false,
-                    false,
+                    parse_special,
                 )
             };
             assert!(res2 == n_toks as i32);
@@ -98,7 +102,14 @@ impl TokenizerEnv for LlamaTokenizer {
         // llama.cpp tokenizer encodes invalid UTF8 as Unicode replacement character U+FFFD,
         // so we need the greedy fallback
         self.trie.tokenize_with_greedy_fallback(s, |s| {
-            self.tokenize_with_sentinel(s.as_bytes())
+            self.tokenize_with_sentinel(s.as_bytes(), false)
+                .expect("tokenize_with_sentinel failed")
+        })
+    }
+
+    fn tokenize_bytes_special(&self, s: &[u8]) -> Vec<TokenId> {
+        self.trie.tokenize_with_greedy_fallback(s, |s| {
+            self.tokenize_with_sentinel(s.as_bytes(), true)
                 .expect("tokenize_with_sentinel failed")
         })
     }
@@ -125,7 +136,7 @@ pub fn tokenv_from_llamacpp(
     };
 
     let trie = &llama_tok.trie;
-    let t0 = llama_tok.raw_tokenize(b"a");
+    let t0 = llama_tok.raw_tokenize(b"a", false);
     if trie.decode(&t0) != b"a" {
         // Now, this likely means that the tokenizer is adding a space in front of the token
         // (or possibly <BOS> token)
@@ -143,11 +154,11 @@ pub fn tokenv_from_llamacpp(
                 anyhow::anyhow!("could not find a good sentinel token in the range 1..32")
             })?;
 
-        llama_tok.sentinel_tokens = llama_tok.raw_tokenize(&[sentinel]);
+        llama_tok.sentinel_tokens = llama_tok.raw_tokenize(&[sentinel], false);
         llama_tok.sentinel = Some(sentinel);
 
         // now, check if it works
-        let t1 = llama_tok.tokenize_with_sentinel(b"a")?;
+        let t1 = llama_tok.tokenize_with_sentinel(b"a", false)?;
         ensure!(
             trie.decode(&t1) == b"a",
             "tokenizer is not working with the sentinel {} {:?}",
@@ -156,7 +167,7 @@ pub fn tokenv_from_llamacpp(
         );
 
         // make sure we can tokenize double-sentinel
-        let t3 = llama_tok.tokenize_with_sentinel(&[sentinel])?;
+        let t3 = llama_tok.tokenize_with_sentinel(&[sentinel], false)?;
         ensure!(
             trie.decode(&t3) == [sentinel],
             "tokenizer is not working with the sentinel (rec) {} {:?}",

@@ -40,3 +40,10 @@ def test_llama_cpp(pytestconfig: Any) -> None:
     print(toks)
     assert len(toks) == 1
     assert llt.decode_bytes(toks) == b"\x8b"
+
+    toks1 = llt.tokenize_str("<|eot_id|>")
+    toks0 = llt.tokenize_str("<|eot_id|>", parse_special=False)
+    assert toks1 == toks0
+    assert len(toks0) > 1
+    toks2 = llt.tokenize_str("<|eot_id|>", parse_special=True)
+    assert len(toks2) == 1

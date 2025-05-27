@@ -51,7 +51,10 @@ class LLTokenizer:
         This will not necessarily match BPE.
         """
 
-    def tokenize_bytes(self, utf8bytes: bytes) -> List[int]:
+    def tokenize_bytes(self,
+                       utf8bytes: bytes,
+                       *,
+                       parse_special: bool = False) -> List[int]:
         """
         Tokenize the text as bytes.
         This will use the underlying Python tokenizer to tokenize valid UTF8
@@ -59,7 +62,10 @@ class LLTokenizer:
         few bytes.
         """
 
-    def tokenize_str(self, text: str) -> List[int]:
+    def tokenize_str(self,
+                     text: str,
+                     *,
+                     parse_special: bool = False) -> List[int]:
         """
         Same as tokenize_bytes, but for strings.
         """
