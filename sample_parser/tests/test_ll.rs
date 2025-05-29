@@ -1311,3 +1311,25 @@ fn test_ll_numeric_bug() {
         ],
     );
 }
+
+#[test]
+fn test_stop_crash() {
+    // this fails, see https://github.com/guidance-ai/llguidance/issues/182
+    // check_lark_grammar(
+    //     r#"
+    //         start: prosandcons "Best=" best
+    //         prosandcons[capture, temperature=0.0, max_tokens=600, stop="Best="]: /(?s:.*)/
+    //         best[capture]: /[0-9]+/
+    //     "#,
+    //     &["", " wait‧ times‧.‧\n‧Best‧=‧3‧≺EOS≻"],
+    // );
+
+    check_lark_grammar(
+        r#"
+            start: prosandcons best
+            prosandcons[capture, temperature=0.0, max_tokens=600, suffix="Best="]: /(?s:.*)/
+            best[capture]: /[0-9]+/
+        "#,
+        &["", " wait‧ times‧.‧\n‧Best‧=‧3‧≺EOS≻"],
+    );
+}
