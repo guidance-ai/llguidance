@@ -144,6 +144,7 @@ impl LLMatcher {
 fn new_matcher(
     fact: &ParserFactory,
     grammar: TopLevelGrammar,
+    dbg_grammar: String,
     log_level: isize,
     limits: Option<&LLParserLimits>,
     py: Python<'_>,
@@ -152,21 +153,27 @@ fn new_matcher(
     // constructing a grammar can take on the order of 100ms
     // for very large grammars, so we drop the GIL here
     let inner = py.allow_threads(|| {
-        fact.create_parser_from_init_ext(
+        let mut r = fact.create_parser_from_init_ext(
             GrammarInit::Serialized(grammar),
             logger,
             InferenceCapabilities::default(),
             LLParserLimits::from_option(limits),
-        )
+        )?;
+        r.dbg_grammar = dbg_grammar;
+        Ok(r)
     });
     Matcher::new(inner)
 }
 
-fn extract_grammar(grammar: Bound<'_, PyAny>) -> Result<TopLevelGrammar> {
+fn extract_grammar(grammar: Bound<'_, PyAny>) -> Result<(String, TopLevelGrammar)> {
     if let Ok(s) = grammar.extract::<String>() {
-        TopLevelGrammar::from_lark_or_grammar_list(&s)
+        let r = TopLevelGrammar::from_lark_or_grammar_list(&s)?;
+        Ok((s, r))
     } else {
-        Ok(serde_json::from_value(to_json_value(grammar)?)?)
+        let json = to_json_value(grammar)?;
+        let grammar: TopLevelGrammar = serde_json::from_value(json)?;
+        let str = serde_json::to_string(&grammar).unwrap();
+        Ok((str, grammar))
     }
 }
 
@@ -184,7 +191,9 @@ impl LLMatcher {
     ) -> Self {
         let fact = tokenizer.factory();
         let inner = match extract_grammar(grammar) {
-            Ok(grammar) => new_matcher(fact, grammar, log_level.unwrap_or(1), limits, py),
+            Ok((dbg_grm, grammar)) => {
+                new_matcher(fact, grammar, dbg_grm, log_level.unwrap_or(1), limits, py)
+            }
             Err(e) => Matcher::new(Err(e)),
         };
         LLMatcher {
@@ -202,7 +211,7 @@ impl LLMatcher {
         py: Python<'_>,
     ) -> String {
         match extract_grammar(grammar) {
-            Ok(grammar) => py.allow_threads(|| {
+            Ok((_, grammar)) => py.allow_threads(|| {
                 GrammarInit::Serialized(grammar)
                     .validate(
                         tokenizer.map(|t| t.factory().tok_env().clone()),
@@ -224,7 +233,7 @@ impl LLMatcher {
         py: Python<'_>,
     ) -> (bool, Vec<String>) {
         match extract_grammar(grammar) {
-            Ok(grammar) => py.allow_threads(|| {
+            Ok((_, grammar)) => py.allow_threads(|| {
                 GrammarInit::Serialized(grammar)
                     .validate(
                         tokenizer.map(|t| t.factory().tok_env().clone()),

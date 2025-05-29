@@ -69,7 +69,7 @@ impl LLInterpreter {
             fork: false,
         };
         let logger = Logger::new(0, std::cmp::max(0, log_level) as u32);
-        let inner = fact
+        let mut inner = fact
             .create_parser_from_init_ext(
                 GrammarInit::Serialized(arg),
                 logger,
@@ -77,6 +77,7 @@ impl LLInterpreter {
                 LLParserLimits::from_option(limits),
             )
             .map_err(val_error)?;
+        inner.dbg_grammar = grammar.to_string();
         let inner = Constraint::new(inner);
         Ok(LLInterpreter { inner, log_level })
     }
