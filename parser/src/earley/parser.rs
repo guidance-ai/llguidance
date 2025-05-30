@@ -330,6 +330,8 @@ struct Scratch {
     // mode, which is used for computing the token mask on the
     // pre-lexemes.
     definitive: bool,
+
+    log_override: bool,
 }
 
 #[derive(Clone)]
@@ -496,11 +498,12 @@ impl Scratch {
             items: vec![],
             grammar_stack: vec![],
             definitive: true,
+            log_override: false,
         }
     }
 
     fn log_enabled(&self) -> bool {
-        self.definitive
+        self.definitive || self.log_override
     }
 
     // Set current working Earley to empty set
@@ -1015,6 +1018,7 @@ impl ParserState {
     pub fn validate_tokens(&mut self, tokens: &[TokenId]) -> usize {
         self.assert_definitive();
         self.run_speculative("validate_tokens", |state| {
+            state.scratch.log_override = true;
             let mut applied_idx = state.byte_to_token_idx.len();
             let tok_env = state.tok_env.clone();
             let trie = tok_env.tok_trie();
@@ -1509,6 +1513,7 @@ impl ParserState {
         self.scratch.definitive = true;
         self.assert_definitive();
         self.rows_valid_end = self.num_rows();
+        self.scratch.log_override = false; // reset
     }
 
     fn run_speculative<T>(&mut self, lbl: &str, f: impl FnOnce(&mut Self) -> T) -> T {
