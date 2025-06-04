@@ -13,7 +13,7 @@ use std::{
 
 use crate::{earley::lexer::MatchingLexemesIdx, HashMap, HashSet, Instant};
 use anyhow::{bail, ensure, Result};
-use derivre::{NextByte, RegexAst, StateID};
+use derivre::{NextByte, StateID};
 use serde::{Deserialize, Serialize};
 use toktrie::{
     parse_numeric_token, Recognizer, SimpleVob, TokEnv, TokTrie, TokenId, INVALID_TOKEN,
@@ -2211,27 +2211,6 @@ impl ParserState {
         Lexeme::new(pre_lexeme.idx, bytes, hidden, is_suffix)
     }
 
-    fn has_forced_bytes(&self, allowed_lexemes: &LexemeSet, bytes: &[u8]) -> bool {
-        // note that this is also used when computing token mask
-        if allowed_lexemes.is_empty() {
-            return false;
-        }
-        let mut matched_something = false;
-        for lexeme_idx in allowed_lexemes.iter() {
-            let lex_spec = &self.lexer_spec().lexemes[lexeme_idx.as_usize()];
-            if lex_spec.is_skip && matches!(lex_spec.rx, RegexAst::NoMatch) {
-                continue;
-            }
-
-            if !self.lexer_spec().has_forced_bytes(lex_spec, bytes) {
-                return false;
-            }
-            matched_something = true;
-        }
-        // debug!("   forced ok {:?}", String::from_utf8_lossy(bytes));
-        matched_something
-    }
-
     #[inline(always)]
     fn lexer_state_for_added_row(
         &mut self,
@@ -2290,9 +2269,7 @@ impl ParserState {
 
         let hidden_bytes = lexeme.hidden_bytes();
 
-        let trace_here = self.scratch.log_enabled();
-
-        if trace_here {
+        if self.scratch.log_enabled() {
             trace!(
                 "  hidden_bytes: {} {:?}",
                 self.allowed_lexemes_dbg(added_row_start_state),
@@ -2300,92 +2277,24 @@ impl ParserState {
             );
         }
 
-        if self.has_forced_bytes(
-            self.lexer().possible_lexemes(added_row_start_state),
-            hidden_bytes,
-        ) {
-            if trace_here {
-                trace!("  hidden forced");
-            }
-            let mut lexer_state = added_row_start_state;
-            // if the bytes are forced, we just advance the lexer
-            // by replacing the top lexer states
-            self.pop_lexer_states(hidden_bytes.len() - 1);
-            for idx in 0..hidden_bytes.len() {
-                let b = hidden_bytes[idx];
-                match self
-                    .shared_box
-                    .lexer_mut()
-                    .advance(lexer_state, b, trace_here)
-                {
-                    LexerResult::State(next_state, _) => {
-                        lexer_state = next_state;
-                    }
-                    LexerResult::SpecialToken(_) => panic!("hidden byte resulted in special token"),
-                    LexerResult::Error => panic!("hidden byte failed; {:?}", hidden_bytes),
-                    LexerResult::Lexeme(second_lexeme) => {
-                        if trace_here {
-                            debug!("hidden bytes lexeme: {:?}", second_lexeme);
-                        }
-                        assert!(
-                            idx == hidden_bytes.len() - 1,
-                            "lexeme in the middle of hidden bytes"
-                        );
-
-                        // save current state, we'll need to pop it later
-                        self.lexer_stack.push(LexerState {
-                            lexer_state,
-                            byte: None,
-                            ..no_hidden
-                        });
-                        let r = self.advance_parser(second_lexeme);
-                        // println!("hidden bytes lexeme: {:?} -> {r}", second_lexeme);
-                        if r {
-                            // here, advance_parser() has pushed a state; we replace our state with it
-                            let new_top = self.lexer_stack.pop().unwrap();
-                            *self.lexer_stack.last_mut().unwrap() = new_top;
-                            return true;
-                        } else {
-                            // otherwise, we just pop our state
-                            // This shouldn't happen though
-                            // (the parser was allowing this lexeme and now it doesn't like it)
-                            self.lexer_stack.pop();
-                            return false;
-                        }
-                    }
-                }
-                self.lexer_stack.push(LexerState {
-                    lexer_state,
-                    byte: Some(b),
-                    ..no_hidden
-                });
-            }
-            if self.scratch.definitive {
-                self.assert_definitive();
-            }
+        if self.scratch.definitive {
+            // set it up for matching after backtrack
+            self.lexer_stack.push(LexerState {
+                lexer_state: added_row_start_state,
+                byte: None,
+                ..no_hidden
+            });
+            self.assert_definitive();
+            self.backtrack_byte_count = hidden_bytes.len();
         } else {
-            if trace_here {
-                debug!("  hidden not forced");
-            }
-            if self.scratch.definitive {
-                // set it up for matching after backtrack
-                self.lexer_stack.push(LexerState {
-                    lexer_state: added_row_start_state,
-                    byte: None,
-                    ..no_hidden
-                });
-                self.assert_definitive();
-                self.backtrack_byte_count = hidden_bytes.len();
-            } else {
-                // prevent any further matches in this branch
-                self.lexer_stack.push(LexerState {
-                    lexer_state: self.shared_box.lexer_mut().a_dead_state(),
-                    byte: None,
-                    ..no_hidden
-                });
-            }
-            // panic!("hidden bytes not forced");
+            // prevent any further matches in this branch
+            self.lexer_stack.push(LexerState {
+                lexer_state: self.shared_box.lexer_mut().a_dead_state(),
+                byte: None,
+                ..no_hidden
+            });
         }
+        // panic!("hidden bytes not forced");
 
         true
     }

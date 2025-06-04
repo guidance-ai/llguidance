@@ -136,41 +136,34 @@ while `max_tokens` limits the number of tokens generated for the terminal.
 
 ### Lazy lexemes
 
-Specifying `stop=""` will make the EOS token of the model act as the stop condition.
-This is only useful if there is some other rule following this rule (otherwise the model will stop on EOS anyways),
-in which case llguidance will try to "backtrack" the EOS token
-(hide it from the LLM; but see notes about backtracking below).
-
 If `stop` or `suffix` are specified and non-empty, or if `lazy` is specified, the regex
 will be treated as lazy, meaning it will match as few bytes as possible.
-Consider the following rules:
-
-```lark
-with_stop[capture, stop="<end>"]: /.*/        // capture: "foo"
-outer_stop[capture]: with_stop "<end>"        // capture: "foo<end>"
-outer_stop_problem[capture]: with_stop "b"    // capture: "foob"
-
-with_suffix[capture, suffix="<end>"]: /.*/    // capture: "foo"
-outer_suffix[capture]: with_suffix            // capture: "foo<end>"
-
-with_lazy[capture, lazy]: /.*<end>/           // capture: "foo<end>"
-outer_lazy[capture]: with_lazy                // capture: "foo<end>"
-```
-
+Consider the following rules.
 They are all lazy, so
 given a string `"foo<end>bar<end>"`, they will all match just the prefix `"foo<end>"`
 (except for `outer_stop_problem` which will match `"foo<end>b"`).
 The captures are listed in the comments.
 
+```lark
+with_suffix[capture, suffix="<end>"]: /.*/    // capture: "foo"
+outer_suffix[capture]: with_suffix            // capture: "foo<end>"
+
+with_lazy[capture, lazy]: /.*<end>/           // capture: "foo<end>"
+outer_lazy[capture]: with_lazy                // capture: "foo<end>"
+
+with_stop[capture, stop="<end>"]: /.*/        // capture: "foo"
+outer_stop[capture]: with_stop "<end>"        // capture: "foo<end>"
+outer_stop_problem[capture]: with_stop "b"    // capture: "foob"
+```
+
+The `stop` syntax should be considered legacy. Avoid using it.
+
 All the `with_*` rules use the same regex, but `with_stop` will attempt to "hide"
 the final `"<end>"` from the model, by "backtracking" the tokens corresponding to it.
 This is often not supported by server-side LLM infrastructure, and may confuse the model.
-To avoid backtracking, a typical pattern (`outer_stop`) is to have another rule that appends `"<end>"`
-again after `with_stop` that ate it.
+In previous versions, if `stop=X` was followed by a literal `X`,
+LLGuidance would try to avoid backtracking. This is no longer the case--please use `suffix` instead.
 The capture for `outer_stop` has `"<end>"` while the capture `with_stop` does not.
-This requires certain gymnastics in llguidance implementation and may sometimes not work as expected.
-Additionally, if you attempt to add something that is not `"<end>"` after `with_stop`,
-as in `outer_stop_problem`, the backtracking will be necessary.
 
 The `suffix` offers a simpler alternative: the capture for the rule with `suffix`
 does not include the suffix, but the captures for upper-level rules do,
@@ -185,6 +178,13 @@ It is most useful when the regular expression ends with some delimiter.
 If it doesn't, the results may be surprising:
 for example, `foo[lazy]: /.*/` will match only the empty string,
 while `foo[lazy]: /[0-9]+/` will only match a single digit.
+
+Additionally,
+specifying `stop=""` will make the EOS token of the model act as the stop condition.
+This is only useful if there is some other rule following this rule (otherwise the model will stop on EOS anyways),
+in which case llguidance will try to "backtrack" the EOS token.
+It is also possible to say `foo: /.*/ <|ENDOFTEXT|>`,
+which will behave similarly, but will not try to backtrack the EOS token.
 
 ### Tool calling
 
@@ -362,7 +362,6 @@ at the first `{` (it would always pick A since it comes first in the grammar).
 However, if the classes for A and B are merged, the grammar will be equivalent to
 `start: %json { "anyOf": [A, B] }` which is generally what the
 [users expect](https://github.com/guidance-ai/llguidance/issues/113).
-
 
 ### Features to avoid
 

@@ -600,9 +600,9 @@ fn test_ll_nice_man() {
 #[test]
 fn test_ll_stop_quote_comma() {
     let grm = r#"
-        start: "{ \"items\": [\"" ap "\",\n   \"" bp "\"] }"
-        ap[stop="\""]: /a+/
-        bp[stop="\""]: /b+/
+        start: "{ \"items\": [\"" ap ",\n   \"" bp "] }"
+        ap[suffix="\""]: /a+/
+        bp[suffix="\""]: /b+/
     "#;
 
     // make sure we allow ", as a single token; also "]
