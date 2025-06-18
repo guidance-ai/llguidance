@@ -48,8 +48,18 @@ Example:
 
 ```lark
 start: list#(set())
-list#(m if has_not(m, k)): others#(m) elt_k list#(insert(m, k)) // repeat for k in 0..N
-list#(m if has_all(m, N)): others#(m)
+list#(m): others#(m)                           %if has_all(m, N) |
+          others#(m) elt_k list#(insert(m, k)) %if has_not(m, k) // repeat for k in 0..N
 others#(m): others#(m) other#(m) | ""
-others#(m if has(m, k)): elt_k // repeat for k in 0..N
+others#(m): elt_k %if has(m, k)  // repeat for k in 0..N
+```
+
+Nicer:
+
+```lark
+start: list{set()}
+list{#m}:   others{m}                           %if has_all(m, N)
+        |   others{m} elt_k list{insert(m, k)}  %if has_not(m, k) // repeat for k in 0..N
+others{#m}: others{m} other{m} | ""
+others{#m}: elt_k                               %if has(m, k)  // repeat for k in 0..N
 ```
