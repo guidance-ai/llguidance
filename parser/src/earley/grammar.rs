@@ -29,6 +29,13 @@ impl Symbol {
             self.name.clone()
         }
     }
+    fn param_name(&self, param: &ParamExpr) -> String {
+        let mut r = self.short_name();
+        if param != &ParamExpr::Null {
+            r.push_str(&format!("#({})", param));
+        }
+        r
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -39,6 +46,7 @@ pub struct SymbolProps {
     pub temperature: f32,
     pub grammar_id: LexemeClass,
     pub is_start: bool,
+    pub parametric: bool,
 }
 
 impl Default for SymbolProps {
@@ -50,6 +58,7 @@ impl Default for SymbolProps {
             temperature: 0.0,
             is_start: false,
             grammar_id: LexemeClass::ROOT,
+            parametric: false,
         }
     }
 }
@@ -61,10 +70,12 @@ impl SymbolProps {
             || self.capture_name.is_some()
             || self.stop_capture_name.is_some()
             || self.is_start
+            || self.parametric
     }
 
     // this is used when a rule like 'self -> [self.for_wrapper()]` is added
     pub fn for_wrapper(&self) -> Self {
+        assert!(!self.parametric);
         SymbolProps {
             max_tokens: self.max_tokens,
             capture_name: None,
@@ -72,6 +83,7 @@ impl SymbolProps {
             temperature: self.temperature,
             grammar_id: self.grammar_id,
             is_start: false,
+            parametric: false,
         }
     }
 }
@@ -111,7 +123,8 @@ struct Symbol {
 #[derive(Debug, Clone)]
 struct Rule {
     lhs: SymIdx,
-    rhs: Vec<SymIdx>,
+    rhs: Vec<(SymIdx, ParamExpr)>,
+    condition: ParamCond,
 }
 
 impl Rule {
@@ -123,15 +136,115 @@ impl Rule {
 #[derive(Clone)]
 pub struct Grammar {
     name: Option<String>,
+    parametric: bool,
     symbols: Vec<Symbol>,
     symbol_count_cache: HashMap<String, usize>,
     symbol_by_name: HashMap<String, SymIdx>,
+}
+
+#[derive(Clone, Default, Copy, PartialEq, Eq, Debug)]
+pub struct ParamValue(pub u64);
+
+impl ParamValue {
+    pub const NUM_BITS: usize = 64;
+    pub fn is_default(&self) -> bool {
+        self.0 == 0
+    }
+    pub fn has(&self, k: usize) -> bool {
+        debug_assert!(k < Self::NUM_BITS);
+        (self.0 & (1 << k)) != 0
+    }
+    pub fn has_all(&self, k: usize) -> bool {
+        debug_assert!(k < Self::NUM_BITS);
+        self.0 == (1 << k) - 1
+    }
+}
+
+impl Display for ParamValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#}", self.0) // PRTODO hex?
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ParamExpr {
+    Null,
+    Insert(usize),
+    Remove(usize),
+    Const(ParamValue),
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ParamCond {
+    True,
+    Has(usize),
+    HasNot(usize),
+    HasAll(usize),
+}
+
+impl ParamExpr {
+    pub fn eval(&self, m: ParamValue) -> ParamValue {
+        match self {
+            ParamExpr::Null => ParamValue::default(),
+            ParamExpr::Insert(k) => {
+                debug_assert!(*k <= ParamValue::NUM_BITS);
+                ParamValue(m.0 | (1 << *k))
+            }
+            ParamExpr::Remove(k) => {
+                debug_assert!(*k <= ParamValue::NUM_BITS);
+                ParamValue(m.0 & !(1 << *k))
+            }
+            ParamExpr::Const(v) => *v,
+        }
+    }
+
+    pub fn is_null(&self) -> bool {
+        matches!(self, ParamExpr::Null)
+    }
+}
+
+impl Display for ParamExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParamExpr::Null => write!(f, "null"),
+            ParamExpr::Insert(k) => write!(f, "insert({})", k),
+            ParamExpr::Remove(k) => write!(f, "remove({})", k),
+            ParamExpr::Const(v) => write!(f, "{}", v),
+        }
+    }
+}
+
+impl ParamCond {
+    pub fn eval(&self, m: ParamValue) -> bool {
+        match self {
+            ParamCond::True => true,
+            ParamCond::Has(k) => m.has(*k),
+            ParamCond::HasNot(k) => !m.has(*k),
+            ParamCond::HasAll(k) => m.has_all(*k),
+        }
+    }
+
+    pub fn is_true(&self) -> bool {
+        matches!(self, ParamCond::True)
+    }
+}
+
+impl Display for ParamCond {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParamCond::True => write!(f, "true"),
+            ParamCond::Has(k) => write!(f, "has({})", k),
+            ParamCond::HasNot(k) => write!(f, "has_not({})", k),
+            ParamCond::HasAll(k) => write!(f, "has_all({})", k),
+        }
+    }
 }
 
 impl Grammar {
     pub fn new(name: Option<String>) -> Self {
         Grammar {
             name,
+            parametric: false,
             symbols: vec![],
             symbol_by_name: HashMap::default(),
             symbol_count_cache: HashMap::default(),
@@ -158,11 +271,28 @@ impl Grammar {
         &mut self.symbols[sym.0 as usize]
     }
 
-    pub fn add_rule(&mut self, lhs: SymIdx, rhs: Vec<SymIdx>) -> Result<()> {
+    pub fn add_rule_ext(
+        &mut self,
+        lhs: SymIdx,
+        condition: ParamCond,
+        rhs: Vec<(SymIdx, ParamExpr)>,
+    ) -> Result<()> {
         let sym = self.sym_data_mut(lhs);
         ensure!(!sym.is_terminal(), "terminal symbol {}", sym.name);
-        sym.rules.push(Rule { lhs, rhs });
+        sym.rules.push(Rule {
+            condition,
+            lhs,
+            rhs,
+        });
         Ok(())
+    }
+
+    pub fn add_rule(&mut self, lhs: SymIdx, rhs: Vec<SymIdx>) -> Result<()> {
+        self.add_rule_ext(
+            lhs,
+            ParamCond::True,
+            rhs.into_iter().map(|r| (r, ParamExpr::Null)).collect(),
+        )
     }
 
     pub fn link_gen_grammar(&mut self, lhs: SymIdx, grammar: SymIdx) -> Result<()> {
@@ -186,6 +316,14 @@ impl Grammar {
             sym.name
         );
         ensure!(sym.lexeme.is_none(), "symbol {} has lexeme", sym.name);
+        ensure!(!sym.props.parametric, "symbol {} is parametric", sym.name);
+        Ok(())
+    }
+
+    pub fn make_parametric(&mut self, lhs: SymIdx) -> Result<()> {
+        self.check_empty_symbol(lhs)?;
+        self.parametric = true;
+        self.sym_data_mut(lhs).props.parametric = true;
         Ok(())
     }
 
@@ -248,7 +386,7 @@ impl Grammar {
         let dot_data = rule
             .rhs
             .get(dot.unwrap_or(0))
-            .map(|s| &self.sym_data(*s).props);
+            .map(|(s, _)| &self.sym_data(*s).props);
         rule_to_string(
             if is_first {
                 self.sym_name(rule.lhs())
@@ -257,7 +395,7 @@ impl Grammar {
             },
             rule.rhs
                 .iter()
-                .map(|s| self.sym_data(*s).short_name())
+                .map(|(s, p)| self.sym_data(*s).param_name(p))
                 .collect(),
             dot,
             &ldata.props,
@@ -305,8 +443,11 @@ impl Grammar {
             if self.is_special_symbol(sym) {
                 continue;
             }
-            if sym.rules.len() == 1 && sym.rules[0].rhs.len() == 1 {
-                uf_union(&mut definition, sym.idx, sym.rules[0].rhs[0]);
+            if sym.rules.len() == 1 {
+                assert!(sym.rules[0].condition.is_true());
+                if let &[(trg, ParamExpr::Null)] = sym.rules[0].rhs.as_slice() {
+                    uf_union(&mut definition, sym.idx, trg)
+                }
             }
         }
 
@@ -329,9 +470,10 @@ impl Grammar {
             }
             for r in sym.rules.iter() {
                 for s in &r.rhs {
-                    let s = definition[s.as_usize()].unwrap_or(*s);
+                    let s = definition[s.0.as_usize()].unwrap_or(s.0);
                     let idx = s.as_usize();
-                    if the_user_of[idx].is_none() {
+                    // if the only user is parametric we still can't replace
+                    if the_user_of[idx].is_none() && !sym.props.parametric {
                         the_user_of[idx] = Some(r.lhs);
                     } else {
                         // use self-loop to indicate there are multiple users
@@ -367,7 +509,7 @@ impl Grammar {
                     sym.rules[0]
                         .rhs
                         .iter()
-                        .map(|e| definition[e.as_usize()].unwrap_or(*e))
+                        .map(|e| definition[e.0.as_usize()].unwrap_or(e.0))
                         .collect::<Vec<_>>(),
                 );
             }
@@ -452,13 +594,21 @@ impl Grammar {
             for rule in &sym.rules {
                 let mut rhs = Vec::with_capacity(rule.rhs.len());
                 for s in &rule.rhs {
-                    if let Some(repl) = repl.get(s) {
-                        rhs.extend(repl.iter().map(|s| outp.copy_from(self, *s)));
+                    if let Some(repl) = repl.get(&s.0) {
+                        if s.1.is_null() {
+                            rhs.extend(
+                                repl.iter()
+                                    .map(|s| (outp.copy_from(self, *s), ParamExpr::Null)),
+                            );
+                        } else {
+                            assert!(repl.len() == 1);
+                            rhs.push((outp.copy_from(self, repl[0]), s.1.clone()));
+                        }
                     } else {
-                        rhs.push(outp.copy_from(self, *s));
+                        rhs.push((outp.copy_from(self, s.0), s.1.clone()));
                     }
                 }
-                outp.add_rule(lhs, rhs).unwrap();
+                outp.add_rule_ext(lhs, rule.condition.clone(), rhs).unwrap();
             }
         }
         outp
@@ -490,8 +640,9 @@ impl Grammar {
             if let Some(opts) = &sym.gen_grammar {
                 let cls = if sym.rules.len() == 1 {
                     // fetch the class of already-resolved grammar
-                    let rhs = sym.rules[0].rhs[0];
-                    self.sym_data(rhs).props.grammar_id
+                    let rhs = &sym.rules[0].rhs[0];
+                    assert!(rhs.1.is_null());
+                    self.sym_data(rhs.0).props.grammar_id
                 } else if let Some((idx, cls)) = ctx.get(&opts.grammar).cloned() {
                     rules.push((sym.idx, idx));
                     cls
@@ -529,14 +680,6 @@ impl Grammar {
         Ok(())
     }
 
-    pub fn apply_props(&mut self, sym: SymIdx, props: SymbolProps) {
-        let sym = self.sym_data_mut(sym);
-        if props.is_special() {
-            assert!(!sym.is_terminal(), "special terminal");
-        }
-        sym.props = props;
-    }
-
     pub fn fresh_symbol_ext(&mut self, name0: &str, symprops: SymbolProps) -> SymIdx {
         let mut name = name0.to_string();
         let mut idx = self.symbol_count_cache.get(&name).cloned().unwrap_or(2);
@@ -546,6 +689,8 @@ impl Grammar {
             idx += 1;
         }
         self.symbol_count_cache.insert(name0.to_string(), idx);
+
+        assert!(!symprops.parametric, "use self.make_parametric() instead");
 
         let idx = SymIdx(self.symbols.len() as u32);
         self.symbols.push(Symbol {
@@ -677,7 +822,9 @@ pub struct CSymbol {
     pub gen_grammar: Option<GenGrammarOptions>,
     // this points to the first element of rhs of each rule
     // note that null rules (with rhs == epsilon) are not stored
+    // PRTODO empty parametric rules
     pub rules: Vec<RhsPtr>,
+    pub rules_cond: Vec<ParamCond>,
     pub sym_flags: SymFlags,
     pub lexeme: Option<LexemeIdx>,
 }
@@ -689,6 +836,13 @@ impl CSymbol {
         } else {
             self.name.clone()
         }
+    }
+    fn param_name(&self, param: &ParamExpr) -> String {
+        let mut r = self.short_name();
+        if param != &ParamExpr::Null {
+            r.push_str(&format!("#({})", param));
+        }
+        r
     }
 }
 
@@ -741,6 +895,7 @@ impl SymFlags {
 
 #[derive(Clone)]
 pub struct CGrammar {
+    parametric: bool,
     start_symbol: CSymIdx,
     lexer_spec: LexerSpec,
     // indexed by CSymIdx
@@ -750,6 +905,7 @@ pub struct CGrammar {
     // A pointer into this array represents an Earley item:
     // the dot is before rhs_elements[rhs_ptr]; when it points at CSymIdx::NULL, the item is complete
     rhs_elements: Vec<CSymIdx>,
+    rhs_params: Vec<ParamExpr>,
     // given a pointer into rhs_elements[] (shifted by RULE_SHIFT),
     // this gives the index of the lhs symbol
     rhs_ptr_to_sym_idx: Vec<CSymIdx>,
@@ -760,6 +916,10 @@ pub struct CGrammar {
 const RULE_SHIFT: usize = 2;
 
 impl CGrammar {
+    pub fn parametric(&self) -> bool {
+        self.parametric
+    }
+
     pub fn lexer_spec(&self) -> &LexerSpec {
         &self.lexer_spec
     }
@@ -772,7 +932,7 @@ impl CGrammar {
         self.rhs_ptr_to_sym_flags[rule.as_index() >> RULE_SHIFT]
     }
 
-    pub fn rule_rhs(&self, rule: RhsPtr) -> (&[CSymIdx], usize) {
+    pub fn rule_rhs(&self, rule: RhsPtr) -> (&[CSymIdx], &[ParamExpr], usize) {
         let idx = rule.as_index();
         let mut start = idx - 1;
         while self.rhs_elements[start] != CSymIdx::NULL {
@@ -783,7 +943,11 @@ impl CGrammar {
         while self.rhs_elements[stop] != CSymIdx::NULL {
             stop += 1;
         }
-        (&self.rhs_elements[start..stop], idx - start)
+        (
+            &self.rhs_elements[start..stop],
+            &self.rhs_params[start..stop],
+            idx - start,
+        )
     }
 
     pub fn sym_data(&self, sym: CSymIdx) -> &CSymbol {
@@ -801,6 +965,11 @@ impl CGrammar {
     #[inline(always)]
     pub fn sym_data_dot(&self, idx: RhsPtr) -> &CSymbol {
         self.sym_data(self.sym_idx_dot(idx))
+    }
+
+    #[inline(always)]
+    pub fn param_value_dot(&self, idx: RhsPtr) -> &ParamExpr {
+        &self.rhs_params[idx.0 as usize]
     }
 
     pub fn start(&self) -> CSymIdx {
@@ -822,8 +991,10 @@ impl CGrammar {
         let mut outp = CGrammar {
             start_symbol: CSymIdx::NULL, // replaced
             lexer_spec,
+            parametric: grammar.parametric,
             symbols: vec![],
             rhs_elements: vec![CSymIdx::NULL], // make sure RhsPtr::NULL is invalid
+            rhs_params: vec![ParamExpr::Null],
             rhs_ptr_to_sym_idx: vec![],
             rhs_ptr_to_sym_flags: vec![],
         };
@@ -833,6 +1004,7 @@ impl CGrammar {
             is_terminal: true,
             is_nullable: false,
             rules: vec![],
+            rules_cond: vec![],
             props: SymbolProps::default(),
             sym_flags: SymFlags(0),
             gen_grammar: None,
@@ -852,6 +1024,7 @@ impl CGrammar {
                     is_terminal: true,
                     is_nullable: false,
                     rules: vec![],
+                    rules_cond: vec![],
                     props: sym.props.clone(),
                     sym_flags: SymFlags(0),
                     gen_grammar: None,
@@ -871,6 +1044,7 @@ impl CGrammar {
                 is_terminal: false,
                 is_nullable: sym.rules.iter().any(|r| r.rhs.is_empty()),
                 rules: vec![],
+                rules_cond: vec![],
                 props: sym.props.clone(),
                 sym_flags: SymFlags(0),
                 gen_grammar: sym.gen_grammar.clone(),
@@ -889,18 +1063,24 @@ impl CGrammar {
             for rule in &sym.rules {
                 // we handle the empty rule separately via is_nullable field
                 if rule.rhs.is_empty() {
+                    assert!(rule.condition.is_true());
                     continue;
                 }
                 let curr = RhsPtr(outp.rhs_elements.len().try_into().unwrap());
-                outp.sym_data_mut(idx).rules.push(curr);
+                let d = outp.sym_data_mut(idx);
+                d.rules.push(curr);
+                d.rules_cond.push(rule.condition.clone());
                 // outp.rules.push(idx);
-                for r in &rule.rhs {
+                for (r, e) in &rule.rhs {
                     outp.rhs_elements.push(sym_map[r]);
+                    outp.rhs_params.push(e.clone());
                 }
                 outp.rhs_elements.push(CSymIdx::NULL);
+                outp.rhs_params.push(ParamExpr::Null);
             }
             while outp.rhs_elements.len() % (1 << RULE_SHIFT) != 0 {
                 outp.rhs_elements.push(CSymIdx::NULL);
+                outp.rhs_params.push(ParamExpr::Null);
             }
             let rlen = outp.rhs_elements.len() >> RULE_SHIFT;
             while outp.rhs_ptr_to_sym_idx.len() < rlen {
@@ -954,7 +1134,7 @@ impl CGrammar {
         let sym = self.sym_idx_lhs(rule);
         let symdata = self.sym_data(sym);
         let lhs = self.sym_name(sym);
-        let (rhs, dot) = self.rule_rhs(rule);
+        let (rhs, rhs_p, dot) = self.rule_rhs(rule);
         let dot_prop = if !rhs.is_empty() {
             Some(&self.sym_data_dot(rule).props)
         } else {
@@ -962,7 +1142,10 @@ impl CGrammar {
         };
         rule_to_string(
             lhs,
-            rhs.iter().map(|s| self.sym_data(*s).short_name()).collect(),
+            rhs.iter()
+                .zip(rhs_p.iter())
+                .map(|(s, p)| self.sym_data(*s).param_name(p))
+                .collect(),
             Some(dot),
             &symdata.props,
             dot_prop,

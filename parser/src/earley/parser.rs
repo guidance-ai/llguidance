@@ -11,7 +11,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{earley::lexer::MatchingLexemesIdx, HashMap, HashSet, Instant};
+use crate::{
+    earley::{grammar::ParamValue, lexer::MatchingLexemesIdx},
+    HashMap, HashSet, Instant,
+};
 use anyhow::{bail, ensure, Result};
 use derivre::{NextByte, RegexAst, StateID};
 use serde::{Deserialize, Serialize};
@@ -316,6 +319,7 @@ struct Scratch {
     // these two are not really "scratch" - they are just here for convenience
     // grammar_stack only grows, until the trie is finished
     items: Vec<Item>,
+    item_args: Vec<ParamValue>,
     grammar_stack: Vec<GrammarStackNode>,
 
     push_allowed_grammar_ids: SimpleVob,
@@ -332,6 +336,9 @@ struct Scratch {
     definitive: bool,
 
     log_override: bool,
+
+    // whether to use item_args
+    parametric: bool,
 }
 
 #[derive(Clone)]
@@ -493,10 +500,12 @@ impl Scratch {
             push_allowed_grammar_ids: grammar.lexer_spec().alloc_grammar_set(),
             push_grm_top: GrammarStackPtr::new(0),
             push_lexeme_idx: MatchingLexemesIdx::Single(LexemeIdx::new(0)),
+            parametric: grammar.parametric(),
             grammar,
             row_start: 0,
             row_end: 0,
             items: vec![],
+            item_args: vec![],
             grammar_stack: vec![],
             definitive: true,
             log_override: false,
@@ -535,7 +544,11 @@ impl Scratch {
     // usually in preparation for adding Earley items.
     #[inline(always)]
     fn ensure_items(&mut self, n: usize) {
-        self.items.reserve(n.saturating_sub(self.items.len()));
+        let k = n.saturating_sub(self.items.len());
+        self.items.reserve(k);
+        if self.parametric {
+            self.item_args.reserve(k);
+        }
     }
 
     fn push_grammar_stack(&mut self, node: GrammarStackNode) {
@@ -547,17 +560,33 @@ impl Scratch {
         self.push_grm_top = ptr;
     }
 
+    fn just_add_idx(&mut self, item: Item, src_item_idx: usize, info: &str) {
+        let arg = if self.parametric {
+            self.item_args[src_item_idx]
+        } else {
+            ParamValue::default()
+        };
+        self.just_add(item, arg, info)
+    }
+
     // Add a new Earley item with default values to the Earley table.  It is
     // "just" added in the sense that no checks are performed, except the one
     // that ensures there is enough space in the table.  The other checks are
     // assumed to be unnecessary or to have been performed.  For example, it
     // is assumed the caller knows that this Earley item will be unique.
     #[inline(always)]
-    fn just_add(&mut self, item: Item, _origin_item_idx: usize, info: &str) {
+    fn just_add(&mut self, item: Item, param: ParamValue, info: &str) {
         if self.items.len() == self.row_end {
             self.items.push(item);
         } else {
             self.items[self.row_end] = item;
+        }
+        if self.parametric {
+            if self.item_args.len() == self.row_end {
+                self.item_args.push(param);
+            } else {
+                self.item_args[self.row_end] = param;
+            }
         }
         if self.log_enabled() {
             debug!(
@@ -578,19 +607,42 @@ impl Scratch {
             .map(|x| x + self.row_start)
     }
 
+    #[inline(always)]
+    fn add_unique(&mut self, item: Item, origin_item_idx: usize, info: &str) {
+        if self.parametric {
+            self.add_unique_arg(item, info, self.item_args[origin_item_idx])
+        } else {
+            self.add_unique_arg(item, info, ParamValue::default())
+        }
+    }
+
     // Ensure that Earley table 'self' contains
     // Earley item 'item'.  That is, look for 'item' in 'self',
     // and add 'item' to 'self' if it is not there already.
     #[inline(always)]
-    fn add_unique(&mut self, item: Item, origin_item_idx: usize, info: &str) {
-        if self.find_item(item).is_none() {
-            self.just_add(item, origin_item_idx, info);
+    fn add_unique_arg(&mut self, item: Item, info: &str, param: ParamValue) {
+        if self.parametric {
+            for idx in self.row_start..self.row_end {
+                if self.items[idx] == item && self.item_args[idx] == param {
+                    return;
+                }
+                self.just_add(item, param, info);
+            }
+        } else {
+            // otherwise, simple add
+            if self.find_item(item).is_none() {
+                self.just_add(item, param, info);
+            }
         }
     }
 
     // Write item at index 'idx' as a string.
     fn item_to_string(&self, idx: usize) -> String {
-        item_to_string(&self.grammar, &self.items[idx])
+        item_to_string(
+            &self.grammar,
+            &self.items[idx],
+            self.item_args.get(idx).copied().unwrap_or_default(),
+        )
     }
 }
 
@@ -1753,7 +1805,7 @@ impl ParserState {
 
         for i in src {
             self.scratch
-                .just_add(self.scratch.items[i], i, "skip_lexeme");
+                .just_add_idx(self.scratch.items[i], i, "skip_lexeme");
         }
 
         let (grammar_id, max_token_ptr) = self.maybe_pop_grammar_stack(lexeme.idx);
@@ -1816,7 +1868,7 @@ impl ParserState {
             let sym = self.grammar.sym_data_dot(item.rhs_ptr());
             if let Some(idx) = sym.lexeme {
                 if set.contains(idx) {
-                    self.scratch.just_add(item.advance_dot(), i, "scan");
+                    self.scratch.just_add_idx(item.advance_dot(), i, "scan");
                 }
             }
         }
@@ -1983,9 +2035,23 @@ impl ParserState {
                 } else {
                     // The top-down, or prediction, inference rule.
                     // (slide 20 in Kallmeyer 2018)
-                    for rule in &sym_data.rules {
-                        let new_item = Item::new(*rule, curr_idx);
-                        self.scratch.add_unique(new_item, item_idx, "predict");
+                    if self.scratch.parametric {
+                        let param_here = self.scratch.item_args[item_idx];
+                        for ri in 0..sym_data.rules.len() {
+                            let rule_param = self.grammar.param_value_dot(rule).eval(param_here);
+                            if !sym_data.rules_cond[ri].eval(rule_param) {
+                                continue; // skip this rule
+                            }
+                            let inner_rule = sym_data.rules[ri];
+                            let new_item = Item::new(inner_rule, curr_idx);
+                            self.scratch
+                                .add_unique_arg(new_item, "predict_parametric", rule_param);
+                        }
+                    } else {
+                        for rule in &sym_data.rules {
+                            let new_item = Item::new(*rule, curr_idx);
+                            self.scratch.add_unique(new_item, item_idx, "predict");
+                        }
                     }
                 }
             }
@@ -2082,7 +2148,7 @@ impl ParserState {
         // remove everything from the current row
         self.scratch.row_end = self.scratch.row_start;
         self.scratch
-            .just_add(item, top.start_item_idx, "max_tokens");
+            .just_add_idx(item, top.start_item_idx, "max_tokens");
         self.process_agenda(curr_idx, lexeme);
     }
 
@@ -2638,8 +2704,12 @@ impl Recognizer for ParserRecognizer<'_> {
     }
 }
 
-fn item_to_string(g: &CGrammar, item: &Item) -> String {
-    format!("{} @{}", g.rule_to_string(item.rhs_ptr()), item.start_pos(),)
+fn item_to_string(g: &CGrammar, item: &Item, param: ParamValue) -> String {
+    let mut r = format!("{} @{}", g.rule_to_string(item.rhs_ptr()), item.start_pos());
+    if !param.is_default() {
+        r.push_str(&format!(" #({})", param));
+    }
+    r
 }
 
 pub enum ParserError {
