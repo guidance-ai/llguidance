@@ -1,4 +1,5 @@
 use crate::{
+    earley::ParamExpr,
     grammar_builder::{GrammarResult, RegexId},
     substring::substring,
     HashMap, HashSet,
@@ -176,6 +177,9 @@ impl Compiler {
                 Value::NestedLark(_) => {
                     bail!("nested %lark {{ ... }} cannot be used in terminals");
                 }
+                Value::NameParam(_, _) => {
+                    bail!("name#(...) cannot be used in terminals");
+                }
                 Value::TemplateUsage { .. } => bail!("template usage not supported yet"),
             },
         }
@@ -284,10 +288,13 @@ impl Compiler {
                 match &value {
                     Value::Name(n) => {
                         if self.is_rule(n) {
-                            return self.do_rule(n);
+                            return self.do_rule(n, ParamExpr::Null);
                         } else {
                             // OK -> treat as token
                         }
+                    }
+                    Value::NameParam(name, param) => {
+                        return self.do_rule(name, param.clone());
                     }
                     Value::SpecialToken(s) => {
                         if s.starts_with("<[") && s.ends_with("]>") {
@@ -404,7 +411,7 @@ impl Compiler {
             || self.grammar.rules.contains_key(name)
     }
 
-    fn do_rule(&mut self, name: &str) -> Result<NodeRef> {
+    fn do_rule(&mut self, name: &str, param: ParamExpr) -> Result<NodeRef> {
         if let Some(id) = self.node_ids.get(name) {
             return Ok(*id);
         }
@@ -566,7 +573,7 @@ impl Compiler {
             .collect::<Result<Vec<_>>>()?;
         let id = self.builder.add_grammar(opts, RegexAst::Or(ignore))?;
 
-        let start = self.do_rule(start_name)?;
+        let start = self.do_rule(start_name, ParamExpr::Null)?;
         self.builder.set_start_node(start);
 
         let mut builder = self.builder;

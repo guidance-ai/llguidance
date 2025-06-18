@@ -1,4 +1,4 @@
-use crate::api::RegexExt;
+use crate::{api::RegexExt, earley::{ParamCond, ParamExpr}};
 
 use super::lexer::Location;
 
@@ -30,6 +30,7 @@ pub struct Rule {
     #[allow(dead_code)]
     pub pin_terminals: bool,
     pub params: Option<RuleParams>,
+    pub param_cond: ParamCond,
     pub priority: Option<i32>,
     pub expansions: Expansions,
 
@@ -139,6 +140,7 @@ pub enum Atom {
 pub enum Value {
     LiteralRange(String, String),
     Name(String),
+    NameParam(String, ParamExpr),
     LiteralString(String, String),
     LiteralRegex(String, String),
     GrammarRef(String),

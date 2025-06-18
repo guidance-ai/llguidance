@@ -158,6 +158,14 @@ impl ParamValue {
         debug_assert!(k < Self::NUM_BITS);
         self.0 == (1 << k) - 1
     }
+    pub fn insert(&self, k: usize) -> Self {
+        debug_assert!(k < Self::NUM_BITS);
+        ParamValue(self.0 | (1 << k))
+    }
+    pub fn remove(&self, k: usize) -> Self {
+        debug_assert!(k < Self::NUM_BITS);
+        ParamValue(self.0 & !(1 << k))
+    }
 }
 
 impl Display for ParamValue {
@@ -172,6 +180,7 @@ pub enum ParamExpr {
     Insert(usize),
     Remove(usize),
     Const(ParamValue),
+    SelfRef,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -186,15 +195,10 @@ impl ParamExpr {
     pub fn eval(&self, m: ParamValue) -> ParamValue {
         match self {
             ParamExpr::Null => ParamValue::default(),
-            ParamExpr::Insert(k) => {
-                debug_assert!(*k <= ParamValue::NUM_BITS);
-                ParamValue(m.0 | (1 << *k))
-            }
-            ParamExpr::Remove(k) => {
-                debug_assert!(*k <= ParamValue::NUM_BITS);
-                ParamValue(m.0 & !(1 << *k))
-            }
+            ParamExpr::Insert(k) => m.insert(*k),
+            ParamExpr::Remove(k) => m.remove(*k),
             ParamExpr::Const(v) => *v,
+            ParamExpr::SelfRef => m,
         }
     }
 
@@ -209,6 +213,7 @@ impl Display for ParamExpr {
             ParamExpr::Null => write!(f, "null"),
             ParamExpr::Insert(k) => write!(f, "insert({})", k),
             ParamExpr::Remove(k) => write!(f, "remove({})", k),
+            ParamExpr::SelfRef => write!(f, "self"),
             ParamExpr::Const(v) => write!(f, "{}", v),
         }
     }

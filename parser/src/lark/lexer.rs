@@ -40,6 +40,7 @@ pub enum Token {
     LBracket,
     RBracket,
     Tilde,
+    Hash,
     // regexps
     Op, // + * ?
     String,
@@ -147,6 +148,7 @@ impl Token {
         (Token::VBar, "|"),
         (Token::And, "&"),
         (Token::Equals, "="),
+        (Token::Hash, "#"),
     ];
 
     const REGEX_TOKENS: &'static [(Token, &'static str)] = &[

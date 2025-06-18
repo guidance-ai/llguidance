@@ -10,7 +10,9 @@ pub mod regexvec;
 
 pub use from_guidance::ValidationResult;
 #[allow(unused_imports)]
-pub use grammar::{CGrammar, CSymIdx, Grammar, SymIdx, SymbolProps};
+pub use grammar::{
+    CGrammar, CSymIdx, Grammar, ParamCond, ParamExpr, ParamValue, SymIdx, SymbolProps,
+};
 pub use parser::{
     BiasComputer, Parser, ParserError, ParserMetrics, ParserRecognizer, ParserStats, XorShift,
 };

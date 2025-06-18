@@ -32,12 +32,19 @@ Expressions:
 ```
 insert(m, k) = m | (1 << k)
 remove(m, k) = m & ~(1 << k)
+set(k0,...,kN) = (1 << k0) | ... | (1 << kN)
+full(n) = (1 << n) - 1
+```
+
+Conditions:
+
+```
 has(m, k) = m & (1 << k) != 0
 has_not(m, k) = m & (1 << k) == 0
 has_all(m, n) = m == (1 << n) - 1
-set(k0,...,kN) = (1 << k0) | ... | (1 << kN)
-full(n) = (1 << (n+1)) - 1
 ```
+
+Example:
 
 ```lark
 start: list#(set())

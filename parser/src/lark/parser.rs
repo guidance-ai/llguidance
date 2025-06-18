@@ -1,3 +1,5 @@
+use crate::earley::{ParamCond, ParamExpr, ParamValue};
+
 use super::{
     ast::*,
     lexer::{lex_lark, Lexeme, LexemeValue, Location, Token},
@@ -11,6 +13,7 @@ pub struct Parser {
     tokens: Vec<Lexeme>,
     pos: usize,
     nesting_level: usize,
+    symbol_param_name: String,
 }
 
 impl Parser {
@@ -20,6 +23,7 @@ impl Parser {
             tokens,
             pos: 0,
             nesting_level: nesting,
+            symbol_param_name: String::new(),
         }
     }
 
@@ -85,10 +89,15 @@ impl Parser {
     /// Parses a rule definition.
     fn parse_rule(&mut self) -> Result<Rule> {
         let name = self.expect_token_val(Token::Rule)?;
-        let params = if self.has_token(Token::LBrace) {
+        let template_params = if self.has_token(Token::LBrace) {
             Some(self.parse_rule_params()?)
         } else {
             None
+        };
+        let param_cond = if self.match_token(Token::Hash) {
+            self.parse_param_cond()?
+        } else {
+            ParamCond::True
         };
         let priority = if self.has_token(Token::Dot) {
             Some(self.parse_priority()?)
@@ -109,8 +118,9 @@ impl Parser {
         let mut rule = Rule {
             name,
             pin_terminals,
+            param_cond,
             cond_inline,
-            params,
+            params: template_params,
             priority,
             expansions: Expansions(self.location(), Vec::new()),
             suffix: None,
@@ -127,6 +137,7 @@ impl Parser {
 
         self.expect_colon()?;
         rule.expansions = self.parse_expansions()?;
+        self.symbol_param_name.clear();
         Ok(rule)
     }
 
@@ -211,7 +222,7 @@ impl Parser {
                             rule.suffix = Some(value);
                         }
                         "max_tokens" => {
-                            let value = self.expect_token_val(Token::Number)?.parse::<usize>()?;
+                            let value = self.parse_usize()?;
                             rule.max_tokens = Some(value);
                         }
                         "temperature" => {
@@ -316,7 +327,7 @@ impl Parser {
         if !self.match_token(Token::Dot) {
             bail!("Expected '.' in priority")
         }
-        let number = self.expect_token_val(Token::Number)?.parse::<i32>()?;
+        let number = self.parse_i32()?;
         Ok(number)
     }
 
@@ -392,6 +403,18 @@ impl Parser {
         Ok(Expansion(exprs))
     }
 
+    fn parse_i32(&mut self) -> Result<i32> {
+        let val = self.expect_token_val(Token::Number)?;
+        val.parse::<i32>()
+            .map_err(|e| anyhow!("error parsing signed integer: {e}"))
+    }
+
+    fn parse_usize(&mut self) -> Result<usize> {
+        let val = self.expect_token_val(Token::Number)?;
+        val.parse::<usize>()
+            .map_err(|e| anyhow!("error parsing unsigned integer: {e}"))
+    }
+
     /// Parses an expression.
     fn parse_expr(&mut self) -> Result<Expr> {
         let atom = self.parse_atom()?;
@@ -401,9 +424,9 @@ impl Parser {
             op = Some(Op(op_token.clone()));
         } else if self.has_tokens(&[Token::Tilde, Token::Number]) {
             self.expect_token(Token::Tilde)?;
-            let start_num = self.expect_token_val(Token::Number)?.parse::<i32>()?;
+            let start_num = self.parse_i32()?;
             let end_num = if self.match_token(Token::DotDot) {
-                Some(self.expect_token_val(Token::Number)?.parse::<i32>()?)
+                Some(self.parse_i32()?)
             } else {
                 None
             };
@@ -412,14 +435,14 @@ impl Parser {
             let start_num = if self.has_token(Token::Comma) {
                 0
             } else {
-                self.expect_token_val(Token::Number)?.parse::<i32>()?
+                self.parse_i32()?
             };
             let end_num = if self.has_token(Token::Comma) {
                 self.expect_token(Token::Comma)?;
                 if self.has_token(Token::RBrace) {
                     i32::MAX
                 } else {
-                    self.expect_token_val(Token::Number)?.parse::<i32>()?
+                    self.parse_i32()?
                 }
             } else {
                 start_num
@@ -558,12 +581,111 @@ impl Parser {
                     name: name_token,
                     values,
                 })
+            } else if self.match_token(Token::Hash) {
+                Ok(Value::NameParam(name_token, self.parse_param_expr()?))
             } else {
                 Ok(Value::Name(name_token))
             }
         } else {
             bail!("Expected value")
         }
+    }
+
+    fn parse_set_elt(&mut self) -> Result<usize> {
+        let k = self.parse_usize()?;
+        ensure!(
+            k < ParamValue::NUM_BITS,
+            "parameter number {} is too large; must be < {}",
+            k,
+            ParamValue::NUM_BITS
+        );
+        Ok(k)
+    }
+
+    fn parse_set_elts(&mut self) -> Result<ParamValue> {
+        if !self.match_token(Token::LParen) {
+            bail!("Expected '(' in set elements")
+        }
+        let mut r = ParamValue::default();
+        r = r.insert(self.parse_set_elt()?);
+        while self.match_token(Token::Comma) {
+            r = r.insert(self.parse_set_elt()?);
+        }
+        self.expect_token(Token::RParen)?;
+        Ok(r)
+    }
+
+    fn parse_param_expr(&mut self) -> Result<ParamExpr> {
+        self.expect_token(Token::LParen)?;
+
+        let n = self.expect_token_val(Token::Rule)?;
+        let r = match n.as_str() {
+            s if s == self.symbol_param_name => {
+                // This is a self-reference, which is allowed.
+                ParamExpr::SelfRef
+            }
+            "insert" => ParamExpr::Insert(self.parse_param_number()?),
+            "remove" => ParamExpr::Remove(self.parse_param_number()?),
+            "set" => ParamExpr::Const(self.parse_set_elts()?),
+            "full" => ParamExpr::Const(self.parse_full_set()?),
+
+            _ => bail!("Unexpected expression '{}'", n),
+        };
+
+        self.expect_token(Token::RParen)?;
+
+        Ok(r)
+    }
+
+    fn parse_full_set(&mut self) -> Result<ParamValue> {
+        if !self.match_token(Token::LParen) {
+            bail!("Expected '(' in set element")
+        }
+        let mut r = ParamValue::default();
+        let top = self.parse_set_elt()?;
+        for e in 0..top {
+            r = r.insert(e);
+        }
+        self.expect_token(Token::RParen)?;
+        Ok(r)
+    }
+
+    fn parse_param_number(&mut self) -> Result<usize> {
+        self.expect_token(Token::LParen)?;
+
+        let n = self.expect_token_val(Token::Rule)?;
+        if n != self.symbol_param_name {
+            bail!("Expected '{}', found '{}'", self.symbol_param_name, n);
+        }
+
+        self.expect_token(Token::Comma)?;
+        let k = self.parse_set_elt()?;
+        self.expect_token(Token::RParen)?;
+
+        Ok(k)
+    }
+
+    fn parse_param_cond(&mut self) -> Result<ParamCond> {
+        self.expect_token(Token::LParen)?;
+        self.symbol_param_name = self.expect_token_val(Token::Rule)?;
+        if self.match_token(Token::RParen) {
+            return Ok(ParamCond::True);
+        }
+
+        let n = self.expect_token_val(Token::Rule)?;
+        if n != "if" {
+            bail!("Expected 'if' after parameter name, found '{}'", n);
+        }
+
+        let n = self.expect_token_val(Token::Rule)?;
+        let r = match n.as_str() {
+            "has" => ParamCond::Has(self.parse_param_number()?),
+            "has_not" => ParamCond::HasNot(self.parse_param_number()?),
+            "has_all" => ParamCond::HasAll(self.parse_param_number()?),
+            _ => bail!("Unexpected condition '{}'", n),
+        };
+        self.expect_token(Token::RParen)?;
+        Ok(r)
     }
 
     /// Parses an import path.
