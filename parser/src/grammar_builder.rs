@@ -711,12 +711,13 @@ impl GrammarBuilder {
     }
 
     pub fn set_placeholder(&mut self, placeholder: NodeRef, node: NodeRef) {
-        let _ = self.child_nodes(&[placeholder, node]); // validate
+        let (mut ch, _) = self.child_nodes(&[node, placeholder]);
+        ch.pop();
         self.grammar
             .check_empty_symbol_parametric_ok(placeholder.idx)
             .expect("placeholder already set");
         self.grammar
-            .add_rule(placeholder.idx, vec![node.idx])
+            .add_rule_ext(placeholder.idx, ParamCond::True, ch)
             .unwrap();
     }
 
