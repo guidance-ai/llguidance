@@ -1,4 +1,7 @@
-use crate::{api::RegexExt, earley::{ParamCond, ParamExpr}};
+use crate::{
+    api::RegexExt,
+    earley::{ParamCond, ParamExpr},
+};
 
 use super::lexer::Location;
 
@@ -86,6 +89,7 @@ pub struct Expansions(pub Location, pub Vec<Alias>);
 impl Expansions {
     pub fn single_atom(&self) -> Option<&Atom> {
         if self.1.len() == 1
+            && self.1[0].param_cond.is_true()
             && self.1[0].conjuncts.len() == 1
             && self.1[0].conjuncts[0].0.len() == 1
         {

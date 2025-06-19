@@ -2,6 +2,7 @@ use super::lexerspec::{LexemeClass, LexemeIdx, LexerSpec};
 use crate::api::{GenGrammarOptions, GrammarId, NodeProps};
 use crate::{HashMap, HashSet};
 use anyhow::{bail, ensure, Result};
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::{fmt::Debug, hash::Hash};
 
@@ -142,7 +143,7 @@ pub struct Grammar {
     symbol_by_name: HashMap<String, SymIdx>,
 }
 
-#[derive(Clone, Default, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Default, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub struct ParamValue(pub u64);
 
 impl ParamValue {
@@ -174,7 +175,7 @@ impl Display for ParamValue {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub enum ParamExpr {
     Null,
     Insert(usize),
@@ -183,7 +184,7 @@ pub enum ParamExpr {
     SelfRef,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub enum ParamCond {
     True,
     Has(usize),
@@ -284,6 +285,17 @@ impl Grammar {
     ) -> Result<()> {
         let sym = self.sym_data_mut(lhs);
         ensure!(!sym.is_terminal(), "terminal symbol {}", sym.name);
+        ensure!(
+            condition.is_true() || sym.props.parametric,
+            "non-parametric symbol {} with condition {}",
+            sym.name,
+            condition
+        );
+        ensure!(
+            sym.props.parametric || rhs.iter().all(|(_, p)| p.is_null()),
+            "parametric symbol {} with non-null rhs",
+            sym.name
+        );
         sym.rules.push(Rule {
             condition,
             lhs,
@@ -293,11 +305,14 @@ impl Grammar {
     }
 
     pub fn add_rule(&mut self, lhs: SymIdx, rhs: Vec<SymIdx>) -> Result<()> {
-        self.add_rule_ext(
+        let sym = self.sym_data_mut(lhs);
+        ensure!(!sym.is_terminal(), "terminal symbol {}", sym.name);
+        sym.rules.push(Rule {
+            condition: ParamCond::True,
             lhs,
-            ParamCond::True,
-            rhs.into_iter().map(|r| (r, ParamExpr::Null)).collect(),
-        )
+            rhs: rhs.into_iter().map(|r| (r, ParamExpr::Null)).collect(),
+        });
+        Ok(())
     }
 
     pub fn link_gen_grammar(&mut self, lhs: SymIdx, grammar: SymIdx) -> Result<()> {

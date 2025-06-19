@@ -292,13 +292,13 @@ impl Compiler {
                 match &value {
                     Value::Name(n) => {
                         if self.is_rule(n) {
-                            return self.do_rule(n, ParamExpr::Null);
+                            return self.do_rule(n, None);
                         } else {
                             // OK -> treat as token
                         }
                     }
                     Value::NameParam(name, param) => {
-                        return self.do_rule(name, param.clone());
+                        return self.do_rule(name, Some(param.clone()));
                     }
                     Value::SpecialToken(s) => {
                         if s.starts_with("<[") && s.ends_with("]>") {
@@ -402,7 +402,9 @@ impl Compiler {
                     .into_iter()
                     .map(|e| self.do_expr(&loc, e))
                     .collect::<Result<Vec<_>>>()?;
-                Ok(self.builder.join(&args))
+                Ok(self
+                    .builder
+                    .join_props(&args, NodeProps::default(), alias.param_cond))
             })
             .collect::<Result<Vec<_>>>()
             .map_err(|e| loc.augment(e))?;
@@ -415,7 +417,8 @@ impl Compiler {
             || self.grammar.rules.contains_key(name)
     }
 
-    fn do_rule(&mut self, name: &str, param: ParamExpr) -> Result<NodeRef> {
+    fn do_rule(&mut self, name: &str, param: Option<ParamExpr>) -> Result<NodeRef> {
+        // PRTODO use param
         if let Some(id) = self.node_ids.get(name) {
             return Ok(*id);
         }
@@ -531,6 +534,7 @@ impl Compiler {
             }
 
             let inner = self.do_expansions(rule.expansions)?;
+
             #[allow(clippy::assertions_on_constants)]
             if let Some(max_tokens) = rule.max_tokens {
                 assert!(false, "max_tokens handled above for now");
@@ -542,9 +546,10 @@ impl Compiler {
                         capture_name: Some(name.to_string()),
                         ..Default::default()
                     },
+                    ParamCond::True,
                 )
             } else if rule.capture_name.is_some() {
-                self.builder.join_props(&[inner], props)
+                self.builder.join_props(&[inner], props, ParamCond::True)
             } else {
                 inner
             }
@@ -577,7 +582,7 @@ impl Compiler {
             .collect::<Result<Vec<_>>>()?;
         let id = self.builder.add_grammar(opts, RegexAst::Or(ignore))?;
 
-        let start = self.do_rule(start_name, ParamExpr::Null)?;
+        let start = self.do_rule(start_name, None)?;
         self.builder.set_start_node(start);
 
         let mut builder = self.builder;
