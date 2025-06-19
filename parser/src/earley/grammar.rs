@@ -299,8 +299,8 @@ impl Grammar {
             condition
         );
         ensure!(
-            sym.props.parametric || rhs.iter().all(|(_, p)| p.is_null()),
-            "parametric symbol {} with non-null rhs",
+            sym.props.parametric || rhs.iter().all(|(_, p)| !p.needs_param()),
+            "non-parametric symbol {} with parametric rhs",
             sym.name
         );
         sym.rules.push(Rule {
@@ -433,6 +433,7 @@ impl Grammar {
             dot,
             &ldata.props,
             dot_data,
+            &rule.condition,
         )
     }
 
@@ -713,7 +714,7 @@ impl Grammar {
         Ok(())
     }
 
-    pub fn fresh_symbol_ext(&mut self, name0: &str, symprops: SymbolProps) -> SymIdx {
+    pub fn fresh_symbol_ext(&mut self, name0: &str, mut symprops: SymbolProps) -> SymIdx {
         let mut name = name0.to_string();
         let mut idx = self.symbol_count_cache.get(&name).cloned().unwrap_or(2);
         // don't allow empty names
@@ -723,7 +724,7 @@ impl Grammar {
         }
         self.symbol_count_cache.insert(name0.to_string(), idx);
 
-        assert!(!symprops.parametric, "use self.make_parametric() instead");
+        let parametric = std::mem::take(&mut symprops.parametric);
 
         let idx = SymIdx(self.symbols.len() as u32);
         self.symbols.push(Symbol {
@@ -735,6 +736,11 @@ impl Grammar {
             gen_grammar: None,
         });
         self.symbol_by_name.insert(name, idx);
+
+        if parametric {
+            self.make_parametric(idx).unwrap();
+        }
+
         idx
     }
 
@@ -1163,7 +1169,7 @@ impl CGrammar {
         &self.symbols[sym.0 as usize].name
     }
 
-    pub fn rule_to_string(&self, rule: RhsPtr) -> String {
+    pub fn rule_to_string(&self, rule: RhsPtr, cond: &ParamCond) -> String {
         let sym = self.sym_idx_lhs(rule);
         let symdata = self.sym_data(sym);
         let lhs = self.sym_name(sym);
@@ -1182,6 +1188,7 @@ impl CGrammar {
             Some(dot),
             &symdata.props,
             dot_prop,
+            cond,
         )
     }
 }
@@ -1189,8 +1196,9 @@ impl CGrammar {
 impl Debug for CGrammar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for s in &self.symbols {
-            for r in &s.rules {
-                writeln!(f, "{}", self.rule_to_string(*r))?;
+            for (idx, r) in s.rules.iter().enumerate() {
+                let cond = s.rules_cond.get(idx).unwrap_or(&ParamCond::True);
+                writeln!(f, "{}", self.rule_to_string(*r, cond))?;
             }
         }
         Ok(())
@@ -1203,6 +1211,7 @@ fn rule_to_string(
     dot: Option<usize>,
     props: &SymbolProps,
     _dot_props: Option<&SymbolProps>,
+    cond: &ParamCond,
 ) -> String {
     if rhs.is_empty() {
         rhs.push("ϵ".to_string());
@@ -1212,7 +1221,17 @@ fn rule_to_string(
     } else if let Some(dot) = dot {
         rhs.insert(dot, "•".to_string());
     }
-    format!("{:15} ⇦ {}  {}", lhs, rhs.join(" "), props)
+    format!(
+        "{:15} ⇦ {}{}  {}",
+        lhs,
+        rhs.join(" "),
+        if cond.is_true() {
+            String::new()
+        } else {
+            format!("   %if {} ", cond)
+        },
+        props
+    )
 }
 
 fn uf_find(map: &mut [Option<SymIdx>], e: SymIdx) -> SymIdx {
