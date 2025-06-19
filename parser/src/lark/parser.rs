@@ -103,9 +103,7 @@ impl Parser {
     fn parse_rule(&mut self) -> Result<Rule> {
         let name = self.expect_token_val(Token::Rule)?;
 
-        if self.has_tokens(&[Token::LBrace, Token::Hash]) {
-            self.expect_token(Token::LBrace)?;
-            self.expect_token(Token::Hash)?;
+        if self.match_token(Token::DoubleColon) {
             let n = self.expect_token_val(Token::Rule)?;
             self.symbol_param_name = n;
         }
@@ -600,23 +598,20 @@ impl Parser {
             {
                 Ok(Value::Name(name_token))
             } else if self.match_token(Token::LBrace) {
-                if self.symbol_param_name.is_empty() {
-                    // Lark template usage (not supported outside of parser anyways)
-                    let mut values = Vec::new();
+                // Lark template usage (not supported outside of parser anyways)
+                let mut values = Vec::new();
+                values.push(self.parse_value()?);
+                while self.match_token(Token::Comma) {
                     values.push(self.parse_value()?);
-                    while self.match_token(Token::Comma) {
-                        values.push(self.parse_value()?);
-                    }
-                    self.expect_token(Token::RBrace)?;
-                    Ok(Value::TemplateUsage {
-                        name: name_token,
-                        values,
-                    })
-                } else {
-                    let inner = self.parse_param_expr()?;
-                    self.expect_token(Token::RBrace)?;
-                    Ok(Value::NameParam(name_token, inner))
                 }
+                self.expect_token(Token::RBrace)?;
+                Ok(Value::TemplateUsage {
+                    name: name_token,
+                    values,
+                })
+            } else if self.match_token(Token::DoubleColon) {
+                let inner = self.parse_param_expr()?;
+                Ok(Value::NameParam(name_token, inner))
             } else {
                 Ok(Value::Name(name_token))
             }
@@ -641,6 +636,9 @@ impl Parser {
             bail!("Expected '(' in set elements")
         }
         let mut r = ParamValue::default();
+        if self.match_token(Token::RParen) {
+            return Ok(r);
+        }
         r = r.insert(self.parse_set_elt()?);
         while self.match_token(Token::Comma) {
             r = r.insert(self.parse_set_elt()?);
@@ -696,17 +694,6 @@ impl Parser {
     }
 
     fn parse_param_cond(&mut self) -> Result<ParamCond> {
-        self.expect_token(Token::LParen)?;
-        self.symbol_param_name = self.expect_token_val(Token::Rule)?;
-        if self.match_token(Token::RParen) {
-            return Ok(ParamCond::True);
-        }
-
-        let n = self.expect_token_val(Token::Rule)?;
-        if n != "if" {
-            bail!("Expected 'if' after parameter name, found '{}'", n);
-        }
-
         let n = self.expect_token_val(Token::Rule)?;
         let r = match n.as_str() {
             "has" => ParamCond::Has(self.parse_param_number()?),
@@ -714,7 +701,6 @@ impl Parser {
             "has_all" => ParamCond::HasAll(self.parse_param_number()?),
             _ => bail!("Unexpected condition '{}'", n),
         };
-        self.expect_token(Token::RParen)?;
         Ok(r)
     }
 

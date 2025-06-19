@@ -33,7 +33,7 @@ impl Symbol {
     fn param_name(&self, param: &ParamExpr) -> String {
         let mut r = self.short_name();
         if param != &ParamExpr::Null {
-            r.push_str(&format!("{{{}}}", param));
+            r.push_str(&format!("::{}", param));
         }
         r
     }
@@ -860,7 +860,7 @@ impl CSymbol {
     fn param_name(&self, param: &ParamExpr) -> String {
         let mut r = self.short_name();
         if param != &ParamExpr::Null {
-            r.push_str(&format!("{{{}}}", param));
+            r.push_str(&format!("::{}", param));
         }
         r
     }

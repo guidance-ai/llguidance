@@ -178,7 +178,7 @@ impl Compiler {
                     bail!("nested %lark {{ ... }} cannot be used in terminals");
                 }
                 Value::NameParam(_, _) => {
-                    bail!("name{{...}} cannot be used in terminals");
+                    bail!("name::param cannot be used in terminals");
                 }
                 Value::TemplateUsage { .. } => bail!("template usage not supported yet"),
             },

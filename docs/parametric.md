@@ -95,3 +95,9 @@ perm{#m}:   ""                        %if has_all(m, 3)
         |   a1 perm{insert(m, 1)}     %if has_not(m, 1)
         |   a2 perm{insert(m, 2)}     %if has_not(m, 2)
 ```
+
+## Other use cases
+
+Not sure if this can be made to work, but let's say we want to have `s: a* b*` where `len(s) < 100`.
+
+TODO: check on the right recursion we use above - does it cause lots of items?

@@ -2707,7 +2707,7 @@ impl Recognizer for ParserRecognizer<'_> {
 fn item_to_string(g: &CGrammar, item: &Item, param: ParamValue) -> String {
     let mut r = format!("{} @{}", g.rule_to_string(item.rhs_ptr()), item.start_pos());
     if !param.is_default() {
-        r.push_str(&format!(" {{{}}}", param));
+        r.push_str(&format!(" ::{}", param));
     }
     r
 }

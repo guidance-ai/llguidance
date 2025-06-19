@@ -29,6 +29,7 @@ pub enum Token {
     KwIf,
     KwLark,
     Colon,
+    DoubleColon, // ::
     Equals,
     Comma,
     Dot,
@@ -178,6 +179,7 @@ impl Token {
         (Token::And, "&"),
         (Token::Equals, "="),
         (Token::Hash, "#"),
+        (Token::DoubleColon, "::"),
     ];
 
     const REGEX_TOKENS: &'static [(Token, &'static str)] = &[
