@@ -30,7 +30,6 @@ pub struct Rule {
     #[allow(dead_code)]
     pub pin_terminals: bool,
     pub params: Option<RuleParams>,
-    pub param_cond: ParamCond,
     pub priority: Option<i32>,
     pub expansions: Expansions,
 
@@ -110,6 +109,7 @@ impl Expansions {
 #[derive(Debug)]
 pub struct Alias {
     pub conjuncts: Vec<Expansion>,
+    pub param_cond: ParamCond,
     #[allow(dead_code)]
     pub alias: Option<String>,
 }

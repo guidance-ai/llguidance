@@ -89,16 +89,20 @@ impl Parser {
     /// Parses a rule definition.
     fn parse_rule(&mut self) -> Result<Rule> {
         let name = self.expect_token_val(Token::Rule)?;
+
+        if self.has_tokens(&[Token::LBrace, Token::Hash]) {
+            self.expect_token(Token::LBrace)?;
+            self.expect_token(Token::Hash)?;
+            let n = self.expect_token_val(Token::Rule)?;
+            self.symbol_param_name = n;
+        }
+
         let template_params = if self.has_token(Token::LBrace) {
             Some(self.parse_rule_params()?)
         } else {
             None
         };
-        let param_cond = if self.match_token(Token::Hash) {
-            self.parse_param_cond()?
-        } else {
-            ParamCond::True
-        };
+
         let priority = if self.has_token(Token::Dot) {
             Some(self.parse_priority()?)
         } else {
@@ -118,7 +122,6 @@ impl Parser {
         let mut rule = Rule {
             name,
             pin_terminals,
-            param_cond,
             cond_inline,
             params: template_params,
             priority,
@@ -381,21 +384,32 @@ impl Parser {
         } else {
             None
         };
-        Ok(Alias { conjuncts, alias })
+        let param_cond = if self.match_token(Token::KwIf) {
+            self.parse_param_cond()?
+        } else {
+            ParamCond::True
+        };
+        Ok(Alias {
+            conjuncts,
+            alias,
+            param_cond,
+        })
     }
 
     /// Parses an expansion.
     fn parse_expansion(&mut self) -> Result<Expansion> {
         let mut exprs = Vec::new();
         loop {
-            if self.has_token(Token::Newline)
-                || self.has_token(Token::VBar)
-                || self.has_token(Token::Arrow)
-                || self.has_token(Token::RBrace)
-                || self.has_token(Token::RParen)
-                || self.has_token(Token::RBracket)
-                || self.has_token(Token::And)
-            {
+            if self.has_any_token(&[
+                Token::Newline,
+                Token::VBar,
+                Token::Arrow,
+                Token::RBrace,
+                Token::RParen,
+                Token::RBracket,
+                Token::And,
+                Token::KwIf,
+            ]) {
                 break;
             }
             exprs.push(self.parse_expr()?);
@@ -571,18 +585,23 @@ impl Parser {
             {
                 Ok(Value::Name(name_token))
             } else if self.match_token(Token::LBrace) {
-                let mut values = Vec::new();
-                values.push(self.parse_value()?);
-                while self.match_token(Token::Comma) {
+                if self.symbol_param_name.is_empty() {
+                    // Lark template usage (not supported outside of parser anyways)
+                    let mut values = Vec::new();
                     values.push(self.parse_value()?);
+                    while self.match_token(Token::Comma) {
+                        values.push(self.parse_value()?);
+                    }
+                    self.expect_token(Token::RBrace)?;
+                    Ok(Value::TemplateUsage {
+                        name: name_token,
+                        values,
+                    })
+                } else {
+                    let inner = self.parse_param_expr()?;
+                    self.expect_token(Token::RBrace)?;
+                    Ok(Value::NameParam(name_token, inner))
                 }
-                self.expect_token(Token::RBrace)?;
-                Ok(Value::TemplateUsage {
-                    name: name_token,
-                    values,
-                })
-            } else if self.match_token(Token::Hash) {
-                Ok(Value::NameParam(name_token, self.parse_param_expr()?))
             } else {
                 Ok(Value::Name(name_token))
             }
@@ -616,8 +635,6 @@ impl Parser {
     }
 
     fn parse_param_expr(&mut self) -> Result<ParamExpr> {
-        self.expect_token(Token::LParen)?;
-
         let n = self.expect_token_val(Token::Rule)?;
         let r = match n.as_str() {
             s if s == self.symbol_param_name => {
@@ -631,8 +648,6 @@ impl Parser {
 
             _ => bail!("Unexpected expression '{}'", n),
         };
-
-        self.expect_token(Token::RParen)?;
 
         Ok(r)
     }
@@ -725,6 +740,14 @@ impl Parser {
         }
         self.expect_token(Token::RParen)?;
         Ok(names)
+    }
+
+    fn has_any_token(&self, tokens: &[Token]) -> bool {
+        if let Some(lexeme) = self.peek_token() {
+            tokens.iter().any(|&token| lexeme.token == token)
+        } else {
+            false
+        }
     }
 
     fn has_token(&self, token: Token) -> bool {

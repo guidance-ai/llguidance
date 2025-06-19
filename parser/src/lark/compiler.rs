@@ -1,5 +1,5 @@
 use crate::{
-    earley::ParamExpr,
+    earley::{ParamCond, ParamExpr},
     grammar_builder::{GrammarResult, RegexId},
     substring::substring,
     HashMap, HashSet,
@@ -178,7 +178,7 @@ impl Compiler {
                     bail!("nested %lark {{ ... }} cannot be used in terminals");
                 }
                 Value::NameParam(_, _) => {
-                    bail!("name#(...) cannot be used in terminals");
+                    bail!("name{{...}} cannot be used in terminals");
                 }
                 Value::TemplateUsage { .. } => bail!("template usage not supported yet"),
             },
@@ -225,6 +225,10 @@ impl Compiler {
             .1
             .into_iter()
             .map(|alias| {
+                ensure!(
+                    alias.param_cond.is_true(),
+                    "'%if' is not supported in terminals"
+                );
                 let args = alias
                     .conjuncts
                     .into_iter()
@@ -612,6 +616,7 @@ impl Grammar {
                         op: None,
                         range: None,
                     }])],
+                    param_cond: ParamCond::True,
                     alias: None,
                 }],
             ),

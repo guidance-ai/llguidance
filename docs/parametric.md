@@ -24,7 +24,7 @@ start: list#(0)
 list#(m if m & (1 << k) == 0): others#(m) elt_k list#(m | (1 << k)) // repeat for k in 0..N
 list#(m if m == (1 << N) - 1): others#(m)
 others#(m): others#(m) other#(m) | ""
-others#(m if m & (1 << k) != 0): elt_k // repeat for k in 0..N
+other#(m if m & (1 << k) != 0): elt_k // repeat for k in 0..N
 ```
 
 Expressions:
@@ -51,7 +51,7 @@ start: list#(set())
 list#(m): others#(m)                           %if has_all(m, N) |
           others#(m) elt_k list#(insert(m, k)) %if has_not(m, k) // repeat for k in 0..N
 others#(m): others#(m) other#(m) | ""
-others#(m): elt_k %if has(m, k)  // repeat for k in 0..N
+other#(m): elt_k %if has(m, k)  // repeat for k in 0..N
 ```
 
 Nicer:
@@ -61,5 +61,37 @@ start: list{set()}
 list{#m}:   others{m}                           %if has_all(m, N)
         |   others{m} elt_k list{insert(m, k)}  %if has_not(m, k) // repeat for k in 0..N
 others{#m}: others{m} other{m} | ""
-others{#m}: elt_k                               %if has(m, k)  // repeat for k in 0..N
+other{#m}: elt_k                                %if has(m, k)  // repeat for k in 0..N
+```
+
+Should also work:
+
+```lark
+start: list{set()}
+list{#m}:   other{m}*                           %if has_all(m, N)
+        |   other{m}* elt_k list{insert(m, k)}  %if has_not(m, k) // repeat for k in 0..N
+other{#m}: elt_k                                %if has(m, k)  // repeat for k in 0..N
+```
+
+Expanded:
+
+```lark
+start: list{set()}
+list{#m}:   other{m}*                        %if has_all(m, 3)
+        |   other{m}* a0 list{insert(m, 0)}  %if has_not(m, 0)
+        |   other{m}* a1 list{insert(m, 1)}  %if has_not(m, 1)
+        |   other{m}* a2 list{insert(m, 2)}  %if has_not(m, 2)
+other{#m}: a0   %if has(m, 0)
+         | a1   %if has(m, 1)
+         | a2   %if has(m, 2)
+```
+
+Permutation of a0,a1,a2:
+
+```lark
+start: perm{set()}
+perm{#m}:   ""                        %if has_all(m, 3)
+        |   a0 perm{insert(m, 0)}     %if has_not(m, 0)
+        |   a1 perm{insert(m, 1)}     %if has_not(m, 1)
+        |   a2 perm{insert(m, 2)}     %if has_not(m, 2)
 ```
