@@ -1221,6 +1221,11 @@ fn rule_to_string(
     } else if let Some(dot) = dot {
         rhs.insert(dot, "•".to_string());
     }
+    let lhs = if props.parametric && !lhs.is_empty() {
+        format!("{}::_", lhs)
+    } else {
+        lhs.to_string()
+    };
     format!(
         "{:15} ⇦ {}{}  {}",
         lhs,
