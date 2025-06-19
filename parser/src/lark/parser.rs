@@ -759,7 +759,7 @@ impl Parser {
 
     fn has_any_token(&self, tokens: &[Token]) -> bool {
         if let Some(lexeme) = self.peek_token() {
-            tokens.iter().any(|&token| lexeme.token == token)
+            tokens.contains(&lexeme.token)
         } else {
             false
         }

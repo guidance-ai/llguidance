@@ -1212,7 +1212,7 @@ fn uf_find(map: &mut [Option<SymIdx>], e: SymIdx) -> SymIdx {
     if steps > 1 {
         let mut p = e;
         assert!(p != root);
-        while let Some(q) = std::mem::replace(&mut map[p.as_usize()], Some(root)) {
+        while let Some(q) = map[p.as_usize()].replace(root) {
             if q == root {
                 break;
             }
@@ -1226,7 +1226,7 @@ fn uf_union(map: &mut [Option<SymIdx>], mut a: SymIdx, mut b: SymIdx) {
     a = uf_find(map, a);
     b = uf_find(map, b);
     if a != b {
-        let r = std::mem::replace(&mut map[a.as_usize()], Some(b));
+        let r = map[a.as_usize()].replace(b);
         assert!(r.is_none());
     }
 }
