@@ -206,6 +206,13 @@ impl ParamExpr {
     pub fn is_null(&self) -> bool {
         matches!(self, ParamExpr::Null)
     }
+
+    pub fn needs_param(&self) -> bool {
+        match self {
+            ParamExpr::Null | ParamExpr::Const(_) => false,
+            ParamExpr::Insert(_) | ParamExpr::Remove(_) | ParamExpr::SelfRef => true,
+        }
+    }
 }
 
 impl Display for ParamExpr {
@@ -327,7 +334,7 @@ impl Grammar {
         Ok(())
     }
 
-    pub fn check_empty_symbol(&self, sym: SymIdx) -> Result<()> {
+    pub fn check_empty_symbol_parametric_ok(&self, sym: SymIdx) -> Result<()> {
         let sym = self.sym_data(sym);
         ensure!(sym.rules.is_empty(), "symbol {} has rules", sym.name);
         ensure!(
@@ -336,6 +343,12 @@ impl Grammar {
             sym.name
         );
         ensure!(sym.lexeme.is_none(), "symbol {} has lexeme", sym.name);
+        Ok(())
+    }
+
+    pub fn check_empty_symbol(&self, sym: SymIdx) -> Result<()> {
+        self.check_empty_symbol_parametric_ok(sym)?;
+        let sym = self.sym_data(sym);
         ensure!(!sym.props.parametric, "symbol {} is parametric", sym.name);
         Ok(())
     }

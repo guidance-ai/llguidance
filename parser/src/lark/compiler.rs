@@ -437,7 +437,7 @@ impl Compiler {
         }
         self.node_ids.insert(name.to_string(), id);
         self.in_progress.remove(name);
-        Ok(id)
+        self.builder.apply(id, param)
     }
 
     fn gen_grammar(
@@ -551,15 +551,19 @@ impl Compiler {
 
             let inner = self.do_expansions(rule.expansions)?;
 
-            if rule.is_parametric && !inner.is_parametric() {
+            let inner_needs_param = self.builder.needs_param(inner);
+
+            if rule.is_parametric && !inner_needs_param {
+                // PRTODO unclear if this should be an error or not
                 bail!(
-                    "rule {:?} is parametric, but its body is not parametric",
+                    "rule {:?} is parametric, but its body doesn't need parameters",
                     name
                 );
             }
-            if !rule.is_parametric && inner.is_parametric() {
+            if !rule.is_parametric && inner_needs_param {
+                //println!("inner {} needs parameters", self.builder.node_to_string(inner));
                 bail!(
-                    "rule {:?} is not parametric, but its body is parametric",
+                    "rule {:?} is not parametric, but its body requires parameters",
                     name
                 );
             }

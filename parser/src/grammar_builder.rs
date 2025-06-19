@@ -393,22 +393,38 @@ impl GrammarBuilder {
         r
     }
 
-    fn child_nodes(&mut self, options: &[NodeRef]) -> (Vec<(SymIdx, ParamExpr)>, bool) {
-        let mut needs_param = false;
-        let opts = options
+    pub fn needs_param(&self, node: NodeRef) -> bool {
+        if let Some(param_id) = node.param_id {
+            self.params.get(param_id).needs_param()
+        } else {
+            false
+        }
+    }
+
+    pub fn node_to_string(&self, node: NodeRef) -> String {
+        if node.is_parametric() {
+            let param = self.params.get(node.param_id.unwrap());
+            format!("{}({})", self.grammar.sym_name(node.idx), param)
+        } else {
+            self.grammar.sym_name(node.idx).to_string()
+        }
+    }
+
+    fn child_nodes(&mut self, nodes: &[NodeRef]) -> (Vec<(SymIdx, ParamExpr)>, bool) {
+        let opts: Vec<_> = nodes
             .iter()
             .map(|e| {
                 assert!(e.grammar_id == self.curr_grammar_idx);
+                //println!("   node: {}", self.node_to_string(*e));
                 let param = e
                     .param_id
-                    .map(|id| {
-                        needs_param = true;
-                        self.params.get(id).clone()
-                    })
+                    .map(|id| self.params.get(id).clone())
                     .unwrap_or(ParamExpr::Null);
                 (e.idx, param)
             })
             .collect();
+        let needs_param = opts.iter().any(|(_, p)| p.needs_param());
+        //println!("needs_param: {}", needs_param);
         (opts, needs_param)
     }
 
@@ -691,13 +707,13 @@ impl GrammarBuilder {
     }
 
     fn new_wrapper_node(&mut self, name: &str, wrapper_for: NodeRef) -> NodeRef {
-        self.new_param_node(name, wrapper_for.param_id.is_some())
+        self.new_param_node(name, self.needs_param(wrapper_for))
     }
 
     pub fn set_placeholder(&mut self, placeholder: NodeRef, node: NodeRef) {
         let _ = self.child_nodes(&[placeholder, node]); // validate
         self.grammar
-            .check_empty_symbol(placeholder.idx)
+            .check_empty_symbol_parametric_ok(placeholder.idx)
             .expect("placeholder already set");
         self.grammar
             .add_rule(placeholder.idx, vec![node.idx])
