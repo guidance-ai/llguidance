@@ -1474,3 +1474,21 @@ fn test_regex_not() {
         &[".", "a\n\na"],
     );
 }
+
+#[test]
+fn test_parametric_0() {
+    lark_str_test_many(
+        r#"
+            start: perm{set()} "X"
+            perm{#m}:   ""                        %if has_all(m, 3)
+                    |   a0 perm{insert(m, 0)}     %if has_not(m, 0)
+                    |   a1 perm{insert(m, 1)}     %if has_not(m, 1)
+                    |   a2 perm{insert(m, 2)}     %if has_not(m, 2)
+            a0: "a"
+            a1: "b"
+            a2: "c"
+        "#,
+        &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"],
+        &["z", "abX", "abbcX"],
+    );
+}
