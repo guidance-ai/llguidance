@@ -427,7 +427,7 @@ impl Compiler {
         if let Some(&is_param) = self.in_progress.get(name) {
             let id = self.builder.new_param_node(name, is_param);
             self.node_ids.insert(name.to_string(), id);
-            return Ok(id);
+            return self.builder.apply(id, param);
         }
 
         let id = self.do_rule_core(name)?;
