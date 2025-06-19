@@ -8,9 +8,9 @@
 /// cbindgen:ignore
 pub mod earley;
 
+mod hashcons;
 mod matcher;
 mod tokenparser;
-mod hashcons;
 pub use tokenparser::TokenParser;
 pub mod api;
 pub mod output;
