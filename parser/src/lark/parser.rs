@@ -124,6 +124,7 @@ impl Parser {
             pin_terminals,
             cond_inline,
             params: template_params,
+            is_parametric: !self.symbol_param_name.is_empty(),
             priority,
             expansions: Expansions(self.location(), Vec::new()),
             suffix: None,

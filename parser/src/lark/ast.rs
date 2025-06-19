@@ -35,6 +35,7 @@ pub struct Rule {
     pub params: Option<RuleParams>,
     pub priority: Option<i32>,
     pub expansions: Expansions,
+    pub is_parametric: bool,
 
     pub stop: Option<Value>,
     pub suffix: Option<Value>,

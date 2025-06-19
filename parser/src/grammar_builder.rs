@@ -27,6 +27,10 @@ impl NodeRef {
         grammar_id: usize::MAX,
         param_id: None,
     };
+
+    pub fn is_parametric(&self) -> bool {
+        self.param_id.is_some()
+    }
 }
 
 const K: usize = 4;
@@ -389,63 +393,73 @@ impl GrammarBuilder {
         r
     }
 
-    fn child_nodes(&mut self, options: &[NodeRef]) -> Vec<(SymIdx, ParamExpr)> {
-        options
+    fn child_nodes(&mut self, options: &[NodeRef]) -> (Vec<(SymIdx, ParamExpr)>, bool) {
+        let mut needs_param = false;
+        let opts = options
             .iter()
             .map(|e| {
                 assert!(e.grammar_id == self.curr_grammar_idx);
                 let param = e
                     .param_id
-                    .map(|id| self.params.get(id).clone())
+                    .map(|id| {
+                        needs_param = true;
+                        self.params.get(id).clone()
+                    })
                     .unwrap_or(ParamExpr::Null);
                 (e.idx, param)
             })
-            .collect()
+            .collect();
+        (opts, needs_param)
     }
 
     pub fn select(&mut self, options: &[NodeRef]) -> NodeRef {
-        let ch = self.child_nodes(options);
-        if options.len() == 1 {
+        self.select_with_cond(options, Vec::new())
+    }
+
+    pub fn select_with_cond(&mut self, options: &[NodeRef], mut conds: Vec<ParamCond>) -> NodeRef {
+        let (ch, needs_param) = self.child_nodes(options);
+        if options.len() == 1 && conds.is_empty() {
             return options[0];
         }
-        let r = self.new_node("");
+        let r = self.new_param_node("", needs_param || !conds.is_empty());
         let empty = self.empty().idx;
+        assert!(conds.is_empty() || ch.len() == conds.len());
+        conds.reverse();
         for n in &ch {
-            if n == &empty {
-                self.grammar.add_rule(r.idx, vec![]).unwrap();
+            let cond = conds.pop().unwrap_or(ParamCond::True);
+            let v = if n.0 == empty {
+                vec![]
             } else {
-                self.grammar.add_rule(r.idx, vec![*n]).unwrap();
-            }
+                vec![n.clone()]
+            };
+            self.grammar.add_rule_ext(r.idx, cond, v).unwrap();
         }
         r
     }
 
     pub fn join(&mut self, values: &[NodeRef]) -> NodeRef {
-        self.join_props(values, NodeProps::default(), ParamCond::True)
+        self.join_props(values, NodeProps::default())
     }
 
-    pub fn join_props(
-        &mut self,
-        values: &[NodeRef],
-        props: NodeProps,
-        param_cond: ParamCond,
-    ) -> NodeRef {
-        let mut ch = self.child_nodes(values);
+    pub fn join_props(&mut self, values: &[NodeRef], props: NodeProps) -> NodeRef {
+        let (mut ch, needs_param) = self.child_nodes(values);
         let empty = self.empty().idx;
-        ch.retain(|&n| n.0 != empty);
-        if ch.is_empty() && param_cond.is_true() {
+        ch.retain(|n| n.0 != empty);
+        if ch.is_empty() {
             return self.empty();
         }
-        if ch.len() == 1 && props == NodeProps::default() && param_cond.is_true() {
+        if ch.len() == 1 && props == NodeProps::default() {
             return NodeRef {
                 idx: ch[0].0,
                 grammar_id: self.curr_grammar_idx,
                 param_id: None,
             };
         }
-        let r = self.new_node("");
+        let r = self.new_param_node("", needs_param);
         self.grammar.apply_node_props(r.idx, props);
-        self.grammar.add_rule(r.idx, ch).unwrap();
+        self.grammar
+            .add_rule_ext(r.idx, ParamCond::True, ch)
+            .unwrap();
         r
     }
 
@@ -457,18 +471,12 @@ impl GrammarBuilder {
         self.grammar.num_symbols()
     }
 
-    fn add_rule_cond(
-        &mut self,
-        node: NodeRef,
-        children: &[NodeRef],
-        param_cond: ParamCond,
-    ) -> Result<()> {
-        let ch = self.child_nodes(children);
-        self.grammar.add_rule_ext(node.idx, param_cond, ch)
-    }
-
     fn add_rule(&mut self, node: NodeRef, children: &[NodeRef]) {
-        self.add_rule_cond(node, children, ParamCond::True).unwrap();
+        let (ch, needs_param) = self.child_nodes(children);
+        assert!(!needs_param || node.is_parametric());
+        self.grammar
+            .add_rule_ext(node.idx, ParamCond::True, ch)
+            .unwrap();
     }
 
     pub fn optional(&mut self, value: NodeRef) -> NodeRef {
@@ -673,13 +681,17 @@ impl GrammarBuilder {
         }
     }
 
-    fn new_wrapper_node(&mut self, name: &str, wrapper_for: NodeRef) -> NodeRef {
+    pub fn new_param_node(&mut self, name: &str, needs_param: bool) -> NodeRef {
         let mut r = self.new_node(name);
-        if wrapper_for.param_id.is_some() {
-            self.grammar.make_parametric(r.idx);
+        if needs_param {
+            self.grammar.make_parametric(r.idx).unwrap();
             r.param_id = Some(self.self_ref);
         }
         r
+    }
+
+    fn new_wrapper_node(&mut self, name: &str, wrapper_for: NodeRef) -> NodeRef {
+        self.new_param_node(name, wrapper_for.param_id.is_some())
     }
 
     pub fn set_placeholder(&mut self, placeholder: NodeRef, node: NodeRef) {
@@ -705,5 +717,27 @@ impl GrammarBuilder {
             start_node: symidx,
             builder: self,
         }
+    }
+
+    pub fn apply(&mut self, id: NodeRef, param: Option<ParamExpr>) -> Result<NodeRef> {
+        if param.is_none() {
+            ensure!(
+                !id.is_parametric(),
+                "rule '{}' is parametric, but no parameter provided",
+                self.grammar.sym_name(id.idx)
+            );
+            return Ok(id);
+        }
+        ensure!(
+            id.is_parametric(),
+            "rule '{}' is not parametric, but parameter provided",
+            self.grammar.sym_name(id.idx)
+        );
+        let param_id = self.params.insert(param.unwrap());
+        Ok(NodeRef {
+            idx: id.idx,
+            param_id: Some(param_id),
+            grammar_id: id.grammar_id,
+        })
     }
 }

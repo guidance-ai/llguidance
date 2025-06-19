@@ -46,7 +46,7 @@ impl<T: Eq + Hash + Clone> HashCons<T> {
         &self.all_t[id.id.get() as usize - 1]
     }
 
-    pub fn len(&self) -> usize {
-        self.all_t.len()
-    }
+    // pub fn len(&self) -> usize {
+    //     self.all_t.len()
+    // }
 }

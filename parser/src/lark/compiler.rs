@@ -2,7 +2,7 @@ use crate::{
     earley::{ParamCond, ParamExpr},
     grammar_builder::{GrammarResult, RegexId},
     substring::substring,
-    HashMap, HashSet,
+    HashMap,
 };
 use anyhow::{anyhow, bail, ensure, Result};
 use derivre::RegexAst;
@@ -51,7 +51,7 @@ struct Compiler {
     grammar: Grammar,
     node_ids: HashMap<String, NodeRef>,
     regex_ids: HashMap<String, RegexId>,
-    in_progress: HashSet<String>,
+    in_progress: HashMap<String, bool>,
     pending_grammars: Vec<(NodeRef, Location, PendingGrammar)>,
 }
 
@@ -62,7 +62,7 @@ fn compile_lark(builder: GrammarBuilder, parsed: ParsedLark) -> Result<GrammarRe
         grammar: Grammar::default(),
         node_ids: HashMap::default(),
         regex_ids: HashMap::default(),
-        in_progress: HashSet::default(),
+        in_progress: HashMap::default(),
         pending_grammars: vec![],
     };
     c.execute()
@@ -82,10 +82,10 @@ impl Compiler {
         if let Some(id) = self.regex_ids.get(name) {
             return Ok(*id);
         }
-        if self.in_progress.contains(name) {
+        if self.in_progress.contains_key(name) {
             bail!("circular reference in token {:?} definition", name);
         }
-        self.in_progress.insert(name.to_string());
+        self.in_progress.insert(name.to_string(), false);
         let token = self
             .grammar
             .tokens
@@ -386,6 +386,8 @@ impl Compiler {
     fn do_expansions(&mut self, expansions: Expansions) -> Result<NodeRef> {
         self.builder.check_limits()?;
         let loc = expansions.0;
+        let mut conds = vec![];
+        let needs_cond = expansions.1.iter().any(|alias| !alias.param_cond.is_true());
         let options = expansions
             .1
             .into_iter()
@@ -402,32 +404,31 @@ impl Compiler {
                     .into_iter()
                     .map(|e| self.do_expr(&loc, e))
                     .collect::<Result<Vec<_>>>()?;
-                Ok(self
-                    .builder
-                    .join_props(&args, NodeProps::default(), alias.param_cond))
+                if needs_cond {
+                    conds.push(alias.param_cond);
+                }
+                Ok(self.builder.join_props(&args, NodeProps::default()))
             })
             .collect::<Result<Vec<_>>>()
             .map_err(|e| loc.augment(e))?;
-        Ok(self.builder.select(&options))
+        Ok(self.builder.select_with_cond(&options, conds))
     }
 
     fn is_rule(&self, name: &str) -> bool {
         self.node_ids.contains_key(name)
-            || self.in_progress.contains(name)
+            || self.in_progress.contains_key(name)
             || self.grammar.rules.contains_key(name)
     }
 
     fn do_rule(&mut self, name: &str, param: Option<ParamExpr>) -> Result<NodeRef> {
-        // PRTODO use param
         if let Some(id) = self.node_ids.get(name) {
-            return Ok(*id);
+            return self.builder.apply(*id, param);
         }
-        if self.in_progress.contains(name) {
-            let id = self.builder.new_node(name);
+        if let Some(&is_param) = self.in_progress.get(name) {
+            let id = self.builder.new_param_node(name, is_param);
             self.node_ids.insert(name.to_string(), id);
             return Ok(id);
         }
-        self.in_progress.insert(name.to_string());
 
         let id = self.do_rule_core(name)?;
 
@@ -469,6 +470,9 @@ impl Compiler {
             .remove(name)
             .ok_or_else(|| anyhow!("rule {:?} not found", name))?;
 
+        self.in_progress
+            .insert(name.to_string(), rule.is_parametric);
+
         let props = NodeProps {
             max_tokens: rule.max_tokens,
             capture_name: rule.capture_name.clone(),
@@ -477,6 +481,18 @@ impl Compiler {
 
         if rule.stop.is_some() && rule.suffix.is_some() {
             bail!("stop= and suffix= cannot be used together");
+        }
+
+        if rule.is_parametric && rule.stop_like().is_some() {
+            bail!("stop-like is not supported for parametric rules");
+        }
+
+        if rule.is_parametric && rule.temperature.is_some() {
+            bail!("temperature= is not supported for parametric rules");
+        }
+
+        if rule.is_parametric && rule.max_tokens.is_some() {
+            bail!("max_tokens= is not supported for parametric rules");
         }
 
         let id = if let Some(stop) = rule.stop_like() {
@@ -535,6 +551,19 @@ impl Compiler {
 
             let inner = self.do_expansions(rule.expansions)?;
 
+            if rule.is_parametric && !inner.is_parametric() {
+                bail!(
+                    "rule {:?} is parametric, but its body is not parametric",
+                    name
+                );
+            }
+            if !rule.is_parametric && inner.is_parametric() {
+                bail!(
+                    "rule {:?} is not parametric, but its body is parametric",
+                    name
+                );
+            }
+
             #[allow(clippy::assertions_on_constants)]
             if let Some(max_tokens) = rule.max_tokens {
                 assert!(false, "max_tokens handled above for now");
@@ -546,10 +575,9 @@ impl Compiler {
                         capture_name: Some(name.to_string()),
                         ..Default::default()
                     },
-                    ParamCond::True,
                 )
             } else if rule.capture_name.is_some() {
-                self.builder.join_props(&[inner], props, ParamCond::True)
+                self.builder.join_props(&[inner], props)
             } else {
                 inner
             }
