@@ -1,4 +1,9 @@
-use crate::earley::{ParamCond, ParamExpr, ParamValue};
+use std::rc::Rc;
+
+use crate::{
+    earley::{ParamCond, ParamExpr, ParamValue},
+    lark::lexer::highlight_location,
+};
 
 use super::{
     ast::*,
@@ -11,6 +16,7 @@ const MAX_NESTING: usize = 30;
 /// The parser struct that holds the tokens and current position.
 pub struct Parser {
     tokens: Vec<Lexeme>,
+    src: Rc<String>,
     pos: usize,
     nesting_level: usize,
     symbol_param_name: String,
@@ -18,9 +24,10 @@ pub struct Parser {
 
 impl Parser {
     /// Creates a new parser instance.
-    pub fn new(tokens: Vec<Lexeme>, nesting: usize) -> Self {
+    pub fn new(src: Rc<String>, tokens: Vec<Lexeme>, nesting: usize) -> Self {
         Parser {
             tokens,
+            src,
             pos: 0,
             nesting_level: nesting,
             symbol_param_name: String::new(),
@@ -36,12 +43,13 @@ impl Parser {
         self.parse_start_inner().map_err(|e| {
             if let Some(tok) = self.peek_token() {
                 anyhow!(
-                    "{}({}): {} (at {} ({:?}))",
+                    "{}({}): {} (at {} ({:?}))\n{}",
                     tok.line,
                     tok.column,
                     e,
                     tok.value,
-                    tok.token
+                    tok.token,
+                    highlight_location(&self.src, tok.line, tok.column)
                 )
             } else {
                 anyhow!("at EOF: {}", e)
@@ -80,9 +88,14 @@ impl Parser {
             Location {
                 line: t.line,
                 column: t.column,
+                src: self.src.clone(),
             }
         } else {
-            Location { line: 0, column: 0 }
+            Location {
+                line: 0,
+                column: 0,
+                src: self.src.clone(),
+            }
         }
     }
 
@@ -574,7 +587,8 @@ impl Parser {
             }
             self.pos = endp + 1;
 
-            let inner = Parser::new(inner, self.nesting_level + 1).parse_start()?;
+            let inner =
+                Parser::new(self.src.clone(), inner, self.nesting_level + 1).parse_start()?;
             Ok(Value::NestedLark(inner.items))
         } else if let Some(name_token) = self
             .match_token_with_value(Token::Rule)
@@ -865,5 +879,5 @@ pub struct ParsedLark {
 
 pub fn parse_lark(input: &str) -> Result<ParsedLark> {
     let tokens = lex_lark(input)?;
-    Parser::new(tokens, 0).parse_start()
+    Parser::new(Rc::new(input.to_string()), tokens, 0).parse_start()
 }

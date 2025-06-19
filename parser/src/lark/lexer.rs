@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, rc::Rc};
 
 use crate::{api::RegexExt, HashMap};
 use anyhow::{anyhow, bail, Result};
@@ -110,6 +110,27 @@ impl Lexeme {
 pub struct Location {
     pub line: usize,
     pub column: usize,
+    pub src: Rc<String>,
+}
+
+pub(crate) fn highlight_location(src: &str, line_no: usize, col_no: usize) -> String {
+    let lines: Vec<&str> = src.lines().collect();
+    let start = line_no.saturating_sub(3); // 2 lines before
+    let end = (line_no + 2).min(lines.len());
+
+    let mut result = String::new();
+
+    for (i, &line) in lines[start..end].iter().enumerate() {
+        let actual_line = start + i + 1;
+        result.push_str(&format!("{:>4} | {}\n", actual_line, line));
+        if actual_line == line_no {
+            let prefix_len = format!("{:>4} | ", actual_line).len();
+            let marker = " ".repeat(prefix_len + col_no.saturating_sub(1)) + "^";
+            result.push_str(&format!("{}\n", marker));
+        }
+    }
+
+    result
 }
 
 impl Location {
@@ -119,7 +140,13 @@ impl Location {
             // don't add more location info
             anyhow::anyhow!("{err}")
         } else {
-            anyhow::anyhow!("at {}({}): {}", self.line, self.column, err)
+            anyhow::anyhow!(
+                "at {}({}): {}\n{}",
+                self.line,
+                self.column,
+                err,
+                highlight_location(&self.src, self.line, self.column)
+            )
         }
     }
 }
