@@ -98,6 +98,14 @@ perm{#m}:   ""                        %if has_all(m, 3)
 
 ## Other use cases
 
-Not sure if this can be made to work, but let's say we want to have `s: a* b*` where `len(s) < 100`.
+Let's say we want to have `s: a* b*` where `len(s) < 100`.
+
+```lark
+start  : aa::zero()
+aa::n  : a aa::incr(n)    %if le(n, 100)
+       | bb::n
+bb::n  : b bb::incr(n)    %if le(n, 100)
+       | ""
+```
 
 TODO: check on the right recursion we use above - does it cause lots of items?
