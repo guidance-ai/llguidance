@@ -727,7 +727,7 @@ impl Grammar {
         Ok(())
     }
 
-    pub fn fresh_symbol_ext(&mut self, name0: &str, mut symprops: SymbolProps) -> SymIdx {
+    fn fresh_name(&mut self, name0: &str) -> String {
         let mut name = name0.to_string();
         let mut idx = self.symbol_count_cache.get(&name).cloned().unwrap_or(2);
         // don't allow empty names
@@ -736,6 +736,11 @@ impl Grammar {
             idx += 1;
         }
         self.symbol_count_cache.insert(name0.to_string(), idx);
+        name
+    }
+
+    pub fn fresh_symbol_ext(&mut self, name0: &str, mut symprops: SymbolProps) -> SymIdx {
+        let name = self.fresh_name(name0);
 
         let parametric = std::mem::take(&mut symprops.parametric);
 
@@ -821,6 +826,17 @@ impl Grammar {
         }
         writeln!(f, "stats: {}\n", self.stats())?;
         Ok(())
+    }
+
+    pub fn rename_symbol(&mut self, idx: SymIdx, name: &str) {
+        let curr_name = self.sym_name(idx).to_string();
+        if name == curr_name {
+            return; // nothing to do
+        }
+        self.symbol_by_name.remove(&curr_name);
+        let name = self.fresh_name(name);
+        self.sym_data_mut(idx).name = name.clone();
+        self.symbol_by_name.insert(name, idx);
     }
 }
 

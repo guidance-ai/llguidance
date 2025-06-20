@@ -425,7 +425,7 @@ impl Compiler {
             return self.builder.apply(*id, param);
         }
         if let Some(&is_param) = self.in_progress.get(name) {
-            let id = self.builder.new_param_node(name, is_param);
+            let id = self.builder.new_param_node(&format!("{}_", name), is_param);
             self.node_ids.insert(name.to_string(), id);
             return self.builder.apply(id, param);
         }
@@ -437,6 +437,7 @@ impl Compiler {
         }
         self.node_ids.insert(name.to_string(), id);
         self.in_progress.remove(name);
+        self.builder.rename(id, name);
         self.builder.apply(id, param)
     }
 

@@ -428,6 +428,10 @@ impl GrammarBuilder {
         (opts, needs_param)
     }
 
+    pub fn rename(&mut self, node: NodeRef, name: &str) {
+        self.grammar.rename_symbol(node.idx, name);
+    }
+
     pub fn select(&mut self, options: &[NodeRef]) -> NodeRef {
         self.select_with_cond(options, Vec::new())
     }
