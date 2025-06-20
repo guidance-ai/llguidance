@@ -71,7 +71,6 @@ impl SymbolProps {
             || self.capture_name.is_some()
             || self.stop_capture_name.is_some()
             || self.is_start
-            || self.parametric
     }
 
     // this is used when a rule like 'self -> [self.for_wrapper()]` is added
@@ -85,6 +84,14 @@ impl SymbolProps {
             grammar_id: self.grammar_id,
             is_start: false,
             parametric: false,
+        }
+    }
+
+    pub fn neutral_param(&self) -> ParamExpr {
+        if self.parametric {
+            ParamExpr::SelfRef
+        } else {
+            ParamExpr::Null
         }
     }
 }
@@ -481,10 +488,11 @@ impl Grammar {
             if self.is_special_symbol(sym) {
                 continue;
             }
-            if sym.rules.len() == 1 {
-                assert!(sym.rules[0].condition.is_true());
-                if let &[(trg, ParamExpr::Null)] = sym.rules[0].rhs.as_slice() {
-                    uf_union(&mut definition, sym.idx, trg)
+            if sym.rules.len() == 1 && sym.rules[0].condition.is_true() {
+                if let [(trg, param)] = sym.rules[0].rhs.as_slice() {
+                    if param == &sym.props.neutral_param() {
+                        uf_union(&mut definition, sym.idx, *trg)
+                    }
                 }
             }
         }
@@ -508,13 +516,12 @@ impl Grammar {
             if definition[sym.idx.as_usize()].is_some() {
                 continue;
             }
+            let neutral_param = sym.props.neutral_param();
             for r in sym.rules.iter() {
-                for (s, _p) in &r.rhs {
+                for (s, p) in &r.rhs {
                     let s = defn(*s);
                     let idx = s.as_usize();
-                    //let ok_to_replace =
-                    // if the only user is parametric we still can't replace
-                    if the_user_of[idx].is_none() && !sym.props.parametric {
+                    if the_user_of[idx].is_none() && p == &neutral_param {
                         the_user_of[idx] = Some(r.lhs);
                     } else {
                         // use self-loop to indicate there are multiple users
@@ -606,12 +613,8 @@ impl Grammar {
         for (idx, m) in definition.iter().enumerate() {
             if let Some(trg) = m {
                 if !to_eliminate.contains(trg) {
-                    let p = if self.sym_data(*trg).props.parametric {
-                        ParamExpr::SelfRef
-                    } else {
-                        ParamExpr::Null
-                    };
-                    repl.insert(SymIdx(idx as u32), vec![(*trg, p)]);
+                    let param = self.sym_data(*trg).props.neutral_param();
+                    repl.insert(SymIdx(idx as u32), vec![(*trg, param)]);
                 }
             }
         }
