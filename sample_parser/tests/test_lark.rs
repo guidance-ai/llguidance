@@ -1489,6 +1489,6 @@ fn test_parametric_0() {
             a2: "c"
         "#,
         &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"],
-        &["z", "abX", "abbcX"],
+        &["z", "abX", "abb", "aa", "bb", "cc"],
     );
 }
