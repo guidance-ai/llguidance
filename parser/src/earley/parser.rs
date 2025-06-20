@@ -626,8 +626,8 @@ impl Scratch {
                 if self.items[idx] == item && self.item_args[idx] == param {
                     return;
                 }
-                self.just_add(item, param, info);
             }
+            self.just_add(item, param, info);
         } else {
             // otherwise, simple add
             if self.find_item(item).is_none() {
@@ -743,7 +743,8 @@ impl ParserState {
         // Initialize the Earley table with the predictions in
         // row 0.
         for rule in r.grammar.rules_of(start) {
-            r.scratch.add_unique(Item::new(*rule, 0), 0, "init");
+            r.scratch
+                .add_unique_arg(Item::new(*rule, 0), "init", ParamValue::default());
         }
         debug!("initial push");
         let _ = r.push_row(0, &Lexeme::bogus());
