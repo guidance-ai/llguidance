@@ -404,7 +404,7 @@ impl GrammarBuilder {
     pub fn node_to_string(&self, node: NodeRef) -> String {
         if node.is_parametric() {
             let param = self.params.get(node.param_id.unwrap());
-            format!("{}({})", self.grammar.sym_name(node.idx), param)
+            format!("{}::{}", self.grammar.sym_name(node.idx), param)
         } else {
             self.grammar.sym_name(node.idx).to_string()
         }
@@ -472,7 +472,7 @@ impl GrammarBuilder {
             return NodeRef {
                 idx: ch[0].0,
                 grammar_id: self.curr_grammar_idx,
-                param_id: None,
+                param_id: values.iter().find_map(|v| v.param_id),
             };
         }
         let r = self.new_param_node("", needs_param);

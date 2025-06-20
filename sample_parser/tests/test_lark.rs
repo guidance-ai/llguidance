@@ -97,6 +97,13 @@ fn lark_str_test(lark: &str, should_accept: bool, input: &str, quiet: bool) {
         }
     }
 
+    if !final_reject && !should_accept {
+        panic!(
+            "expected rejection (in the middle; final accept={})",
+            p.is_accepting()
+        );
+    }
+
     if p.is_accepting() == final_reject {
         if p.is_accepting() {
             panic!("unexpected accept{info}");
@@ -1479,8 +1486,8 @@ fn test_regex_not() {
 fn test_parametric_0() {
     lark_str_test_many(
         r#"
-            start    :  perm::0x0 "X"
-            perm::_  :  ""                      %if is_ones([0:3])
+            start    :  perm::0x0
+            perm::_  :  "X"                     %if is_ones([0:3])
                      |  a0 perm::set_bit(0)     %if bit_clear(0)
                      |  a1 perm::set_bit(1)     %if bit_clear(1)
                      |  a2 perm::set_bit(2)     %if bit_clear(2)
@@ -1489,6 +1496,25 @@ fn test_parametric_0() {
             a2: "c"
         "#,
         &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"],
-        &["z", "abX", "abb", "aa", "bb", "cc"],
+        &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
+    );
+}
+
+#[test]
+fn test_parametric_1() {
+    lark_str_test_many(
+        r#"
+            start  : aa::0 "X"
+            aa::_  : a aa::incr(_)    %if lt(_, 6)
+                   | bb::_
+            bb::_  : b bb::incr(_)    %if lt(_, 6)
+                   | ""
+            a: "a"
+            b: "b"
+        "#,
+        &[
+            "X", "aX", "bX", "abX", "aabX", "aaabX", "aaabbbX", "aaabbbX", "aaaaaaX", "bbbbbbX",
+        ],
+        &["z", "ba", "aaaaaaa", "bbbbbbb", "aaabbbbb"],
     );
 }

@@ -590,9 +590,10 @@ impl Scratch {
         }
         if self.log_enabled() {
             debug!(
-                "      addu: {} ({})",
+                "      addu: {} ({}) ::{}",
                 self.item_to_string(self.row_end),
-                info
+                info,
+                param
             );
         }
         self.row_end += 1;

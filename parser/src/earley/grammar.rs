@@ -216,7 +216,12 @@ impl ParamRef {
 
     #[inline(always)]
     pub fn mask(&self) -> u64 {
-        ((1u64 << self.len()) - 1) << self.start()
+        let l = self.len();
+        if l == 64 {
+            u64::MAX
+        } else {
+            ((1u64 << l) - 1) << self.start()
+        }
     }
 
     #[inline(always)]
@@ -430,7 +435,7 @@ impl Grammar {
         condition: ParamCond,
         rhs: Vec<(SymIdx, ParamExpr)>,
     ) -> Result<()> {
-        let sym = self.sym_data_mut(lhs);
+        let sym = self.sym_data(lhs);
         ensure!(!sym.is_terminal(), "terminal symbol {}", sym.name);
         ensure!(
             condition.is_true() || sym.props.parametric,
@@ -438,11 +443,25 @@ impl Grammar {
             sym.name,
             condition
         );
-        ensure!(
-            sym.props.parametric || rhs.iter().all(|(_, p)| !p.needs_param()),
-            "non-parametric symbol {} with parametric rhs",
-            sym.name
-        );
+        for (s, p) in &rhs {
+            let s = self.sym_data(*s);
+            ensure!(
+                s.props.parametric != p.is_null(),
+                "symbol {} : {} with parametric {} and param {}",
+                sym.name,
+                s.name,
+                s.props.parametric,
+                p
+            );
+            ensure!(
+                !p.needs_param() || sym.props.parametric,
+                "symbol {} : {} with param {} needs param but is non-parametric",
+                sym.name,
+                s.name,
+                p
+            );
+        }
+        let sym = self.sym_data_mut(lhs);
         sym.rules.push(Rule {
             condition,
             lhs,
@@ -1301,7 +1320,10 @@ impl CGrammar {
                 if sym.is_nullable {
                     continue;
                 }
-                for rule in sym.rules.iter() {
+                for (idx, rule) in sym.rules.iter().enumerate() {
+                    if sym.rules_cond[idx] != ParamCond::True {
+                        continue; // skip rules with conditions
+                    }
                     if outp
                         .rule_rhs(*rule)
                         .0
