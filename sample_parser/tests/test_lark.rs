@@ -1479,11 +1479,11 @@ fn test_regex_not() {
 fn test_parametric_0() {
     lark_str_test_many(
         r#"
-            start    :  perm::set() "X"
-            perm::m  :  ""                        %if has_all(m, 3)
-                     |  a0 perm::insert(m, 0)     %if has_not(m, 0)
-                     |  a1 perm::insert(m, 1)     %if has_not(m, 1)
-                     |  a2 perm::insert(m, 2)     %if has_not(m, 2)
+            start    :  perm::0x0 "X"
+            perm::_  :  ""                      %if is_ones([0:3])
+                     |  a0 perm::set_bit(0)     %if bit_clear(0)
+                     |  a1 perm::set_bit(1)     %if bit_clear(1)
+                     |  a2 perm::set_bit(2)     %if bit_clear(2)
             a0: "a"
             a1: "b"
             a2: "c"

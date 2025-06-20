@@ -109,3 +109,49 @@ bb::n  : b bb::incr(n)    %if le(n, 100)
 ```
 
 TODO: check on the right recursion we use above - does it cause lots of items?
+
+## Bit range syntax
+
+Permutation of 3 elements:
+
+```lark
+start    :  perm::0x0 "X"
+perm::_  :  ""                      %if is_ones([0:3])
+         |  a0 perm::set_bit(0)     %if bit_clear(0)
+         |  a1 perm::set_bit(1)     %if bit_clear(1)
+         |  a2 perm::set_bit(2)     %if bit_clear(2)
+a0: "a"
+a1: "b"
+a2: "c"
+```
+
+At most 100 elements matching `a* b*`:
+
+```lark
+start  : aa::0x0
+aa::_  : a aa::incr(_)    %if le(_, 100)
+       | bb::n
+bb::n  : b bb::incr(_)    %if le(_, 100)
+       | ""
+```
+
+Unique selection of 10 elements out of N:
+
+```lark
+start    :  perm::0x0 "X"
+perm::_  :  ""                      %if bit_count_ge(_, 10)
+         |  a0 perm::set_bit(0)     %if and(bit_clear(0), bit_count_lt(_, 10))
+         |  a1 perm::set_bit(1)     %if and(bit_clear(1), bit_count_lt(_, 10))
+         |  a2 perm::set_bit(2)     %if and(bit_clear(2), bit_count_lt(_, 10))
+         ...
+```
+
+At most 5 elements of each type:
+
+```lark
+start  : lst::0x0
+lst::_ : a lst::incr([0:3])  %if lt([0:3], 5)
+       | b lst::incr([3:6])  %if lt([3:6], 5)
+       | c lst::incr([6:9])  %if lt([6:9], 5)
+       | ""
+```

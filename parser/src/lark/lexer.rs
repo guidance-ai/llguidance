@@ -35,14 +35,15 @@ pub enum Token {
     Dot,
     DotDot,
     Arrow,
-    LParen,
-    RParen,
-    LBrace,
-    RBrace,
-    LBracket,
-    RBracket,
+    LParen,   // (
+    RParen,   // )
+    LBrace,   // {
+    RBrace,   // }
+    LBracket, // [
+    RBracket, // ]
     Tilde,
     Hash,
+    Underscore, // _ (is not a rule)
     // regexps
     Op, // + * ?
     String,
@@ -50,6 +51,7 @@ pub enum Token {
     Rule,
     Token,
     Number,
+    HexNumber,
     Newline,
     VBar,
     And,          // &
@@ -179,6 +181,7 @@ impl Token {
         (Token::And, "&"),
         (Token::Equals, "="),
         (Token::Hash, "#"),
+        (Token::Underscore, "_"),
         (Token::DoubleColon, "::"),
     ];
 
@@ -193,6 +196,7 @@ impl Token {
         ),
         (Token::Regexp, r#"/(\\.|[^/\\])+/[imslux]*"#),
         (Token::Number, r#"[+-]?[0-9]+(\.[0-9]*)?([eE][+-]?[0-9]+)?"#),
+        (Token::HexNumber, r#"0[xX][0-9a-fA-F]+"#),
         (Token::Newline, r"(\r?\n)+[ \t]*"),
         (Token::SpecialToken, r"<[^<>\s]+>"),
         (Token::GrammarRef, r"@[a-zA-Z0-9_\-]+"),
@@ -257,10 +261,20 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
 
         match res {
             LexerResult::Error => {
-                bail!("{}({}): lexer error", line_no, column_no);
+                bail!(
+                    "{}({}): lexer error\n{}",
+                    line_no,
+                    column_no,
+                    highlight_location(&input, line_no, column_no)
+                );
             }
             LexerResult::SpecialToken(_) => {
-                bail!("{}({}): lexer special token", line_no, column_no);
+                bail!(
+                    "{}({}): lexer special token\n{}",
+                    line_no,
+                    column_no,
+                    highlight_location(&input, line_no, column_no)
+                );
             }
             LexerResult::State(s, _) => {
                 state = s;

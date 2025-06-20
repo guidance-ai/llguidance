@@ -158,55 +158,137 @@ impl ParamValue {
     pub fn is_default(&self) -> bool {
         self.0 == 0
     }
-    pub fn has(&self, k: usize) -> bool {
-        debug_assert!(k < Self::NUM_BITS);
-        (self.0 & (1 << k)) != 0
-    }
-    pub fn has_all(&self, k: usize) -> bool {
-        debug_assert!(k < Self::NUM_BITS);
-        self.0 == (1 << k) - 1
-    }
-    pub fn insert(&self, k: usize) -> Self {
-        debug_assert!(k < Self::NUM_BITS);
-        ParamValue(self.0 | (1 << k))
-    }
-    pub fn remove(&self, k: usize) -> Self {
-        debug_assert!(k < Self::NUM_BITS);
-        ParamValue(self.0 & !(1 << k))
-    }
 }
 
 impl Display for ParamValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:#}", self.0) // PRTODO hex?
+        write!(f, "0x{:x}", self.0)
+    }
+}
+
+pub type BitIdx = u8;
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
+pub struct ParamRef {
+    start: BitIdx,
+    end: BitIdx,
+}
+
+impl ParamRef {
+    pub fn new(start: BitIdx, end: BitIdx) -> Self {
+        assert!(start < ParamValue::NUM_BITS as u8);
+        assert!(end <= ParamValue::NUM_BITS as u8);
+        assert!(start < end);
+        ParamRef { start, end }
+    }
+
+    pub fn full() -> Self {
+        ParamRef {
+            start: 0,
+            end: ParamValue::NUM_BITS as u8,
+        }
+    }
+
+    pub fn single_bit(k: BitIdx) -> Self {
+        assert!(k < ParamValue::NUM_BITS as u8);
+        ParamRef {
+            start: k,
+            end: k + 1,
+        }
+    }
+
+    pub fn start(&self) -> BitIdx {
+        self.start
+    }
+
+    pub fn end(&self) -> BitIdx {
+        self.end
+    }
+
+    pub fn len(&self) -> usize {
+        (self.end - self.start) as usize
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    #[inline(always)]
+    pub fn mask(&self) -> u64 {
+        ((1u64 << self.len()) - 1) << self.start()
+    }
+
+    #[inline(always)]
+    pub fn eval(&self, m: ParamValue) -> ParamValue {
+        ParamValue((m.0 & self.mask()) >> self.start())
+    }
+}
+
+impl Display for ParamRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.start == 0 && self.end == ParamValue::NUM_BITS as u8 {
+            write!(f, "_")
+        } else {
+            write!(f, "[{}:{}]", self.start, self.end)
+        }
     }
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub enum ParamExpr {
     Null,
-    Insert(usize),
-    Remove(usize),
     Const(ParamValue),
+    Incr(ParamRef),
+    Decr(ParamRef),
+    BitOr(ParamValue),
+    BitAnd(ParamValue),
     SelfRef,
 }
 
+// we make this wide to minimize the number of branch mis-predictions
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub enum ParamCond {
     True,
-    Has(usize),
-    HasNot(usize),
-    HasAll(usize),
+    NE(ParamRef, ParamValue),
+    EQ(ParamRef, ParamValue),
+    LE(ParamRef, ParamValue),
+    LT(ParamRef, ParamValue),
+    GE(ParamRef, ParamValue),
+    GT(ParamRef, ParamValue),
+    BitCountNE(ParamRef, BitIdx),
+    BitCountEQ(ParamRef, BitIdx),
+    BitCountLE(ParamRef, BitIdx),
+    BitCountLT(ParamRef, BitIdx),
+    BitCountGE(ParamRef, BitIdx),
+    BitCountGT(ParamRef, BitIdx),
+    And(Box<ParamCond>, Box<ParamCond>),
+    Or(Box<ParamCond>, Box<ParamCond>),
+    Not(Box<ParamCond>),
 }
 
 impl ParamExpr {
     pub fn eval(&self, m: ParamValue) -> ParamValue {
         match self {
             ParamExpr::Null => ParamValue::default(),
-            ParamExpr::Insert(k) => m.insert(*k),
-            ParamExpr::Remove(k) => m.remove(*k),
             ParamExpr::Const(v) => *v,
             ParamExpr::SelfRef => m,
+            ParamExpr::Incr(pr) => {
+                if (m.0 & pr.mask()) == pr.mask() {
+                    m
+                } else {
+                    ParamValue(m.0 + (1 << pr.start()))
+                }
+            }
+            ParamExpr::Decr(pr) => {
+                if (m.0 & pr.mask()) == 0 {
+                    m
+                } else {
+                    ParamValue(m.0 - (1 << pr.start()))
+                }
+            }
+            ParamExpr::BitOr(pv) => ParamValue(m.0 | pv.0),
+            ParamExpr::BitAnd(pv) => ParamValue(m.0 & pv.0),
         }
     }
 
@@ -219,10 +301,7 @@ impl ParamExpr {
     }
 
     pub fn needs_param(&self) -> bool {
-        match self {
-            ParamExpr::Null | ParamExpr::Const(_) => false,
-            ParamExpr::Insert(_) | ParamExpr::Remove(_) | ParamExpr::SelfRef => true,
-        }
+        !matches!(self, ParamExpr::Null | ParamExpr::Const(_))
     }
 }
 
@@ -230,10 +309,24 @@ impl Display for ParamExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ParamExpr::Null => write!(f, "null"),
-            ParamExpr::Insert(k) => write!(f, "insert({})", k),
-            ParamExpr::Remove(k) => write!(f, "remove({})", k),
-            ParamExpr::SelfRef => write!(f, "self"),
+            ParamExpr::SelfRef => write!(f, "_"),
             ParamExpr::Const(v) => write!(f, "{}", v),
+            ParamExpr::Incr(pr) => write!(f, "incr({})", pr),
+            ParamExpr::Decr(pr) => write!(f, "decr({})", pr),
+            ParamExpr::BitOr(v) => {
+                if v.0.count_ones() == 1 {
+                    write!(f, "set_bit({})", v.0.trailing_zeros())
+                } else {
+                    write!(f, "bit_or({})", v)
+                }
+            }
+            ParamExpr::BitAnd(v) => {
+                if (!v.0).count_ones() == 1 {
+                    write!(f, "clear_bit({})", (!v.0).trailing_zeros())
+                } else {
+                    write!(f, "bit_and({})", v)
+                }
+            }
         }
     }
 }
@@ -242,9 +335,21 @@ impl ParamCond {
     pub fn eval(&self, m: ParamValue) -> bool {
         match self {
             ParamCond::True => true,
-            ParamCond::Has(k) => m.has(*k),
-            ParamCond::HasNot(k) => !m.has(*k),
-            ParamCond::HasAll(k) => m.has_all(*k),
+            ParamCond::NE(pr, pv) => pr.eval(m) != *pv,
+            ParamCond::EQ(pr, pv) => pr.eval(m) == *pv,
+            ParamCond::LE(pr, pv) => pr.eval(m).0 <= pv.0,
+            ParamCond::LT(pr, pv) => pr.eval(m).0 < pv.0,
+            ParamCond::GE(pr, pv) => pr.eval(m).0 >= pv.0,
+            ParamCond::GT(pr, pv) => pr.eval(m).0 > pv.0,
+            ParamCond::BitCountNE(pr, bc) => pr.eval(m).0.count_ones() != *bc as u32,
+            ParamCond::BitCountEQ(pr, bc) => pr.eval(m).0.count_ones() == *bc as u32,
+            ParamCond::BitCountLE(pr, bc) => pr.eval(m).0.count_ones() <= *bc as u32,
+            ParamCond::BitCountLT(pr, bc) => pr.eval(m).0.count_ones() < *bc as u32,
+            ParamCond::BitCountGE(pr, bc) => pr.eval(m).0.count_ones() >= *bc as u32,
+            ParamCond::BitCountGT(pr, bc) => pr.eval(m).0.count_ones() > *bc as u32,
+            ParamCond::And(c1, c2) => c1.eval(m) && c2.eval(m),
+            ParamCond::Or(c1, c2) => c1.eval(m) || c2.eval(m),
+            ParamCond::Not(c) => !c.eval(m),
         }
     }
 
@@ -257,9 +362,33 @@ impl Display for ParamCond {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ParamCond::True => write!(f, "true"),
-            ParamCond::Has(k) => write!(f, "has({})", k),
-            ParamCond::HasNot(k) => write!(f, "has_not({})", k),
-            ParamCond::HasAll(k) => write!(f, "has_all({})", k),
+            ParamCond::NE(pr, pv) => write!(f, "ne({}, {})", pr, pv),
+            ParamCond::EQ(pr, pv) => {
+                if pr.len() == 1 && pv.0 == 0 {
+                    write!(f, "bit_clear({})", pr.start())
+                } else if pr.len() == 1 && pv.0 == 1 {
+                    write!(f, "bit_set({})", pr.start())
+                } else if pv.0 == 0 {
+                    write!(f, "is_zeros({})", pr)
+                } else if pv.0 == (pr.mask() >> pr.start()) {
+                    write!(f, "is_ones({})", pr)
+                } else {
+                    write!(f, "eq({}, {})", pr, pv)
+                }
+            }
+            ParamCond::LE(pr, pv) => write!(f, "le({}, {})", pr, pv),
+            ParamCond::LT(pr, pv) => write!(f, "lt({}, {})", pr, pv),
+            ParamCond::GE(pr, pv) => write!(f, "ge({}, {})", pr, pv),
+            ParamCond::GT(pr, pv) => write!(f, "gt({}, {})", pr, pv),
+            ParamCond::BitCountNE(pr, bc) => write!(f, "bit_count_ne({}, {})", pr, bc),
+            ParamCond::BitCountEQ(pr, bc) => write!(f, "bit_count_eq({}, {})", pr, bc),
+            ParamCond::BitCountLE(pr, bc) => write!(f, "bit_count_le({}, {})", pr, bc),
+            ParamCond::BitCountLT(pr, bc) => write!(f, "bit_count_lt({}, {})", pr, bc),
+            ParamCond::BitCountGE(pr, bc) => write!(f, "bit_count_ge({}, {})", pr, bc),
+            ParamCond::BitCountGT(pr, bc) => write!(f, "bit_count_gt({}, {})", pr, bc),
+            ParamCond::And(c1, c2) => write!(f, "and({}, {})", c1, c2),
+            ParamCond::Or(c1, c2) => write!(f, "or({}, {})", c1, c2),
+            ParamCond::Not(c) => write!(f, "not({})", c),
         }
     }
 }
