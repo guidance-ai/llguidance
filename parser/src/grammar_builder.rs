@@ -472,7 +472,7 @@ impl GrammarBuilder {
             return NodeRef {
                 idx: ch[0].0,
                 grammar_id: self.curr_grammar_idx,
-                param_id: values.iter().find_map(|v| v.param_id),
+                param_id: values.iter().find(|v| v.idx == ch[0].0).unwrap().param_id,
             };
         }
         let r = self.new_param_node("", needs_param);
