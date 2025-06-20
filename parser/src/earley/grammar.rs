@@ -207,6 +207,10 @@ impl ParamExpr {
         matches!(self, ParamExpr::Null)
     }
 
+    pub fn is_self_ref(&self) -> bool {
+        matches!(self, ParamExpr::SelfRef)
+    }
+
     pub fn needs_param(&self) -> bool {
         match self {
             ParamExpr::Null | ParamExpr::Const(_) => false,
@@ -497,15 +501,18 @@ impl Grammar {
 
         // println!("definition: {:?}", definition);
 
+        let defn = |s: SymIdx| definition[s.as_usize()].unwrap_or(s);
+
         let mut the_user_of = vec![None; self.symbols.len()];
         for sym in &self.symbols {
             if definition[sym.idx.as_usize()].is_some() {
                 continue;
             }
             for r in sym.rules.iter() {
-                for s in &r.rhs {
-                    let s = definition[s.0.as_usize()].unwrap_or(s.0);
+                for (s, _p) in &r.rhs {
+                    let s = defn(*s);
                     let idx = s.as_usize();
+                    //let ok_to_replace =
                     // if the only user is parametric we still can't replace
                     if the_user_of[idx].is_none() && !sym.props.parametric {
                         the_user_of[idx] = Some(r.lhs);
@@ -543,7 +550,7 @@ impl Grammar {
                     sym.rules[0]
                         .rhs
                         .iter()
-                        .map(|e| definition[e.0.as_usize()].unwrap_or(e.0))
+                        .map(|e| (defn(e.0), e.1.clone()))
                         .collect::<Vec<_>>(),
                 );
             }
@@ -568,15 +575,17 @@ impl Grammar {
             }
         }
 
+        // the loop below creates a new map where the targets are already fully expanded
         let mut new_repl = HashMap::default();
 
         let mut stack = vec![];
         for sym in repl_roots {
-            stack.push(vec![sym]);
+            stack.push(vec![(sym, ParamExpr::Null)]);
             let mut res = vec![];
             while let Some(mut lst) = stack.pop() {
-                while let Some(e) = lst.pop() {
+                while let Some((e, p)) = lst.pop() {
                     if let Some(mut lst2) = repl.remove(&e) {
+                        assert!(p.is_null() || p.is_self_ref());
                         lst2.reverse();
                         if !lst.is_empty() {
                             stack.push(lst);
@@ -585,7 +594,7 @@ impl Grammar {
                         break;
                     }
                     assert!(!to_eliminate.contains(&e));
-                    res.push(e);
+                    res.push((e, p));
                 }
             }
             // println!("res: {:?} -> {:?}", sym, res);
@@ -597,7 +606,12 @@ impl Grammar {
         for (idx, m) in definition.iter().enumerate() {
             if let Some(trg) = m {
                 if !to_eliminate.contains(trg) {
-                    repl.insert(SymIdx(idx as u32), vec![*trg]);
+                    let p = if self.sym_data(*trg).props.parametric {
+                        ParamExpr::SelfRef
+                    } else {
+                        ParamExpr::Null
+                    };
+                    repl.insert(SymIdx(idx as u32), vec![(*trg, p)]);
                 }
             }
         }
@@ -629,15 +643,11 @@ impl Grammar {
                 let mut rhs = Vec::with_capacity(rule.rhs.len());
                 for s in &rule.rhs {
                     if let Some(repl) = repl.get(&s.0) {
-                        if s.1.is_null() {
-                            rhs.extend(
-                                repl.iter()
-                                    .map(|s| (outp.copy_from(self, *s), ParamExpr::Null)),
-                            );
-                        } else {
-                            assert!(repl.len() == 1);
-                            rhs.push((outp.copy_from(self, repl[0]), s.1.clone()));
-                        }
+                        assert!(s.1.is_null() || s.1.is_self_ref());
+                        rhs.extend(
+                            repl.iter()
+                                .map(|r| (outp.copy_from(self, r.0), r.1.clone())),
+                        );
                     } else {
                         rhs.push((outp.copy_from(self, s.0), s.1.clone()));
                     }
