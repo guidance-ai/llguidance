@@ -1,13 +1,45 @@
 use derivre::HashMap;
 use std::{hash::Hash, num::NonZeroU32};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct HashId<T> {
     id: NonZeroU32,
     _marker: std::marker::PhantomData<T>,
 }
 
-impl<T: std::clone::Clone> Copy for HashId<T> {}
+impl<T> Clone for HashId<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> Copy for HashId<T> {}
+
+impl<T> PartialEq for HashId<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl<T> Eq for HashId<T> {}
+
+impl<T> PartialOrd for HashId<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T> Ord for HashId<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl<T> Hash for HashId<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct HashCons<T> {

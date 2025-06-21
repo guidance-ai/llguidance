@@ -1,10 +1,20 @@
 use super::lexerspec::{LexemeClass, LexemeIdx, LexerSpec};
-use crate::api::{GenGrammarOptions, GrammarId, NodeProps};
+use crate::api::{GenGrammarOptions, GrammarId, NodeProps, ParserLimits};
+use crate::hashcons::{HashCons, HashId};
 use crate::{HashMap, HashSet};
 use anyhow::{bail, ensure, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::{fmt::Debug, hash::Hash};
+
+const DEBUG: bool = true;
+macro_rules! debug {
+    ($($arg:tt)*) => {
+        if cfg!(feature = "logging") && DEBUG {
+            eprintln!($($arg)*);
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SymIdx(u32);
@@ -820,8 +830,8 @@ impl Grammar {
         self.name.as_deref()
     }
 
-    pub fn compile(&self, lexer_spec: LexerSpec) -> CGrammar {
-        CGrammar::from_grammar(self, lexer_spec)
+    pub fn compile(&self, lexer_spec: LexerSpec, limits: &ParserLimits) -> Result<CGrammar> {
+        CGrammar::from_grammar(self, lexer_spec, limits)
     }
 
     pub fn resolve_grammar_refs(
@@ -1034,6 +1044,7 @@ pub struct CSymbol {
     pub name: String,
     pub is_terminal: bool,
     pub is_nullable: bool,
+    pub cond_nullable: Vec<ParamCond>, // this is OR
     pub props: SymbolProps,
     pub gen_grammar: Option<GenGrammarOptions>,
     // this points to the first element of rhs of each rule
@@ -1059,6 +1070,9 @@ impl CSymbol {
             r.push_str(&format!("::{}", param));
         }
         r
+    }
+    fn iter_rules(&self) -> impl Iterator<Item = (RhsPtr, &ParamCond)> + '_ {
+        self.rules.iter().copied().zip(self.rules_cond.iter())
     }
 }
 
@@ -1203,7 +1217,11 @@ impl CGrammar {
         idx
     }
 
-    fn from_grammar(grammar: &Grammar, lexer_spec: LexerSpec) -> Self {
+    fn from_grammar(
+        grammar: &Grammar,
+        lexer_spec: LexerSpec,
+        limits: &ParserLimits,
+    ) -> Result<Self> {
         let mut outp = CGrammar {
             start_symbol: CSymIdx::NULL, // replaced
             lexer_spec,
@@ -1219,6 +1237,7 @@ impl CGrammar {
             name: "NULL".to_string(),
             is_terminal: true,
             is_nullable: false,
+            cond_nullable: vec![],
             rules: vec![],
             rules_cond: vec![],
             props: SymbolProps::default(),
@@ -1239,6 +1258,7 @@ impl CGrammar {
                     name: sym.name.clone(),
                     is_terminal: true,
                     is_nullable: false,
+                    cond_nullable: vec![],
                     rules: vec![],
                     rules_cond: vec![],
                     props: sym.props.clone(),
@@ -1258,7 +1278,8 @@ impl CGrammar {
                 idx: CSymIdx::NULL,
                 name: sym.name.clone(),
                 is_terminal: false,
-                is_nullable: sym.rules.iter().any(|r| r.rhs.is_empty()),
+                is_nullable: false,
+                cond_nullable: vec![],
                 rules: vec![],
                 rules_cond: vec![],
                 props: sym.props.clone(),
@@ -1279,13 +1300,18 @@ impl CGrammar {
             for rule in &sym.rules {
                 // we handle the empty rule separately via is_nullable field
                 if rule.rhs.is_empty() {
-                    assert!(rule.condition.is_true());
+                    let csym = outp.sym_data_mut(idx);
+                    if rule.condition.is_true() {
+                        csym.is_nullable = true;
+                    } else {
+                        csym.cond_nullable.push(rule.condition.clone());
+                    }
                     continue;
                 }
                 let curr = RhsPtr(outp.rhs_elements.len().try_into().unwrap());
-                let d = outp.sym_data_mut(idx);
-                d.rules.push(curr);
-                d.rules_cond.push(rule.condition.clone());
+                let csym = outp.sym_data_mut(idx);
+                csym.rules.push(curr);
+                csym.rules_cond.push(rule.condition.clone());
                 // outp.rules.push(idx);
                 for (r, e) in &rule.rhs {
                     outp.rhs_elements.push(sym_map[r]);
@@ -1306,6 +1332,10 @@ impl CGrammar {
 
         for sym in &mut outp.symbols {
             sym.sym_flags = SymFlags::from_csymbol(sym);
+            if sym.is_nullable {
+                // no need to keep conditions for always nullable symbols
+                sym.cond_nullable.clear();
+            }
         }
 
         outp.rhs_ptr_to_sym_flags = outp
@@ -1314,21 +1344,31 @@ impl CGrammar {
             .map(|s| outp.sym_data(*s).sym_flags)
             .collect();
 
+        outp.set_nullable();
+        if outp.parametric {
+            ParametricNullableCtx::new(limits).set_cond_nullable(&mut outp)?;
+            debug!("parametric grammar:\n{:?}", outp);
+        }
+
+        Ok(outp)
+    }
+
+    fn set_nullable(&mut self) {
         loop {
             let mut to_null = vec![];
-            for sym in &outp.symbols {
+            for sym in &self.symbols {
                 if sym.is_nullable {
                     continue;
                 }
-                for (idx, rule) in sym.rules.iter().enumerate() {
-                    if sym.rules_cond[idx] != ParamCond::True {
+                for (rule, cond) in sym.iter_rules() {
+                    if *cond != ParamCond::True {
                         continue; // skip rules with conditions
                     }
-                    if outp
-                        .rule_rhs(*rule)
+                    if self
+                        .rule_rhs(rule)
                         .0
                         .iter()
-                        .all(|elt| outp.sym_data(*elt).is_nullable)
+                        .all(|elt| self.sym_data(*elt).is_nullable)
                     {
                         to_null.push(sym.idx);
                     }
@@ -1338,15 +1378,42 @@ impl CGrammar {
                 break;
             }
             for sym in to_null {
-                outp.sym_data_mut(sym).is_nullable = true;
+                self.sym_data_mut(sym).is_nullable = true;
             }
         }
-
-        outp
     }
 
     pub fn sym_name(&self, sym: CSymIdx) -> &str {
         &self.symbols[sym.0 as usize].name
+    }
+
+    pub fn null_rule(&self, sym: CSymIdx) -> Option<String> {
+        let symdata = self.sym_data(sym);
+        if !symdata.is_nullable && symdata.cond_nullable.is_empty() {
+            None
+        } else {
+            let sym = symdata.idx;
+            let lhs = self.sym_name(sym);
+            let cond = if symdata.is_nullable {
+                ParamCond::True
+            } else {
+                symdata
+                    .cond_nullable
+                    .iter()
+                    .skip(1)
+                    .fold(symdata.cond_nullable[0].clone(), |acc, c| {
+                        ParamCond::Or(Box::new(acc), Box::new(c.clone()))
+                    })
+            };
+            Some(rule_to_string(
+                lhs,
+                vec![],
+                None,
+                &symdata.props,
+                None,
+                &cond,
+            ))
+        }
     }
 
     pub fn rule_to_string(&self, rule: RhsPtr, cond: &ParamCond) -> String {
@@ -1373,12 +1440,196 @@ impl CGrammar {
     }
 }
 
+type Clause = Vec<HashId<ParamCond>>;
+type Dnf = Vec<HashId<Clause>>;
+struct ParametricNullableCtx {
+    atoms: HashCons<ParamCond>,
+    clauses: HashCons<Clause>,
+    fuel: u64,
+}
+
+impl ParametricNullableCtx {
+    fn simplify_dnf(&mut self, dnf: &mut Dnf) -> Result<()> {
+        // if we do something smarter here (like clause subsumption),
+        // make sure to update "len0 != n.len()" check in the fix-point loop
+        self.sub_fuel(dnf.len())?;
+        dnf.sort_unstable();
+        dnf.dedup();
+        Ok(())
+    }
+
+    fn sub_fuel(&mut self, n: usize) -> Result<()> {
+        if n > self.fuel as usize {
+            bail!("DNF too large, fuel exhausted");
+        }
+        self.fuel -= n as u64;
+        Ok(())
+    }
+
+    fn dnf_and(&mut self, a: Dnf, b: Dnf) -> Result<Dnf> {
+        if a.is_empty() || b.is_empty() {
+            return Ok(vec![]);
+        }
+        let mut res = vec![];
+        for a in &a {
+            for b in &b {
+                let mut c = self.clauses.get(*a).to_vec();
+                c.extend_from_slice(self.clauses.get(*b));
+                self.sub_fuel(c.len())?;
+                c.sort_unstable();
+                c.dedup();
+                res.push(self.clauses.insert(c));
+            }
+        }
+        self.simplify_dnf(&mut res)?;
+        Ok(res)
+    }
+
+    fn dnf_or(&mut self, mut a: Dnf, mut b: Dnf) -> Result<Dnf> {
+        a.append(&mut b);
+        self.simplify_dnf(&mut a)?;
+        Ok(a)
+    }
+
+    fn dnf(&mut self, cond: &ParamCond, neg: bool) -> Result<Dnf> {
+        let r = match cond {
+            ParamCond::True => vec![self.clauses.insert(vec![])],
+            ParamCond::NE(_, _)
+            | ParamCond::EQ(_, _)
+            | ParamCond::LE(_, _)
+            | ParamCond::LT(_, _)
+            | ParamCond::GE(_, _)
+            | ParamCond::GT(_, _)
+            | ParamCond::BitCountNE(_, _)
+            | ParamCond::BitCountEQ(_, _)
+            | ParamCond::BitCountLE(_, _)
+            | ParamCond::BitCountLT(_, _)
+            | ParamCond::BitCountGE(_, _)
+            | ParamCond::BitCountGT(_, _) => {
+                let cond = if neg {
+                    ParamCond::Not(Box::new(cond.clone()))
+                } else {
+                    cond.clone()
+                };
+                let a = self.atoms.insert(cond);
+                vec![self.clauses.insert(vec![a])]
+            }
+            ParamCond::And(a, b) | ParamCond::Or(a, b) => {
+                let a = self.dnf(a, neg)?;
+                let b = self.dnf(b, neg)?;
+                if neg != matches!(cond, ParamCond::And(_, _)) {
+                    self.dnf_and(a, b)?
+                } else {
+                    self.dnf_or(a, b)?
+                }
+            }
+            ParamCond::Not(cond) => self.dnf(cond, !neg)?,
+        };
+        Ok(r)
+    }
+
+    fn new(limits: &ParserLimits) -> ParametricNullableCtx {
+        ParametricNullableCtx {
+            atoms: HashCons::default(),
+            clauses: HashCons::default(),
+            fuel: limits.initial_lexer_fuel,
+        }
+    }
+
+    fn and_list(&self, lst: &[HashId<ParamCond>]) -> ParamCond {
+        if lst.is_empty() {
+            ParamCond::True
+        } else if lst.len() == 1 {
+            self.atoms.get(lst[0]).clone()
+        } else {
+            let mid = lst.len() / 2;
+            ParamCond::And(
+                Box::new(self.and_list(&lst[0..mid])),
+                Box::new(self.and_list(&lst[mid..])),
+            )
+        }
+    }
+
+    fn set_cond_nullable(&mut self, grm: &mut CGrammar) -> Result<()> {
+        let mut null_cond: Vec<Dnf> = grm
+            .symbols
+            .iter()
+            .map(|s| {
+                let mut dnf = vec![];
+                for c in s.cond_nullable.iter() {
+                    let mut dnf2 = self.dnf(c, false)?;
+                    dnf.append(&mut dnf2);
+                }
+                self.simplify_dnf(&mut dnf)?;
+                Ok(dnf)
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        loop {
+            let mut num_added = 0;
+            for sym in &grm.symbols {
+                if sym.is_nullable || sym.rules.is_empty() {
+                    continue;
+                }
+                for (rule, cond) in sym.iter_rules() {
+                    let mut new_dnf = vec![];
+                    if grm.rule_rhs(rule).0.iter().all(|&elt| {
+                        elt != sym.idx
+                            && (grm.sym_data(elt).is_nullable
+                                || !null_cond[elt.as_index()].is_empty())
+                    }) {
+                        // everything in this rule is potentially nullable
+                        let mut dnf = self.dnf(cond, false)?;
+                        for &elt in grm.rule_rhs(rule).0.iter() {
+                            if grm.sym_data(elt).is_nullable {
+                                continue;
+                            }
+                            dnf = self.dnf_and(dnf, null_cond[elt.as_index()].clone())?;
+                        }
+                        new_dnf.append(&mut dnf);
+                    }
+                    if new_dnf.is_empty() {
+                        continue; // no new nullable rules
+                    }
+                    let n = &mut null_cond[sym.idx.as_index()];
+                    let len0 = n.len();
+                    n.append(&mut new_dnf);
+                    self.simplify_dnf(n)?;
+                    if len0 != n.len() {
+                        num_added += 1;
+                    }
+                }
+            }
+
+            if num_added == 0 {
+                break; // no more nullable rules
+            }
+        }
+
+        for sym in &mut grm.symbols {
+            let dnf = &null_cond[sym.idx.as_index()];
+            if !dnf.is_empty() {
+                sym.cond_nullable = dnf
+                    .iter()
+                    .map(|c| self.and_list(self.clauses.get(*c)))
+                    .collect();
+            } else {
+                assert!(sym.cond_nullable.is_empty());
+            }
+        }
+
+        Ok(())
+    }
+}
+
 impl Debug for CGrammar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for s in &self.symbols {
-            for (idx, r) in s.rules.iter().enumerate() {
-                let cond = s.rules_cond.get(idx).unwrap_or(&ParamCond::True);
-                writeln!(f, "{}", self.rule_to_string(*r, cond))?;
+            if let Some(ln) = self.null_rule(s.idx) {
+                writeln!(f, "{}", ln)?;
+            }
+            for (r, cond) in s.iter_rules() {
+                writeln!(f, "{}", self.rule_to_string(r, cond))?;
             }
         }
         Ok(())

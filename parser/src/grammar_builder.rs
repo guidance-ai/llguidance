@@ -457,7 +457,7 @@ impl GrammarBuilder {
         conds.reverse();
         for n in &ch {
             let cond = conds.pop().unwrap_or(ParamCond::True);
-            let v = if n.0 == empty && cond.is_true() {
+            let v = if n.0 == empty {
                 vec![]
             } else {
                 vec![n.clone()]
