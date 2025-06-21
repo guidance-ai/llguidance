@@ -1630,3 +1630,68 @@ fn test_parametric_null() {
         not_matching,
     );
 }
+
+#[test]
+fn test_parametric_syntax() {
+    // Missing underscore after '::' in rule header
+    lark_err_test(
+        r#"
+            start: foo
+            foo:: "a"
+        "#,
+        "Expected token '_'",
+    );
+
+    // Invoking non-parametric rule with a parameter
+    lark_err_test(
+        r#"
+            start: foo
+            foo: a::1
+            a: "a"
+        "#,
+        "rule 'a' is not parametric",
+    );
+
+    // Bit-range syntax errors in '%if' conditions
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if eq([3:3], 0)
+        "#,
+        "end bit index 3 must be > start bit index 3",
+    );
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if eq([64:65], 0)
+        "#,
+        "number 64 is too large; must be <= 63",
+    );
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if eq([0:65], 0)
+        "#,
+        "number 65 is too large; must be <= 64",
+    );
+
+    // '%if' not allowed in terminal definitions
+    lark_err_test(
+        r#"
+            BAR: "b" %if and(true,true)
+            start: bar
+            bar: BAR
+        "#,
+        "'%if' is not supported in terminals",
+    );
+
+    // 'name::param' invocation not allowed in terminals
+    lark_err_test(
+        r#"
+            BAZ: qux::0
+            start: baz
+            baz: BAZ
+        "#,
+        "name::param cannot be used in terminals",
+    );
+}
