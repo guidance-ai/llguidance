@@ -1,6 +1,6 @@
 # Parametric grammars
 
-In llguidance grammar rules can be parameterized by a (currently) 64-bit integer.
+In llguidance [grammar rules](./syntax.md) can be parameterized by a 64-bit integer.
 This allows for expressing concepts like "permutation of N elements", "unique selection of N elements",
 and other combinatorial structures in a concise way.
 
@@ -19,8 +19,8 @@ perm::_  :  ""                       %if is_ones([0:3])
 ```
 
 The `start` rule starts with an empty set of bits (`0x0`), and the `perm` rule expands to either an empty string
-(if all bits are set, i.e., all elements are used)
-or a choice of one of the elements followed by a recursive call to `perm`
+(if all bits are set, i.e., all elements have been seen)
+or a choice of one of the remaining elements followed by a recursive call to `perm`
 with the corresponding bit set in the parameter (using `set_bit(k)`).
 
 Think of the `perm::_ : ...` syntax as:
@@ -32,25 +32,27 @@ perm(p)  :  ""                       %if p[0:3] == 0b111
          |  "c" perm(p | (1 << 2))   %if p[2:3] == 0b0
 ```
 
-Where `p[x:y]` is the bit range from `x` to `y` in the parameter `p`, that is `(p >> x) & ((1 << y) - 1)`.
+Where `p[x:y]` is the bit range from `x` inclusive to `y` exclusive in the parameter `p`, that is `(p >> x) & ((1 << y) - 1)`.
+
+Currently, there is always a single parameter for each rule, and it is always a 64-bit integer.
 
 ## Function reference
 
-The following functions are available in rule parameters, assuming current parameter is `p`,
-and `v` is a 64-bit integer literal using decimal or hexadecimal notation,
+The following functions are available in rule parameters. Assume current parameter is `p`,
+`v` is a 64-bit integer literal using decimal or hexadecimal notation,
 `k`, `x`, and `y` are bit indices (0-based).
 Additionally, `_` can be used to refer to `[0:64]`.
 
 - `_ => p` (self-reference)
-- `set_bit(k) => p | (1 << k)` sets the k-th bit in `p`
-- `clear_bit(k) => p & ~(1 << k)` clears the k-th bit in `p`
+- `set_bit(k) => p | (1 << k)` sets the k-th bit in the parameter
+- `clear_bit(k) => p & ~(1 << k)` clears the k-th bit in the parameter
 - `bit_and(v) => p & v`
 - `bit_or(v) => p | v`
 - `incr([x:y]) => p[x:y] == 0b11...1 ? p : p + (1 << x)` - saturating increment of bits in the range `[x:y]`
 - `decr([x:y]) => p[x:y] == 0 ? p : p - (1 << x)` - saturating decrement of bits in the range `[x:y]`
 
 The following functions are available in rule conditions (`c` is a condition expression).
-All comparisons are unsigned.
+All comparisons treat intergers as unsigned.
 
 - `true` and `true()` (always true)
 - `bit_clear(k) => p[k:k+1] == 0` (checks if the k-th bit is clear)
@@ -130,4 +132,3 @@ However, if you were to make them left-recursive, it may generate `O(2^K)` items
 where `K` is the number of bits used, so do not do that.
 
 Practically, this means the rules will not work for lists longer than about 2000 elements.
-

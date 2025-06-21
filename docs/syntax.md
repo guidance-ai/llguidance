@@ -127,6 +127,12 @@ You can also use `/(.|\n){1000,3000}/` to place lower and upper bounds on the th
 This assumes `<think>` is a special token. If it was just a string, you would need
 to use [`suffix="</think>"`](#lazy-lexemes).
 
+### Parametric grammars (unique lists, permutations etc.)
+
+Rules can be parameterized by a 64-bit value, which allows for expressing
+combinatorial structures like unique lists and permutations.
+See [Parametric grammars](./parametric.md) for details.
+
 ### Lexeme options
 
 Some of these features (especially `stop`) are primarily for compatibility with [Guidance](https://github.com/guidance-ai/guidance).
