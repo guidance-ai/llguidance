@@ -1499,35 +1499,20 @@ fn test_parametric_0() {
         &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
     );
 
-    // lark_str_test_many(
-    //     r#"
-    //         start    :  perm::0x0 "X"
-    //         perm::_  :  ""                      %if is_ones([0:3])
-    //                  |  a0 perm::set_bit(0)     %if bit_clear(0)
-    //                  |  a1 perm::set_bit(1)     %if bit_clear(1)
-    //                  |  a2 perm::set_bit(2)     %if bit_clear(2)
-    //         a0: "a"
-    //         a1: "b"
-    //         a2: "c"
-    //     "#,
-    //     &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"],
-    //     &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
-    // );
-
-    // lark_str_test_many(
-    //     r#"
-    //         start    :  perm::0x0 "Y"
-    //         perm::_  :  "X"                     %if is_ones([0:3])
-    //                  |  a0 perm::set_bit(0)     %if bit_clear(0)
-    //                  |  a1 perm::set_bit(1)     %if bit_clear(1)
-    //                  |  a2 perm::set_bit(2)     %if bit_clear(2)
-    //         a0: "a"
-    //         a1: "b"
-    //         a2: "c"
-    //     "#,
-    //     &["abcXY", "bcaXY", "cbaXY", "cabXY", "acbXY", "bacXY"],
-    //     &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
-    // );
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0 "Y"
+            perm::_  :  "X"                     %if is_ones([0:3])
+                     |  a0 perm::set_bit(0)     %if bit_clear(0)
+                     |  a1 perm::set_bit(1)     %if bit_clear(1)
+                     |  a2 perm::set_bit(2)     %if bit_clear(2)
+            a0: "a"
+            a1: "b"
+            a2: "c"
+        "#,
+        &["abcXY", "bcaXY", "cbaXY", "cabXY", "acbXY", "bacXY"],
+        &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
+    );
 }
 
 #[test]
@@ -1543,8 +1528,54 @@ fn test_parametric_1() {
             b: "b"
         "#,
         &[
-            "X", "aX", "bX", "abX", "aabX", "aaabX", "aaabbbX", "aaabbbX", "aaaaaaX", "bbbbbbX",
+            "X", "aX", "bX", "abX", "aabX", "aaabX", "aaaabbX", "aaabbbX", "aaaaaaX", "bbbbbbX",
         ],
         &["z", "ba", "aaaaaaa", "bbbbbbb", "aaabbbbb"],
     );
+}
+
+#[test]
+fn test_parametric_cnt() {
+    // at most 3 a, 3 b, 2 c (2 bits each)
+    lark_str_test_many(
+        r#"
+            start  : lst::0x0
+            lst::_ : "a" lst::incr([0:2])  %if lt([0:2], 3)
+                   | "b" lst::incr([2:4])  %if lt([2:4], 3)
+                   | "c" lst::incr([4:6])  %if lt([4:6], 2)
+                   | "X"
+
+        "#,
+        &[
+            "X",
+            "aX",
+            "bX",
+            "abX",
+            "aabX",
+            "aaabX",
+            "bbbaaaX",
+            "ccaaabbbX",
+            "abcababcX",
+        ],
+        &["z", "aaaa", "bbbb", "ccc", "aaaccc", "aaabbbb"],
+    );
+}
+
+#[test]
+fn test_parametric_null() {
+    // currently broken
+    // lark_str_test_many(
+    //     r#"
+    //         start    :  perm::0x0 "X"
+    //         perm::_  :  ""                      %if is_ones([0:3])
+    //                  |  a0 perm::set_bit(0)     %if bit_clear(0)
+    //                  |  a1 perm::set_bit(1)     %if bit_clear(1)
+    //                  |  a2 perm::set_bit(2)     %if bit_clear(2)
+    //         a0: "a"
+    //         a1: "b"
+    //         a2: "c"
+    //     "#,
+    //     &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"],
+    //     &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
+    // );
 }
