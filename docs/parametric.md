@@ -1,157 +1,131 @@
 # Parametric grammars
 
-- add a 64-bit parameter to symbol names
-- allow rules conditional on bits being set in the parameter
-- allow expressions in rules to set parameters to RHS symbols
-- useful for specifying "unique", "contains" constraints in JSON schema and similar
+In llguidance grammar rules can be parameterized by a (currently) 64-bit integer.
+This allows for expressing concepts like "permutation of N elements", "unique selection of N elements",
+and other combinatorial structures in a concise way.
 
-Example - permutation of N elements:
+The parametrized grammars are technically still context-free, just very large:
+each parametrized rule is treated as if it was expanded for each 64-bit integer value.
+Of course, the grammar is only materialized lazily, during Earley parsing.
 
-```lark
-start: list#(0)
-list#(m if m & (1 << k) == 0): elt_k list#(m | (1 << k)) // repeat for k in 0..N
-list#(m if m == (1 << N) - 1): ""
-elt_0: ...
-elt_1: ...
-...
-elt_N-1: ...
-```
-
-Example, any sequence of N elements, where each has to occur at least once:
+For example, this grammar describes permutations of 3 elements `a`, `b`, and `c`:
 
 ```lark
-start: list#(0)
-list#(m if m & (1 << k) == 0): others#(m) elt_k list#(m | (1 << k)) // repeat for k in 0..N
-list#(m if m == (1 << N) - 1): others#(m)
-others#(m): others#(m) other#(m) | ""
-other#(m if m & (1 << k) != 0): elt_k // repeat for k in 0..N
+start    :  perm::0x0
+perm::_  :  ""                       %if is_ones([0:3])
+         |  "a" perm::set_bit(0)     %if bit_clear(0)
+         |  "b" perm::set_bit(1)     %if bit_clear(1)
+         |  "c" perm::set_bit(2)     %if bit_clear(2)
 ```
 
-Expressions:
+The `start` rule starts with an empty set of bits (`0x0`), and the `perm` rule expands to either an empty string
+(if all bits are set, i.e., all elements are used)
+or a choice of one of the elements followed by a recursive call to `perm`
+with the corresponding bit set in the parameter (using `set_bit(k)`).
 
-```
-insert(m, k) = m | (1 << k)
-remove(m, k) = m & ~(1 << k)
-set(k0,...,kN) = (1 << k0) | ... | (1 << kN)
-full(n) = (1 << n) - 1
-```
-
-Conditions:
-
-```
-has(m, k) = m & (1 << k) != 0
-has_not(m, k) = m & (1 << k) == 0
-has_all(m, n) = m == (1 << n) - 1
-```
-
-Example:
+Think of the `perm::_ : ...` syntax as:
 
 ```lark
-start: list#(set())
-list#(m): others#(m)                           %if has_all(m, N) |
-          others#(m) elt_k list#(insert(m, k)) %if has_not(m, k) // repeat for k in 0..N
-others#(m): others#(m) other#(m) | ""
-other#(m): elt_k %if has(m, k)  // repeat for k in 0..N
+perm(p)  :  ""                       %if p[0:3] == 0b111
+         |  "a" perm(p | (1 << 0))   %if p[0:1] == 0b0
+         |  "b" perm(p | (1 << 1))   %if p[1:2] == 0b0
+         |  "c" perm(p | (1 << 2))   %if p[2:3] == 0b0
 ```
 
-Nicer:
+Where `p[x:y]` is the bit range from `x` to `y` in the parameter `p`, that is `(p >> x) & ((1 << y) - 1)`.
+
+## Function reference
+
+The following functions are available in rule parameters, assuming current parameter is `p`,
+and `v` is a 64-bit integer literal using decimal or hexadecimal notation,
+`k`, `x`, and `y` are bit indices (0-based).
+Additionally, `_` can be used to refer to `[0:64]`.
+
+- `_ => p` (self-reference)
+- `set_bit(k) => p | (1 << k)` sets the k-th bit in `p`
+- `clear_bit(k) => p & ~(1 << k)` clears the k-th bit in `p`
+- `bit_and(v) => p & v`
+- `bit_or(v) => p | v`
+- `incr([x:y]) => p[x:y] == 0b11...1 ? p : p + (1 << x)` - saturating increment of bits in the range `[x:y]`
+- `decr([x:y]) => p[x:y] == 0 ? p : p - (1 << x)` - saturating decrement of bits in the range `[x:y]`
+
+The following functions are available in rule conditions (`c` is a condition expression).
+All comparisons are unsigned.
+
+- `true` and `true()` (always true)
+- `bit_clear(k) => p[k:k+1] == 0` (checks if the k-th bit is clear)
+- `bit_set(k) => p[k:k+1] == 1` (checks if the k-th bit is set)
+- `is_ones([x:y]) => p[x:y] == ((1 << (y - x)) - 1)` (checks if all bits in the range `[x:y]` are set)
+- `is_zeros([x:y]) => p[x:y] == 0` (checks if all bits in the range `[x:y]` are clear)
+- `eq([x:y], v) => p[x:y] == v` (checks if bits in the range `[x:y]` are equal to `v`)
+- `ne([x:y], v) => p[x:y] != v`
+- `lt([x:y], v) => p[x:y] < v`
+- `le([x:y], v) => p[x:y] <= v`
+- `gt([x:y], v) => p[x:y] > v`
+- `ge([x:y], v) => p[x:y] >= v`
+- `bit_count_eq([x:y], k) => bin(p[x:y]).count('1') == k` (checks if the number of set bits in the range `[x:y]` is equal to `k`)
+- `bit_count_ne([x:y], k) => bin(p[x:y]).count('1') != k`
+- `bit_count_lt([x:y], k) => bin(p[x:y]).count('1') < k`
+- `bit_count_le([x:y], k) => bin(p[x:y]).count('1') <= k`
+- `bit_count_gt([x:y], k) => bin(p[x:y]).count('1') > k`
+- `bit_count_ge([x:y], k) => bin(p[x:y]).count('1') >= k`
+- `and(c, c)` (logical AND of two conditions)
+- `or(c, c)` (logical OR of two conditions)
+- `not(c)` (logical negation of a condition)
+
+## Examples
+
+Any sequence of `a`, `b`, and `c` where each element occurs at least once:
 
 ```lark
-start: list{set()}
-list{#m}:   others{m}                           %if has_all(m, N)
-        |   others{m} elt_k list{insert(m, k)}  %if has_not(m, k) // repeat for k in 0..N
-others{#m}: others{m} other{m} | ""
-other{#m}: elt_k                                %if has(m, k)  // repeat for k in 0..N
+start    :  perm::0x0
+perm::_  :  ""                       %if is_ones([0:3])
+         |  "a" perm::set_bit(0)
+         |  "b" perm::set_bit(1)
+         |  "c" perm::set_bit(2)
 ```
 
-Should also work:
+A sequence `s` matching `/a*b*/` where `len(s) < 20`:
 
 ```lark
-start: list{set()}
-list{#m}:   other{m}*                           %if has_all(m, N)
-        |   other{m}* elt_k list{insert(m, k)}  %if has_not(m, k) // repeat for k in 0..N
-other{#m}: elt_k                                %if has(m, k)  // repeat for k in 0..N
-```
-
-Expanded:
-
-```lark
-start: list{set()}
-list{#m}:   other{m}*                        %if has_all(m, 3)
-        |   other{m}* a0 list{insert(m, 0)}  %if has_not(m, 0)
-        |   other{m}* a1 list{insert(m, 1)}  %if has_not(m, 1)
-        |   other{m}* a2 list{insert(m, 2)}  %if has_not(m, 2)
-other{#m}: a0   %if has(m, 0)
-         | a1   %if has(m, 1)
-         | a2   %if has(m, 2)
-```
-
-Permutation of a0,a1,a2:
-
-```lark
-start: perm{set()}
-perm{#m}:   ""                        %if has_all(m, 3)
-        |   a0 perm{insert(m, 0)}     %if has_not(m, 0)
-        |   a1 perm{insert(m, 1)}     %if has_not(m, 1)
-        |   a2 perm{insert(m, 2)}     %if has_not(m, 2)
-```
-
-## Other use cases
-
-Let's say we want to have `s: a* b*` where `len(s) < 100`.
-
-```lark
-start  : aa::zero()
-aa::n  : a aa::incr(n)    %if le(n, 100)
-       | bb::n
-bb::n  : b bb::incr(n)    %if le(n, 100)
+start  : aa::0
+aa::_  : "b" aa::incr(_)    %if lt(_, 20)
+       | bb::_
+bb::_  : "a" bb::incr(_)    %if lt(_, 20)
        | ""
 ```
 
-TODO: check on the right recursion we use above - does it cause lots of items?
-
-## Bit range syntax
-
-Permutation of 3 elements:
-
-```lark
-start    :  perm::0x0 "X"
-perm::_  :  ""                      %if is_ones([0:3])
-         |  a0 perm::set_bit(0)     %if bit_clear(0)
-         |  a1 perm::set_bit(1)     %if bit_clear(1)
-         |  a2 perm::set_bit(2)     %if bit_clear(2)
-a0: "a"
-a1: "b"
-a2: "c"
-```
-
-At most 100 elements matching `a* b*`:
-
-```lark
-start  : aa::0x0
-aa::_  : a aa::incr(_)    %if le(_, 100)
-       | bb::n
-bb::n  : b bb::incr(_)    %if le(_, 100)
-       | ""
-```
-
-Unique selection of 10 elements out of N:
-
-```lark
-start    :  perm::0x0 "X"
-perm::_  :  ""                      %if bit_count_ge(_, 10)
-         |  a0 perm::set_bit(0)     %if and(bit_clear(0), bit_count_lt(_, 10))
-         |  a1 perm::set_bit(1)     %if and(bit_clear(1), bit_count_lt(_, 10))
-         |  a2 perm::set_bit(2)     %if and(bit_clear(2), bit_count_lt(_, 10))
-         ...
-```
-
-At most 5 elements of each type:
+A sequence of `a`, `b`, and `c` in any order,
+where `a` and `b` can occur at most 5 times each, and `c` at most 6 times.
+Note that you have to allocate enough bits for each element.
 
 ```lark
 start  : lst::0x0
-lst::_ : a lst::incr([0:3])  %if lt([0:3], 5)
-       | b lst::incr([3:6])  %if lt([3:6], 5)
-       | c lst::incr([6:9])  %if lt([6:9], 5)
+lst::_ : "a" lst::incr([0:3])  %if lt([0:3], 5)
+       | "b" lst::incr([3:6])  %if lt([3:6], 5)
+       | "c" lst::incr([6:9])  %if lt([6:9], 6)
        | ""
 ```
+
+Pick at last 1 and at most 3 elements from `a`, `b`, `c`, `d`, `e`;
+each element can occur at most once.
+
+```lark
+start    :  perm::0x0
+perm::_  :  ""                       %if bit_count_ge(_, 1)
+         |  "a" perm::set_bit(0)     %if and(bit_clear(0), bit_count_lt(_, 3))
+         |  "b" perm::set_bit(1)     %if and(bit_clear(1), bit_count_lt(_, 3))
+         |  "c" perm::set_bit(2)     %if and(bit_clear(2), bit_count_lt(_, 3))
+         |  "d" perm::set_bit(3)     %if and(bit_clear(3), bit_count_lt(_, 3))
+         |  "e" perm::set_bit(4)     %if and(bit_clear(4), bit_count_lt(_, 3))
+```
+
+## Performance considerations
+
+All the rules above are right-recursive, which is generally [not ideal](./syntax.md#recursive-rules) for Earley parsing.
+The problem is, for a list of length `N` it will generate `O(N^2)` items during parsing.
+
+However, if you were to make them left-recursive, it may generate `O(2^K)` items
+where `K` is the number of bits used, so do not do that.
+
+Practically, this means the rules will not work for lists longer than about 100 elements.
