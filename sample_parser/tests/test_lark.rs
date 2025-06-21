@@ -1563,11 +1563,11 @@ fn test_parametric_cnt() {
 
 #[test]
 fn test_parametric_pick_3() {
-    // allow for at most 3 unique elements
+    // allow for at last 1 and at most 3 unique elements
     lark_str_test_many(
         r#"
             start    :  perm::0x0
-            perm::_  :  "X"
+            perm::_  :  "X"                      %if bit_count_ge(_, 1)
                      |  "a" perm::set_bit(0)     %if and(bit_clear(0), bit_count_lt(_, 3))
                      |  "b" perm::set_bit(1)     %if and(bit_clear(1), bit_count_lt(_, 3))
                      |  "c" perm::set_bit(2)     %if and(bit_clear(2), bit_count_lt(_, 3))
@@ -1575,8 +1575,8 @@ fn test_parametric_pick_3() {
                      |  "e" perm::set_bit(4)     %if and(bit_clear(4), bit_count_lt(_, 3))
 
         "#,
-        &["X", "aX", "bX", "bacX", "adeX"],
-        &["z", "aa", "bb", "abcd", "aba"],
+        &["aX", "bX", "bacX", "adeX"],
+        &["X", "z", "aa", "bb", "abcd", "aba"],
     );
 }
 
