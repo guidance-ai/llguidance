@@ -567,7 +567,7 @@ impl Compiler {
             let inner_needs_param = self.builder.needs_param(inner);
 
             if rule.is_parametric && !inner_needs_param {
-                // PRTODO unclear if this should be an error or not
+                // TODO unclear if this should be an error or not
                 bail!(
                     "rule {:?} is parametric, but its body doesn't need parameters",
                     name

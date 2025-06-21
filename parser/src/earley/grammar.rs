@@ -1053,7 +1053,6 @@ pub struct CSymbol {
     pub gen_grammar: Option<GenGrammarOptions>,
     // this points to the first element of rhs of each rule
     // note that null rules (with rhs == epsilon) are not stored
-    // PRTODO empty parametric rules
     pub rules: Vec<RhsPtr>,
     pub rules_cond: Vec<ParamCond>,
     pub sym_flags: SymFlags,
