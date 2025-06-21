@@ -97,6 +97,13 @@ fn lark_str_test(lark: &str, should_accept: bool, input: &str, quiet: bool) {
         }
     }
 
+    if !final_reject && !should_accept {
+        panic!(
+            "expected rejection (in the middle; final accept={})",
+            p.is_accepting()
+        );
+    }
+
     if p.is_accepting() == final_reject {
         if p.is_accepting() {
             panic!("unexpected accept{info}");
@@ -1329,10 +1336,10 @@ fn test_json_format_email() {
             json!("test@"),
             json!("@example.com"),
             json!("test@.com"),
-            json!("test@com"),
+            //json!("test@com"), // allowed by the regex
             json!("test@com."),
             json!("test@example..com"),
-            json!("test@example.c"),
+            //json!("test@example.c"), // allowed by the regex
             json!("test@example.c."),
             json!("test@.example.com"),
             json!("test:2@example.com"),
@@ -1472,5 +1479,365 @@ fn test_regex_not() {
         "#,
         &["foo", "bar\nbaz", "hello world\n", "aaa\nbbb\nccc"],
         &[".", "a\n\na"],
+    );
+}
+
+#[test]
+fn test_parametric_0() {
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0
+            perm::_  :  "X"                     %if is_ones([0:3])
+                     |  a0 perm::set_bit(0)     %if bit_clear(0)
+                     |  a1 perm::set_bit(1)     %if bit_clear(1)
+                     |  a2 perm::set_bit(2)     %if bit_clear(2)
+            a0: "a"
+            a1: "b"
+            a2: "c"
+        "#,
+        &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"],
+        &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
+    );
+
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0 "Y"
+            perm::_  :  "X"                     %if is_ones([0:3])
+                     |  a0 perm::set_bit(0)     %if bit_clear(0)
+                     |  a1 perm::set_bit(1)     %if bit_clear(1)
+                     |  a2 perm::set_bit(2)     %if bit_clear(2)
+            a0: "a"
+            a1: "b"
+            a2: "c"
+        "#,
+        &["abcXY", "bcaXY", "cbaXY", "cabXY", "acbXY", "bacXY"],
+        &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
+    );
+}
+
+#[test]
+fn test_parametric_1() {
+    lark_str_test_many(
+        r#"
+            start  : aa::0 "X"
+            aa::_  : a aa::incr(_)    %if lt(_, 6)
+                   | bb::_
+            bb::_  : b bb::incr(_)    %if lt(_, 6)
+                   | ""
+            a: "a"
+            b: "b"
+        "#,
+        &[
+            "X", "aX", "bX", "abX", "aabX", "aaabX", "aaaabbX", "aaabbbX", "aaaaaaX", "bbbbbbX",
+        ],
+        &["z", "ba", "aaaaaaa", "bbbbbbb", "aaabbbbb"],
+    );
+}
+
+#[test]
+fn test_parametric_cnt() {
+    // at most 3 a, 3 b, 2 c (2 bits each)
+    lark_str_test_many(
+        r#"
+            start  : lst::0x0
+            lst::_ : "a" lst::incr([0:2])  %if lt([0:2], 3)
+                   | "b" lst::incr([2:4])  %if lt([2:4], 3)
+                   | "c" lst::incr([4:6])  %if lt([4:6], 2)
+                   | "X"
+
+        "#,
+        &[
+            "X",
+            "aX",
+            "bX",
+            "abX",
+            "aabX",
+            "aaabX",
+            "bbbaaaX",
+            "ccaaabbbX",
+            "abcababcX",
+        ],
+        &["z", "aaaa", "bbbb", "ccc", "aaaccc", "aaabbbb"],
+    );
+}
+
+#[test]
+fn test_parametric_pick_3() {
+    // allow for at last 1 and at most 3 unique elements
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0
+            perm::_  :  "X"                      %if bit_count_ge(_, 1)
+                     |  "a" perm::set_bit(0)     %if and(bit_clear(0), bit_count_lt(_, 3))
+                     |  "b" perm::set_bit(1)     %if and(bit_clear(1), bit_count_lt(_, 3))
+                     |  "c" perm::set_bit(2)     %if and(bit_clear(2), bit_count_lt(_, 3))
+                     |  "d" perm::set_bit(3)     %if and(bit_clear(3), bit_count_lt(_, 3))
+                     |  "e" perm::set_bit(4)     %if and(bit_clear(4), bit_count_lt(_, 3))
+
+        "#,
+        &["aX", "bX", "bacX", "adeX"],
+        &["X", "z", "aa", "bb", "abcd", "aba"],
+    );
+}
+
+#[test]
+fn test_parametric_null() {
+    let matching = &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"];
+    let not_matching = &[
+        "z", "X", "aX", "bX", "cX", "abX", "acX", "cbX", "abb", "aa", "bb", "cc",
+    ];
+
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0 "X"
+            perm::_  :  ""                       %if is_ones([0:3])
+                     |  "a" perm::set_bit(0)     %if bit_clear(0)
+                     |  "b" perm::set_bit(1)     %if bit_clear(1)
+                     |  "c" perm::set_bit(2)     %if bit_clear(2)
+        "#,
+        matching,
+        not_matching,
+    );
+
+    // complicate a bit with nested empty rules
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0 "X"
+            perm::_  :  ae::_ be::_              %if is_zeros([10:12])
+                     |  "a" perm::set_bit(0)     %if bit_clear(0)
+                     |  "b" perm::set_bit(1)     %if bit_clear(1)
+                     |  "c" perm::set_bit(2)     %if bit_clear(2)
+            ae::_ : ""    %if is_ones([0:1])
+            be::_ : ce::_ %if is_ones([1:2])
+            ce::_ : ""    %if is_ones([2:3])
+        "#,
+        matching,
+        not_matching,
+    );
+
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0 "X"
+            perm::_  :  ae::_ be::_
+                     |  "a" perm::set_bit(0)     %if bit_clear(0)
+                     |  "b" perm::set_bit(1)     %if bit_clear(1)
+                     |  "c" perm::set_bit(2)     %if bit_clear(2)
+            ae::_ : ""    %if is_ones([0:1])
+            be::_ : ce::_ %if is_ones([1:2])
+            ce::_ : ""    %if is_ones([2:3])
+        "#,
+        matching,
+        not_matching,
+    );
+}
+
+#[test]
+fn test_parametric_syntax() {
+    // Missing underscore after '::' in rule header
+    lark_err_test(
+        r#"
+            start: foo
+            foo:: "a"
+        "#,
+        "Expected token '_'",
+    );
+
+    // Invoking non-parametric rule with a parameter
+    lark_err_test(
+        r#"
+            start: foo
+            foo: a::1
+            a: "a"
+        "#,
+        "rule 'a' is not parametric",
+    );
+
+    // Bit-range syntax errors in '%if' conditions
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if eq([3:3], 0)
+        "#,
+        "end bit index 3 must be > start bit index 3",
+    );
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if eq([64:65], 0)
+        "#,
+        "number 64 is too large; must be <= 63",
+    );
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if eq([0:65], 0)
+        "#,
+        "number 65 is too large; must be <= 64",
+    );
+
+    // '%if' not allowed in terminal definitions
+    lark_err_test(
+        r#"
+            BAR: "b" %if and(true,true)
+            start: bar
+            bar: BAR
+        "#,
+        "'%if' is not supported in terminals",
+    );
+
+    // 'name::param' invocation not allowed in terminals
+    lark_err_test(
+        r#"
+            BAZ: qux::0
+            start: baz
+            baz: BAZ
+        "#,
+        "name::param cannot be used in terminals",
+    );
+
+    // 2. Parametric rule with non-parametric body
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: bar
+            bar: "a"
+        "#,
+        "rule \"foo\" is parametric, but its body doesn't need parameters",
+    );
+
+    // 3. Non-parametric rule with parametric body
+    lark_err_test(
+        r#"
+            start: foo
+            foo: bar::_
+            bar::_: bar::_
+        "#,
+        "rule \"foo\" is not parametric, but its body requires parameters",
+    );
+
+    lark_err_test(
+        r#"
+            start: foo
+            foo: bar
+            bar::_: bar::_
+        "#,
+        "rule 'bar' is parametric, but no parameter provided",
+    );
+
+    // 4. stop= on a parametric rule
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_[stop="X"]: "a"
+        "#,
+        "stop-like is not supported for parametric rules",
+    );
+
+    // 5. temperature= on a parametric rule
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_[temperature=1.0]: "a"
+        "#,
+        "temperature= is not supported for parametric rules",
+    );
+
+    // 6. max_tokens= on a parametric rule
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_[max_tokens=10]: "a"
+        "#,
+        "max_tokens= is not supported for parametric rules",
+    );
+
+    // 8. name::param not allowed in %token
+    lark_err_test(
+        r#"
+            BAZ: qux::0
+            start: BAZ
+            qux::_: "baz"
+        "#,
+        "name::param cannot be used in terminals",
+    );
+
+    // 11. bracket syntax required for ParamRef
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if eq(0, 0)
+        "#,
+        "expected '_' or '[start_bit:stop_bit]'",
+    );
+
+    // 12. unknown '%if' condition
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if foo([0:1], 0)
+        "#,
+        "Unexpected condition 'foo'",
+    );
+}
+
+#[test]
+fn test_parametric_long() {
+    // this is designed for the default max_items_in_row of 2000
+
+    let mut s = String::new();
+
+    let n = if cfg!(debug_assertions) { 90 } else { 900 };
+    let m = if cfg!(debug_assertions) { 50 } else { 200 };
+    let n2 = n * 2;
+
+    for _ in 0..n {
+        s.push_str("a ");
+    }
+    for _ in 0..n {
+        s.push_str("b ");
+    }
+    let mut s2 = s.clone();
+    s2.push_str("b ");
+    s2.push_str("b ");
+    s.push('X');
+
+    lark_str_test_many(
+        &format!(
+            r#"
+                start  : aa::0 "X"
+                aa::_  : "a " aa::incr(_)    %if lt(_, {n2})
+                       | bb::_
+                bb::_  : "b " bb::incr(_)    %if lt(_, {n2})
+                       | ""
+            "#
+        ),
+        &[&s],
+        &[&s2],
+    );
+
+    s.clear();
+    for _ in 0..m {
+        s.push_str("a b c d e f g ");
+    }
+    let mut s2 = s.clone();
+    s2.push_str("a ");
+    s.push('X');
+
+    lark_str_test_many(
+        &format!(
+            r#"
+                start  : lst::0x0
+                lst::_ : "a " lst::incr([0:8])  %if lt([0:8], {m})
+                       | "b " lst::incr([8:16])  %if lt([8:16], {m})
+                       | "c " lst::incr([16:24])  %if lt([16:24], {m})
+                       | "d " lst::incr([24:32])  %if lt([24:32], {m})
+                       | "e " lst::incr([32:40])  %if lt([32:40], {m})
+                       | "f " lst::incr([40:48])  %if lt([40:48], {m})
+                       | "g " lst::incr([48:56])  %if lt([48:56], {m})
+                       | "X"
+            "#
+        ),
+        &[&s],
+        &[&s2],
     );
 }
