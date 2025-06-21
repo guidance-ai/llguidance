@@ -646,6 +646,7 @@ impl Grammar {
             if self.is_special_symbol(sym) {
                 continue;
             }
+            // 'sym : trg %if true' is the only rule -> we will replace sym with trg
             if sym.rules.len() == 1 && sym.rules[0].condition.is_true() {
                 if let [(trg, param)] = sym.rules[0].rhs.as_slice() {
                     if param == &sym.props.neutral_param() {
@@ -708,7 +709,10 @@ impl Grammar {
             if self.is_special_symbol(sym) {
                 continue;
             }
-            if sym.rules.len() == 1 && the_user_of[sym.idx.as_usize()].is_some() {
+            if sym.rules.len() == 1
+                && the_user_of[sym.idx.as_usize()].is_some()
+                && sym.rules[0].condition.is_true()
+            {
                 // we will eliminate sym.idx
                 repl.insert(
                     sym.idx,
