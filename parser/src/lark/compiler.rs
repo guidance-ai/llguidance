@@ -21,6 +21,16 @@ use super::{
     parser::{parse_lark, ParsedLark},
 };
 
+const DEBUG: bool = false;
+macro_rules! debug {
+    ($($arg:tt)*) => {
+        if DEBUG {
+            eprint!("LRK> ");
+            eprintln!($($arg)*);
+        }
+    };
+}
+
 #[derive(Debug)]
 struct Grammar {
     rules: HashMap<String, Rule>,
@@ -430,6 +440,7 @@ impl Compiler {
             return self.builder.apply(id, param);
         }
 
+        debug!("BEG rule {}", name);
         let id = self.do_rule_core(name)?;
 
         if let Some(placeholder) = self.node_ids.get(name) {
@@ -438,6 +449,7 @@ impl Compiler {
         self.node_ids.insert(name.to_string(), id);
         self.in_progress.remove(name);
         self.builder.rename(id, name);
+        debug!("END rule {}", name);
         self.builder.apply(id, param)
     }
 
@@ -581,7 +593,8 @@ impl Compiler {
                         ..Default::default()
                     },
                 )
-            } else if rule.capture_name.is_some() {
+            } else if rule.capture_name.is_some() || (inner.is_parametric() && !rule.is_parametric)
+            {
                 self.builder.join_props(&[inner], props)
             } else {
                 inner

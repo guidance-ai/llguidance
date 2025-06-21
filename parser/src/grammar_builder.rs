@@ -14,6 +14,16 @@ use toktrie::{bytes::limit_str, TokEnv, INVALID_TOKEN};
 
 use crate::api::{GenGrammarOptions, GenOptions, NodeProps};
 
+const DEBUG: bool = false;
+macro_rules! debug {
+    ($($arg:tt)*) => {
+        if DEBUG {
+            eprint!("GRM>      ");
+            eprintln!($($arg)*);
+        }
+    };
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct NodeRef {
     idx: SymIdx,
@@ -415,7 +425,7 @@ impl GrammarBuilder {
             .iter()
             .map(|e| {
                 assert!(e.grammar_id == self.curr_grammar_idx);
-                //println!("   node: {}", self.node_to_string(*e));
+                debug!("   node: {}", self.node_to_string(*e));
                 let param = e
                     .param_id
                     .map(|id| self.params.get(id).clone())
@@ -424,7 +434,7 @@ impl GrammarBuilder {
             })
             .collect();
         let needs_param = opts.iter().any(|(_, p)| p.needs_param());
-        //println!("needs_param: {}", needs_param);
+        debug!("needs_param: {}", needs_param);
         (opts, needs_param)
     }
 
@@ -469,11 +479,16 @@ impl GrammarBuilder {
             return self.empty();
         }
         if ch.len() == 1 && props == NodeProps::default() {
-            return NodeRef {
-                idx: ch[0].0,
-                grammar_id: self.curr_grammar_idx,
-                param_id: values.iter().find(|v| v.idx == ch[0].0).unwrap().param_id,
-            };
+            let param_id = values.iter().find(|v| v.idx == ch[0].0).unwrap().param_id;
+            // if param_id is Some, but needs_param is false,
+            // it means this node doesn't have to be parametric if we wrap it (so we do it)
+            if param_id.is_none() || needs_param {
+                return NodeRef {
+                    idx: ch[0].0,
+                    grammar_id: self.curr_grammar_idx,
+                    param_id,
+                };
+            }
         }
         let r = self.new_param_node("", needs_param);
         self.grammar.apply_node_props(r.idx, props);

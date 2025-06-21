@@ -1498,6 +1498,36 @@ fn test_parametric_0() {
         &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"],
         &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
     );
+
+    // lark_str_test_many(
+    //     r#"
+    //         start    :  perm::0x0 "X"
+    //         perm::_  :  ""                      %if is_ones([0:3])
+    //                  |  a0 perm::set_bit(0)     %if bit_clear(0)
+    //                  |  a1 perm::set_bit(1)     %if bit_clear(1)
+    //                  |  a2 perm::set_bit(2)     %if bit_clear(2)
+    //         a0: "a"
+    //         a1: "b"
+    //         a2: "c"
+    //     "#,
+    //     &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"],
+    //     &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
+    // );
+
+    // lark_str_test_many(
+    //     r#"
+    //         start    :  perm::0x0 "Y"
+    //         perm::_  :  "X"                     %if is_ones([0:3])
+    //                  |  a0 perm::set_bit(0)     %if bit_clear(0)
+    //                  |  a1 perm::set_bit(1)     %if bit_clear(1)
+    //                  |  a2 perm::set_bit(2)     %if bit_clear(2)
+    //         a0: "a"
+    //         a1: "b"
+    //         a2: "c"
+    //     "#,
+    //     &["abcXY", "bcaXY", "cbaXY", "cabXY", "acbXY", "bacXY"],
+    //     &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
+    // );
 }
 
 #[test]
