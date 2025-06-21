@@ -1,4 +1,7 @@
-use std::{fmt::Display, rc::Rc};
+use std::{
+    fmt::{Debug, Display},
+    rc::Rc,
+};
 
 use crate::{api::RegexExt, HashMap};
 use anyhow::{anyhow, bail, Result};
@@ -60,6 +63,29 @@ pub enum Token {
     // special
     SKIP,
     EOF,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let lst = Self::LITERAL_TOKENS;
+        if let Some((_, literal)) = lst.iter().find(|(t, _)| t == self) {
+            write!(f, "'{literal}'")
+        } else {
+            match self {
+                Token::Op => write!(f, "'+' or '*' or '?'"),
+                Token::Rule => write!(f, "'rule_name'"),
+                Token::Token => write!(f, "'TOKEN_NAME'"),
+                Token::String => write!(f, "\"string...\""),
+                Token::Regexp => write!(f, "/regexp.../"),
+                Token::Number => write!(f, "a number"),
+                Token::HexNumber => write!(f, "a 0x-hex-number"),
+                Token::Newline => write!(f, "'\\n'"),
+                Token::SpecialToken => write!(f, "<special_token>"),
+                Token::GrammarRef => write!(f, "@grammar_name"),
+                _ => write!(f, "{self:?}"),
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]

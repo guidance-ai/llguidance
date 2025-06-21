@@ -41,7 +41,7 @@ impl Parser {
         self.parse_start_inner().map_err(|e| {
             if let Some(tok) = self.peek_token() {
                 anyhow!(
-                    "{}({}): {} (at {} ({:?}))\n{}",
+                    "{}({}): {} (at {} ({}))\n{}",
                     tok.line,
                     tok.column,
                     e,
@@ -894,10 +894,10 @@ impl Parser {
                 self.advance();
                 Ok(())
             } else {
-                bail!("Expected token {:?}, found {:?}", expected, token.token)
+                bail!("Expected token {}, found {}", expected, token.token)
             }
         } else {
-            bail!("Expected token {:?}, found end of input", expected)
+            bail!("Expected token {}, found end of input", expected)
         }
     }
 
@@ -908,10 +908,10 @@ impl Parser {
                 self.advance();
                 Ok(r)
             } else {
-                bail!("Expected token {:?}, found {:?}", expected, token.token)
+                bail!("Expected token {}, found {}", expected, token.token)
             }
         } else {
-            bail!("Expected token {:?}, found end of input", expected)
+            bail!("Expected token {}, found end of input", expected)
         }
     }
 
