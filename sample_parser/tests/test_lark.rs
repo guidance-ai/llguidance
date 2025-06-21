@@ -1582,16 +1582,51 @@ fn test_parametric_pick_3() {
 
 #[test]
 fn test_parametric_null() {
-    // currently broken
-    // lark_str_test_many(
-    //     r#"
-    //         start    :  perm::0x0 "X"
-    //         perm::_  :  ""                      %if is_ones([0:3])
-    //                  |  "a" perm::set_bit(0)     %if bit_clear(0)
-    //                  |  "b" perm::set_bit(1)     %if bit_clear(1)
-    //                  |  "c" perm::set_bit(2)     %if bit_clear(2)
-    //     "#,
-    //     &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"],
-    //     &["z", "X", "aX", "abX", "abb", "aa", "bb", "cc"],
-    // );
+    let matching = &["abcX", "bcaX", "cbaX", "cabX", "acbX", "bacX"];
+    let not_matching = &[
+        "z", "X", "aX", "bX", "cX", "abX", "acX", "cbX", "abb", "aa", "bb", "cc",
+    ];
+
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0 "X"
+            perm::_  :  ""                       %if is_ones([0:3])
+                     |  "a" perm::set_bit(0)     %if bit_clear(0)
+                     |  "b" perm::set_bit(1)     %if bit_clear(1)
+                     |  "c" perm::set_bit(2)     %if bit_clear(2)
+        "#,
+        matching,
+        not_matching,
+    );
+
+    // complicate a bit with nested empty rules
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0 "X"
+            perm::_  :  ae::_ be::_              %if is_zeros([10:12])
+                     |  "a" perm::set_bit(0)     %if bit_clear(0)
+                     |  "b" perm::set_bit(1)     %if bit_clear(1)
+                     |  "c" perm::set_bit(2)     %if bit_clear(2)
+            ae::_ : ""    %if is_ones([0:1])
+            be::_ : ce::_ %if is_ones([1:2])
+            ce::_ : ""    %if is_ones([2:3])
+        "#,
+        matching,
+        not_matching,
+    );
+
+    lark_str_test_many(
+        r#"
+            start    :  perm::0x0 "X"
+            perm::_  :  ae::_ be::_
+                     |  "a" perm::set_bit(0)     %if bit_clear(0)
+                     |  "b" perm::set_bit(1)     %if bit_clear(1)
+                     |  "c" perm::set_bit(2)     %if bit_clear(2)
+            ae::_ : ""    %if is_ones([0:1])
+            be::_ : ce::_ %if is_ones([1:2])
+            ce::_ : ""    %if is_ones([2:3])
+        "#,
+        matching,
+        not_matching,
+    );
 }

@@ -278,6 +278,7 @@ impl Item {
         }
     }
 
+    // this is dot position
     fn rhs_ptr(&self) -> RhsPtr {
         RhsPtr::from_index(self.data as u32)
     }
@@ -1981,8 +1982,8 @@ impl ParserState {
             agenda_ptr += 1;
             debug_def!(self, "    agenda: {}", self.item_to_string(item_idx));
 
-            let rule = item.rhs_ptr();
-            let after_dot = self.grammar.sym_idx_dot(rule);
+            let dot_ptr = item.rhs_ptr();
+            let after_dot = self.grammar.sym_idx_dot(dot_ptr);
 
             if self.scratch.definitive {
                 let is_lexeme = agenda_ptr <= lexemes_end;
@@ -1993,7 +1994,7 @@ impl ParserState {
 
             // If 'rule' is a complete Earley item ...
             if after_dot == CSymIdx::NULL {
-                let lhs = self.grammar.sym_idx_lhs(rule);
+                let lhs = self.grammar.sym_idx_lhs(dot_ptr);
                 if item.start_pos() < curr_idx {
                     // if item.start_pos() == curr_idx, then we handled it below in the nullable check
 
@@ -2015,18 +2016,7 @@ impl ParserState {
                     self.scratch.push_allowed_lexemes.add(lx);
                 }
 
-                // The completion inference rule for nullable symbols
-                // (slide 20 in Kallmeyer 2018).
-                if sym_data.is_nullable {
-                    self.scratch
-                        .add_unique(item.advance_dot(), item_idx, "null");
-                    if self.scratch.definitive && sym_data.props.capture_name.is_some() {
-                        // nullable capture
-                        let var_name = sym_data.props.capture_name.as_ref().unwrap();
-                        debug!("      capture: {} NULL", var_name);
-                        self.captures.push((var_name.clone(), vec![]));
-                    }
-                }
+                let mut cond_nullable = false;
 
                 if sym_data.gen_grammar.is_some() {
                     let mut node = self.mk_grammar_stack_node(sym_data, curr_idx);
@@ -2039,21 +2029,42 @@ impl ParserState {
                     // (slide 20 in Kallmeyer 2018)
                     if self.scratch.parametric {
                         let param_here = self.scratch.item_args[item_idx];
+                        // param_dot is now parameter for sym_data (which is symbol at dot)
+                        let param_dot = self.grammar.param_value_dot(dot_ptr).eval(param_here);
+
+                        if !sym_data.cond_nullable.is_empty()
+                            && sym_data.cond_nullable.iter().any(|c| c.eval(param_dot))
+                        {
+                            cond_nullable = true;
+                        }
+
                         for ri in 0..sym_data.rules.len() {
-                            let rule_param = self.grammar.param_value_dot(rule).eval(param_here);
-                            if !sym_data.rules_cond[ri].eval(rule_param) {
+                            if !sym_data.rules_cond[ri].eval(param_dot) {
                                 continue; // skip this rule
                             }
                             let inner_rule = sym_data.rules[ri];
                             let new_item = Item::new(inner_rule, curr_idx);
                             self.scratch
-                                .add_unique_arg(new_item, "predict_parametric", rule_param);
+                                .add_unique_arg(new_item, "predict_parametric", param_dot);
                         }
                     } else {
                         for rule in &sym_data.rules {
                             let new_item = Item::new(*rule, curr_idx);
                             self.scratch.add_unique(new_item, item_idx, "predict");
                         }
+                    }
+                }
+
+                // The completion inference rule for nullable symbols
+                // (slide 20 in Kallmeyer 2018).
+                if sym_data.is_nullable || cond_nullable {
+                    self.scratch
+                        .add_unique(item.advance_dot(), item_idx, "null");
+                    if self.scratch.definitive && sym_data.props.capture_name.is_some() {
+                        // nullable capture
+                        let var_name = sym_data.props.capture_name.as_ref().unwrap();
+                        debug!("      capture: {} NULL", var_name);
+                        self.captures.push((var_name.clone(), vec![]));
                     }
                 }
             }
