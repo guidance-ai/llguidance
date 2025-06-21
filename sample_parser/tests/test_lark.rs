@@ -1779,3 +1779,65 @@ fn test_parametric_syntax() {
         "Unexpected condition 'foo'",
     );
 }
+
+#[test]
+fn test_parametric_long() {
+    // this is designed for the default max_items_in_row of 2000
+
+    let mut s = String::new();
+
+    let n = if cfg!(debug_assertions) { 90 } else { 900 };
+    let m = if cfg!(debug_assertions) { 50 } else { 200 };
+    let n2 = n * 2;
+
+    for _ in 0..n {
+        s.push_str("a ");
+    }
+    for _ in 0..n {
+        s.push_str("b ");
+    }
+    let mut s2 = s.clone();
+    s2.push_str("b ");
+    s2.push_str("b ");
+    s.push('X');
+
+    lark_str_test_many(
+        &format!(
+            r#"
+                start  : aa::0 "X"
+                aa::_  : "a " aa::incr(_)    %if lt(_, {n2})
+                       | bb::_
+                bb::_  : "b " bb::incr(_)    %if lt(_, {n2})
+                       | ""
+            "#
+        ),
+        &[&s],
+        &[&s2],
+    );
+
+    s.clear();
+    for _ in 0..m {
+        s.push_str("a b c d e f g ");
+    }
+    let mut s2 = s.clone();
+    s2.push_str("a ");
+    s.push('X');
+
+    lark_str_test_many(
+        &format!(
+            r#"
+                start  : lst::0x0
+                lst::_ : "a " lst::incr([0:8])  %if lt([0:8], {m})
+                       | "b " lst::incr([8:16])  %if lt([8:16], {m})
+                       | "c " lst::incr([16:24])  %if lt([16:24], {m})
+                       | "d " lst::incr([24:32])  %if lt([24:32], {m})
+                       | "e " lst::incr([32:40])  %if lt([32:40], {m})
+                       | "f " lst::incr([40:48])  %if lt([40:48], {m})
+                       | "g " lst::incr([48:56])  %if lt([48:56], {m})
+                       | "X"
+            "#
+        ),
+        &[&s],
+        &[&s2],
+    );
+}

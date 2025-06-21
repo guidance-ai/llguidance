@@ -123,9 +123,11 @@ perm::_  :  ""                       %if bit_count_ge(_, 1)
 ## Performance considerations
 
 All the rules above are right-recursive, which is generally [not ideal](./syntax.md#recursive-rules) for Earley parsing.
-The problem is, for a list of length `N` it will generate `O(N^2)` items during parsing.
+The problem is, for a list of length `N` it will generate `O(N^2)` items during parsing
+(for item number `i`, it will generate about `i` items).
 
 However, if you were to make them left-recursive, it may generate `O(2^K)` items
 where `K` is the number of bits used, so do not do that.
 
-Practically, this means the rules will not work for lists longer than about 100 elements.
+Practically, this means the rules will not work for lists longer than about 2000 elements.
+
