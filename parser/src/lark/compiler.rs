@@ -24,7 +24,7 @@ use super::{
 const DEBUG: bool = false;
 macro_rules! debug {
     ($($arg:tt)*) => {
-        if DEBUG {
+        if cfg!(feature = "logging") && DEBUG {
             eprint!("LRK> ");
             eprintln!($($arg)*);
         }

@@ -17,7 +17,7 @@ use crate::api::{GenGrammarOptions, GenOptions, NodeProps};
 const DEBUG: bool = false;
 macro_rules! debug {
     ($($arg:tt)*) => {
-        if DEBUG {
+        if cfg!(feature = "logging") && DEBUG {
             eprint!("GRM>      ");
             eprintln!($($arg)*);
         }
