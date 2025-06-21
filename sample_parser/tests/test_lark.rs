@@ -1694,4 +1694,88 @@ fn test_parametric_syntax() {
         "#,
         "name::param cannot be used in terminals",
     );
+
+    // 2. Parametric rule with non-parametric body
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: bar
+            bar: "a"
+        "#,
+        "rule \"foo\" is parametric, but its body doesn't need parameters",
+    );
+
+    // 3. Non-parametric rule with parametric body
+    lark_err_test(
+        r#"
+            start: foo
+            foo: bar::_
+            bar::_: bar::_
+        "#,
+        "rule \"foo\" is not parametric, but its body requires parameters",
+    );
+
+    lark_err_test(
+        r#"
+            start: foo
+            foo: bar
+            bar::_: bar::_
+        "#,
+        "rule 'bar' is parametric, but no parameter provided",
+    );
+
+    // 4. stop= on a parametric rule
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_[stop="X"]: "a"
+        "#,
+        "stop-like is not supported for parametric rules",
+    );
+
+    // 5. temperature= on a parametric rule
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_[temperature=1.0]: "a"
+        "#,
+        "temperature= is not supported for parametric rules",
+    );
+
+    // 6. max_tokens= on a parametric rule
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_[max_tokens=10]: "a"
+        "#,
+        "max_tokens= is not supported for parametric rules",
+    );
+
+    // 8. name::param not allowed in %token
+    lark_err_test(
+        r#"
+            BAZ: qux::0
+            start: BAZ
+            qux::_: "baz"
+        "#,
+        "name::param cannot be used in terminals",
+    );
+
+    // 11. bracket syntax required for ParamRef
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if eq(0, 0)
+        "#,
+        "expected '_' or '[start_bit:stop_bit]'",
+    );
+
+    // 12. unknown '%if' condition
+    lark_err_test(
+        r#"
+            start: foo
+            foo::_: "a" %if foo([0:1], 0)
+        "#,
+        "Unexpected condition 'foo'",
+    );
 }
