@@ -58,7 +58,7 @@ impl ByteTokenizer {
         if let Some(n) = hft.get_normalizer() {
             let n = match n {
                 NormalizerWrapper::Sequence(x) => NormalizerWrapper::Sequence(Sequence::new(
-                    x.get_normalizers()
+                    x.as_ref()
                         .iter()
                         .filter_map(|n| match n {
                             NormalizerWrapper::Prepend(_) => None,
