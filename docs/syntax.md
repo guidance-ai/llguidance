@@ -70,6 +70,11 @@ You can also use numeric token ids, as in `<[128010]>` (this is `<|python_tag|>`
 Tou can also use ranges like `<[128000-128255]>` for all Llama special tokens, or
 even lists of ranges like `<[128000-128100,128130-128170]>`; ranges are inclusive.
 
+Individual numeric token ids and ranges can be negated with the carat operator, like `<^128000,128130-128170>`.
+This is equivalent to `<0-12799,128001-128129,128171-MAX>`.
+
+You can also use a *wildcard* token range, `<[*]>`, denoting `<[0-MAX]>`.
+
 For example, this is how to constrain JSON function calling for Meta Llama 3.1,
 according to their [source repo](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/prompt_format.md#model-response-format-5) (and yes, it's [different](https://github.com/meta-llama/llama-models/issues/266) than the website).
 
