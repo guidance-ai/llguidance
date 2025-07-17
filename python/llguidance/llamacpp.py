@@ -44,8 +44,14 @@ def lltokenizer_from_vocab(
         assert n <= buffer_len
         tok = bytes(buffer[:n]) # type: ignore
         attr = llama_cpp.llama_token_get_attr(vocab, token)
-        if attr & llama_cpp.LLAMA_TOKEN_ATTR_CONTROL:
-            tok = b"\xFF" + tok
+        # If the token is a control token or a user-defined token that looks like a control token,
+        # we prefix it with 0xff to indicate that it should be treated as a special token.
+        if attr & llama_cpp.LLAMA_TOKEN_ATTR_CONTROL or (
+            attr & llama_cpp.LLAMA_TOKEN_ATTR_USER_DEFINED
+            and tok.startswith(b"<")
+            and tok.endswith(b">")
+        ):
+            tok = b"\xff" + tok
         tokens.append(tok)
 
     if n_vocab is not None:
