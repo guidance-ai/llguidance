@@ -1,3 +1,10 @@
+
+/*
+Per
+https://doc.rust-lang.org/book/ch11-03-test-organization.html#submodules-in-integration-tests
+we do have an 'old style' mod.rs, so that the test runner doesn't look inside
+ */
+
 use anyhow::Result;
 use llguidance::{
     api::{GrammarInit, TopLevelGrammar},
