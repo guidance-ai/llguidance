@@ -27,7 +27,7 @@ fn test_json_array_length_constraints() {
     );
     json_err_test(
         &json!({"type":"array", "items": {"type":"integer"}, "minItems": 2, "maxItems": 1}),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minItems (2) is greater than maxItems (1)",
     );
 }
 
