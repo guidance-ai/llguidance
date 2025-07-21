@@ -57,28 +57,28 @@ fn test_json_integer_limits() {
             "type": "integer",
             "minimum": 1, "maximum": -1
         }),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
     );
     json_err_test(
         &json!({
             "type": "integer",
             "exclusiveMinimum": 1, "maximum": -1
         }),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
     );
     json_err_test(
         &json!({
             "type": "integer",
             "minimum": 1, "exclusiveMaximum": -1
         }),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
     );
     json_err_test(
         &json!({
             "type": "integer",
             "exclusiveMinimum": 1, "exclusiveMaximum": -1
         }),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
     );
     json_err_test(
         &json!({
@@ -134,30 +134,30 @@ fn test_json_number_limits() {
     json_err_test(
         &json!({
             "type": "number",
-            "minimum": 1, "maximum": -1
+            "minimum": 1.5, "maximum": -1
         }),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minimum (1.5) is greater than maximum (-1)",
     );
     json_err_test(
         &json!({
             "type": "number",
-            "exclusiveMinimum": 1, "maximum": -1
+            "exclusiveMinimum": 1.0, "maximum": -1
         }),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
     );
     json_err_test(
         &json!({
             "type": "number",
-            "minimum": 1, "exclusiveMaximum": -1
+            "minimum": 1.0, "exclusiveMaximum": -1.5
         }),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minimum (1) is greater than maximum (-1.5)",
     );
     json_err_test(
         &json!({
             "type": "number",
-            "exclusiveMinimum": 1, "exclusiveMaximum": -1
+            "exclusiveMinimum": 1.0, "exclusiveMaximum": -2.5
         }),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minimum (1) is greater than maximum (-2.5)",
     );
 }
 
@@ -211,6 +211,6 @@ fn test_json_string_length() {
     );
     json_err_test(
         &json!({"type":"string", "minLength": 2, "maxLength": 1}),
-        "Unsatisfiable schema",
+        "Unsatisfiable schema: minLength (2) is greater than maxLength (1)",
     );
 }
