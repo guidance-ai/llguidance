@@ -57,3 +57,56 @@ fn test_json_object_directly_nested() {
         ],
     );
 }
+
+#[test]
+fn test_json_object_with_array() {
+    json_test_many(
+        &json!({"type":"object", "properties": {
+                "name" : {"type": "string"},
+                "values": {
+                    "type": "array",
+                    "items": {"type": "integer"}
+                }
+            },
+            "required": ["name", "values"]
+        }),
+        &[json!({"name": "Test", "values": [1, 2, 3]})],
+        &[
+            json!({"name": "Test", "values": [1, 2, "Hello"]}),
+            json!({"name": "Test", "values": [1.0, 2.0]}),
+            json!({"name": "Test"}),
+            json!({"values": [1, 2, 3]}),
+        ],
+    );
+}
+
+#[test]
+fn test_json_object_unsatisfiable() {
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {"a": {"type": "integer"}, "b": false},
+            "additionalProperties": false,
+        }),
+        &[json!({"a": 42})],
+        &[json!({"a": 42, "b": 43})],
+    );
+    json_err_test(
+        &json!({
+            "type": "object",
+            "properties": {"a": {"type": "integer"}, "b": false},
+            "required": ["b"],
+            "additionalProperties": false,
+        }),
+        "Unsatisfiable schema: required property 'b' is unsatisfiable",
+    );
+    json_err_test(
+        &json!({
+            "type": "object",
+            "properties": {"a": {"type": "integer"}},
+            "required": ["a", "b"],
+            "additionalProperties": false,
+        }),
+        "Unsatisfiable schema",
+    );
+}
