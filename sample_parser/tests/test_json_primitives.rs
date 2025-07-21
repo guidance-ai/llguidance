@@ -79,3 +79,75 @@ fn test_json_integer_limits() {
         "Failed to generate regex for integer range",
     );
 }
+
+#[test]
+fn test_json_number() {
+    json_test_many(
+        &json!({"type":"number"}),
+        &[
+            json!(0),
+            json!(0.0),
+            json!(1.0),
+            json!(-1.0),
+            json!(-1),
+            json!(1),
+            json!(142.4),
+            json!(-213.1),
+            json!(1.23e23),
+            json!(-9.2e-132),
+        ],
+        &[json!("1.0"), json!("1"), json!("Hello")],
+    );
+}
+
+#[test]
+fn test_json_number_limits() {
+    json_test_many(
+        &json!({"type":"number", "minimum": -100, "maximum": 100}),
+        &[json!(0.0), json!(-100.0), json!(100.0)],
+        &[json!(-100.0001), json!(100.0001)],
+    );
+    json_test_many(
+        &json!({"type":"number", "exclusiveMinimum": -1, "maximum": 100}),
+        &[json!(-0.99999), json!(1.0), json!(50), json!(100.0)],
+        &[json!(-1.0), json!(-1), json!(100.0001)],
+    );
+    json_test_many(
+        &json!({"type":"number", "minimum": -0.5, "exclusiveMaximum": 5}),
+        &[json!(-0.5), json!(0), json!(0.1), json!(4.999999)],
+        &[json!(-0.50001), json!(5.000001)],
+    );
+    json_test_many(
+        &json!({"type":"number", "exclusiveMinimum": 0, "exclusiveMaximum": 1.5}),
+        &[json!(0.00001), json!(1.0), json!(1.49999)],
+        &[json!(-0.0), json!(1.5)],
+    );
+    json_err_test(
+        &json!({
+            "type": "number",
+            "minimum": 1, "maximum": -1
+        }),
+        "Unsatisfiable schema",
+    );
+    json_err_test(
+        &json!({
+            "type": "number",
+            "exclusiveMinimum": 1, "maximum": -1
+        }),
+        "Unsatisfiable schema",
+    );
+    json_err_test(
+        &json!({
+            "type": "number",
+            "minimum": 1, "exclusiveMaximum": -1
+        }),
+        "Unsatisfiable schema",
+    );
+    json_err_test(
+        &json!({
+            "type": "number",
+            "exclusiveMinimum": 1, "exclusiveMaximum": -1
+        }),
+        "Unsatisfiable schema",
+    );
+}
