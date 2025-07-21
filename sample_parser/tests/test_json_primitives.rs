@@ -4,6 +4,15 @@ mod common_lark_utils;
 use common_lark_utils::*;
 
 #[test]
+fn test_json_null() {
+    json_test_many(
+        &json!({"type":"null"}),
+        &[json!(null)],
+        &[json!(true), json!(false), json!(1), json!("Hello")],
+    );
+}
+
+#[test]
 fn test_json_boolean() {
     json_test_many(
         &json!({"type":"boolean"}),
@@ -149,5 +158,36 @@ fn test_json_number_limits() {
             "exclusiveMinimum": 1, "exclusiveMaximum": -1
         }),
         "Unsatisfiable schema",
+    );
+}
+
+#[test]
+fn test_json_string() {
+    json_test_many(
+        &json!({"type":"string"}),
+        &[
+            json!(""),
+            json!("Hello"),
+            json!("123"),
+            json!("!@#$%^&*()_+"),
+            json!("'"),
+            json!("\""),
+            json!(
+                r"Hello\nWorld
+            
+            With some extra line breaks etc.
+            "
+            ),
+        ],
+        &[json!(1), json!(true), json!(null)],
+    );
+}
+
+#[test]
+fn test_json_string_regex() {
+    json_test_many(
+        &json!({"type":"string", "pattern": r"a[A-Z]"}),
+        &[json!("aB"), json!("aC"), json!("aZ")],
+        &[json!("Hello World"), json!("aa"), json!("a1")],
     );
 }
