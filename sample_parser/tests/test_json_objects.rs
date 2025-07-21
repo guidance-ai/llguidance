@@ -110,3 +110,59 @@ fn test_json_object_unsatisfiable() {
         "Unsatisfiable schema",
     );
 }
+
+#[test]
+fn test_json_linked_list() {
+    json_test_many(
+        &json!(
+        {
+            "$defs": {
+                "A": {
+                    "properties": {
+                        "my_str": {
+                            "default": "me",
+                            "title": "My Str",
+                            "type": "string"
+                        },
+                        "next": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/$defs/A"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
+                    },
+                    "required": ["my_str", "next"],
+                    "type": "object"
+                }
+            },
+            "type": "object",
+            "properties": {
+                "my_list": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/A"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
+                }
+            },
+            "required": ["my_list"]
+        }),
+        &[
+            json!({"my_list": null}),
+            json!({"my_list":{"my_str": "first", "next": null}}),
+            json!({"my_list":{"my_str": "first", "next": {"my_str": "second", "next":null}}}),
+            json!({"my_list":{"my_str": "first", "next": {"my_str": "second", "next":{"my_str": "third", "next":null}}}}),
+        ],
+        &[
+            json!({"my_list": {"my_str": 1}}),
+            json!({"my_list": {"my_str": "first", "next": "second"}}),
+        ],
+    );
+}
