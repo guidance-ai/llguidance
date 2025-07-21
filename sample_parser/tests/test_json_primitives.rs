@@ -191,3 +191,26 @@ fn test_json_string_regex() {
         &[json!("Hello World"), json!("aa"), json!("a1")],
     );
 }
+
+#[test]
+fn test_json_string_length() {
+    json_test_many(
+        &json!({"type":"string", "minLength": 3, "maxLength": 5}),
+        &[json!("abc"), json!("abcd"), json!("abcde")],
+        &[json!("ab"), json!("abcdef"), json!("a")],
+    );
+    json_test_many(
+        &json!({"type":"string", "minLength": 3, "maxLength": 3}),
+        &[json!("abc")],
+        &[json!("ab"), json!("abcd"), json!("a")],
+    );
+    json_test_many(
+        &json!({"type":"string", "minLength": 0, "maxLength": 0}),
+        &[json!("")],
+        &[json!("a"), json!("abc")],
+    );
+    json_err_test(
+        &json!({"type":"string", "minLength": 2, "maxLength": 1}),
+        "Unsatisfiable schema",
+    );
+}
