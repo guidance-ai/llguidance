@@ -1,7 +1,7 @@
 use serde_json::json;
 
 mod common_lark_utils;
-use common_lark_utils::*;
+use common_lark_utils::{json_err_test, json_test_many};
 
 #[test]
 fn test_json_null() {
