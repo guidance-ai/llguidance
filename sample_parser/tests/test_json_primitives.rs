@@ -141,6 +141,7 @@ fn test_json_number_limits() {
     json_err_test(
         &json!({
             "type": "number",
+        // Note coercion of 1.0 to 1
             "exclusiveMinimum": 1.0, "maximum": -1
         }),
         "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
@@ -148,6 +149,7 @@ fn test_json_number_limits() {
     json_err_test(
         &json!({
             "type": "number",
+        // Note coercion of 1.0 to 1
             "minimum": 1.0, "exclusiveMaximum": -1.5
         }),
         "Unsatisfiable schema: minimum (1) is greater than maximum (-1.5)",
@@ -157,6 +159,7 @@ fn test_json_number_limits() {
             "type": "number",
             "exclusiveMinimum": 1.0, "exclusiveMaximum": -2.5
         }),
+        // Note coercion of 1.0 to 1
         "Unsatisfiable schema: minimum (1) is greater than maximum (-2.5)",
     );
 }
