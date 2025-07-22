@@ -5,8 +5,8 @@ mod common_lark_utils;
 use common_lark_utils::{json_err_test, json_schema_check};
 
 #[rstest]
-#[case(&json!([]),)]
-#[case(&json!([1]),)]
+#[case::empty_list(&json!([]),)]
+#[case::single_item(&json!([1]),)]
 #[case(&json!([1, 2, 3]),)]
 fn array_integer(#[case] sample_array: &Value) {
     let schema = &json!({"type":"array", "items": {"type":"integer"}});
@@ -22,8 +22,8 @@ fn array_integer_failures(#[case] sample_array: &Value) {
 }
 
 #[rstest]
-#[case(&json!([]),)]
-#[case(&json!([true]),)]
+#[case::empty_list(&json!([]),)]
+#[case::single_item(&json!([true]),)]
 #[case(&json!([false]),)]
 #[case(&json!([false, true]),)]
 fn array_boolean(#[case] sample_array: &Value) {
@@ -40,9 +40,9 @@ fn array_boolean_failures(#[case] sample_array: &Value) {
 }
 
 #[rstest]
-#[case(&json!([1,2]))]
-#[case(&json!([1,2, 3]))]
-#[case(&json!([1,2, 3, 4]))]
+#[case::lower_bound(&json!([1,2]))]
+#[case::between_bounds(&json!([1,2, 3]))]
+#[case::upper_bound(&json!([1,2, 3, 4]))]
 fn array_length_constraints(#[case] sample_array: &Value) {
     let schema =
         &json!({"type":"array", "items": {"type":"integer"}, "minItems": 2, "maxItems": 4});
@@ -50,9 +50,9 @@ fn array_length_constraints(#[case] sample_array: &Value) {
 }
 
 #[rstest]
-#[case(&json!([]))]
-#[case(&json!([1]))]
-#[case(&json!([1,2,3,4,5]))]
+#[case::empty_list(&json!([]))]
+#[case::single_item(&json!([1]))]
+#[case::too_long(&json!([1,2,3,4,5]))]
 fn array_length_failures(#[case] sample_array: &Value) {
     let schema =
         &json!({"type":"array", "items": {"type":"integer"}, "minItems": 2, "maxItems": 4});
@@ -68,7 +68,7 @@ fn array_length_bad_constraints() {
 }
 
 #[rstest]
-#[case(&json!([]))]
+#[case::empty_list(&json!([]))]
 #[case(&json!([[1]]))]
 #[case(&json!([[1], []]))]
 #[case(&json!([[], [1]]))]
@@ -84,15 +84,16 @@ fn nested_array(#[case] sample_array: &Value) {
 #[case(&json!([[1, "Hello"]]))]
 #[case(&json!([[true, false]]))]
 #[case(&json!([[1.0, 2.0]]))]
+#[case(&json!([[1], [2.0]]))]
 fn nested_array_failures(#[case] sample_array: &Value) {
     let schema = &json!({"type":"array", "items": {"type":"array", "items": {"type":"integer"}}});
     json_schema_check(schema, sample_array, false);
 }
 
 #[rstest]
-#[case(&json!([]))]
-#[case(&json!([{"a": 1}]))]
-#[case(&json!([{"a": 1}, {"a": 2}]))]
+#[case::empty_list(&json!([]))]
+#[case::single_item(&json!([{"a": 1}]))]
+#[case::multiple_items(&json!([{"a": 1}, {"a": 2}]))]
 fn array_of_objects(#[case] sample_array: &Value) {
     let schema = &json!(
         {
