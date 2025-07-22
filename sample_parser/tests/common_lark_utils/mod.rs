@@ -131,6 +131,7 @@ pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
     lark_str_test(&lark, expect_valid, &s, false);
 }
 
+#[allow(dead_code)]
 pub fn json_test_many(schema: &Value, passing: &[Value], failing: &[Value]) {
     for s in passing {
         json_schema_check(schema, s, true);
