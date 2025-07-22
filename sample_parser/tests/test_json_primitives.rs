@@ -1,24 +1,40 @@
-use serde_json::json;
+use rstest::*;
+use serde_json::{json, Value};
 
 mod common_lark_utils;
-use common_lark_utils::{json_err_test, json_test_many};
+use common_lark_utils::{json_err_test, json_schema_check, json_test_many};
 
 #[test]
-fn test_json_null() {
-    json_test_many(
-        &json!({"type":"null"}),
-        &[json!(null)],
-        &[json!(true), json!(false), json!(1), json!("Hello")],
-    );
+fn null_schema() {
+    let schema = &json!({"type":"null"});
+    json_schema_check(schema, &json!(null), true);
 }
 
-#[test]
-fn test_json_boolean() {
-    json_test_many(
-        &json!({"type":"boolean"}),
-        &[json!(true), json!(false)],
-        &[json!(1), json!("True"), json!(0), json!("False")],
-    );
+#[rstest]
+#[case::boolean(&json!(true))]
+#[case::integer(&json!(1))]
+#[case::string(&json!("Hello"))]
+fn null_schema_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"null"});
+    json_schema_check(schema, sample_value, false);
+}
+
+#[rstest]
+#[case::bool_false(&json!(false))]
+#[case::bool_true(&json!(true))]
+fn boolean(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"boolean"});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case::int_0(&json!(0))]
+#[case::int_1(&json!(1))]
+#[case::str_false(&json!("false"))]
+#[case::str_true(&json!("true"))]
+fn boolean_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"boolean"});
+    json_schema_check(schema, sample_value, false);
 }
 
 #[test]
