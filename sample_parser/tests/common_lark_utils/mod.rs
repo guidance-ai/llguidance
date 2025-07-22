@@ -125,15 +125,18 @@ pub fn lark_str_test_many_ext(quiet: bool, lark: &str, passing: &[&str], failing
     }
 }
 
-pub fn json_test_many(schema: &Value, passing: &[Value], failing: &[Value]) {
+pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
     let lark = format!(r#"start: %json {}"#, serde_json::to_string(schema).unwrap());
+    let s = serde_json::to_string(json_obj).unwrap();
+    lark_str_test(&lark, expect_valid, &s, false);
+}
+
+pub fn json_test_many(schema: &Value, passing: &[Value], failing: &[Value]) {
     for s in passing {
-        let s = serde_json::to_string(s).unwrap();
-        lark_str_test(&lark, true, &s, false);
+        json_schema_check(schema, s, true);
     }
     for s in failing {
-        let s = serde_json::to_string(s).unwrap();
-        lark_str_test(&lark, false, &s, false);
+        json_schema_check(schema, s, false);
     }
 }
 

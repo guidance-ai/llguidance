@@ -1,21 +1,42 @@
-use serde_json::json;
+use rstest::*;
+use serde_json::{json, Value};
 
 mod common_lark_utils;
-use common_lark_utils::{json_err_test, json_test_many};
+use common_lark_utils::{json_err_test, json_schema_check, json_test_many};
 
-#[test]
-fn test_json_array() {
-    json_test_many(
-        &json!({"type":"array", "items": {"type":"integer"}}),
-        &[json!([1, 2, 3]), json!([]), json!([1])],
-        &[json!([1, "Hello"]), json!([true, false]), json!([1.0, 2.0])],
-    );
-    // Just prove we can do other primitive types in arrays
-    json_test_many(
-        &json!({"type":"array", "items": {"type":"boolean"}}),
-        &[json!([true, false, true]), json!([]), json!([true])],
-        &[json!([1, "Hello"]), json!([1, 2]), json!([1.0, 2.0])],
-    );
+#[rstest]
+#[case(&json!([]),)]
+#[case(&json!([1]),)]
+#[case(&json!([1, 2, 3]),)]
+fn test_json_array_integer(#[case] sample_array: &Value) {
+    let schema = &json!({"type":"array", "items": {"type":"integer"}});
+    json_schema_check(schema, sample_array, true);
+}
+#[rstest]
+#[case(&json!([1, "Hello"]),)]
+#[case(&json!([true, false]),)]
+#[case(&json!([1.0, 3.0]),)]
+fn test_json_array_integer_failures(#[case] sample_array: &Value) {
+    let schema = &json!({"type":"array", "items": {"type":"integer"}});
+    json_schema_check(schema, sample_array, false);
+}
+
+#[rstest]
+#[case(&json!([]),)]
+#[case(&json!([true]),)]
+#[case(&json!([false]),)]
+#[case(&json!([false, true]),)]
+fn test_json_array_boolean(#[case] sample_array: &Value) {
+    let schema = &json!({"type":"array", "items": {"type":"boolean"}});
+    json_schema_check(schema, sample_array, true);
+}
+#[rstest]
+#[case(&json!([true, 0]),)]
+#[case(&json!([false, 1]),)]
+#[case(&json!([1.0, 0.0]),)]
+fn test_json_array_boolean_failures(#[case] sample_array: &Value) {
+    let schema = &json!({"type":"array", "items": {"type":"boolean"}});
+    json_schema_check(schema, sample_array, false);
 }
 
 #[test]
