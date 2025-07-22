@@ -19,6 +19,8 @@ fn null_schema_failures(#[case] sample_value: &Value) {
     json_schema_check(schema, sample_value, false);
 }
 
+// ============================================================================
+
 #[rstest]
 #[case::bool_false(&json!(false))]
 #[case::bool_true(&json!(true))]
@@ -36,6 +38,8 @@ fn boolean_failures(#[case] sample_value: &Value) {
     let schema = &json!({"type":"boolean"});
     json_schema_check(schema, sample_value, false);
 }
+
+// ============================================================================
 
 #[rstest]
 #[case::one(&json!(1))]
@@ -159,6 +163,8 @@ fn integer_limits_empty() {
         "Failed to generate regex for integer range",
     );
 }
+
+// ============================================================================
 
 #[test]
 fn test_json_number() {
