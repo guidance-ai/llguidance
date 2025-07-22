@@ -95,7 +95,6 @@ fn integer_limits_excl_inc_failures(#[case] sample_value: &Value) {
     json_schema_check(schema, sample_value, false);
 }
 
-
 #[rstest]
 #[case(&json!(0))]
 #[case(&json!(-100))]
@@ -134,42 +133,24 @@ fn integer_limits_excl_excl_failures(#[case] sample_value: &Value) {
     json_schema_check(schema, sample_value, false);
 }
 
+#[rstest]
+fn integer_limits_incompatible(
+    #[values("minimum", "exclusiveMinimum")] min_type: &str,
+    #[values("maximum", "exclusiveMaximum")] max_type: &str,
+) {
+    let schema = &json!({
+        "type": "integer",
+        min_type: 1,
+        max_type: -1
+    });
+    json_err_test(
+        schema,
+        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
+    );
+}
 
-#[test]
-fn test_json_integer_limits() {
-    json_test_many(
-        &json!({"type":"integer", "exclusiveMinimum": 0, "exclusiveMaximum": 100}),
-        &[json!(1), json!(50), json!(99)],
-        &[json!(-1), json!(0), json!(100), json!(101)],
-    );
-    json_err_test(
-        &json!({
-            "type": "integer",
-            "minimum": 1, "maximum": -1
-        }),
-        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
-    );
-    json_err_test(
-        &json!({
-            "type": "integer",
-            "exclusiveMinimum": 1, "maximum": -1
-        }),
-        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
-    );
-    json_err_test(
-        &json!({
-            "type": "integer",
-            "minimum": 1, "exclusiveMaximum": -1
-        }),
-        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
-    );
-    json_err_test(
-        &json!({
-            "type": "integer",
-            "exclusiveMinimum": 1, "exclusiveMaximum": -1
-        }),
-        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
-    );
+#[rstest]
+fn integer_limits_empty() {
     json_err_test(
         &json!({
             "type": "integer",
