@@ -14,6 +14,9 @@ serde_json = { version = "1.0.138", features = ["preserve_order"] }
 serde = { version = "1.0.217", features = ["derive"] }
 clap = { version = "4.5.31", features = ["derive"] }
 
+[dev-dependencies]
+rstest = "0.25.0"
+
 [[bin]]
 name = "sample_parser"
 path = "src/sample_parser.rs"
