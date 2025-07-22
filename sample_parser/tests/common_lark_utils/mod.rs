@@ -29,6 +29,7 @@ pub fn consume(parser: &mut TokenParser, tok: u32) {
     assert!(n == 0);
 }
 
+#[allow(dead_code)]
 pub fn lark_ok(lark: &str) {
     if let Err(e) = make_parser(lark, false) {
         panic!("unexpected error: {e}, grm:\n{lark}")
@@ -114,6 +115,7 @@ pub fn lark_str_test(lark: &str, should_accept: bool, input: &str, quiet: bool) 
     }
 }
 
+#[allow(dead_code)]
 pub fn lark_str_test_many_ext(quiet: bool, lark: &str, passing: &[&str], failing: &[&str]) {
     for s in passing {
         lark_str_test(lark, true, s, quiet);
@@ -135,10 +137,12 @@ pub fn json_test_many(schema: &Value, passing: &[Value], failing: &[Value]) {
     }
 }
 
+#[allow(dead_code)]
 pub fn lark_str_test_many(lark: &str, passing: &[&str], failing: &[&str]) {
     lark_str_test_many_ext(false, lark, passing, failing);
 }
 
+#[allow(dead_code)]
 pub fn lark_str_test_many_quiet(lark: &str, passing: &[&str], failing: &[&str]) {
     lark_str_test_many_ext(true, lark, passing, failing);
 }
