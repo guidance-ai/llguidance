@@ -37,32 +37,106 @@ fn boolean_failures(#[case] sample_value: &Value) {
     json_schema_check(schema, sample_value, false);
 }
 
-#[test]
-fn test_json_integer() {
-    json_test_many(
-        &json!({"type":"integer"}),
-        &[json!(1), json!(-1), json!(0), json!(10001), json!(-20002)],
-        &[json!(1.0), json!("1"), json!(-1.0), json!("0")],
-    );
+#[rstest]
+#[case::one(&json!(1))]
+#[case::minus_1(&json!(-1))]
+#[case::zero(&json!(0))]
+#[case::large(&json!(10001))]
+#[case::negative_large(&json!(-20002))]
+fn integer(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer"});
+    json_schema_check(schema, sample_value, true);
 }
+
+#[rstest]
+#[case::float(&json!(1.0))]
+#[case::string_one(&json!("1"))]
+#[case::negative_float(&json!(-1.0))]
+#[case::string_zero(&json!("0"))]
+fn integer_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer"});
+    json_schema_check(schema, sample_value, false);
+}
+
+#[rstest]
+#[case(&json!(0))]
+#[case(&json!(-100))]
+#[case(&json!(100))]
+fn integer_limits_inc_inc(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer", "minimum": -100, "maximum": 100});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!(-101))]
+#[case(&json!(101))]
+#[case(&json!(1.0))]
+fn integer_limits_inc_inc_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer", "minimum": -100, "maximum": 100});
+    json_schema_check(schema, sample_value, false);
+}
+
+#[rstest]
+#[case(&json!(0))]
+#[case(&json!(-99))]
+#[case(&json!(100))]
+fn integer_limits_excl_inc(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer", "exclusiveMinimum": -100, "maximum": 100});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!(-101))]
+#[case(&json!(-100))]
+#[case(&json!(101))]
+#[case(&json!(1.0))]
+fn integer_limits_excl_inc_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer", "exclusiveMinimum": -100, "maximum": 100});
+    json_schema_check(schema, sample_value, false);
+}
+
+
+#[rstest]
+#[case(&json!(0))]
+#[case(&json!(-100))]
+#[case(&json!(99))]
+fn integer_limits_inc_excl(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer", "minimum": -100, "exclusiveMaximum": 100});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!(-101))]
+#[case(&json!(100))]
+#[case(&json!(101))]
+#[case(&json!(1.0))]
+fn integer_limits_inc_excl_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer", "minimum": -100, "exclusiveMaximum": 100});
+    json_schema_check(schema, sample_value, false);
+}
+
+#[rstest]
+#[case(&json!(1))]
+#[case(&json!(50))]
+#[case(&json!(99))]
+fn integer_limits_excl_excl(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer", "exclusiveMinimum": 0, "exclusiveMaximum": 100});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!(0))]
+#[case(&json!(100))]
+#[case(&json!(-1))]
+#[case(&json!(101))]
+fn integer_limits_excl_excl_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"integer", "exclusiveMinimum": 0, "exclusiveMaximum": 100});
+    json_schema_check(schema, sample_value, false);
+}
+
 
 #[test]
 fn test_json_integer_limits() {
-    json_test_many(
-        &json!({"type":"integer", "minimum": -100, "maximum": 100}),
-        &[json!(0), json!(-100), json!(100)],
-        &[json!(-101), json!(101), json!(1.0)],
-    );
-    json_test_many(
-        &json!({"type":"integer", "exclusiveMinimum": 0, "maximum": 100}),
-        &[json!(1), json!(50), json!(100)],
-        &[json!(0), json!(-1), json!(101)],
-    );
-    json_test_many(
-        &json!({"type":"integer", "minimum": 0, "exclusiveMaximum": 100}),
-        &[json!(0), json!(50), json!(99)],
-        &[json!(-1), json!(100), json!(101)],
-    );
     json_test_many(
         &json!({"type":"integer", "exclusiveMinimum": 0, "exclusiveMaximum": 100}),
         &[json!(1), json!(50), json!(99)],
