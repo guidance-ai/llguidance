@@ -335,24 +335,40 @@ fn string_length_many_failures(#[case] sample_value: &Value) {
     json_schema_check(schema, sample_value, false);
 }
 
+#[rstest]
+#[case(&json!("abc"))]
+#[case(&json!("def"))]
+fn string_length_single(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string", "minLength": 3, "maxLength": 3});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!(""))]
+#[case(&json!("ab"))]
+#[case(&json!("abcd"))]
+fn string_length_single_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string", "minLength": 3, "maxLength": 3});
+    json_schema_check(schema, sample_value, false);
+}
+
+#[rstest]
+#[case(&json!(""))]
+fn string_length_empty(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string", "minLength": 0, "maxLength": 0});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!("a"))]
+#[case(&json!("abc"))]
+fn string_length_empy_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string", "minLength": 0, "maxLength": 0});
+    json_schema_check(schema, sample_value, false);
+}
 
 #[test]
-fn test_json_string_length() {
-    json_test_many(
-        &json!({"type":"string", "minLength": 3, "maxLength": 5}),
-        &[json!("abc"), json!("abcd"), json!("abcde")],
-        &[json!("ab"), json!("abcdef"), json!("a")],
-    );
-    json_test_many(
-        &json!({"type":"string", "minLength": 3, "maxLength": 3}),
-        &[json!("abc")],
-        &[json!("ab"), json!("abcd"), json!("a")],
-    );
-    json_test_many(
-        &json!({"type":"string", "minLength": 0, "maxLength": 0}),
-        &[json!("")],
-        &[json!("a"), json!("abc")],
-    );
+fn string_length_unsatisfiable() {
     json_err_test(
         &json!({"type":"string", "minLength": 2, "maxLength": 1}),
         "Unsatisfiable schema: minLength (2) is greater than maxLength (1)",
