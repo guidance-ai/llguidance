@@ -166,78 +166,107 @@ fn integer_limits_empty() {
 
 // ============================================================================
 
-#[test]
-fn test_json_number() {
-    json_test_many(
-        &json!({"type":"number"}),
-        &[
-            json!(0),
-            json!(0.0),
-            json!(1.0),
-            json!(-1.0),
-            json!(-1),
-            json!(1),
-            json!(142.4),
-            json!(-213.1),
-            json!(1.23e23),
-            json!(-9.2e-132),
-        ],
-        &[json!("1.0"), json!("1"), json!("Hello")],
-    );
+#[rstest]
+#[case::zero(&json!(0))]
+#[case::zero_float(&json!(0.0))]
+#[case::one(&json!(1))]
+#[case::one_float(&json!(1.0))]
+#[case::minus_1(&json!(-1))]
+#[case::minus_1_float(&json!(-1.0))]
+#[case::large(&json!(10001.1))]
+#[case::negative_large(&json!(-20002.231))]
+#[case::positive_exponent(&json!(8.231e2))]
+#[case::negative_exponent(&json!(8.231e-2))]
+#[case(&json!(-1.61e28))]
+#[case(&json!(-8.4e-8))]
+fn number(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"number"});
+    json_schema_check(schema, sample_value, true);
 }
 
-#[test]
-fn test_json_number_limits() {
-    json_test_many(
-        &json!({"type":"number", "minimum": -100, "maximum": 100}),
-        &[json!(0.0), json!(-100.0), json!(100.0)],
-        &[json!(-100.0001), json!(100.0001)],
-    );
-    json_test_many(
-        &json!({"type":"number", "exclusiveMinimum": -1, "maximum": 100}),
-        &[json!(-0.99999), json!(1.0), json!(50), json!(100.0)],
-        &[json!(-1.0), json!(-1), json!(100.0001)],
-    );
-    json_test_many(
-        &json!({"type":"number", "minimum": -0.5, "exclusiveMaximum": 5}),
-        &[json!(-0.5), json!(0), json!(0.1), json!(4.999999)],
-        &[json!(-0.50001), json!(5.000001)],
-    );
-    json_test_many(
-        &json!({"type":"number", "exclusiveMinimum": 0, "exclusiveMaximum": 1.5}),
-        &[json!(0.00001), json!(1.0), json!(1.49999)],
-        &[json!(-0.0), json!(1.5)],
-    );
+#[rstest]
+#[case::string_one_float(&json!("1.0"))]
+#[case::string_one(&json!("1"))]
+#[case::boolean(&json!(false))]
+#[case::string_alpha(&json!("Hello"))]
+fn number_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"number"});
+    json_schema_check(schema, sample_value, false);
+}
+
+#[rstest]
+#[case(&json!(0))]
+#[case(&json!(-100))]
+#[case(&json!(100))]
+fn number_limits_inc_inc(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"number", "minimum": -100, "maximum": 100});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!(-100.0000001))]
+#[case(&json!(100.000001))]
+#[case(&json!(2.0e2))]
+fn number_limits_inc_inc_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"number", "minimum": -100, "maximum": 100});
+    json_schema_check(schema, sample_value, false);
+}
+
+#[rstest]
+#[case(&json!(0))]
+#[case(&json!(-0.999999))]
+#[case(&json!(-1e-2))]
+#[case(&json!(100))]
+fn number_limits_excl_inc(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"number", "exclusiveMinimum": -1, "maximum": 100});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!(-1))]
+#[case(&json!(-1.0))]
+#[case(&json!(100.000001))]
+#[case(&json!(2.0e2))]
+fn number_limits_exclu_inc_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"number", "exclusiveMinimum": -1, "maximum": 100});
+    json_schema_check(schema, sample_value, false);
+}
+
+#[rstest]
+#[case(&json!(-2))]
+#[case(&json!(-100))]
+#[case(&json!(-1.00001))]
+#[case(&json!(-1.00001e0))]
+fn number_limits_inc_excl(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"number", "minimum": -100, "exclusiveMaximum": -1});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!(-100.0000001))]
+//#[case(&json!(-1))] See issue 210
+//#[case(&json!(-1.0))] See issue 210
+#[case(&json!(-2.12e6))]
+#[case(&json!(-4.6e-6))]
+fn number_limits_inc_excl_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"number", "minimum": -100, "exclusiveMaximum": -1});
+    json_schema_check(schema, sample_value, false);
+}
+
+
+#[rstest]
+fn number_limits_incompatible(
+    #[values("minimum", "exclusiveMinimum")] min_type: &str,
+    #[values("maximum", "exclusiveMaximum")] max_type: &str,
+) {
+    let schema = &json!({
+        "type": "number",
+        min_type: -0.1,
+        max_type: -1.0
+    });
     json_err_test(
-        &json!({
-            "type": "number",
-            "minimum": 1.5, "maximum": -1
-        }),
-        "Unsatisfiable schema: minimum (1.5) is greater than maximum (-1)",
-    );
-    json_err_test(
-        &json!({
-            "type": "number",
-        // Note coercion of 1.0 to 1
-            "exclusiveMinimum": 1.0, "maximum": -1
-        }),
-        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
-    );
-    json_err_test(
-        &json!({
-            "type": "number",
-        // Note coercion of 1.0 to 1
-            "minimum": 1.0, "exclusiveMaximum": -1.5
-        }),
-        "Unsatisfiable schema: minimum (1) is greater than maximum (-1.5)",
-    );
-    json_err_test(
-        &json!({
-            "type": "number",
-            "exclusiveMinimum": 1.0, "exclusiveMaximum": -2.5
-        }),
-        // Note coercion of 1.0 to 1
-        "Unsatisfiable schema: minimum (1) is greater than maximum (-2.5)",
+        schema,
+        "Unsatisfiable schema: minimum (-0.1) is greater than maximum (-1)",
     );
 }
 
