@@ -1,31 +1,68 @@
-use serde_json::json;
+use rstest::*;
+use serde_json::{json, Value};
 
 mod common_lark_utils;
-use common_lark_utils::{json_err_test, json_test_many};
+use common_lark_utils::{json_err_test, json_schema_check, json_test_many};
 
-#[test]
-fn test_json_object_single_property() {
-    json_test_many(
-        &json!({"type":"object", "properties": {"a": {"type":"integer"}}, "required": ["a"]}),
-        &[json!({"a": 123})],
-        &[
-            json!({"b": "World"}),
-            json!({"a": "Hello"}),
-            json!({"b": 1}),
-        ],
-    );
+#[rstest]
+#[case(&json!({"a":123}))]
+#[case(&json!({"a":0}))]
+fn single_property(#[case] obj: &Value) {
+    let schema =
+        &json!({"type":"object", "properties": {"a": {"type":"integer"}}, "required": ["a"]});
+    json_schema_check(schema, obj, true);
 }
 
-#[test]
-fn test_json_object_multiple_properties() {
-    json_test_many(
-        &json!({"type":"object", "properties": {"a": {"type":"integer"}, "b": {"type":"string"}}, "required": ["a", "b"]}),
-        &[json!({"a": 123, "b": "Hello"})],
-        &[json!({"a": 123}), json!({"b": "World"}), json!({"c": 1})],
-    );
+#[rstest]
+#[case(&json!({"a":"Hello"}))]
+#[case(&json!({"b":0}))]
+fn single_property_failures(#[case] obj: &Value) {
+    let schema =
+        &json!({"type":"object", "properties": {"a": {"type":"integer"}}, "required": ["a"]});
+    json_schema_check(schema, obj, false);
 }
 
-#[test]
+#[rstest]
+#[case(&json!({"a":123, "b": "Hello"}))]
+#[case(&json!({"a":0, "b": "World"}))]
+fn multiple_properties(#[case] obj: &Value) {
+    let schema = &json!({"type":"object", "properties": {
+        "a": {"type":"integer"},
+        "b": {"type":"string"}
+    }, "required": ["a", "b"]});
+    json_schema_check(schema, obj, true);
+}
+
+#[rstest]
+#[case(&json!({"a":123}))]
+#[case(&json!({"b": "Hello"}))]
+#[case(&json!({"c": 1}))]
+fn multiple_properties_failures(#[case] obj: &Value) {
+    let schema = &json!({"type":"object", "properties": {
+        "a": {"type":"integer"},
+        "b": {"type":"string"}
+    }, "required": ["a", "b"]});
+    json_schema_check(schema, obj, false);
+}
+
+
+#[rstest]
+#[case(&json!({"name": "Test", "info": {"a": 123, "b": 456}}))]
+fn nested(#[case] obj: &Value) {
+    let schema = &json!({"type":"object", "properties": {
+        "name": {"type": "string"},
+        "info": {
+            "type": "object",
+            "properties": {
+                "a": {"type": "integer"},
+                "b": {"type": "integer"}
+            },
+            "required": ["a", "b"]
+        }
+    }, "required": ["name", "info"]});
+    json_schema_check(schema, obj, true);
+}
+
 fn test_json_object_directly_nested() {
     json_test_many(
         &json!({"type":"object", "properties": {
