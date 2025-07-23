@@ -84,7 +84,10 @@ fn integer_lower_bound(
         }
     };
     for i in -iterate_range..=iterate_range {
-        print!("\nTesting {} with lower bound {} ({:?})", i, lower_bound, bound_type);
+        print!(
+            "\nTesting {} with lower bound {} ({:?})",
+            i, lower_bound, bound_type
+        );
         let sample_value = json!(i);
         let should_pass = match bound_type {
             NumericBounds::Inclusive => i >= lower_bound,
@@ -110,6 +113,10 @@ fn integer_upper_bound(
         }
     };
     for i in -iterate_range..=iterate_range {
+        print!(
+            "Testing {} with upper bound {} ({:?})",
+            i, upper_bound, bound_type,
+        );
         let sample_value = json!(i);
         let should_pass = match bound_type {
             NumericBounds::Inclusive => i <= upper_bound,
