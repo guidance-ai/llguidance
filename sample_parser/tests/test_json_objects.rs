@@ -3,7 +3,7 @@ use rstest::*;
 use serde_json::{json, Value};
 
 mod common_lark_utils;
-use common_lark_utils::{json_err_test, json_schema_check, json_test_many};
+use common_lark_utils::{json_err_test, json_schema_check};
 
 lazy_static! {
     static ref SINGLE_PROPERTY_SCHEMA: Value =
@@ -144,58 +144,60 @@ fn object_unsatisfiable_schema(#[case] schema: &Value) {
     json_err_test(schema, "Unsatisfiable schema");
 }
 
-#[test]
-fn test_json_linked_list() {
-    json_test_many(
-        &json!(
-        {
-            "$defs": {
-                "A": {
-                    "properties": {
-                        "my_str": {
-                            "default": "me",
-                            "title": "My Str",
-                            "type": "string"
-                        },
-                        "next": {
-                            "anyOf": [
-                                {
-                                    "$ref": "#/$defs/A"
-                                },
-                                {
-                                    "type": "null"
-                                }
-                            ]
-                        }
+lazy_static! {
+    static ref LINKED_LIST: Value = json!({
+        "$defs": {
+            "A": {
+                "properties": {
+                    "my_str": {
+                        "default": "me",
+                        "title": "My Str",
+                        "type": "string"
                     },
-                    "required": ["my_str", "next"],
-                    "type": "object"
-                }
-            },
-            "type": "object",
-            "properties": {
-                "my_list": {
-                    "anyOf": [
-                        {
-                            "$ref": "#/$defs/A"
-                        },
-                        {
-                            "type": "null"
-                        }
-                    ]
-                }
-            },
-            "required": ["my_list"]
-        }),
-        &[
-            json!({"my_list": null}),
-            json!({"my_list":{"my_str": "first", "next": null}}),
-            json!({"my_list":{"my_str": "first", "next": {"my_str": "second", "next":null}}}),
-            json!({"my_list":{"my_str": "first", "next": {"my_str": "second", "next":{"my_str": "third", "next":null}}}}),
-        ],
-        &[
-            json!({"my_list": {"my_str": 1}}),
-            json!({"my_list": {"my_str": "first", "next": "second"}}),
-        ],
-    );
+                    "next": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/$defs/A"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": ["my_str", "next"],
+                "type": "object"
+            }
+        },
+        "type": "object",
+        "properties": {
+            "my_list": {
+                "anyOf": [
+                    {
+                        "$ref": "#/$defs/A"
+                    },
+                    {
+                        "type": "null"
+                    }
+                ]
+            }
+        },
+        "required": ["my_list"]
+    });
+}
+
+#[rstest]
+#[case::null(&json!({"my_list": null}))]
+#[case::single_node(&json!({"my_list": {"my_str": "first", "next": null}}))]
+#[case::two_nodes(&json!({"my_list": {"my_str": "first", "next": {"my_str": "second", "next": null}}}))]
+#[case::three_nodes(&json!({"my_list": {"my_str": "first", "next": {"my_str": "second", "next": {"my_str": "third", "next": null}}}}))]
+fn linked_list(#[case] obj: &Value) {
+    json_schema_check(&LINKED_LIST, obj, true);
+}
+
+#[rstest]
+#[case::invalid_type(&json!({"my_list": {"my_str": 1}}))]
+#[case::invalid_next_type(&json!({"my_list": {"my_str": "first", "next": "second"}}))]
+fn linked_list_failures(#[case] obj: &Value) {
+    json_schema_check(&LINKED_LIST, obj, false);
 }
