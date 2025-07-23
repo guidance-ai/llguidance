@@ -113,10 +113,7 @@ fn integer_upper_bound(
         }
     };
     for i in -iterate_range..=iterate_range {
-        print!(
-            "Testing {} with upper bound {} ({:?})",
-            i, upper_bound, bound_type,
-        );
+        println!("Testing {i} with upper bound {upper_bound} ({bound_type:?})");
         let sample_value = json!(i);
         let should_pass = match bound_type {
             NumericBounds::Inclusive => i <= upper_bound,
