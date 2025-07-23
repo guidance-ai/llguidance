@@ -70,55 +70,50 @@ fn integer_failures(#[case] sample_value: &Value) {
 #[rstest]
 fn integer_lower_bound(
     #[values(NumericBounds::Inclusive, NumericBounds::Exclusive)] bound_type: NumericBounds,
-    #[values(-2, -1, 0, 1, 2)] lower_bound: i64,
+    #[values(-11, -2, -1, 0, 1, 2, 11)] lower_bound: i64,
 ) {
-    assert!(lower_bound.abs() < 10);
-    match bound_type {
+    assert!(lower_bound.abs() < 20);
+    let iterate_range = 200;
+    let schema = match bound_type {
         NumericBounds::Inclusive => {
-            let schema = &json!({"type":"integer", "minimum": lower_bound});
-            let iterate_range = 20;
-            for i in -iterate_range..=iterate_range {
-                let sample_value = json!(i);
-                let should_pass = i >= lower_bound;
-                json_schema_check(schema, &sample_value, should_pass);
-            }
+            json!({"type":"integer", "minimum": lower_bound})
         }
         NumericBounds::Exclusive => {
-            let schema = &json!({"type":"integer", "exclusiveMinimum": lower_bound});
-            let iterate_range = 20;
-            for i in -iterate_range..=iterate_range {
-                let sample_value = json!(i);
-                let should_pass = i > lower_bound;
-                json_schema_check(schema, &sample_value, should_pass);
-            }
+            json!({"type":"integer", "exclusiveMinimum": lower_bound})
         }
+    };
+    for i in -iterate_range..=iterate_range {
+        let sample_value = json!(i);
+        let should_pass = match bound_type {
+            NumericBounds::Inclusive => i >= lower_bound,
+            NumericBounds::Exclusive => i > lower_bound,
+        };
+        json_schema_check(&schema, &sample_value, should_pass);
     }
 }
 
 #[rstest]
 fn integer_upper_bound(
     #[values(NumericBounds::Inclusive, NumericBounds::Exclusive)] bound_type: NumericBounds,
-    #[values(-2, -1, 0, 1, 2)] upper_bound: i64,
+    #[values(-11, -2, -1, 0, 1, 2, 11)] upper_bound: i64,
 ) {
-    assert!(upper_bound.abs() < 10);
-    let iterate_range = 20;
-    match bound_type {
+    assert!(upper_bound.abs() < 20);
+    let iterate_range = 101;
+    let schema = match bound_type {
         NumericBounds::Inclusive => {
-            let schema = &json!({"type":"integer", "maximum": upper_bound});
-            for i in -iterate_range..=iterate_range {
-                let sample_value = json!(i);
-                let should_pass = i <= upper_bound;
-                json_schema_check(schema, &sample_value, should_pass);
-            }
+            json!({"type":"integer", "maximum": upper_bound})
         }
         NumericBounds::Exclusive => {
-            let schema = &json!({"type":"integer", "exclusiveMaximum": upper_bound});
-            for i in -iterate_range..=iterate_range {
-                let sample_value = json!(i);
-                let should_pass = i < upper_bound;
-                json_schema_check(schema, &sample_value, should_pass);
-            }
+            json!({"type":"integer", "exclusiveMaximum": upper_bound})
         }
+    };
+    for i in -iterate_range..=iterate_range {
+        let sample_value = json!(i);
+        let should_pass = match bound_type {
+            NumericBounds::Inclusive => i <= upper_bound,
+            NumericBounds::Exclusive => i < upper_bound,
+        };
+        json_schema_check(&schema, &sample_value, should_pass);
     }
 }
 
