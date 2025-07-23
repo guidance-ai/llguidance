@@ -84,10 +84,7 @@ fn integer_lower_bound(
         }
     };
     for i in -iterate_range..=iterate_range {
-        print!(
-            "\nTesting {} with lower bound {} ({:?})",
-            i, lower_bound, bound_type
-        );
+        println!("Testing {i} with lower bound {lower_bound} ({bound_type:?})");
         let sample_value = json!(i);
         let should_pass = match bound_type {
             NumericBounds::Inclusive => i >= lower_bound,
