@@ -2,7 +2,7 @@ use rstest::*;
 use serde_json::{json, Value};
 
 mod common_lark_utils;
-use common_lark_utils::{json_err_test, json_schema_check, json_test_many};
+use common_lark_utils::{json_err_test, json_schema_check};
 
 #[test]
 fn null_schema() {
