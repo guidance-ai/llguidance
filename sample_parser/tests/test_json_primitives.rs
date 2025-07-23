@@ -253,7 +253,6 @@ fn number_limits_inc_excl_failures(#[case] sample_value: &Value) {
     json_schema_check(schema, sample_value, false);
 }
 
-
 #[rstest]
 fn number_limits_incompatible(
     #[values("minimum", "exclusiveMinimum")] min_type: &str,
@@ -272,26 +271,32 @@ fn number_limits_incompatible(
 
 // ============================================================================
 
-#[test]
-fn test_json_string() {
-    json_test_many(
-        &json!({"type":"string"}),
-        &[
-            json!(""),
-            json!("Hello"),
-            json!("123"),
-            json!("!@#$%^&*()_+"),
-            json!("'"),
-            json!("\""),
-            json!(
-                r"Hello\nWorld
+#[rstest]
+#[case::empty(&json!(""))]
+#[case::hello(&json!("Hello"))]
+#[case::number_string(&json!("123"))]
+#[case::special_chars(&json!("!@#$%^&*{}()_+"))]
+#[case::single_quote(&json!("'"))]
+#[case::double_quote(&json!("\""))]
+#[case::unbalanced_brace(&json!("}"))]
+#[case::multiline_string(&json!(
+    r"Hello\nWorld
             
             With some extra line breaks etc.
             "
-            ),
-        ],
-        &[json!(1), json!(true), json!(null)],
-    );
+))]
+fn string(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string"});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case::integer(&json!(1))]
+#[case::boolean(&json!(true))]
+#[case::null(&json!(null))]
+fn string_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string"});
+    json_schema_check(schema, sample_value, false);
 }
 
 #[test]
