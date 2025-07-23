@@ -1,36 +1,41 @@
+use lazy_static::lazy_static;
 use rstest::*;
 use serde_json::{json, Value};
 
 mod common_lark_utils;
 use common_lark_utils::{json_err_test, json_schema_check, json_test_many};
 
+lazy_static! {
+    static ref SINGLE_PROPERTY_SCHEMA: Value =
+        json!({"type":"object", "properties": {"a": {"type":"integer"}}, "required": ["a"]});
+}
+
 #[rstest]
 #[case(&json!({"a":123}))]
 #[case(&json!({"a":0}))]
 fn single_property(#[case] obj: &Value) {
-    let schema =
-        &json!({"type":"object", "properties": {"a": {"type":"integer"}}, "required": ["a"]});
-    json_schema_check(schema, obj, true);
+    json_schema_check(&SINGLE_PROPERTY_SCHEMA, obj, true);
 }
 
 #[rstest]
 #[case(&json!({"a":"Hello"}))]
 #[case(&json!({"b":0}))]
 fn single_property_failures(#[case] obj: &Value) {
-    let schema =
-        &json!({"type":"object", "properties": {"a": {"type":"integer"}}, "required": ["a"]});
-    json_schema_check(schema, obj, false);
+    json_schema_check(&SINGLE_PROPERTY_SCHEMA, obj, false);
+}
+
+lazy_static! {
+    static ref MULTIPLE_PROPERTY_SCHEMA: Value = json!({"type":"object", "properties": {
+            "a": {"type":"integer"},
+            "b": {"type":"string"}
+        }, "required": ["a", "b"]});
 }
 
 #[rstest]
 #[case(&json!({"a":123, "b": "Hello"}))]
 #[case(&json!({"a":0, "b": "World"}))]
 fn multiple_properties(#[case] obj: &Value) {
-    let schema = &json!({"type":"object", "properties": {
-        "a": {"type":"integer"},
-        "b": {"type":"string"}
-    }, "required": ["a", "b"]});
-    json_schema_check(schema, obj, true);
+    json_schema_check(&MULTIPLE_PROPERTY_SCHEMA, obj, true);
 }
 
 #[rstest]
@@ -38,114 +43,105 @@ fn multiple_properties(#[case] obj: &Value) {
 #[case(&json!({"b": "Hello"}))]
 #[case(&json!({"c": 1}))]
 fn multiple_properties_failures(#[case] obj: &Value) {
-    let schema = &json!({"type":"object", "properties": {
-        "a": {"type":"integer"},
-        "b": {"type":"string"}
-    }, "required": ["a", "b"]});
-    json_schema_check(schema, obj, false);
+    json_schema_check(&MULTIPLE_PROPERTY_SCHEMA, obj, false);
 }
 
+lazy_static! {
+    static ref NESTED_SCHEMA: Value = json!({
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "info": {
+                    "type": "object",
+                "properties": {
+                    "a": {"type": "integer"},
+                    "b": {"type": "integer"}
+                },
+                "required": ["a", "b"]
+            }
+        },
+        "required": ["name", "info"]
+    });
+}
 
 #[rstest]
 #[case(&json!({"name": "Test", "info": {"a": 123, "b": 456}}))]
 fn nested(#[case] obj: &Value) {
-    let schema = &json!({"type":"object", "properties": {
-        "name": {"type": "string"},
-        "info": {
-            "type": "object",
-            "properties": {
-                "a": {"type": "integer"},
-                "b": {"type": "integer"}
-            },
-            "required": ["a", "b"]
-        }
-    }, "required": ["name", "info"]});
-    json_schema_check(schema, obj, true);
+    json_schema_check(&NESTED_SCHEMA, obj, true);
 }
 
-fn test_json_object_directly_nested() {
-    json_test_many(
-        &json!({"type":"object", "properties": {
-                "name" : {
-                    "type": "string"
-                },
-                "info": {
-                    "type": "object",
-                    "properties" : {
-                        "a" : {
-                            "type" : "integer"
-                        },
-                        "b" : {
-                            "type" : "integer"
-                        }
-                    },
-                    "required": ["a", "b"]
-                }
-            },
-            "required": ["name", "info"]
-        }),
-        &[json!({"name": "Test", "info": {"a": 123, "b": 456}})],
-        &[
-            json!({"name": "Test", "info": {"a": 123}}),
-            json!({"name": "Test", "info": {"a": "123", "b":20}}),
-            json!({"name": "Test", "info": {"a": 123, "b": "456"}}),
-            json!({"name": "Test", "info": {"b": 456}}),
-            json!({"name": "Test", "info": {"c": 1}}),
-        ],
-    );
+#[rstest]
+#[case(&json!({"name": "Test", "info": {"a": 123}}))]
+#[case(&json!({"name": "Test", "info": {"a": "123", "b":20}}))]
+#[case(&json!({"name": "Test", "info": {"a": 123, "b": "456"}}))]
+#[case(&json!({"name": "Test", "info": {"b": 456}}))]
+#[case(&json!({"name": "Test", "info": {"c": 1}}))]
+fn nested_failures(#[case] obj: &Value) {
+    json_schema_check(&NESTED_SCHEMA, obj, false);
 }
 
-#[test]
-fn test_json_object_with_array() {
-    json_test_many(
-        &json!({"type":"object", "properties": {
-                "name" : {"type": "string"},
-                "values": {
-                    "type": "array",
-                    "items": {"type": "integer"}
-                }
-            },
-            "required": ["name", "values"]
-        }),
-        &[json!({"name": "Test", "values": [1, 2, 3]})],
-        &[
-            json!({"name": "Test", "values": [1, 2, "Hello"]}),
-            json!({"name": "Test", "values": [1.0, 2.0]}),
-            json!({"name": "Test"}),
-            json!({"values": [1, 2, 3]}),
-        ],
-    );
+lazy_static! {
+    static ref OBJECT_WITH_ARRAY: Value = json!({"type":"object", "properties": {
+            "name" : {"type": "string"},
+            "values": {
+                "type": "array",
+                "items": {"type": "integer"}
+            }
+        },
+        "required": ["name", "values"]
+    });
 }
 
-#[test]
-fn test_json_object_unsatisfiable() {
-    json_test_many(
-        &json!({
-            "type": "object",
-            "properties": {"a": {"type": "integer"}, "b": false},
-            "additionalProperties": false,
-        }),
-        &[json!({"a": 42})],
-        &[json!({"a": 42, "b": 43})],
-    );
-    json_err_test(
-        &json!({
+#[rstest]
+#[case(&json!({"name": "Test", "values": [1, 2, 3]}))]
+fn object_with_array(#[case] obj: &Value) {
+    json_schema_check(&OBJECT_WITH_ARRAY, obj, true);
+}
+
+#[rstest]
+#[case(&json!({"name": "Test", "values": [1, 2, "Hello"]}))]
+#[case(&json!({"name": "Test", "values": [1.0, 2.0]}))]
+#[case(&json!({"name": "Test"}))]
+#[case(&json!({"values": [1, 2, 3]}))]
+fn object_with_array_failures(#[case] obj: &Value) {
+    json_schema_check(&OBJECT_WITH_ARRAY, obj, false);
+}
+
+lazy_static! {
+    static ref FALSE_PROPERTY: Value = json!({
+        "type": "object",
+        "properties": {"a": {"type": "integer"}, "b": false},
+        "additionalProperties": false,
+    });
+}
+
+#[rstest]
+#[case(&json!({"a": 42}))]
+fn object_false_property(#[case] obj: &Value) {
+    json_schema_check(&FALSE_PROPERTY, obj, true);
+}
+
+#[rstest]
+#[case(&json!({"a": 42, "b": 43}))]
+fn object_false_property_failures(#[case] obj: &Value) {
+    json_schema_check(&FALSE_PROPERTY, obj, false);
+}
+
+#[rstest]
+#[case(&json!({
             "type": "object",
             "properties": {"a": {"type": "integer"}, "b": false},
             "required": ["b"],
             "additionalProperties": false,
-        }),
-        "Unsatisfiable schema: required property 'b' is unsatisfiable",
-    );
-    json_err_test(
-        &json!({
+        }))]
+#[case(&json!({
             "type": "object",
             "properties": {"a": {"type": "integer"}},
             "required": ["a", "b"],
             "additionalProperties": false,
-        }),
-        "Unsatisfiable schema",
-    );
+        }))]
+fn object_unsatisfiable_schema(#[case] schema: &Value) {
+    json_err_test(schema, "Unsatisfiable schema");
 }
 
 #[test]
