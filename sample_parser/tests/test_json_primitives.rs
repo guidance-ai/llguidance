@@ -299,14 +299,42 @@ fn string_failures(#[case] sample_value: &Value) {
     json_schema_check(schema, sample_value, false);
 }
 
-#[test]
-fn test_json_string_regex() {
-    json_test_many(
-        &json!({"type":"string", "pattern": r"a[A-Z]"}),
-        &[json!("aB"), json!("aC"), json!("aZ")],
-        &[json!("Hello World"), json!("aa"), json!("a1")],
-    );
+#[rstest]
+#[case(&json!("aB"))]
+#[case(&json!("aC"))]
+#[case(&json!("aZ"))]
+fn string_regex(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string", "pattern": r"a[A-Z]"});
+    json_schema_check(schema, sample_value, true);
 }
+
+#[rstest]
+#[case(&json!("aa"))]
+#[case(&json!("a1"))]
+#[case(&json!("Hello World!"))]
+fn string_regex_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string", "pattern": r"a[A-Z]"});
+    json_schema_check(schema, sample_value, false);
+}
+
+#[rstest]
+#[case(&json!("abc"))]
+#[case(&json!("abcd"))]
+#[case(&json!("abcde"))]
+fn string_length_many(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string", "minLength": 3, "maxLength": 5});
+    json_schema_check(schema, sample_value, true);
+}
+
+#[rstest]
+#[case(&json!(""))]
+#[case(&json!("ab"))]
+#[case(&json!("abcdef"))]
+fn string_length_many_failures(#[case] sample_value: &Value) {
+    let schema = &json!({"type":"string", "minLength": 3, "maxLength": 5});
+    json_schema_check(schema, sample_value, false);
+}
+
 
 #[test]
 fn test_json_string_length() {
