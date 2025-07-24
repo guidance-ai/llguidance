@@ -260,23 +260,21 @@ fn number_lower_bound(
     json_schema_check(&schema, &test_json, expected_pass);
 }
 
-
 #[rstest]
 fn number_upper_bound(
     #[values(NumericBounds::Inclusive, NumericBounds::Exclusive)] bound_type: NumericBounds,
     // #[values(-4.2e9, -11.0, -2.0, -1.0, -3.4e-8, 0.0, 2.3e-7, 1.0, 2.0, 11.0, 3.4e8)]
-    #[values(-100.0, 0.0, 1.0, 100.0)]
-    upper_bound: f64,
+    #[values(-100.0, 0.0, 1.0, 100.0)] upper_bound: f64,
     // #[values(-2.0e3, -100.0, -11.0, -5.0, -1.000001, -1.0, -0.9999999, -9.2e-2, -2e-9, 0.0, 1e-8, 9.2e-2, 0.99999, 1.0, 1.000001, 10.0, 12.0, 4.5e14)]
     #[values(-100.0001, -100.0, -99.999, 0.9999, 1.0, 1.00001, 99.999, 100.0, 100.00001)]
     test_value: f64,
 ) {
     /*
-        Seeing similar issues to the number_lower_bound test. The commented values are
-        what should be run.
+       Seeing similar issues to the number_lower_bound test. The commented values are
+       what should be run.
 
-        Even with this reduced set, adding "0.0" to the test_value array causes a failure
-     */
+       Even with this reduced set, adding "0.0" to the test_value array causes a failure
+    */
     let schema = match bound_type {
         NumericBounds::Inclusive => {
             json!({"type":"number", "maximum": upper_bound})
