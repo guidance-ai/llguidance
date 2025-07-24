@@ -126,9 +126,53 @@ pub fn lark_str_test_many_ext(quiet: bool, lark: &str, passing: &[&str], failing
 }
 
 pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
-    let lark = format!(r#"start: %json {}"#, serde_json::to_string(schema).unwrap());
-    let s = serde_json::to_string(json_obj).unwrap();
-    lark_str_test(&lark, expect_valid, &s, false);
+    /*
+       This is a modification of the lark_str_test function, which makes the
+       assumption that the input Value completely satifies the schema.
+
+       The subtlety is that a string of tokens might not match a grammar _yet_
+       but could with the addition of more tokens. For example, if we're trying
+       to construct an integer which is greater than 2, then the string "1"
+       is not yet a match, but it could become one if we add more tokens.
+       lark_str_test uses the magic 'FINAL_REJECT:' rule to handle this,
+       but we can write something a little simpler here.
+    */
+    let lark_grammar = format!(r#"start: %json {}"#, serde_json::to_string(schema).unwrap());
+    let json_string = serde_json::to_string(json_obj).unwrap();
+
+    // Tokenize the string representation of the JSON object
+    let tokens = get_tok_env().tokenize(&json_string);
+
+    // Create the parser
+    let mut p = make_parser(&lark_grammar, false).unwrap();
+
+    // Work through token by token
+    for (i, tok) in tokens.iter().enumerate() {
+        // Compute the mask of allowed tokens
+        let m = p.compute_mask().unwrap();
+
+        if m.is_allowed(*tok) {
+            // Consume the token
+            consume(&mut p, *tok);
+        } else {
+            // Token isn't allowed, so check if we expect this
+            let curr_tok_str = get_tok_env().tok_trie().token_dbg(*tok);
+            assert!(
+                !expect_valid,
+                "Unexpected token: {curr_tok_str} at token index {i}",
+            );
+            // We were expecting this to fail, so return early
+            return;
+        }
+    }
+
+    /*
+    Note that p.is_accepting() will be true if the parser has reached a valid end state.
+    It does not mean that we couldn't add more tokens and remain valid.
+    For example, if we have a schema for any integer, then we can always add more digits
+    to a valid integer string.
+     */
+    assert_eq!(p.is_accepting(), expect_valid, "Final state mismatch");
 }
 
 #[allow(dead_code)]
