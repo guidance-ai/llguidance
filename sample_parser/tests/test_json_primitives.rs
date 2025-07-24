@@ -229,6 +229,38 @@ fn number_failures(#[case] sample_value: &Value) {
 }
 
 #[rstest]
+fn number_lower_bound(
+    #[values(NumericBounds::Inclusive, NumericBounds::Exclusive)] bound_type: NumericBounds,
+    #[values(-4.2e9, -11.0, -2.0, -1.0, -3.4e-8, 0.0, 2.3e-7, 1.0, 2.0, 11.0, 3.4e8)]
+    lower_bound: f64,
+    #[values(-2.0e23, -100.0, -11.0, -5.0, -1.000001, -1.0, -0.9999999, -9.2e-2, -2e-3, 0.0, 1e-4, 9.2e-2, 0.99999, 1.0, 1.000001, 10.0, 12.0, 4.5e14)]
+    test_value: f64,
+) {
+    /*
+       NOTE:
+       Change the '1e-4' in the test_value array to '1e-8 (which it should be for the 2.3e-7 bound), and get
+       a parser failure.
+       This appears to be because 1e-4 gets turned into 0.0001, whereas 1e-8 is left in exponential form.
+
+       There is a similar issue with the '-2e-3' value, which really should be '-2e-9' for the -3.4e-8 bound
+    */
+    let schema = match bound_type {
+        NumericBounds::Inclusive => {
+            json!({"type":"number", "minimum": lower_bound})
+        }
+        NumericBounds::Exclusive => {
+            json!({"type":"number", "exclusiveMinimum": lower_bound})
+        }
+    };
+    let expected_pass = match bound_type {
+        NumericBounds::Inclusive => test_value >= lower_bound,
+        NumericBounds::Exclusive => test_value > lower_bound,
+    };
+    let test_json = json!(test_value);
+    json_schema_check(&schema, &test_json, expected_pass);
+}
+
+#[rstest]
 #[case(&json!(0))]
 #[case(&json!(-100))]
 #[case(&json!(100))]
