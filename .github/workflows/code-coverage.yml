@@ -1,0 +1,35 @@
+name: Code Coverage
+permissions:
+  contents: read
+
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_id:
+        description: 'Branch or Commit ID (optional)'
+        required: false
+        type: string
+  schedule:
+    # * is a special character in YAML so we quote this string
+    # Run at 09:30 UTC every day
+    - cron:  '30 09 * * *'
+
+
+env:
+  CARGO_TERM_COLOR: always
+
+
+jobs:
+  code-cov:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo at ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+
+    - name: Update toolchain
+      run: rustup component add llvm-tools
+
