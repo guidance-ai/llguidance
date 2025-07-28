@@ -34,3 +34,19 @@ jobs:
     - name: Update toolchain
       run: rustup component add llvm-tools
 
+    - name: Install grcov
+      run: cargo install grcov
+
+    - name: Build everything
+      run: RUSTFLAGS="-Cinstrument-coverage" cargo build
+
+    - name: Run tests
+      run: LLVM_PROFILE_FILE="llg-%p-%m.profraw" cargo test
+
+    - name: Generate coverage report
+      run: |
+        grcov . --binary-path target/debug/ -s . -t html --branch --ignore-not-existing -o target/debug/coverage/
+
+    - name: Check output
+      run: ls target/debug/coverage/
+
