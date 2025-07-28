@@ -50,3 +50,7 @@ jobs:
     - name: Check output
       run: ls target/debug/coverage/
 
+    - uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: target/debug/coverage/
