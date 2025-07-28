@@ -19,6 +19,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Cinstrument-coverage"
+  LLVM_PROFILE_FILE: "llg-%p-%m.profraw"
 
 
 jobs:
@@ -38,14 +40,20 @@ jobs:
       run: cargo install grcov
 
     - name: Build everything
-      run: RUSTFLAGS="-Cinstrument-coverage" cargo build
+      run: cargo build
 
     - name: Run tests
-      run: LLVM_PROFILE_FILE="llg-%p-%m.profraw" cargo test
+      run: cargo test
+
+    - name: Check environment
+      run: |
+        echo "CARGO_TERM_COLOR: $CARGO_TERM_COLOR"
+        echo "RUSTFLAGS: $RUSTFLAGS"
+        echo "LLVM_PROFILE_FILE: $LLVM_PROFILE_FILE"
 
     - name: Generate coverage report
       run: |
-        grcov . --binary-path target/debug/ -s . -t html --branch --ignore-not-existing -o target/debug/coverage/
+        grcov . -s . --binary-path target/debug/ -t html --branch --ignore-not-existing -o target/debug/coverage/
 
     - name: Check output
       run: ls target/debug/coverage/
