@@ -5,16 +5,14 @@ permissions:
 
 on:
   pull_request:
+  push:
+    branches: [ "main" ]
   workflow_dispatch:
     inputs:
       commit_id:
         description: 'Branch or Commit ID (optional)'
         required: false
         type: string
-  schedule:
-    # * is a special character in YAML so we quote this string
-    # Run at 09:30 UTC every day
-    - cron:  '30 09 * * *'
 
 
 env:
