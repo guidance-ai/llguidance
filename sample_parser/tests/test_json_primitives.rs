@@ -199,12 +199,25 @@ fn integer_limits_empty() {
 }
 
 #[rstest]
-fn integer_multipleof(#[values(0, 3, 12, 1818)] test_value: i64) {
-    // See also issue 222
+fn integer_multipleof(#[values(0, 1, 3, 12, 1818, 1819)] test_value: i64) {
+    // See also issue 222: want to add some negative values
     const MULTIPLE_OF: i64 = 3;
     let schema = &json!({"type":"integer", "multipleOf": MULTIPLE_OF});
     json_schema_check(schema, &json!(test_value), test_value % MULTIPLE_OF == 0);
 }
+
+/*
+Not clear if this should work
+#[rstest]
+fn integer_multipleof_zero(#[values(0, 3, 12, 1818)] test_value: i64) {
+    let schema = &json!({"type":"integer", "multipleOf": 0});
+    json_schema_check(
+        schema,
+        &json!(test_value),
+        if test_value == 0 { true } else { false },
+    );
+}
+*/
 
 // ============================================================================
 
@@ -373,6 +386,52 @@ fn number_limits_incompatible(
         "Unsatisfiable schema: minimum (-0.1) is greater than maximum (-1)",
     );
 }
+
+#[rstest]
+// Issue 222 #[case(-5.0, false)]
+// Issue 222 #[case(-3.0, true)]
+// Issue 222 #[case(0.0, true)]
+// Issue 222 #[case(3.0, true)]
+#[case(3.5, false)]
+// Issue 222 #[case(12.0, true)]
+// Issue 222 #[case(3e22, true)]
+fn number_multipleof(#[case] test_value: f64, #[case] expected_pass: bool) {
+    // See also issue 222
+    const MULTIPLE_OF: f64 = 3.0;
+    let schema = &json!({"type":"number", "multipleOf": MULTIPLE_OF});
+    json_schema_check(schema, &json!(test_value), expected_pass);
+}
+
+#[rstest]
+// Issue 222 #[case(-35.0, true)]
+// Issue 222 #[case(-30.0, false)]
+// Issue 222 #[case(-7.0, true)]
+#[case(0.0, true)]
+#[case(3.5, true)]
+#[case(4.0, false)]
+#[case(325.5, true)]
+#[case(326.5, false)]
+// Issue 222 #[case(3.5e22, true)]
+fn number_multipleof_noninteger(#[case] test_value: f64, #[case] expected_pass: bool) {
+    // See also issue 222
+    const MULTIPLE_OF: f64 = 3.5;
+    let schema = &json!({"type":"number", "multipleOf": MULTIPLE_OF});
+    json_schema_check(schema, &json!(test_value), expected_pass);
+}
+
+/*
+Not clear if this should work
+#[rstest]
+fn number_multipleof_zero(#[values(0.0, 3.0, 12.0, 1818.0)] test_value: f64) {
+    const MULTIPLE_OF: f64 = 0.0;
+    let schema = &json!({"type":"number", "multipleOf": MULTIPLE_OF});
+    json_schema_check(
+        schema,
+        &json!(test_value),
+        if test_value == 0.0 { true } else { false },
+    );
+}
+*/
 
 // ============================================================================
 
