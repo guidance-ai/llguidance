@@ -178,3 +178,39 @@ fn array_with_prefix_items_fixed(#[case] sample_array: &Value) {
 fn array_with_prefix_items_fixed_failures(#[case] sample_array: &Value) {
     json_schema_check(&SIMPLE_PREFIXED_ARRAY_FIXED, sample_array, false);
 }
+
+lazy_static! {
+    static ref SIMPLE_PREFIXED_ARRAY_LENGTH_CONSTRAINED: Value = json!({ "type": "array",
+      "prefixItems": [
+        { "type": "string" }, // First item must be a string
+        { "type": "number" }  // Second item must be a number
+      ],
+      "items": { "type": "boolean" }, // Remaining items must be booleans
+      "minItems": 2,
+        "maxItems": 4
+    });
+}
+
+#[rstest]
+#[case(&json!(["Hello", 3.13]))]
+#[case(&json!(["World", 2.718, false]))]
+#[case(&json!(["Test", 1.0, true, false]))]
+fn array_with_prefix_items_length_constrained(#[case] sample_array: &Value) {
+    json_schema_check(
+        &SIMPLE_PREFIXED_ARRAY_LENGTH_CONSTRAINED,
+        sample_array,
+        true,
+    );
+}
+
+#[rstest]
+#[case::too_short(&json!(["Hello"]))]
+#[case::too_long(&json!(["Hello", 3.14, false, true, true]))]
+#[case::prefix_schema_violation(&json!([2.718, false]))]
+fn array_with_prefix_items_length_constrained_failures(#[case] sample_array: &Value) {
+    json_schema_check(
+        &SIMPLE_PREFIXED_ARRAY_LENGTH_CONSTRAINED,
+        sample_array,
+        false,
+    );
+}
