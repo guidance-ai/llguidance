@@ -5,6 +5,13 @@ mod common_lark_utils;
 use common_lark_utils::json_schema_check;
 
 #[rstest]
+fn const_null() {
+    // This may fall into the 'Excessive Pedantry' bin
+    let schema = &json!({"type":"null", "const":null});
+    json_schema_check(schema, &json!(null), true);
+}
+
+#[rstest]
 #[case(&json!(true), false)]
 #[case(&json!(false), true)]
 fn const_boolean(#[case] sample: &Value, #[case] expected_pass: bool) {
@@ -40,6 +47,19 @@ fn const_property(#[case] sample: &Value, #[case] expected_pass: bool) {
           "const": "US"
         }
       }
+    });
+    json_schema_check(&schema, sample, expected_pass);
+}
+
+#[rstest]
+#[case(&json!([10]), false)]
+#[case(&json!([10, 20]), true)]
+#[case(&json!([10, 20, 30]), false)]
+#[case(&json!([10, "a"]), false)]
+fn const_array(#[case] sample: &Value, #[case] expected_pass: bool) {
+    let schema = json!({
+      "type": "array",
+      "const": [10, 20]
     });
     json_schema_check(&schema, sample, expected_pass);
 }
