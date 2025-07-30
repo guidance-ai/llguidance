@@ -5,7 +5,7 @@ use rstest::*;
 use serde_json::{json, Value};
 
 mod common_lark_utils;
-use common_lark_utils::{json_err_test, json_schema_check};
+use common_lark_utils::json_schema_check;
 
 lazy_static! {
     static ref SIMPLE_ANYOF: Value = json!({"anyOf": [
@@ -15,12 +15,12 @@ lazy_static! {
 }
 
 #[rstest]
-fn simple_anyof(#[values(&json!(42), &json!(true))] sample: &Value) {
+fn simple_anyof(#[values(json!(42), json!(true))] sample: Value) {
     json_schema_check(&SIMPLE_ANYOF, &sample, true);
 }
 
 #[rstest]
-fn simple_anyof_failures(#[values(&json!("string"), &json!(1.2), &json!([1, 2]))] sample: &Value) {
+fn simple_anyof_failures(#[values(json!("string"), json!(1.2), json!([1, 2]))] sample: Value) {
     json_schema_check(&SIMPLE_ANYOF, &sample, false);
 }
 
@@ -35,14 +35,14 @@ lazy_static! {
 }
 
 #[rstest]
-fn simple_allof(#[values(&json!({"foo": "hello", "bar": 42}))] sample: &Value) {
+fn simple_allof(#[values(json!({"foo": "hello", "bar": 42}))] sample: Value) {
     json_schema_check(&SIMPLE_ALLOF, &sample, true);
 }
 
 #[rstest]
 fn simple_allof_failures(
-    #[values(&json!({"foo": "hello"}), &json!({"bar": 42}), &json!({"foo": "hello", "bar": "not a number"}) )]
-    sample: &Value,
+    #[values(json!({"foo": "hello"}), json!({"bar": 42}), json!({"foo": "hello", "bar": "not a number"}) )]
+    sample: Value,
 ) {
     json_schema_check(&SIMPLE_ALLOF, &sample, false);
 }
