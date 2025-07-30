@@ -98,3 +98,19 @@ fn allof_unsatisfiable() {
         "Unsatisfiable schema: minimum (10) is greater than maximum (5)",
     );
 }
+
+#[rstest]
+fn allof_anyof_oneof_combined() {
+    let schema = &json!({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "allOf": [{"enum": [2, 6, 10, 30]}],
+            "anyOf": [{"enum": [3, 6, 15, 30]}],
+            "oneOf": [{"enum": [5, 10, 15, 30]}],
+    });
+
+    for i in -35..=35 {
+        let value = json!(i);
+        let expected_pass = i == 30;
+        json_schema_check(schema, &value, expected_pass);
+    }
+}
