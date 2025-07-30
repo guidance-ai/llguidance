@@ -96,6 +96,24 @@ fn allof_simple_minimum(#[case] value: i32, #[case] expected_pass: bool) {
 }
 
 #[rstest]
+#[case("a", true)]
+#[case("b", true)]
+// Issue 224 #[case("bb", false)]
+// Issue 224 #[case("aa", false)]
+#[case("", false)]
+#[case(" ", false)]
+fn allof_string_patterns(#[case] value: &str, #[case] expected_pass: bool) {
+    let schema = json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "allOf": [
+            {"type": "string", "pattern": r"\w+"},
+            {"type": "string", "pattern": r"\w?"}
+        ]
+    });
+    json_schema_check(&schema, &json!(value), expected_pass);
+}
+
+#[rstest]
 fn allof_unsatisfiable_false_schema(#[values(true, false)] other_schema: bool) {
     let schema = &json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
