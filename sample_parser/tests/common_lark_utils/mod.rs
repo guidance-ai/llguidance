@@ -36,6 +36,7 @@ pub fn lark_ok(lark: &str) {
     }
 }
 
+#[allow(dead_code)]
 pub fn lark_err_test(lark: &str, err: &str) {
     match make_parser(lark, false) {
         Err(e) => {
@@ -48,6 +49,7 @@ pub fn lark_err_test(lark: &str, err: &str) {
     }
 }
 
+#[allow(dead_code)]
 pub fn json_err_test(schema: &Value, err: &str) {
     lark_err_test(
         &format!(r#"start: %json {}"#, serde_json::to_string(schema).unwrap()),
