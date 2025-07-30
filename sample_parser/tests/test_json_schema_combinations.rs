@@ -96,6 +96,15 @@ fn allof_simple_minimum(#[case] value: i32, #[case] expected_pass: bool) {
 }
 
 #[rstest]
+fn allof_unsatisfiable_false_schema(#[values(true, false)] other_schema: bool) {
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "allOf": [other_schema, false],
+    });
+    json_err_test(schema, "Unsatisfiable schema: schema is false");
+}
+
+#[rstest]
 fn allof_unsatisfiable() {
     let schema = &json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
