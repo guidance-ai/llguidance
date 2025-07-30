@@ -5,7 +5,7 @@ use rstest::*;
 use serde_json::{json, Value};
 
 mod common_lark_utils;
-use common_lark_utils::json_schema_check;
+use common_lark_utils::{json_err_test, json_schema_check};
 
 lazy_static! {
     static ref SIMPLE_ANYOF: Value = json!({"anyOf": [
@@ -82,4 +82,19 @@ fn allof_simple_minimum(#[case] value: i32, #[case] expected_pass: bool) {
         "allOf": [{"minimum": 30}, {"minimum": 20}],
     });
     json_schema_check(&schema, &json!(value), expected_pass);
+}
+
+#[rstest]
+fn allof_unsatisfiable() {
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "allOf": [
+            {"type": "integer", "minimum": 10},
+            {"type": "integer", "maximum": 5}
+        ]
+    });
+    json_err_test(
+        schema,
+        "Unsatisfiable schema: minimum (10) is greater than maximum (5)",
+    );
 }
