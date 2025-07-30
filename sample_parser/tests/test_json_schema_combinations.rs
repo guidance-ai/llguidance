@@ -24,6 +24,17 @@ fn simple_anyof_failures(#[values(json!("string"), json!(1.2), json!([1, 2]))] s
     json_schema_check(&SIMPLE_ANYOF, &sample, false);
 }
 
+#[rstest]
+#[case(&json!(true), true)]
+#[case(&json!(42), true)]
+#[case(&json!("string"), false)]
+#[case(&json!([1, 2]), false)]
+fn type_as_list(#[case] sample: &Value, #[case] expected_pass: bool) {
+    // Turns out that "type" can be a list, which acts like anyOf
+    let schema = json!({"type": ["boolean", "integer"]});
+    json_schema_check(&schema, sample, expected_pass);
+}
+
 lazy_static! {
     static ref SIMPLE_ALLOF: Value = json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
