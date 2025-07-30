@@ -128,3 +128,53 @@ fn array_of_objects(#[case] sample_array: &Value) {
 fn array_of_objects_failures(#[case] sample_array: &Value) {
     json_schema_check(&ARRAY_OF_OBJECTS, sample_array, false);
 }
+
+lazy_static! {
+    static ref SIMPLE_PREFIXED_ARRAY: Value = json!({ "type": "array",
+      "prefixItems": [
+        { "type": "string" }, // First item must be a string
+        { "type": "number" }  // Second item must be a number
+      ],
+      "items": { "type": "boolean" } // Remaining items must be booleans
+    });
+}
+
+#[rstest]
+#[case::only_prefix(&json!(["Hello", 42]))]
+#[case::prefix_one_item(&json!(["Cruel", 2.718, true]))]
+#[case::prefix_multiple_items(&json!(["World", 3.14, false, true, false]))]
+fn array_with_prefix_items(#[case] sample_array: &Value) {
+    json_schema_check(&SIMPLE_PREFIXED_ARRAY, sample_array, true);
+}
+
+#[rstest]
+#[case(&json!([3.14]))]
+#[case(&json!(["Hello", 42, 3.14]))]
+#[case(&json!(["Hello", 42, true, "Not a boolean"]))]
+fn array_with_prefix_items_failures(#[case] sample_array: &Value) {
+    json_schema_check(&SIMPLE_PREFIXED_ARRAY, sample_array, false);
+}
+
+lazy_static! {
+    static ref SIMPLE_PREFIXED_ARRAY_FIXED: Value = json!({ "type": "array",
+      "prefixItems": [
+        { "type": "string" }, // First item must be a string
+        { "type": "number" }  // Second item must be a number
+      ],
+      "items": false // No additional items allowed
+    });
+}
+
+#[rstest]
+#[case(&json!(["A"]))]
+#[case(&json!(["B", 42]))]
+fn array_with_prefix_items_fixed(#[case] sample_array: &Value) {
+    json_schema_check(&SIMPLE_PREFIXED_ARRAY_FIXED, sample_array, true);
+}
+
+#[rstest]
+#[case(&json!(["Hello", 42, true]))]
+#[case(&json!([3.14]))]
+fn array_with_prefix_items_fixed_failures(#[case] sample_array: &Value) {
+    json_schema_check(&SIMPLE_PREFIXED_ARRAY_FIXED, sample_array, false);
+}
