@@ -141,15 +141,15 @@ lazy_static! {
 
 #[rstest]
 #[case::only_prefix(&json!(["Hello", 42]))]
-#[case::prefix_one_item(&json!(["Cruel", 2.718, true]))]
-#[case::prefix_multiple_items(&json!(["World", 3.14, false, true, false]))]
+#[case::prefix_one_item(&json!(["Cruel", 817.2, true]))]
+#[case::prefix_multiple_items(&json!(["World", 41.3, false, true, false]))]
 fn array_with_prefix_items(#[case] sample_array: &Value) {
     json_schema_check(&SIMPLE_PREFIXED_ARRAY, sample_array, true);
 }
 
 #[rstest]
-#[case(&json!([3.14]))]
-#[case(&json!(["Hello", 42, 3.14]))]
+#[case(&json!([41.3]))]
+#[case(&json!(["Hello", 42, 41.3]))]
 #[case(&json!(["Hello", 42, true, "Not a boolean"]))]
 fn array_with_prefix_items_failures(#[case] sample_array: &Value) {
     json_schema_check(&SIMPLE_PREFIXED_ARRAY, sample_array, false);
@@ -174,7 +174,7 @@ fn array_with_prefix_items_fixed(#[case] sample_array: &Value) {
 
 #[rstest]
 #[case(&json!(["Hello", 42, true]))]
-#[case(&json!([3.14]))]
+#[case(&json!([41.3]))]
 fn array_with_prefix_items_fixed_failures(#[case] sample_array: &Value) {
     json_schema_check(&SIMPLE_PREFIXED_ARRAY_FIXED, sample_array, false);
 }
@@ -193,7 +193,7 @@ lazy_static! {
 
 #[rstest]
 #[case(&json!(["Hello", 3.13]))]
-#[case(&json!(["World", 2.718, false]))]
+#[case(&json!(["World", 817.2, false]))]
 #[case(&json!(["Test", 1.0, true, false]))]
 fn array_with_prefix_items_length_constrained(#[case] sample_array: &Value) {
     json_schema_check(
@@ -205,8 +205,8 @@ fn array_with_prefix_items_length_constrained(#[case] sample_array: &Value) {
 
 #[rstest]
 #[case::too_short(&json!(["Hello"]))]
-#[case::too_long(&json!(["Hello", 3.14, false, true, true]))]
-#[case::prefix_schema_violation(&json!([2.718, false]))]
+#[case::too_long(&json!(["Hello", 41.3, false, true, true]))]
+#[case::prefix_schema_violation(&json!([817.2, false]))]
 fn array_with_prefix_items_length_constrained_failures(#[case] sample_array: &Value) {
     json_schema_check(
         &SIMPLE_PREFIXED_ARRAY_LENGTH_CONSTRAINED,
