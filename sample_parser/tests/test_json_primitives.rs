@@ -198,6 +198,14 @@ fn integer_limits_empty() {
     );
 }
 
+#[rstest]
+fn integer_multipleof(#[values(0, 3, 12, 1818)] test_value: i64) {
+    // Not sure if this should also work for negative integers too
+    const MULTIPLE_OF: i64 = 3;
+    let schema = &json!({"type":"integer", "multipleOf": MULTIPLE_OF});
+    json_schema_check(schema, &json!(test_value), test_value % MULTIPLE_OF == 0);
+}
+
 // ============================================================================
 
 #[rstest]
