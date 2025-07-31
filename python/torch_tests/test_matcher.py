@@ -1,6 +1,11 @@
 from typing import Any, Dict, List, Tuple, Union
 import llguidance
-from llguidance.numpy import fill_next_token_bitmask_par, allocate_token_bitmask
+from llguidance.numpy import (
+    fill_next_token_bitmask_par,
+    fill_next_token_bitmask_par_with_draft_tokens,
+    allocate_token_bitmask,
+)
+
 from llguidance import LLMatcher, LLTokenizer, StructTag, LLParserLimits
 import pytest
 from numpy.typing import NDArray
@@ -205,6 +210,40 @@ def test_par_errors() -> None:
     assert not mask_has(mask[0, :], t_1)
     assert not mask_has(mask[2, :], t_a)
     assert mask_has(mask[2, :], t_1)
+
+def test_par_draft_tokens() -> None:
+    t = tokenizer()
+    exec = llguidance.LLExecutor()
+    g0 = matcher(r"start: /[a-zA-Z]*/")
+    g1 = matcher(r"start: /[0-9]*/")
+
+    # should be OK
+    t_a = t.tokenize_str("ab")
+    t_1 = t.tokenize_str("12")
+    mask = allocate_token_bitmask(len(t_a) + 1 + len(t_1) + 1, t.vocab_size)
+    fill_next_token_bitmask_par_with_draft_tokens(exec, [(g0, 0, t_a), (g1, 3, t_1)], mask)
+
+    assert mask_has(mask[0, :], t_a[0])
+    assert mask_has(mask[1, :], t_a[1])
+    assert mask_has(mask[2, :], t_a[0])
+    assert mask_has(mask[2, :], t_a[1])
+    assert not mask_has(mask[0, :], t_1[0])
+    assert not mask_has(mask[0, :], t_1[1])
+    assert not mask_has(mask[1, :], t_1[0])
+    assert not mask_has(mask[1, :], t_1[1])
+    assert not mask_has(mask[2, :], t_1[0])
+    assert not mask_has(mask[2, :], t_1[1])
+
+    assert mask_has(mask[3, :], t_1[0])
+    assert mask_has(mask[4, :], t_1[1])
+    assert mask_has(mask[5, :], t_1[0])
+    assert mask_has(mask[5, :], t_1[1])
+    assert not mask_has(mask[3, :], t_a[0])
+    assert not mask_has(mask[3, :], t_a[1])
+    assert not mask_has(mask[4, :], t_a[0])
+    assert not mask_has(mask[4, :], t_a[1])
+    assert not mask_has(mask[5, :], t_a[0])
+    assert not mask_has(mask[5, :], t_a[1])
 
 
 def consume_tokens(m: LLMatcher, tokens: List[int]) -> None:

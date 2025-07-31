@@ -538,6 +538,21 @@ class LLExecutor:
         Prefer to use fill_next_token_bitmask_par(), which wraps this.
         """
 
+    def unsafe_compute_mask_ptr_with_draft_token(
+        self,
+        interpreters: List[Tuple[LLMatcher, int, List[int]]],
+        tgt_pointer: int,
+        one_mask_byte_size: int,
+        trg_batch_size: int,
+    ) -> None:
+        """
+        Used for speculative decoding.
+        Compute the token mask directly into memory at the specified pointer.
+        For each matcher, provide the index of the target mask and a list of draft tokens.
+        If index is K, the memory will be written at tgt_pointer + K * one_mask_byte_size,
+        where K < trg_batch_size.
+        Memory has to have size trg_batch_size * one_mask_byte_size.
+        """
 
 class JsonCompileOptions(TypedDict, total=False):
     # defaults to ","
