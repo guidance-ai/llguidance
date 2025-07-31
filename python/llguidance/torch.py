@@ -66,3 +66,14 @@ def fill_next_token_bitmask_par(executor: LLExecutor,
     assert bitmask.is_contiguous(), "Mask must be contiguous"
     executor.unsafe_compute_mask_ptr(matchers, bitmask.data_ptr(), vocab * 4,
                                      batch)
+
+
+def fill_next_token_bitmask_par_with_draft_tokens(executor: LLExecutor,
+                                matchers: List[Tuple[LLMatcher, int, List[int]]],
+                                bitmask: torch.Tensor) -> None:
+    assert bitmask.dtype == torch.int32, "Mask must be int32"
+    assert bitmask.is_cpu, "Mask must be on CPU"
+    assert bitmask.dim() == 2, "Mask must be 2D"
+    batch, vocab = bitmask.shape
+    assert bitmask.is_contiguous(), "Mask must be contiguous"
+    executor.unsafe_compute_mask_ptr_with_draft_token(matchers, bitmask.data_ptr(), vocab * 4, batch)
