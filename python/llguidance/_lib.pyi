@@ -565,6 +565,7 @@ class LLParserLimits:
         max_lexer_states: Optional[int] = None,
         max_grammar_size: Optional[int] = None,
         precompute_large_lexemes: Optional[bool] = None,
+        verbose_errors: Optional[bool] = None,
     ) -> None:
         """
         ParserLimits configuration for controlling parser and lexer resource usage.
@@ -597,6 +598,10 @@ class LLParserLimits:
             precompute_large_lexemes (Optional[bool]):
                 Whether to run large regexes eagerly on the entire token trie during lexer build.
                 Increases lexer construction time, but speeds up mask computation. Default: True.
+
+            verbose_errors (Optional[bool]):
+                If true, include parser state and grammar details in error messages.
+                Useful for debugging; may leak schema/state in logs. Default: True.
         """
 
     @property
@@ -626,6 +631,10 @@ class LLParserLimits:
     @property
     def precompute_large_lexemes(self) -> bool:
         """Precompute large regexes during lexer construction. Default: True"""
+
+    @property
+    def verbose_errors(self) -> bool:
+        """Include parser state and grammar in errors. Default: True"""
 
 
 def regex_to_lark(regex: str, use_ascii: str = "d") -> str:

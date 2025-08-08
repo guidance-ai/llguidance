@@ -21,7 +21,8 @@ impl LLParserLimits {
     #[new]
     #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (*, max_items_in_row=None, initial_lexer_fuel=None, step_lexer_fuel=None,
-        step_max_items=None, max_lexer_states=None, max_grammar_size=None, precompute_large_lexemes=None))]
+        step_max_items=None, max_lexer_states=None, max_grammar_size=None, precompute_large_lexemes=None,
+        verbose_errors=None))]
     fn new(
         max_items_in_row: Option<usize>,
         initial_lexer_fuel: Option<u64>,
@@ -30,6 +31,7 @@ impl LLParserLimits {
         max_lexer_states: Option<usize>,
         max_grammar_size: Option<usize>,
         precompute_large_lexemes: Option<bool>,
+        verbose_errors: Option<bool>,
     ) -> Self {
         let mut inner = ParserLimits::default();
         if let Some(v) = max_items_in_row {
@@ -52,6 +54,9 @@ impl LLParserLimits {
         }
         if let Some(v) = precompute_large_lexemes {
             inner.precompute_large_lexemes = v;
+        }
+        if let Some(v) = verbose_errors {
+            inner.verbose_errors = v;
         }
         Self { inner }
     }
@@ -89,6 +94,11 @@ impl LLParserLimits {
     #[getter]
     fn precompute_large_lexemes(&self) -> bool {
         self.inner.precompute_large_lexemes
+    }
+
+    #[getter]
+    fn verbose_errors(&self) -> bool {
+        self.inner.verbose_errors
     }
 
     fn __str__(&self) -> String {
