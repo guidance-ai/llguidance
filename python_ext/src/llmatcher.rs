@@ -127,7 +127,7 @@ impl LLExecutor {
                 return Err(PyValueError::new_err("Target index out of bounds"));
             }
             let draft_tokens = tupl.get_item(2)?.extract::<Vec<TokenId>>()?;
-            if draft_tokens.len() == 0 {
+            if draft_tokens.is_empty() {
                 return Err(PyValueError::new_err("Draft tokens must not be empty"));
             }
             interp.validate_mask_ptr(trg_ptr, one_mask_bytes)?;
@@ -200,6 +200,7 @@ impl LLMatcher {
     ) {
         let mut state_advancements = 0;
         let spec_k = draft_tokens.len();
+        #[allow(clippy::needless_range_loop)]
         for token_idx in 0..=spec_k {
             self.unsafe_compute_mask_ptr_inner(trg_ptr + token_idx * trg_bytes, trg_bytes);
 
