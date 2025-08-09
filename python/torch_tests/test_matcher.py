@@ -162,7 +162,7 @@ def test_slices() -> None:
 def mask_has(mask: NDArray[np.int32], t: int) -> bool:
     v: int = mask[t // 32]
     # use np.int32 to avoid int32 overflow errors
-    return v & (np.int32(1) << (t % 32)) != 0
+    return bool(v & (np.int32(1) << (t % 32)) != 0)
 
 
 def test_par_errors() -> None:
@@ -213,9 +213,11 @@ def test_par_errors() -> None:
     assert mask_has(mask[2, :], t_1)
 
 
-def retrieve_tokens_from_bitmask(bitmask: NDArray[np.int32], vocab_size) -> List[List[int]]:
-    batch_accepted_tokens = []
-    batch_rejected_tokens = []
+def retrieve_tokens_from_bitmask(
+    bitmask: NDArray[np.int32], vocab_size: int
+) -> Tuple[List[List[int]], List[List[int]]]:
+    batch_accepted_tokens: List[List[int]] = []
+    batch_rejected_tokens: List[List[int]] = []
     for batch_idx in range(bitmask.shape[0]):
         batch_accepted_tokens.append([])
         batch_rejected_tokens.append([])
