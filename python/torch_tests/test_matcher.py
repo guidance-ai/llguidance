@@ -1,6 +1,11 @@
 from typing import Any, Dict, List, Tuple, Union
 import llguidance
-from llguidance.numpy import fill_next_token_bitmask_par, allocate_token_bitmask
+from llguidance.numpy import (
+    fill_next_token_bitmask_par,
+    fill_next_token_bitmask_par_with_draft_tokens,
+    allocate_token_bitmask,
+)
+
 from llguidance import LLMatcher, LLTokenizer, StructTag, LLParserLimits
 import pytest
 from numpy.typing import NDArray
@@ -156,7 +161,8 @@ def test_slices() -> None:
 
 def mask_has(mask: NDArray[np.int32], t: int) -> bool:
     v: int = mask[t // 32]
-    return v & (1 << (t % 32)) != 0
+    # use np.int32 to avoid int32 overflow errors
+    return bool(v & (np.int32(1) << (t % 32)) != 0)
 
 
 def test_par_errors() -> None:
@@ -205,6 +211,147 @@ def test_par_errors() -> None:
     assert not mask_has(mask[0, :], t_1)
     assert not mask_has(mask[2, :], t_a)
     assert mask_has(mask[2, :], t_1)
+
+
+def retrieve_tokens_from_bitmask(
+    bitmask: NDArray[np.int32], vocab_size: int
+) -> Tuple[List[List[int]], List[List[int]]]:
+    batch_accepted_tokens: List[List[int]] = []
+    batch_rejected_tokens: List[List[int]] = []
+    for batch_idx in range(bitmask.shape[0]):
+        batch_accepted_tokens.append([])
+        batch_rejected_tokens.append([])
+        for token_id in range(vocab_size):
+            print(bitmask.shape)
+            if mask_has(bitmask[batch_idx], token_id):
+                batch_accepted_tokens[-1].append(token_id)
+            else:
+                batch_rejected_tokens[-1].append(token_id)
+    return batch_accepted_tokens, batch_rejected_tokens
+
+
+def test_par_draft_tokens() -> None:
+    t = tokenizer()
+    exec = llguidance.LLExecutor()
+    g0 = matcher(r"start: /[a-zA-Z]/ /[0-9]*/")
+    g1 = matcher(r"start: /[0-9]/ /[a-zA-Z]*/")
+    g2 = matcher(r"start: <[*]>*")
+    g3 = matcher(r"start: /[a-zA-Z]/ /[0-9]*/")
+
+    # should be OK
+    g0_draft_tokens = t.tokenize_str("a1")
+    g1_draft_tokens = t.tokenize_str("2b")
+    g2_draft_tokens = t.tokenize_str("cc")
+    # g3 index 1 draft is reject
+    g3_draft_tokens = t.tokenize_str("aa")
+    mask = allocate_token_bitmask(
+        len(g0_draft_tokens)
+        + 1
+        + len(g1_draft_tokens)
+        + 1
+        + len(g2_draft_tokens)
+        + 1
+        + len(g3_draft_tokens)
+        + 1,
+        t.vocab_size,
+    )
+    fill_next_token_bitmask_par_with_draft_tokens(
+        exec,
+        [
+            (g0, 0, g0_draft_tokens),
+            (g1, 3, g1_draft_tokens),
+            (g2, 6, g2_draft_tokens),
+            (g3, 9, g3_draft_tokens),
+        ],
+        mask,
+    )
+
+    batch_accepted_tokens, batch_rejected_tokens = retrieve_tokens_from_bitmask(
+        mask, t.vocab_size
+    )
+    for batch_idx in range(len(batch_accepted_tokens)):
+        assert (
+            len(batch_accepted_tokens[batch_idx])
+            + len(batch_rejected_tokens[batch_idx])
+            == t.vocab_size
+        )
+
+    # for g0, first token should be Letters
+    # other tokens should be Numbers
+    mask_start_idx = 0
+    for idx, mask_idx in enumerate(
+        range(mask_start_idx, mask_start_idx + len(g0_draft_tokens) + 1)
+    ):
+        g0_accepted_tokens = batch_accepted_tokens[mask_idx]
+        for token_id in range(t.vocab_size):
+            if token_id in g0_accepted_tokens:
+                if idx == 0:
+                    assert t.decode_str([token_id]).isalpha()
+                else:
+                    assert token_id == t.eos_token or t.decode_str([token_id]).isdigit()
+            else:
+                assert not g0.try_consume_tokens([token_id])
+        if idx < len(g0_draft_tokens):
+            assert g0.consume_token(g0_draft_tokens[idx])
+
+    # for g1, first token should be Numbers
+    # other tokens should be Letters
+    mask_start_idx += len(g0_draft_tokens) + 1
+    for idx, mask_idx in enumerate(
+        range(mask_start_idx, mask_start_idx + len(g1_draft_tokens) + 1)
+    ):
+        g1_accepted_tokens = batch_accepted_tokens[mask_idx]
+        for token_id in range(t.vocab_size):
+            if token_id in g1_accepted_tokens:
+                if idx == 0:
+                    assert t.decode_str([token_id]).isdigit()
+                else:
+                    assert token_id == t.eos_token or t.decode_str([token_id]).isalpha()
+            else:
+                assert not g1.try_consume_tokens([token_id])
+        if idx < len(g1_draft_tokens):
+            assert g1.consume_token(g1_draft_tokens[idx])
+
+    # for g2, all tokens should be accept
+    mask_start_idx += len(g1_draft_tokens) + 1
+    for idx, mask_idx in enumerate(
+        range(mask_start_idx, mask_start_idx + len(g2_draft_tokens) + 1)
+    ):
+        g2_rejected_tokens = batch_rejected_tokens[mask_idx]
+        g2_accepted_tokens = batch_accepted_tokens[mask_idx]
+        assert len(g2_rejected_tokens) == 0
+        assert len(g2_accepted_tokens) == t.vocab_size
+        for token_id in range(t.vocab_size):
+            if token_id in g2_accepted_tokens:
+                assert mask_has(mask[mask_idx, :], token_id)
+            else:
+                assert not mask_has(mask[mask_idx, :], token_id)
+        if idx < len(g2_draft_tokens):
+            assert g2.consume_token(g2_draft_tokens[idx])
+
+    # for g3
+    # g3_draft_tokens[0] is accept
+    # g3_draft_tokens[1] is reject
+    mask_start_idx += len(g2_draft_tokens) + 1
+    for idx, mask_idx in enumerate(
+        range(mask_start_idx, mask_start_idx + len(g3_draft_tokens) + 1)
+    ):
+        g3_rejected_tokens = batch_rejected_tokens[mask_idx]
+        g3_accepted_tokens = batch_accepted_tokens[mask_idx]
+        if idx <= 1:
+            for token_id in range(t.vocab_size):
+                if token_id in g3_accepted_tokens:
+                    assert mask_has(mask[mask_idx, :], token_id)
+                else:
+                    assert not mask_has(mask[mask_idx, :], token_id)
+            if idx == 0:
+                assert g3.consume_token(g3_draft_tokens[idx])
+            else:
+                assert not g3.consume_token(g3_draft_tokens[idx])
+        else:
+            # the bitmask of all tokens has a bit value of 1.
+            assert len(g3_rejected_tokens) == 0
+            assert len(g3_accepted_tokens) == t.vocab_size
 
 
 def consume_tokens(m: LLMatcher, tokens: List[int]) -> None:

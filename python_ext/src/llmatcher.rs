@@ -100,6 +100,73 @@ impl LLExecutor {
 
         Ok(())
     }
+
+    fn unsafe_compute_mask_ptr_with_draft_token(
+        &self,
+        interpreters: Bound<'_, PyList>,
+        trg_ptr: usize,
+        one_mask_bytes: usize,
+        trg_batch_size: usize,
+        py: Python<'_>,
+    ) -> PyResult<()> {
+        if interpreters.len() == 0 {
+            return Err(PyValueError::new_err("No interpreters"));
+        }
+
+        let mut mut_refs = vec![];
+        for ent in interpreters.iter() {
+            let tupl = ent.downcast::<PyTuple>()?;
+            if tupl.len() != 3 {
+                return Err(PyValueError::new_err(
+                    "Expecting (LLMatcher, int, List[int]) tuple",
+                ));
+            }
+            let interp = tupl.get_item(0)?.extract::<PyRefMut<LLMatcher>>()?;
+            let idx = tupl.get_item(1)?.extract::<usize>()?;
+            if idx >= trg_batch_size {
+                return Err(PyValueError::new_err("Target index out of bounds"));
+            }
+            let draft_tokens = tupl.get_item(2)?.extract::<Vec<TokenId>>()?;
+            if draft_tokens.is_empty() {
+                return Err(PyValueError::new_err("Draft tokens must not be empty"));
+            }
+            interp.validate_mask_ptr(trg_ptr, one_mask_bytes)?;
+            mut_refs.push((interp, idx, draft_tokens));
+        }
+
+        if mut_refs.len() == 1 {
+            let (mut interp, idx, draft_tokens) = mut_refs.pop().unwrap();
+            return interp.unsafe_compute_mask_ptr_with_draft_token(
+                trg_ptr + idx * one_mask_bytes,
+                one_mask_bytes,
+                draft_tokens,
+                py,
+            );
+        }
+
+        let mut_refs2: Vec<_> = mut_refs
+            .iter_mut()
+            .map(|(x, idx, draft_tokens)| (x.deref_mut(), *idx, draft_tokens.clone()))
+            .collect();
+
+        use rayon::prelude::*;
+
+        py.allow_threads(|| {
+            self.pool.install(|| {
+                mut_refs2
+                    .into_par_iter()
+                    .for_each(|(interp, idx, draft_tokens)| {
+                        interp.unsafe_compute_mask_ptr_inner_with_draft_tokens(
+                            trg_ptr + idx * one_mask_bytes,
+                            one_mask_bytes,
+                            draft_tokens,
+                        );
+                    })
+            })
+        });
+
+        Ok(())
+    }
 }
 
 impl LLMatcher {
@@ -123,6 +190,34 @@ impl LLMatcher {
             unsafe { std::slice::from_raw_parts_mut(trg_ptr as *mut u32, trg_bytes / 4) };
         let src = r.as_slice();
         trg_slice.copy_from_slice(&src[0..trg_slice.len()]);
+    }
+
+    fn unsafe_compute_mask_ptr_inner_with_draft_tokens(
+        &mut self,
+        trg_ptr: usize,
+        trg_bytes: usize,
+        draft_tokens: Vec<TokenId>,
+    ) {
+        let mut state_advancements = 0;
+        let spec_k = draft_tokens.len();
+        #[allow(clippy::needless_range_loop)]
+        for token_idx in 0..=spec_k {
+            self.unsafe_compute_mask_ptr_inner(trg_ptr + token_idx * trg_bytes, trg_bytes);
+
+            if token_idx == spec_k || self.inner.is_stopped() {
+                break;
+            }
+
+            let token = draft_tokens[token_idx];
+
+            match self.inner.try_consume_tokens(&[token]) {
+                Ok(cosumed) if cosumed > 0 => state_advancements += 1,
+                _ => break,
+            }
+        }
+        if state_advancements > 0 {
+            self.rollback(state_advancements);
+        }
     }
 
     fn eos_token_set(&self) -> SimpleVob {
@@ -334,6 +429,20 @@ impl LLMatcher {
     ) -> PyResult<()> {
         self.validate_mask_ptr(trg_ptr, trg_bytes)?;
         py.allow_threads(|| self.unsafe_compute_mask_ptr_inner(trg_ptr, trg_bytes));
+        Ok(())
+    }
+
+    fn unsafe_compute_mask_ptr_with_draft_token(
+        &mut self,
+        trg_ptr: usize,
+        trg_bytes: usize,
+        draft_tokens: Vec<TokenId>,
+        py: Python<'_>,
+    ) -> PyResult<()> {
+        self.validate_mask_ptr(trg_ptr, trg_bytes)?;
+        py.allow_threads(|| {
+            self.unsafe_compute_mask_ptr_inner_with_draft_tokens(trg_ptr, trg_bytes, draft_tokens)
+        });
         Ok(())
     }
 

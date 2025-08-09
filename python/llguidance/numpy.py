@@ -66,3 +66,17 @@ def fill_next_token_bitmask_par(executor: LLExecutor,
     batch, vocab = bitmask.shape
     assert bitmask.flags["C_CONTIGUOUS"], "Mask must be contiguous"
     executor.unsafe_compute_mask_ptr(matchers, bitmask.ctypes.data, vocab * 4, batch)
+
+
+def fill_next_token_bitmask_par_with_draft_tokens(executor: LLExecutor,
+                                matchers: List[Tuple[LLMatcher, int, List[int]]],
+                                bitmask: NDArray[np.int32]) -> None:
+    """
+    Compute the token mask directly into the specified array.
+    For each matcher, provide the index of the target mask.
+    """
+    assert bitmask.dtype == np.int32, "Mask must be int32"
+    assert bitmask.ndim == 2, "Mask must be 2D"
+    batch, vocab = bitmask.shape
+    assert bitmask.flags["C_CONTIGUOUS"], "Mask must be contiguous"
+    executor.unsafe_compute_mask_ptr_with_draft_token(matchers, bitmask.ctypes.data, vocab * 4, batch)
