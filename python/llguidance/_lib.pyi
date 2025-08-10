@@ -563,7 +563,7 @@ class LLExecutor:
         Memory Layout:
             - Main mask written at: tgt_pointer + K * one_mask_byte_size
             - Draft token i mask written at: tgt_pointer + (K + i + 1) * one_mask_byte_size
-            - Total memory required: trg_batch_size * (spec_k + 1) * one_mask_byte_size
+            - Total memory required: trg_batch_size * one_mask_byte_size
 
         The function processes each matcher's draft tokens sequentially, advancing the matcher state
         for each valid token until encountering an invalid token or termination condition.
