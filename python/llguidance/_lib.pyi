@@ -541,7 +541,7 @@ class LLExecutor:
     def unsafe_compute_mask_ptr_with_draft_token(
         self,
         interpreters: List[Tuple[LLMatcher, int, List[int]]],
-        tgt_pointer: int,
+        trg_pointer: int,
         one_mask_byte_size: int,
         trg_batch_size: int,
     ) -> None:
@@ -556,13 +556,13 @@ class LLExecutor:
                 - LLMatcher: The matcher object for constrained generation
                 - int: Index K indicating the target mask position (K < trg_batch_size)  
                 - List[int]: Draft tokens to be processed for speculative decoding
-            tgt_pointer: Memory address where mask data will be written
+            trg_pointer: Memory address where mask data will be written
             one_mask_byte_size: Size in bytes of a single token mask
             trg_batch_size: Total batch size for memory allocation validation
 
         Memory Layout:
-            - Main mask written at: tgt_pointer + K * one_mask_byte_size
-            - Draft token i mask written at: tgt_pointer + (K + i + 1) * one_mask_byte_size
+            - Main mask written at: trg_pointer + K * one_mask_byte_size
+            - Draft token i mask written at: trg_pointer + (K + i + 1) * one_mask_byte_size
             - Total memory required: trg_batch_size * one_mask_byte_size
 
         The function processes each matcher's draft tokens sequentially, advancing the matcher state
