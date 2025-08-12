@@ -213,6 +213,18 @@ fn integer_multipleof_zero(#[values(0, 3, 12, 1818)] test_value: i64) {
 }
 */
 
+#[rstest]
+fn integer_both_minima(#[values(2, 3, 4)] test_value: i64) {
+    let schema = &json!({"type":"integer", "minimum": 2, "exclusiveMinimum": 1});
+    json_schema_check(schema, &json!(test_value), true);
+}
+
+#[rstest]
+fn integer_both_maxima(#[values(-1,0,1)] test_value: i64) {
+    let schema = &json!({"type":"integer", "maximum": 4, "exclusiveMaximum": 2});
+    json_schema_check(schema, &json!(test_value), true);
+}
+
 // ============================================================================
 
 #[rstest]
