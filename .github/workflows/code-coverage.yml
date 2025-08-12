@@ -75,16 +75,17 @@ jobs:
       with:
         python-version: "3.11"
 
+    - name: Check environment
+      run: |
+        echo "CARGO_TERM_COLOR: $CARGO_TERM_COLOR"
+        echo "RUSTFLAGS: $RUSTFLAGS"
+        echo "LLVM_PROFILE_FILE: $LLVM_PROFILE_FILE"
+
     - name: Update toolchain
       run: rustup component add llvm-tools
 
     - name: Install grcov
       run: cargo install grcov
-
-    - name: Install local llguidance
-      run: |
-        pip uninstall -y llguidance || :
-        pip install -v -e .
 
     - name: Clone guidance
       run: |
@@ -95,14 +96,13 @@ jobs:
         cd guidance
         pip install .[all,test]
 
+    - name: Install local llguidance
+      run: |
+        pip uninstall -y llguidance || :
+        pip install -v -e .
+
     - name: Verify llguidance being used
       run: pip show llguidance
-
-    - name: Check environment
-      run: |
-        echo "CARGO_TERM_COLOR: $CARGO_TERM_COLOR"
-        echo "RUSTFLAGS: $RUSTFLAGS"
-        echo "LLVM_PROFILE_FILE: $LLVM_PROFILE_FILE"
 
     - name: Run tests
       run: |
