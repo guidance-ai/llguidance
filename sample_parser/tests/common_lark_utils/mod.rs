@@ -13,6 +13,12 @@ use llguidance::{
 use sample_parser::*;
 use serde_json::Value;
 
+#[derive(Debug)]
+pub enum NumericBounds {
+    Inclusive,
+    Exclusive,
+}
+
 pub fn make_parser(lark: &str, quiet: bool) -> Result<TokenParser> {
     let grm = TopLevelGrammar::from_lark(lark.to_string());
     let mut parser = get_parser_factory().create_parser_from_init(
