@@ -109,6 +109,21 @@ fn allof_simple_minimum(
 }
 
 #[rstest]
+#[case(3, false)]
+#[case(5, false)]
+#[case(9, false)]
+#[case(15, true)]
+#[case(20, false)]
+#[case(45, true)]
+fn allof_multipleof(#[case] value: i32, #[case] expected_pass: bool) {
+    let schema = json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "allOf": [{"multipleOf": 3}, {"multipleOf": 5}],
+    });
+    json_schema_check(&schema, &json!(value), expected_pass);
+}
+
+#[rstest]
 #[case("a", true)]
 #[case("b", true)]
 // Issue 224 #[case("bb", false)]
