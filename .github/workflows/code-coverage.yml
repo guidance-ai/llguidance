@@ -114,7 +114,7 @@ jobs:
 
     - name: Generate coverage report
       run: |
-        grcov . -s . --binary-path target/debug/ -t html --branch --ignore-not-existing -o target/debug/coverage/
+        grcov . -s . --binary-path . -t html --branch --ignore-not-existing -o target/debug/coverage/
 
     - name: Check output
       run: ls target/debug/coverage/
