@@ -109,6 +109,9 @@ jobs:
         cd guidance
         python -m pytest tests/unit
 
+    - name: See all outputs
+      run: ls -R
+
     - name: Generate coverage report
       run: |
         grcov . -s . --binary-path target/debug/ -t html --branch --ignore-not-existing -o target/debug/coverage/
