@@ -13,6 +13,7 @@ use llguidance::{
 use sample_parser::*;
 use serde_json::Value;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum NumericBounds {
     Inclusive,
