@@ -5,7 +5,7 @@ use rstest::*;
 use serde_json::{json, Value};
 
 mod common_lark_utils;
-use common_lark_utils::{json_err_test, json_schema_check};
+use common_lark_utils::{json_err_test, json_schema_check, NumericBounds};
 
 lazy_static! {
     static ref SIMPLE_ANYOF: Value = json!({"anyOf": [
@@ -84,13 +84,26 @@ fn allof_with_base(#[case] sample: &Value, #[case] expected_pass: bool) {
 #[case(-35, false)]
 #[case(0, false)]
 #[case(29, false)]
-#[case(30, true)]
 #[case(35, true)]
 #[case(381925, true)]
-fn allof_simple_minimum(#[case] value: i32, #[case] expected_pass: bool) {
+fn allof_simple_minimum(
+    #[values(NumericBounds::Inclusive, NumericBounds::Exclusive)] bound_type_1: NumericBounds,
+    #[values(NumericBounds::Inclusive, NumericBounds::Exclusive)] bound_type_2: NumericBounds,
+    #[case] value: i32,
+    #[case] expected_pass: bool,
+) {
+    let b1_str = match bound_type_1 {
+        NumericBounds::Inclusive => "minimum",
+        NumericBounds::Exclusive => "exclusiveMinimum",
+    };
+    let b2_str = match bound_type_2 {
+        NumericBounds::Inclusive => "minimum",
+        NumericBounds::Exclusive => "exclusiveMinimum",
+    };
+
     let schema = json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "allOf": [{"minimum": 30}, {"minimum": 20}],
+        "allOf": [{b1_str: 30}, {b2_str: 20}],
     });
     json_schema_check(&schema, &json!(value), expected_pass);
 }
