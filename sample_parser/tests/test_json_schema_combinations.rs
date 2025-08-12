@@ -109,6 +109,21 @@ fn allof_simple_minimum(
 }
 
 #[rstest]
+fn allof_additionalproperties(#[values(false, true)] additional_properties: bool) {
+    let schema = json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "properties": {"bar": {"type": "integer"}},
+            "additionalProperties": additional_properties,
+    });
+
+    let minimal_obj = json!({"bar": 2});
+    json_schema_check(&schema, &minimal_obj, true);
+
+    let extra_obj = json!({"bar": 2, "foo": "quux"});
+    json_schema_check(&schema, &extra_obj, additional_properties == true);
+}
+
+#[rstest]
 #[case(3, false)]
 #[case(5, false)]
 #[case(9, false)]
