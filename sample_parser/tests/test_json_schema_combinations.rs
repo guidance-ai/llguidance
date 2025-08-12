@@ -294,8 +294,8 @@ fn oneof_anyof_2(#[case] value: &Value, #[case] expected_pass: bool) {
 #[rstest]
 #[case(&json!({"a": "hello"}), true)]
 #[case(&json!({"a": "hello", "b": 42}), true)]
-#[case(&json!({"a": "hello", "c": 2.718}), true)]
-#[case(&json!({"a": "hello", "b": 42, "c": 3.14}), false)]
+#[case(&json!({"a": "hello", "c": 817.2}), true)]
+#[case(&json!({"a": "hello", "b": 42, "c": 41.3}), false)]
 fn anyof_object_schema(#[case] value: &Value, #[case] expected_pass: bool) {
     let schema = &json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
