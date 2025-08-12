@@ -97,3 +97,27 @@ jobs:
 
     - nme: Verify llguidance being used
       run: pip show llguidance
+
+    - name: Check environment
+      run: |
+        echo "CARGO_TERM_COLOR: $CARGO_TERM_COLOR"
+        echo "RUSTFLAGS: $RUSTFLAGS"
+        echo "LLVM_PROFILE_FILE: $LLVM_PROFILE_FILE"
+
+    - name: Run tests
+      run: |
+        cd guidance
+        python -m pytest tests/unit
+
+    - name: Generate coverage report
+      run: |
+        grcov . -s . --binary-path target/debug/ -t html --branch --ignore-not-existing -o target/debug/coverage/
+
+    - name: Check output
+      run: ls target/debug/coverage/
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-python
+        path: target/debug/coverage/
+
