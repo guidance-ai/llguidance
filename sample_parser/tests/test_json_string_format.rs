@@ -8,17 +8,17 @@ mod common_lark_utils;
 use common_lark_utils::json_schema_check;
 
 #[rstest]
-#[case(&json!("1963-06-19T08:30:06.283185Z"))]
-pub fn valid_date_time(#[case] value: &Value) {
+#[case("1963-06-19T08:30:06.283185Z")]
+pub fn valid_date_time(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"date-time"});
-    json_schema_check(&schema, &value, true);
+    json_schema_check(&schema, &json!(s), true);
 }
 
 #[rstest]
-#[case(&json!("1963-06-38T08:30:06.283185Z"))]
-pub fn bad_date_time(#[case] value: &Value) {
+#[case("1963-06-38T08:30:06.283185Z")]
+pub fn bad_date_time(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"date-time"});
-    json_schema_check(&schema, &value, false);
+    json_schema_check(&schema, &json!(s), false);
 }
 
 #[rstest]
