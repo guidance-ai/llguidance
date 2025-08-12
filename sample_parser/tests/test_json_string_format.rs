@@ -69,3 +69,10 @@ pub fn valid_uuid(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"uuid"});
     json_schema_check(&schema, &json!(s), true);
 }
+
+#[rstest]
+#[case("Some string")]
+pub fn valid_unknown(#[case] s: &str) {
+    let schema = json!({"type":"string", "format":"unknown"});
+    json_schema_check(&schema, &json!(s), true);
+}
