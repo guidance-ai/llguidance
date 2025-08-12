@@ -243,6 +243,72 @@ fn anyof_one_unsatisfiable(#[case] value: &Value, #[case] expected_pass: bool) {
 }
 
 #[rstest]
+#[case(&json!("a"), true)]
+#[case(&json!("b"), true)]
+#[case(&json!(1), true)]
+#[case(&json!(2.0), false)]
+fn oneof_smoke(#[case] value: &Value, #[case] expected_pass: bool) {
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+            {"type": "string"},
+            {"type": "integer"}
+        ]
+    });
+    json_schema_check(&schema, value, expected_pass);
+}
+
+#[rstest]
+#[case(&json!("a"), true)]
+#[case(&json!("b"), true)]
+#[case(&json!(1), false)]
+#[case(&json!(3), true)]
+fn oneof_anyof_1(#[case] value: &Value, #[case] expected_pass: bool) {
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+            {"type": "string"},
+            {"anyOf": [{"enum": [3, 6, 15, 30]}]}
+        ]
+    });
+    json_schema_check(&schema, value, expected_pass);
+}
+
+#[rstest]
+#[case(&json!("a"), true)]
+#[case(&json!("b"), true)]
+#[case(&json!(1), false)]
+#[case(&json!(3), true)]
+fn oneof_anyof_2(#[case] value: &Value, #[case] expected_pass: bool) {
+    // Reverses the order of the schema
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+            {"anyOf": [{"enum": [3, 6, 15, 30]}]},
+            {"type": "string"},
+        ]
+    });
+    json_schema_check(&schema, value, expected_pass);
+}
+
+#[rstest]
+#[case(&json!({"a": "hello"}), true)]
+#[case(&json!({"a": "hello", "b": 42}), true)]
+#[case(&json!({"a": "hello", "c": 2.718}), true)]
+#[case(&json!({"a": "hello", "b": 42, "c": 3.14}), false)]
+fn anyof_object_schema(#[case] value: &Value, #[case] expected_pass: bool) {
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+            {"type": "object", "properties": {"a": {"type": "string"}, "b": {"type":"integer"}}, "required": ["a"], "additionalProperties": false},
+            {"type": "object", "properties": {"a": {"type": "string"}, "c": {"type":"number"}}, "required": ["a"], "additionalProperties": false}
+        ],
+    });
+
+    json_schema_check(schema, value, expected_pass);
+}
+
+#[rstest]
 fn allof_anyof_oneof_combined() {
     let schema = &json!({
             "$schema": "https://json-schema.org/draft/2020-12/schema",
