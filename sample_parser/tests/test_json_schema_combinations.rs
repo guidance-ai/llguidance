@@ -120,6 +120,7 @@ fn allof_additionalproperties(#[values(false, true)] additional_properties: bool
     json_schema_check(&schema, &minimal_obj, true);
 
     let extra_obj = json!({"bar": 2, "foo": "quux"});
+    #[allow(clippy::bool_comparison)]
     json_schema_check(&schema, &extra_obj, additional_properties == true);
 }
 
@@ -199,7 +200,7 @@ fn anyof_allof_nested(#[case] value: &Value, #[case] expected_pass: bool) {
             ]}
         ]
     });
-    json_schema_check(&schema, value, expected_pass);
+    json_schema_check(schema, value, expected_pass);
 }
 
 #[rstest]
@@ -221,7 +222,7 @@ fn allof_anyof_nested(#[case] value: &Value, #[case] expected_pass: bool) {
             ]}
         ]
     });
-    json_schema_check(&schema, value, expected_pass);
+    json_schema_check(schema, value, expected_pass);
 }
 
 #[rstest]
@@ -239,7 +240,7 @@ fn anyof_one_unsatisfiable(#[case] value: &Value, #[case] expected_pass: bool) {
             {"type": "string"}
         ]
     });
-    json_schema_check(&schema, value, expected_pass);
+    json_schema_check(schema, value, expected_pass);
 }
 
 #[rstest]
@@ -255,7 +256,7 @@ fn oneof_smoke(#[case] value: &Value, #[case] expected_pass: bool) {
             {"type": "integer"}
         ]
     });
-    json_schema_check(&schema, value, expected_pass);
+    json_schema_check(schema, value, expected_pass);
 }
 
 #[rstest]
@@ -271,7 +272,7 @@ fn oneof_anyof_1(#[case] value: &Value, #[case] expected_pass: bool) {
             {"anyOf": [{"enum": [3, 6, 15, 30]}]}
         ]
     });
-    json_schema_check(&schema, value, expected_pass);
+    json_schema_check(schema, value, expected_pass);
 }
 
 #[rstest]
@@ -288,7 +289,7 @@ fn oneof_anyof_2(#[case] value: &Value, #[case] expected_pass: bool) {
             {"type": "string"},
         ]
     });
-    json_schema_check(&schema, value, expected_pass);
+    json_schema_check(schema, value, expected_pass);
 }
 
 #[rstest]
