@@ -166,6 +166,68 @@ fn allof_unsatisfiable() {
 }
 
 #[rstest]
+#[case(&json!("a"), false)]
+#[case(&json!("ab"), true)]
+#[case(&json!(1), false)]
+#[case(&json!(2), true)]
+fn anyof_allof_nested(#[case] value: &Value, #[case] expected_pass: bool) {
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+            {"allOf": [
+                {"type": "string"},
+                {"minLength": 2}
+            ]},
+           {"allOf": [
+                {"type": "integer"},
+                {"minimum": 2}
+            ]}
+        ]
+    });
+    json_schema_check(&schema, value, expected_pass);
+}
+
+#[rstest]
+#[case(&json!("a"), false)]
+#[case(&json!("ab"), true)]
+#[case(&json!(1), false)]
+#[case(&json!(2), true)]
+fn allof_anyof_nested(#[case] value: &Value, #[case] expected_pass: bool) {
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "allOf": [
+            {"anyOf": [
+                {"type": "string"},
+                {"minimum": 2}
+            ]},
+           {"anyOf": [
+                {"type": "integer"},
+                {"minLength": 2}
+            ]}
+        ]
+    });
+    json_schema_check(&schema, value, expected_pass);
+}
+
+#[rstest]
+#[case(&json!("a"), true)]
+#[case(&json!("b"), true)]
+#[case(&json!(1), false)]
+fn anyof_one_unsatisfiable(#[case] value: &Value, #[case] expected_pass: bool) {
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+            {"allOf": [
+                {"type": "integer", "minimum": 10},
+                {"type": "integer", "maximum": 5}
+            ]},
+            {"type": "string"}
+        ]
+    });
+    json_schema_check(&schema, value, expected_pass);
+}
+
+#[rstest]
 fn allof_anyof_oneof_combined() {
     let schema = &json!({
             "$schema": "https://json-schema.org/draft/2020-12/schema",
