@@ -301,8 +301,54 @@ fn anyof_object_schema(#[case] value: &Value, #[case] expected_pass: bool) {
     let schema = &json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "anyOf": [
-            {"type": "object", "properties": {"a": {"type": "string"}, "b": {"type":"integer"}}, "required": ["a"], "additionalProperties": false},
-            {"type": "object", "properties": {"a": {"type": "string"}, "c": {"type":"number"}}, "required": ["a"], "additionalProperties": false}
+            {
+                "type": "object",
+                 "properties": {"a": {"type": "string"}, "b": {"type":"integer"}},
+                  "required": ["a"],
+                   "additionalProperties": false
+            },
+            {
+                "type": "object",
+                 "properties": {"a": {"type": "string"}, "c": {"type":"number"}},
+                  "required": ["a"],
+                   "additionalProperties": false
+            }
+        ],
+    });
+
+    json_schema_check(schema, value, expected_pass);
+}
+
+#[rstest]
+#[case(&json!({"a": "hello"}), true)]
+#[case(&json!({"a": "hello", "b": 42}), true)]
+#[case(&json!({"a": "hello", "b": 42, "another":{}}), true)]
+#[case(&json!({"a": "hello", "c": 817.2}), true)]
+#[case(&json!({"a": "hello", "b": 42, "c": 41.3}), false)]
+#[case(&json!({"a": "hello", "b": 42, "c": 41.3, "another": []}), false)]
+fn anyof_object_schema_with_additional_properties(
+    #[case] value: &Value,
+    #[case] expected_pass: bool,
+) {
+    let schema = &json!({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+            {
+                "type": "object",
+                 "properties":
+                  {"a": {"type": "string"},
+                   "b": {"type":"integer"}},
+                    "required": ["a"],
+                    "additionalProperties": {"type": "object"}
+                },
+            {
+                "type": "object",
+                "properties": {
+                    "a": {"type": "string"},
+                     "c": {"type":"number"}},
+                      "required": ["a"],
+                       "additionalProperties": {"type": "array"}
+                    }
         ],
     });
 
