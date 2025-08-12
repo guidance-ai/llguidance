@@ -22,7 +22,7 @@ env:
 
 
 jobs:
-  code-cov:
+  code-cov-rust:
     runs-on: ubuntu-latest
 
     steps:
@@ -58,5 +58,40 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
-        name: coverage-report
+        name: coverage-report-rust
         path: target/debug/coverage/
+
+  code-cov-python:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo at ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Update toolchain
+      run: rustup component add llvm-tools
+
+    - name: Install grcov
+      run: cargo install grcov
+
+    - name: Install python test dependencies
+      run: ./scripts/install-deps.sh
+
+    - name: Install local llguidance
+      run: |
+        pip uninstall -y llguidance || :
+        pip install -v -e .
+
+    - name: Clone guidance
+      run: |
+        git clone -b main https://github.com/guidance-ai/guidance
+        cd guidance
+        # Remove Python package to avoid conflicts
+        rm -rf guidance/
