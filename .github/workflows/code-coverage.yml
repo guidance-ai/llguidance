@@ -95,7 +95,7 @@ jobs:
         cd guidance
         pip install .[all,test]
 
-    - nme: Verify llguidance being used
+    - name: Verify llguidance being used
       run: pip show llguidance
 
     - name: Check environment
