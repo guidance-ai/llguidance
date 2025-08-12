@@ -81,9 +81,6 @@ jobs:
     - name: Install grcov
       run: cargo install grcov
 
-    - name: Install python test dependencies
-      run: ./scripts/install-deps.sh
-
     - name: Install local llguidance
       run: |
         pip uninstall -y llguidance || :
@@ -92,6 +89,11 @@ jobs:
     - name: Clone guidance
       run: |
         git clone -b main https://github.com/guidance-ai/guidance
+
+    - name: Install guidance
+      run: |
         cd guidance
-        # Remove Python package to avoid conflicts
-        rm -rf guidance/
+        pip install .[all,test]
+
+    - nme: Verify llguidance being used
+      run: pip show llguidance
