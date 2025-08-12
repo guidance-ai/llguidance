@@ -2,7 +2,7 @@
 // Only smoke testing for now; more comprehensive tests are in Python
 
 use rstest::*;
-use serde_json::{json, Value};
+use serde_json::json;
 
 mod common_lark_utils;
 use common_lark_utils::json_schema_check;
