@@ -2,10 +2,10 @@
 
 <div class="authors">
 
-* [Michał Moskal](https://moskal.me/)
-* [Harsha Nori](https://www.microsoft.com/en-us/research/people/hanori/)
-* [Hudson Cooper](https://github.com/hudson-ai)
-* [Loc Huynh](https://github.com/JC1DA)
+- [Michał Moskal](https://moskal.me/)
+- [Harsha Nori](https://www.microsoft.com/en-us/research/people/hanori/)
+- [Hudson Cooper](https://github.com/hudson-ai)
+- [Loc Huynh](https://github.com/JC1DA)
 
 Microsoft
 
@@ -645,28 +645,43 @@ L1/L2 specs).
 
 ### Lexer construction
 
-The lexer is based on the `derivre` library, which uses regular expression
-derivatives. For a gentle introduction see
+The lexer is based on the `derivre` library, which uses
+[Brzozowski derivatives](https://en.wikipedia.org/wiki/Brzozowski_derivative) of
+regular expressions. For a gentle introduction see
 [Regular-expression derivatives reexamined](https://www.khoury.northeastern.edu/home/turon/re-deriv.pdf).
-The derivative `d(c, L)` of a language (set of strings) `L` with respect to a
+The derivative `δ(c, L)` of a language (set of strings) `L` with respect to a
 character `c`, is the set of words that start with `c` in `L`, with `c` removed,
 ie. `{ s | cs ∈ L }`. Derivatives of regular expressions are also regular
 expressions, that tell us what to match after consuming a character `c`. For
 example:
 
 ```
-d(a, [ab][cd]) = [cd]
-d(a, [ab]+)    = [ab]*
-d(a, [ab])     = ε      # matches empty string only
-d(c, [ab]c)    = ∅      # doesn't match any string
+δ(a, [ab][cd]) = [cd]
+δ(a, [ab]+)    = [ab]*
+δ(a, [ab])     = ε      # matches empty string only
+δ(c, [ab]c)    = ∅      # doesn't match any string
 ```
 
-Derivatives can be defined recursively for regular expressions, for example
-`d(a, R|Q) = d(a, R) | d(a, Q)`. This also works for intersection and negation
-(`d(a, R & Q) = d(a, R) & d(a, Q)`, `d(a, ~R) = ~d(a, R)`), extending the
-expressive power compared to standard regular expressions. A regular expression
-is _nullable_ if it can match an empty string (for example, `ε` and `[ab]*` are
-nullable, while `[ab]+` and `∅` are not).
+Derivatives can be defined recursively for regular expressions, for example:
+
+```
+δ(a, a)   = ε
+δ(a, b)   = ∅
+δ(a, RQ)  = δ(a, R)Q | δ(a, Q) if R nullable
+δ(a, RQ)  = δ(a, R)Q           otherwise
+δ(a, R*)  = δ(a, R)R*
+δ(a, R|Q) = δ(a, R) | δ(a, Q)
+δ(a, R&Q) = δ(a, R) & δ(a, Q)
+δ(a, ~R)  = ~δ(a, R)
+```
+
+This also works for intersection and negation, extending the expressive power
+compared to standard regular expressions. A regular expression is _nullable_ if
+it can match an empty string (for example, `ε` and `[ab]*` are nullable, while
+`[ab]+` and `∅` are not).
+
+To see if a string `abc` matches regex `R`, compute `δ(c, δ(b, δ(a, R)))` and
+see if the result is nullable.
 
 The regular expressions correspond to states of a
 [deterministic finite automaton](https://en.wikipedia.org/wiki/Deterministic_finite_automaton)
@@ -688,7 +703,7 @@ of them separately, so the lexer can say which lexeme was recognized.
 
 For a given lexer state `{ (l0, R0), (l1, R1), ..., (ln, Rn) }` (where `li` is
 lexeme index and `Ri` is regular expression), the state after transition via
-byte `c` is defined as `{ (li, d(c, Ri)) | 0 ≤ i ≤ n when d(c, Ri) ≠ ∅ }`. For
+byte `c` is defined as `{ (li, δ(c, Ri)) | 0 ≤ i ≤ n when δ(c, Ri) ≠ ∅ }`. For
 every lexer state, we can see which lexemes are still possible in that state.
 Each lexer state is assigned a number (hash-consed), and the the transitions are
 stored in a simple table (no hashing). Walking the trie mostly involves
@@ -826,8 +841,7 @@ This is tailored towards JSON schemas:
 
 To check if `R` is contained in `S`, we check if `R & ~S` is empty. This is done
 via
-[symbolic derivatives](https://www.microsoft.com/en-us/research/wp-content/uploads/2025/01/popl25-p11-final.pdf)
-(TODO: cite "Regex Decision Procedures in Extended RE#" instead when available).
+[symbolic derivatives](https://www.microsoft.com/en-us/research/wp-content/uploads/2025/07/cav25final.pdf).
 
 One may ask, why not use the emptiness check for `R{m0,n0} & ~S{m1,n1}`? First,
 we actually need to check `R{m0,n0} & ~Prefixes(S{m1,n1})` which is somewhat
