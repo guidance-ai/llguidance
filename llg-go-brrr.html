@@ -517,7 +517,7 @@ parents of this node we need to pop to get the node that comes after all of
             mask[c.token_id] = <span class="hljs-literal">True</span>
             <span class="hljs-comment"># if the node is a leaf, we pop the parents</span>
             parser.pop_bytes(<span class="hljs-number">0</span> <span class="hljs-keyword">if</span> c.subtree_size &gt; <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> c.num_parents)
-            p += <span class="hljs-number">1</span> <span class="hljs-comment"># move to first child, or sibling if no children</span>
+            p += <span class="hljs-number">1</span> <span class="hljs-comment"># move to next node in DFS order</span>
         <span class="hljs-keyword">else</span>:
             p += c.subtree_size <span class="hljs-comment"># skip the children, and go to the sibling node</span>
             <span class="hljs-comment"># regardless if the node is a leaf, we need to pop all the parents</span>
@@ -561,8 +561,8 @@ cycles L3 latency (up to 32MB per core, but shared). It also has 6-wide uop
 dispatch. Sources:
 <a href="https://web.archive.org/web/20241205030822/https://www.anandtech.com/show/16529/amd-epyc-milan-review/4">EPYC Milan</a>,
 <a href="https://web.archive.org/web/20250405144707/https://www.anandtech.com/show/16214/amd-zen-3-ryzen-deep-dive-review-5950x-5900x-5800x-and-5700x-tested/4">Zen3</a>,
-<a href="https://web.archive.org/web/20250114171352/https://www.anandtech.com/show/14694/amd-rome-epyc-2nd-gen/7">Zen2</a> (shares
-L1/L2 specs).</p>
+<a href="https://web.archive.org/web/20250114171352/https://www.anandtech.com/show/14694/amd-rome-epyc-2nd-gen/7">Zen2</a>
+(shares L1/L2 specs).</p>
 <h3>Lexer construction</h3>
 <p>The lexer is based on the <code>derivre</code> library, which uses
 <a href="https://en.wikipedia.org/wiki/Brzozowski_derivative">Brzozowski derivatives</a> of
@@ -584,22 +584,25 @@ example:</p>
 δ(a, R*)  = δ(a, R)R*
 δ(a, R|Q) = δ(a, R) | δ(a, Q)
 δ(a, R&amp;Q) = δ(a, R) &amp; δ(a, Q)
-δ(a, ~R)  = ~δ(a, R)</code></pre><p>This also works for intersection and negation, extending the expressive power
-compared to standard regular expressions. A regular expression is <em>nullable</em> if
-it can match an empty string (for example, <code>ε</code> and <code>[ab]*</code> are nullable, while
-<code>[ab]+</code> and <code>∅</code> are not).</p>
+δ(a, ~R)  = ~δ(a, R)</code></pre><p>As seen above, this also works for intersection and negation, extending the
+expressive power compared to standard regular expressions.</p>
+<p>A regular expression is <em>nullable</em> if it can match an empty string (for example,
+<code>ε</code> and <code>[ab]*</code> are nullable, while <code>[ab]+</code> and <code>∅</code> are not).</p>
 <p>To see if a string <code>abc</code> matches regex <code>R</code>, compute <code>δ(c, δ(b, δ(a, R)))</code> and
-see if the result is nullable.</p>
-<p>The regular expressions correspond to states of a
+see if the result is nullable. If you cache the results of <code>δ(c, R)</code> for each
+character <code>c</code> and regex <code>R</code>, it will lazily build a
 <a href="https://en.wikipedia.org/wiki/Deterministic_finite_automaton">deterministic finite automaton</a>
-(DFA), while the derivatives correspond to transitions. State is accepting if
-the regular expression is nullable. The <code>derivre</code> library constructs such a DFA
-lazily, by caching derivatives. The regular expressions can be simplified using
-algebraic laws (like <code>R|∅ = R</code>, <code>R&amp;∅ = ∅</code>, etc.), reducing the number of states
-in the DFA. While the DFA is not necessarily minimal, it is typically much
-smaller than the un-minimized DFA resulting from standard determinization of a
+(DFA). The regex expressions correspond to states of the DFA, and there is a
+transition from <code>R</code> to <code>Q</code> via character <code>c</code> iff <code>δ(c, R) = Q</code>. Finally, mark
+the states corresponding to nullable regexes as accepting.</p>
+<p>The regular expressions can be simplified using algebraic laws (like <code>R|∅ = R</code>,
+<code>R&amp;∅ = ∅</code>, etc.), reducing the number of states in the DFA. While the DFA is not
+necessarily minimal, it is typically much smaller than the un-minimized DFA
+resulting from standard determinization of a
 <a href="https://en.wikipedia.org/wiki/Nondeterministic_finite_automata">nondeterminstic finate automaton</a>
 (NFA).</p>
+<p>The <a href="https://github.com/guidance-ai/derivre">derivre</a> library constructs such a
+DFA lazily, by caching derivatives.</p>
 <p>The lexer puts regular expressions for all lexemes in a
 <a href="https://en.wikipedia.org/wiki/Hash_consing">hash-consed</a> expression set, with a
 single derivative cache (also hash-based). The states of the lexer are sets of

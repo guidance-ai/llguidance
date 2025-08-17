@@ -589,7 +589,7 @@ def traverse():
             mask[c.token_id] = True
             # if the node is a leaf, we pop the parents
             parser.pop_bytes(0 if c.subtree_size > 1 else c.num_parents)
-            p += 1 # move to first child, or sibling if no children
+            p += 1 # move to next node in DFS order
         else:
             p += c.subtree_size # skip the children, and go to the sibling node
             # regardless if the node is a leaf, we need to pop all the parents
@@ -640,8 +640,8 @@ cycles L3 latency (up to 32MB per core, but shared). It also has 6-wide uop
 dispatch. Sources:
 [EPYC Milan](https://web.archive.org/web/20241205030822/https://www.anandtech.com/show/16529/amd-epyc-milan-review/4),
 [Zen3](https://web.archive.org/web/20250405144707/https://www.anandtech.com/show/16214/amd-zen-3-ryzen-deep-dive-review-5950x-5900x-5800x-and-5700x-tested/4),
-[Zen2](https://web.archive.org/web/20250114171352/https://www.anandtech.com/show/14694/amd-rome-epyc-2nd-gen/7) (shares
-L1/L2 specs).
+[Zen2](https://web.archive.org/web/20250114171352/https://www.anandtech.com/show/14694/amd-rome-epyc-2nd-gen/7)
+(shares L1/L2 specs).
 
 ### Lexer construction
 
@@ -675,24 +675,29 @@ Derivatives can be defined recursively for regular expressions, for example:
 δ(a, ~R)  = ~δ(a, R)
 ```
 
-This also works for intersection and negation, extending the expressive power
-compared to standard regular expressions. A regular expression is _nullable_ if
-it can match an empty string (for example, `ε` and `[ab]*` are nullable, while
-`[ab]+` and `∅` are not).
+As seen above, this also works for intersection and negation, extending the
+expressive power compared to standard regular expressions.
+
+A regular expression is _nullable_ if it can match an empty string (for example,
+`ε` and `[ab]*` are nullable, while `[ab]+` and `∅` are not).
 
 To see if a string `abc` matches regex `R`, compute `δ(c, δ(b, δ(a, R)))` and
-see if the result is nullable.
-
-The regular expressions correspond to states of a
+see if the result is nullable. If you cache the results of `δ(c, R)` for each
+character `c` and regex `R`, it will lazily build a
 [deterministic finite automaton](https://en.wikipedia.org/wiki/Deterministic_finite_automaton)
-(DFA), while the derivatives correspond to transitions. State is accepting if
-the regular expression is nullable. The `derivre` library constructs such a DFA
-lazily, by caching derivatives. The regular expressions can be simplified using
-algebraic laws (like `R|∅ = R`, `R&∅ = ∅`, etc.), reducing the number of states
-in the DFA. While the DFA is not necessarily minimal, it is typically much
-smaller than the un-minimized DFA resulting from standard determinization of a
+(DFA). The regex expressions correspond to states of the DFA, and there is a
+transition from `R` to `Q` via character `c` iff `δ(c, R) = Q`. Finally, mark
+the states corresponding to nullable regexes as accepting.
+
+The regular expressions can be simplified using algebraic laws (like `R|∅ = R`,
+`R&∅ = ∅`, etc.), reducing the number of states in the DFA. While the DFA is not
+necessarily minimal, it is typically much smaller than the un-minimized DFA
+resulting from standard determinization of a
 [nondeterminstic finate automaton](https://en.wikipedia.org/wiki/Nondeterministic_finite_automata)
 (NFA).
+
+The [derivre](https://github.com/guidance-ai/derivre) library constructs such a
+DFA lazily, by caching derivatives.
 
 The lexer puts regular expressions for all lexemes in a
 [hash-consed](https://en.wikipedia.org/wiki/Hash_consing) expression set, with a
