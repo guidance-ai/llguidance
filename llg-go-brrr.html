@@ -374,7 +374,7 @@ a CFG+regex grammar is almost as fast as walking it with regex grammar alone,
 while being much more powerful.</p>
 <p>To implement CFG+regex parsing, LLGuidance uses:</p>
 <ul>
-<li><a href="https://github.com/microsoft/derivre">derivre</a>, a custom derivative-based
+<li><a href="https://github.com/guidance-ai/derivre">derivre</a>, a custom derivative-based
 (symbolic) regular expression engine, which can construct automaton lazily,
 with very low startup cost, and</li>
 <li>a highly optimized
@@ -559,15 +559,15 @@ parallel).</p>
 <p>The 7V13 has 4 cycles L1 latency (32KB), 13 cycles L2 latency (512KB), and 46
 cycles L3 latency (up to 32MB per core, but shared). It also has 6-wide uop
 dispatch. Sources:
-<a href="https://www.anandtech.com/show/16529/amd-epyc-milan-review/4">EPYC Milan</a>,
-<a href="https://www.anandtech.com/show/16214/amd-zen-3-ryzen-deep-dive-review-5950x-5900x-5800x-and-5700x-tested/4">Zen3</a>,
-<a href="https://www.anandtech.com/show/14694/amd-rome-epyc-2nd-gen/7">Zen2</a> (shares
+<a href="https://web.archive.org/web/20241205030822/https://www.anandtech.com/show/16529/amd-epyc-milan-review/4">EPYC Milan</a>,
+<a href="https://web.archive.org/web/20250405144707/https://www.anandtech.com/show/16214/amd-zen-3-ryzen-deep-dive-review-5950x-5900x-5800x-and-5700x-tested/4">Zen3</a>,
+<a href="https://web.archive.org/web/20250114171352/https://www.anandtech.com/show/14694/amd-rome-epyc-2nd-gen/7">Zen2</a> (shares
 L1/L2 specs).</p>
 <h3>Lexer construction</h3>
 <p>The lexer is based on the <code>derivre</code> library, which uses
 <a href="https://en.wikipedia.org/wiki/Brzozowski_derivative">Brzozowski derivatives</a> of
 regular expressions. For a gentle introduction see
-<a href="https://www.khoury.northeastern.edu/home/turon/re-deriv.pdf">Regular-expression derivatives reexamined</a>.
+<a href="https://www.khoury.northeastern.edu/home/turon/re-deriv.pdf">Owens: Regular-expression derivatives reexamined</a>.
 The derivative <code>δ(c, L)</code> of a language (set of strings) <code>L</code> with respect to a
 character <code>c</code>, is the set of words that start with <code>c</code> in <code>L</code>, with <code>c</code> removed,
 ie. <code>{ s | cs ∈ L }</code>. Derivatives of regular expressions are also regular
@@ -626,8 +626,10 @@ has matched the <code>if</code> keyword, followed by an expression, and is now e
 might not know if we&#39;re done parsing <code>expr</code> in the previous example and so also
 have an item <code>expr -&gt; expr • &quot;+&quot; expr</code>, signifying that the grammar now expects
 either a <code>+</code> or a <code>then</code>.</p>
-<p>See <a href="https://loup-vaillant.fr/tutorials/earley-parsing/">this article</a> or
-<a href="https://user.phil-fak.uni-duesseldorf.de/~kallmeyer/Parsing/earley.pdf">these slides</a>
+<p>See
+<a href="https://loup-vaillant.fr/tutorials/earley-parsing/">Loup&#39;s Earley Parsing Explained</a>
+or
+<a href="https://user.phil-fak.uni-duesseldorf.de/~kallmeyer/Parsing/earley.pdf">Laura Kallmeyer Earley Parsing slides</a>
 for more info.</p>
 <p>The Earley parser in LLGuidance is a highly optimized:</p>
 <ul>
@@ -726,8 +728,8 @@ processing <code>additionalProperties</code> and need to exclude properties that
 explicit definitions</li>
 </ul>
 <p>To check if <code>R</code> is contained in <code>S</code>, we check if <code>R &amp; ~S</code> is empty. This is done
-via
-<a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2025/07/cav25final.pdf">symbolic derivatives</a>.</p>
+via symbolic derivatives, similar to
+<a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2025/07/cav25final.pdf">Regex Decision Procedures in Extended RE#</a>.</p>
 <p>One may ask, why not use the emptiness check for <code>R{m0,n0} &amp; ~S{m1,n1}</code>? First,
 we actually need to check <code>R{m0,n0} &amp; ~Prefixes(S{m1,n1})</code> which is somewhat
 difficult to express, and second the emptiness check grows more expensive with

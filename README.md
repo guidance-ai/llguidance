@@ -349,7 +349,7 @@ while being much more powerful.
 
 To implement CFG+regex parsing, LLGuidance uses:
 
-- [derivre](https://github.com/microsoft/derivre), a custom derivative-based
+- [derivre](https://github.com/guidance-ai/derivre), a custom derivative-based
   (symbolic) regular expression engine, which can construct automaton lazily,
   with very low startup cost, and
 - a highly optimized
@@ -638,9 +638,9 @@ parallel).
 The 7V13 has 4 cycles L1 latency (32KB), 13 cycles L2 latency (512KB), and 46
 cycles L3 latency (up to 32MB per core, but shared). It also has 6-wide uop
 dispatch. Sources:
-[EPYC Milan](https://www.anandtech.com/show/16529/amd-epyc-milan-review/4),
-[Zen3](https://www.anandtech.com/show/16214/amd-zen-3-ryzen-deep-dive-review-5950x-5900x-5800x-and-5700x-tested/4),
-[Zen2](https://www.anandtech.com/show/14694/amd-rome-epyc-2nd-gen/7) (shares
+[EPYC Milan](https://web.archive.org/web/20241205030822/https://www.anandtech.com/show/16529/amd-epyc-milan-review/4),
+[Zen3](https://web.archive.org/web/20250405144707/https://www.anandtech.com/show/16214/amd-zen-3-ryzen-deep-dive-review-5950x-5900x-5800x-and-5700x-tested/4),
+[Zen2](https://web.archive.org/web/20250114171352/https://www.anandtech.com/show/14694/amd-rome-epyc-2nd-gen/7) (shares
 L1/L2 specs).
 
 ### Lexer construction
@@ -648,7 +648,7 @@ L1/L2 specs).
 The lexer is based on the `derivre` library, which uses
 [Brzozowski derivatives](https://en.wikipedia.org/wiki/Brzozowski_derivative) of
 regular expressions. For a gentle introduction see
-[Regular-expression derivatives reexamined](https://www.khoury.northeastern.edu/home/turon/re-deriv.pdf).
+[Owens: Regular-expression derivatives reexamined](https://www.khoury.northeastern.edu/home/turon/re-deriv.pdf).
 The derivative `δ(c, L)` of a language (set of strings) `L` with respect to a
 character `c`, is the set of words that start with `c` in `L`, with `c` removed,
 ie. `{ s | cs ∈ L }`. Derivatives of regular expressions are also regular
@@ -725,8 +725,10 @@ might not know if we're done parsing `expr` in the previous example and so also
 have an item `expr -> expr • "+" expr`, signifying that the grammar now expects
 either a `+` or a `then`.
 
-See [this article](https://loup-vaillant.fr/tutorials/earley-parsing/) or
-[these slides](https://user.phil-fak.uni-duesseldorf.de/~kallmeyer/Parsing/earley.pdf)
+See
+[Loup's Earley Parsing Explained](https://loup-vaillant.fr/tutorials/earley-parsing/)
+or
+[Laura Kallmeyer Earley Parsing slides](https://user.phil-fak.uni-duesseldorf.de/~kallmeyer/Parsing/earley.pdf)
 for more info.
 
 The Earley parser in LLGuidance is a highly optimized:
@@ -840,8 +842,8 @@ This is tailored towards JSON schemas:
   explicit definitions
 
 To check if `R` is contained in `S`, we check if `R & ~S` is empty. This is done
-via
-[symbolic derivatives](https://www.microsoft.com/en-us/research/wp-content/uploads/2025/07/cav25final.pdf).
+via symbolic derivatives, similar to
+[Regex Decision Procedures in Extended RE#](https://www.microsoft.com/en-us/research/wp-content/uploads/2025/07/cav25final.pdf).
 
 One may ask, why not use the emptiness check for `R{m0,n0} & ~S{m1,n1}`? First,
 we actually need to check `R{m0,n0} & ~Prefixes(S{m1,n1})` which is somewhat
