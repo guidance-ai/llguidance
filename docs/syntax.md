@@ -318,7 +318,7 @@ MULT_NUM: %regex {
 
 Certain grammar options can be set by using `%llguidnace { ... }`,
 by passing it a JSON object with the options;
-see `LLGuidanceOptions` in [api.rs](../parser/src/api.rs#L24).
+see `LLGuidanceOptions` in [api.rs](../parser/src/api.rs#L36).
 Example: `%llguidance { "no_forcing": true }`.
 It can be specified multiple times, with the options being merged.
 

@@ -47,6 +47,11 @@ pub struct LLGuidanceOptions {
     /// This is very unlikely what you need.
     #[serde(default)]
     pub allow_invalid_utf8: bool,
+
+    /// If set, the grammar will allow the %ignore lexeme at the start of the grammar.
+    /// Otherwise, it will only be allowed after the first non-ignored lexeme.
+    #[serde(default)]
+    pub allow_initial_skip: bool,
 }
 
 impl LLGuidanceOptions {
@@ -56,6 +61,9 @@ impl LLGuidanceOptions {
         }
         if other.allow_invalid_utf8 {
             self.allow_invalid_utf8 = true;
+        }
+        if other.allow_initial_skip {
+            self.allow_initial_skip = true;
         }
     }
 }

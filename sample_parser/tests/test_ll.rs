@@ -203,6 +203,15 @@ fn test_ll_llg_options() {
         }),
         &["", "JSON‧{\"‧a‧_‧long‧_‧property‧_‧name‧\":‧ ‧5‧}"],
     );
+    check_lark_grammar(
+        r#"
+            %llguidance { "allow_initial_skip": true }
+            start: "a"*
+            IGNORED: "b"
+            %ignore IGNORED
+        "#,
+        &["", "bb‧a‧bb‧b‧aa‧a‧≺EOS≻"],
+    );
 }
 
 #[test]
