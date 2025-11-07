@@ -14,9 +14,30 @@ use serde_json::json;
 #[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, false)]
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
 fn test_simple_separators(#[case] input: &str, #[case] should_succeed: bool) {
-    let options = json!({
+    let options =
+        json!({
         "item_separator": ", ",
         "key_separator": ": ",
+        "whitespace_flexible": false,
+    });
+    let lark = format!(
+        r#"
+        start: %json {{
+            "x-guidance": {options}
+        }}
+    "#
+    );
+    lark_str_test(&lark, should_succeed, input, true);
+}
+
+#[rstest]
+#[case::regular_json(r#"{"a": 1, "b": 2}"#, false)]
+#[case::alternate_json(r#"{"a"_ 1-"b"_ 2}"#, true)]
+fn test_alternate_separators(#[case] input: &str, #[case] should_succeed: bool) {
+    let options =
+        json!({
+        "item_separator": r"-",
+        "key_separator": r"_ ",
         "whitespace_flexible": false,
     });
     let lark = format!(
@@ -40,7 +61,8 @@ fn test_simple_separators(#[case] input: &str, #[case] should_succeed: bool) {
 #[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, false)]
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
 fn test_pattern_separators(#[case] input: &str, #[case] should_succeed: bool) {
-    let options = json!({
+    let options =
+        json!({
         "item_separator": r"\s{0,2},\s{0,2}",
         "key_separator": r"\s{0,2}:\s{0,2}",
         "whitespace_flexible": false,
@@ -65,9 +87,70 @@ fn test_pattern_separators(#[case] input: &str, #[case] should_succeed: bool) {
 #[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, true)]
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, true)]
 fn test_flexible_separators(#[case] input: &str, #[case] should_succeed: bool) {
-    let options = json!({
+    let options =
+        json!({
         "item_separator": r",",
         "key_separator": r":",
+        "whitespace_flexible": true,
+    });
+    let lark = format!(
+        r#"
+        start: %json {{
+            "x-guidance": {options}
+        }}
+    "#
+    );
+    lark_str_test(&lark, should_succeed, input, true);
+}
+
+#[rstest]
+// Ok
+#[case::with_spaces(r#"{"a": 1, "b": 2}"#, true)]
+#[case::no_spaces(r#"{"a":1,"b":2}"#, true)]
+#[case::two_spaces_around_colon(r#"{"a"  :  1 , "b":2}"#, true)]
+#[case::spaces_before_comma(r#"{"a":1 ,  "b":2}"#, true)]
+#[case::two_spaces_after_colon(r#"{"a":1,"b":  2}"#, true)]
+#[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, true)]
+#[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, true)]
+fn test_flexible_separators_with_object_schema(#[case] input: &str, #[case] should_succeed: bool) {
+    let object_schema =
+        json!({
+        "type": "object",
+        "properties": {
+            "a": { "type": "integer" },
+            "b": { "type": "integer" }
+        },
+        "required": ["a", "b"],
+        "additionalProperties": false,
+        "x-guidance": {
+            "item_separator": r",",
+            "key_separator": r":",
+            "whitespace_flexible": true,
+        }
+    });
+    let lark = format!(r#"
+        start: %json {{
+            {object_schema},
+        }}
+    "#);
+    lark_str_test(&lark, should_succeed, input, true);
+}
+
+#[rstest]
+#[case::with_spaces(r#"{"a": 1, "b": 2}"#, true)]
+#[case::no_spaces(r#"{"a":1,"b":2}"#, false)]
+#[case::two_spaces_around_colon(r#"{"a"  :  1 , "b":2}"#, false)]
+#[case::two_spaces_around_both_colons(r#"{"a"  :  1 , "b"  :  2}"#, true)]
+#[case::spaces_before_comma(r#"{"a":1 ,  "b":2}"#, false)]
+#[case::spaces_before_comma_2(r#"{"a": 1 , "b": 2}"#, true)]
+#[case::two_spaces_after_colon(r#"{"a":1,"b":  2}"#, false)]
+#[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, false)]
+#[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
+fn test_flexible_separators_with_spaces(#[case] input: &str, #[case] should_succeed: bool) {
+    let options =
+        json!({
+        "item_separator": r", ",
+        "key_separator": r": ",
         "whitespace_flexible": true,
     });
     let lark = format!(
