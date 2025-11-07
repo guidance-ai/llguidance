@@ -212,8 +212,8 @@ fn test_flexible_separators_with_object_schema(#[case] input: &str, #[case] shou
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
 #[case::multi_line("{\n\"a\"\n:\n1,\n\"b\"\n:\n2\n}", false)] // Note newline after separator, not space
 #[case::multi_line_2("{\n\"a\"\n: \n1, \n\"b\"\n: \n2\n}", true)]
-#[case::pretty_print("{\n  \"a\": 1,\n  \"b\": 2\n}", false)] // Note newline after separators, not space
-#[case::pretty_print_2("{\n  \"a\": 1,\n  \"b\": 2\n}", true)] // Note newline after comma, not space
+#[case::pretty_print("{\n  \"a\":\n 1,\n  \"b\":\n 2\n}", false)] // Note newline after separators, not space
+#[case::pretty_print_2("{\n  \"a\": 1,\n  \"b\": 2\n}", false)] // Note newline after comma, not space
 #[case::pretty_print_3("{\n  \"a\": 1, \n  \"b\": 2\n}", true)]
 #[case::pretty_print_extra_spaces("{\n  \"a\" : 1 , \n  \"b\" : 2\n}", true)]
 fn test_flexible_separators_with_spaces(#[case] input: &str, #[case] should_succeed: bool) {
