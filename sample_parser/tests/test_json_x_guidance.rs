@@ -145,6 +145,9 @@ fn test_pattern_separators(#[case] input: &str, #[case] should_succeed: bool) {
 #[case::two_spaces_after_colon(r#"{"a":1,"b":  2}"#, true)]
 #[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, true)]
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, true)]
+#[case::multi_line(r#"{\n"a"\n:\n1,\n"b"\n:\n2\n}"#, true)]
+#[case::pretty_print(r#"{\n  "a": 1,\n  "b": 2\n}"#, true)]
+#[case::pretty_print_extra_spaces(r#"{\n  "a" : 1 , \n  "b" : 2\n}"#, true)]
 fn test_flexible_separators(#[case] input: &str, #[case] should_succeed: bool) {
     let options =
         json!({
@@ -171,6 +174,9 @@ fn test_flexible_separators(#[case] input: &str, #[case] should_succeed: bool) {
 #[case::two_spaces_after_colon(r#"{"a":1,"b":  2}"#, true)]
 #[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, true)]
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, true)]
+#[case::multi_line(r#"{\n"a"\n:\n1,\n"b"\n:\n2\n}"#, true)]
+#[case::pretty_print(r#"{\n  "a": 1,\n  "b": 2\n}"#, true)]
+#[case::pretty_print_extra_spaces(r#"{\n  "a" : 1 , \n  "b" : 2\n}"#, true)]
 fn test_flexible_separators_with_object_schema(#[case] input: &str, #[case] should_succeed: bool) {
     let object_schema =
         json!({
@@ -204,6 +210,9 @@ fn test_flexible_separators_with_object_schema(#[case] input: &str, #[case] shou
 #[case::two_spaces_after_colon(r#"{"a":1,"b":  2}"#, false)]
 #[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, false)]
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
+#[case::multi_line(r#"{\n"a"\n:\n1,\n"b"\n:\n2\n}"#, true)]
+#[case::pretty_print(r#"{\n  "a": 1,\n  "b": 2\n}"#, false)] // No space after the comma, just a newline
+#[case::pretty_print_extra_spaces(r#"{\n  "a" : 1 , \n  "b" : 2\n}"#, true)]
 fn test_flexible_separators_with_spaces(#[case] input: &str, #[case] should_succeed: bool) {
     let options =
         json!({
