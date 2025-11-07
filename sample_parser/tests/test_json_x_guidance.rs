@@ -31,8 +31,41 @@ fn test_simple_separators(#[case] input: &str, #[case] should_succeed: bool) {
 }
 
 #[rstest]
+// Ok
+#[case::with_spaces(r#"{"a": 1, "b": 2}"#, true)]
+// Bad
+#[case::no_spaces(r#"{"a":1,"b":2}"#, false)]
+#[case::two_spaces_around_colon(r#"{"a"  :  1 , "b":2}"#, false)]
+#[case::spaces_before_comma(r#"{"a":1 ,  "b":2}"#, false)]
+#[case::two_spaces_after_colon(r#"{"a":1,"b":  2}"#, false)]
+#[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, false)]
+#[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
+fn test_simple_separators_with_object_schema(#[case] input: &str, #[case] should_succeed: bool) {
+    let object_schema =
+        json!({
+        "type": "object",
+        "properties": {
+            "a": { "type": "integer" },
+            "b": { "type": "integer" }
+        },
+        "required": ["a", "b"],
+        "additionalProperties": false,
+        "x-guidance": {
+            "item_separator": r", ",
+            "key_separator": r": ",
+            "whitespace_flexible": false,
+        }
+    });
+    let lark = format!(r#"
+        start: %json {object_schema}
+    "#);
+    lark_str_test(&lark, should_succeed, input, true);
+}
+
+#[rstest]
 #[case::regular_json(r#"{"a": 1, "b": 2}"#, false)]
 #[case::alternate_json(r#"{"a"_ 1-"b"_ 2}"#, true)]
+#[case::alternate_json(r#"{"a"_ 1-"b"_2}"#, false)]
 fn test_alternate_separators(#[case] input: &str, #[case] should_succeed: bool) {
     let options =
         json!({
@@ -47,6 +80,32 @@ fn test_alternate_separators(#[case] input: &str, #[case] should_succeed: bool) 
         }}
     "#
     );
+    lark_str_test(&lark, should_succeed, input, true);
+}
+
+#[rstest]
+#[case::regular_json(r#"{"a": 1, "b": 2}"#, false)]
+#[case::alternate_json(r#"{"a"_ 1-"b"_ 2}"#, true)]
+#[case::alternate_json(r#"{"a"_ 1-"b"_2}"#, false)]
+fn test_alternate_separators_with_object_schema(#[case] input: &str, #[case] should_succeed: bool) {
+    let object_schema =
+        json!({
+        "type": "object",
+        "properties": {
+            "a": { "type": "integer" },
+            "b": { "type": "integer" }
+        },
+        "required": ["a", "b"],
+        "additionalProperties": false,
+        "x-guidance": {
+            "item_separator": r"-",
+            "key_separator": r"_ ",
+            "whitespace_flexible": true,
+        }
+    });
+    let lark = format!(r#"
+        start: %json {object_schema}
+    "#);
     lark_str_test(&lark, should_succeed, input, true);
 }
 
@@ -129,9 +188,8 @@ fn test_flexible_separators_with_object_schema(#[case] input: &str, #[case] shou
         }
     });
     let lark = format!(r#"
-        start: %json {{
-            {object_schema},
-        }}
+        start: %json 
+            {object_schema}
     "#);
     lark_str_test(&lark, should_succeed, input, true);
 }
@@ -160,5 +218,40 @@ fn test_flexible_separators_with_spaces(#[case] input: &str, #[case] should_succ
         }}
     "#
     );
+    lark_str_test(&lark, should_succeed, input, true);
+}
+
+#[rstest]
+#[case::with_spaces(r#"{"a": 1, "b": 2}"#, true)]
+#[case::no_spaces(r#"{"a":1,"b":2}"#, false)]
+#[case::two_spaces_around_colon(r#"{"a"  :  1 , "b":2}"#, false)]
+#[case::two_spaces_around_both_colons(r#"{"a"  :  1 , "b"  :  2}"#, true)]
+#[case::spaces_before_comma(r#"{"a":1 ,  "b":2}"#, false)]
+#[case::spaces_before_comma_2(r#"{"a": 1 , "b": 2}"#, true)]
+#[case::two_spaces_after_colon(r#"{"a":1,"b":  2}"#, false)]
+#[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, false)]
+#[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
+fn test_flexible_separators_with_spaces_with_object_schema(
+    #[case] input: &str,
+    #[case] should_succeed: bool
+) {
+    let object_schema =
+        json!({
+        "type": "object",
+        "properties": {
+            "a": { "type": "integer" },
+            "b": { "type": "integer" }
+        },
+        "required": ["a", "b"],
+        "additionalProperties": false,
+        "x-guidance": {
+            "item_separator": r", ",
+            "key_separator": r": ",
+            "whitespace_flexible": true,
+        }
+    });
+    let lark = format!(r#"
+        start: %json {object_schema}
+    "#);
     lark_str_test(&lark, should_succeed, input, true);
 }
