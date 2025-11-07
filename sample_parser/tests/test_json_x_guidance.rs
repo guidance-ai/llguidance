@@ -266,3 +266,41 @@ fn test_flexible_separators_with_spaces_with_object_schema(
     );
     lark_str_test(&lark, should_succeed, input, true);
 }
+
+#[rstest]
+#[case::with_spaces(r#"{"a": 1, "b": 2}"#, true)]
+#[case::no_spaces(r#"{"a":1,"b":2}"#, true)]
+#[case::two_spaces_around_colon(r#"{"a"  :  1 , "b":2}"#, true)]
+#[case::two_spaces_around_both_colons(r#"{"a"  :  1 , "b"  :  2}"#, true)]
+#[case::spaces_before_comma(r#"{"a":1 ,  "b":2}"#, true)]
+#[case::spaces_before_comma_2(r#"{"a": 1 , "b": 2}"#, true)]
+#[case::two_spaces_after_colon(r#"{"a":1,"b":  2}"#, true)]
+#[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, true)]
+#[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, true)]
+#[case::multi_line("{\n\"a\"\n:\n1,\n\"b\"\n:\n2\n}", true)]
+#[case::multi_line_2("{\n\"a\"\n: \n1, \n\"b\"\n: \n2\n}", true)]
+#[case::pretty_print("{\n  \"a\":\n 1,\n  \"b\":\n 2\n}", true)]
+#[case::pretty_print_2("{\n  \"a\": 1,\n  \"b\": 2\n}", true)]
+#[case::pretty_print_3("{\n  \"a\": 1, \n  \"b\": 2\n}", true)]
+#[case::pretty_print_extra_spaces("{\n  \"a\" : 1 , \n  \"b\" : 2\n}", true)]
+#[case::pretty_print_extra_spaces_2("{\n    \"a\" :  1 ,  \n    \"b\" :  2\n}", true)]
+fn flexible_whitespace_unspecified_separators(#[case] input: &str, #[case] should_succeed: bool) {
+    let object_schema = json!({
+        "type": "object",
+        "properties": {
+            "a": { "type": "integer" },
+            "b": { "type": "integer" }
+        },
+        "required": ["a", "b"],
+        "additionalProperties": false,
+        "x-guidance": {
+            "whitespace_flexible": true,
+        }
+    });
+    let lark = format!(
+        r#"
+        start: %json {object_schema}
+    "#
+    );
+    lark_str_test(&lark, should_succeed, input, true);
+}
