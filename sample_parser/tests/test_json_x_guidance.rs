@@ -14,8 +14,7 @@ use serde_json::json;
 #[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, false)]
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
 fn test_simple_separators(#[case] input: &str, #[case] should_succeed: bool) {
-    let options =
-        json!({
+    let options = json!({
         "item_separator": ", ",
         "key_separator": ": ",
         "whitespace_flexible": false,
@@ -41,8 +40,7 @@ fn test_simple_separators(#[case] input: &str, #[case] should_succeed: bool) {
 #[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, false)]
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
 fn test_simple_separators_with_object_schema(#[case] input: &str, #[case] should_succeed: bool) {
-    let object_schema =
-        json!({
+    let object_schema = json!({
         "type": "object",
         "properties": {
             "a": { "type": "integer" },
@@ -56,9 +54,11 @@ fn test_simple_separators_with_object_schema(#[case] input: &str, #[case] should
             "whitespace_flexible": false,
         }
     });
-    let lark = format!(r#"
+    let lark = format!(
+        r#"
         start: %json {object_schema}
-    "#);
+    "#
+    );
     lark_str_test(&lark, should_succeed, input, true);
 }
 
@@ -67,8 +67,7 @@ fn test_simple_separators_with_object_schema(#[case] input: &str, #[case] should
 #[case::alternate_json(r#"{"a"_ 1-"b"_ 2}"#, true)]
 #[case::alternate_json(r#"{"a"_ 1-"b"_2}"#, false)]
 fn test_alternate_separators(#[case] input: &str, #[case] should_succeed: bool) {
-    let options =
-        json!({
+    let options = json!({
         "item_separator": r"-",
         "key_separator": r"_ ",
         "whitespace_flexible": false,
@@ -88,8 +87,7 @@ fn test_alternate_separators(#[case] input: &str, #[case] should_succeed: bool) 
 #[case::alternate_json(r#"{"a"_ 1-"b"_ 2}"#, true)]
 #[case::alternate_json(r#"{"a"_ 1-"b"_2}"#, false)]
 fn test_alternate_separators_with_object_schema(#[case] input: &str, #[case] should_succeed: bool) {
-    let object_schema =
-        json!({
+    let object_schema = json!({
         "type": "object",
         "properties": {
             "a": { "type": "integer" },
@@ -103,9 +101,11 @@ fn test_alternate_separators_with_object_schema(#[case] input: &str, #[case] sho
             "whitespace_flexible": true,
         }
     });
-    let lark = format!(r#"
+    let lark = format!(
+        r#"
         start: %json {object_schema}
-    "#);
+    "#
+    );
     lark_str_test(&lark, should_succeed, input, true);
 }
 
@@ -120,8 +120,7 @@ fn test_alternate_separators_with_object_schema(#[case] input: &str, #[case] sho
 #[case::three_spaces_after_comma(r#"{"a":1,   "b":2}"#, false)]
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
 fn test_pattern_separators(#[case] input: &str, #[case] should_succeed: bool) {
-    let options =
-        json!({
+    let options = json!({
         "item_separator": r"\s{0,2},\s{0,2}",
         "key_separator": r"\s{0,2}:\s{0,2}",
         "whitespace_flexible": false,
@@ -149,8 +148,7 @@ fn test_pattern_separators(#[case] input: &str, #[case] should_succeed: bool) {
 #[case::pretty_print("{\n  \"a\": 1,\n  \"b\": 2\n}", true)]
 #[case::pretty_print_extra_spaces("{\n  \"a\" : 1 , \n  \"b\" : 2\n}", true)]
 fn test_flexible_separators(#[case] input: &str, #[case] should_succeed: bool) {
-    let options =
-        json!({
+    let options = json!({
         "item_separator": r",",
         "key_separator": r":",
         "whitespace_flexible": true,
@@ -178,8 +176,7 @@ fn test_flexible_separators(#[case] input: &str, #[case] should_succeed: bool) {
 #[case::pretty_print("{\n  \"a\": 1,\n  \"b\": 2\n}", true)]
 #[case::pretty_print_extra_spaces("{\n  \"a\" : 1 , \n  \"b\" : 2\n}", true)]
 fn test_flexible_separators_with_object_schema(#[case] input: &str, #[case] should_succeed: bool) {
-    let object_schema =
-        json!({
+    let object_schema = json!({
         "type": "object",
         "properties": {
             "a": { "type": "integer" },
@@ -193,10 +190,12 @@ fn test_flexible_separators_with_object_schema(#[case] input: &str, #[case] shou
             "whitespace_flexible": true,
         }
     });
-    let lark = format!(r#"
+    let lark = format!(
+        r#"
         start: %json 
             {object_schema}
-    "#);
+    "#
+    );
     lark_str_test(&lark, should_succeed, input, true);
 }
 
@@ -217,8 +216,7 @@ fn test_flexible_separators_with_object_schema(#[case] input: &str, #[case] shou
 #[case::pretty_print_3("{\n  \"a\": 1, \n  \"b\": 2\n}", true)]
 #[case::pretty_print_extra_spaces("{\n  \"a\" : 1 , \n  \"b\" : 2\n}", true)]
 fn test_flexible_separators_with_spaces(#[case] input: &str, #[case] should_succeed: bool) {
-    let options =
-        json!({
+    let options = json!({
         "item_separator": r", ",
         "key_separator": r": ",
         "whitespace_flexible": true,
@@ -245,10 +243,9 @@ fn test_flexible_separators_with_spaces(#[case] input: &str, #[case] should_succ
 #[case::four_spaces_after_colon(r#"{"a":1,"b":    2}"#, false)]
 fn test_flexible_separators_with_spaces_with_object_schema(
     #[case] input: &str,
-    #[case] should_succeed: bool
+    #[case] should_succeed: bool,
 ) {
-    let object_schema =
-        json!({
+    let object_schema = json!({
         "type": "object",
         "properties": {
             "a": { "type": "integer" },
@@ -262,8 +259,10 @@ fn test_flexible_separators_with_spaces_with_object_schema(
             "whitespace_flexible": true,
         }
     });
-    let lark = format!(r#"
+    let lark = format!(
+        r#"
         start: %json {object_schema}
-    "#);
+    "#
+    );
     lark_str_test(&lark, should_succeed, input, true);
 }
