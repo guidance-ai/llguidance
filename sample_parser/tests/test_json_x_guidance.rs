@@ -352,17 +352,11 @@ fn whitespace_flexible_many_formats(
     });
 
     let mut formatter = JsonFormat::new().indent_width(desired_indent);
-    match comma {
-        Some(comma_str) => {
-            formatter = formatter.comma(comma_str).unwrap();
-        }
-        None => {}
+    if let Some(comma_str) = comma {
+        formatter = formatter.comma(comma_str).unwrap();
     }
-    match colon {
-        Some(colon_str) => {
-            formatter = formatter.colon(colon_str).unwrap();
-        }
-        None => {}
+    if let Some(colon_str) = colon {
+        formatter = formatter.colon(colon_str).unwrap();
     }
 
     let target_str = formatter.format_to_string(&target_object).unwrap();
