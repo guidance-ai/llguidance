@@ -5,6 +5,16 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      commit_id:
+        description: 'Branch or Commit ID (optional)'
+        required: false
+        type: string
+  schedule:
+    # * is a special character in YAML so we quote this string
+    # Run at 09:10 UTC every day
+    - cron:  '10 09 * * *'
 
 env:
   CARGO_TERM_COLOR: always
@@ -48,6 +58,8 @@ jobs:
       run: maturin build --zig
 
     - name: Upload sdist and wheel artifact
+      # Only on push to main
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       uses: actions/upload-artifact@v4
       with:
         name: wheels
