@@ -25,7 +25,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repo at ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
     - name: Build parser
       run: cargo build --verbose
@@ -58,8 +61,6 @@ jobs:
       run: maturin build --zig
 
     - name: Upload sdist and wheel artifact
-      # Only on push to main
-      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       uses: actions/upload-artifact@v4
       with:
         name: wheels
