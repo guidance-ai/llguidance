@@ -106,7 +106,7 @@ check the [parser](./parser/README.md) directory.
 
 For Python bindings:
 
-- install python 3.9 or later; very likely you'll need a virtual env/conda
+- install python 3.10 or later; very likely you'll need a virtual env/conda
 - run `./scripts/install-deps.sh`
 - to build and after any changes, run `./scripts/test-guidance.sh`
 
