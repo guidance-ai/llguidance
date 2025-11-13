@@ -330,10 +330,6 @@ fn whitespace_flexible_many_formats(
     )]
     colon: Option<&str>,
 ) {
-    /*
-     This should be the same sort of test as the basic test_whitespace_flexible
-     test on the Python side
-    */
     let object_schema = json!({
         "type": "object",
         "properties": {
