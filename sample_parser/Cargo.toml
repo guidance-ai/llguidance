@@ -16,6 +16,7 @@ clap = { version = "4.5.31", features = ["derive"] }
 
 [dev-dependencies]
 rstest = "0.25.0"
+serde-json-fmt = "0.1.0"
 
 [[bin]]
 name = "sample_parser"
