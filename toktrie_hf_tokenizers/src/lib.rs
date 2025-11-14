@@ -251,4 +251,83 @@ impl TokenizerEnv for ByteTokenizerEnv {
                 .to_vec()
         })
     }
+
+    fn tokenize_bytes_special(&self, s: &[u8]) -> Vec<TokenId> {
+        self.tok_trie.tokenize_with_greedy_fallback(s, |s| {
+            self.tok_trie.tokenize_with_special(s, |s| {
+                self.tokenizer
+                    .hf_tokenizer
+                    .encode(s, false)
+                    .expect("tokenizer error")
+                    .get_ids()
+                    .to_vec()
+            })
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+    use tokenizers::Tokenizer;
+
+    const MINIMAL_TOKENIZER_JSON: &str = r#"{
+        "version": "1.0",
+        "truncation": null,
+        "padding": null,
+        "added_tokens": [],
+        "normalizer": null,
+        "pre_tokenizer": {
+            "type": "ByteLevel",
+            "add_prefix_space": false,
+            "trim_offsets": true
+        },
+        "post_processor": null,
+        "decoder": {
+            "type": "ByteLevel",
+            "add_prefix_space": false,
+            "trim_offsets": true
+        },
+        "model": {
+            "type": "BPE",
+            "dropout": null,
+            "unk_token": null,
+            "continuing_subword_prefix": "",
+            "end_of_word_suffix": "",
+            "fuse_unk": false,
+            "vocab": {
+                "a": 0
+            },
+            "merges": []
+        }
+    }"#;
+
+    #[test]
+    fn tokenize_special_respects_toktrie_specials() {
+        let hf_tokenizer = Tokenizer::from_str(MINIMAL_TOKENIZER_JSON).unwrap();
+        let info = TokRxInfo::new(2, 0);
+        let mut token_bytes = vec![b"a".to_vec()];
+        let mut special_bytes = Vec::new();
+        special_bytes.push(TokTrie::SPECIAL_TOKEN_MARKER);
+        special_bytes.extend_from_slice(b"<|end|>");
+        token_bytes.push(special_bytes);
+        let tokenizer = ByteTokenizer {
+            hf_model: "test".to_string(),
+            hf_tokenizer,
+            info,
+            token_bytes,
+        };
+        let env = ByteTokenizerEnv::new(tokenizer, None).unwrap();
+        let special_id = env.tok_trie().get_special_token("<|end|>").unwrap();
+        assert_eq!(env.tokenize("<|end|>"), Vec::<TokenId>::new());
+        let tokens = env.tokenize_special("<|end|>");
+        assert_eq!(
+            tokens,
+            vec![special_id],
+            "got: {:?}, want: {:?}",
+            tokens,
+            vec![special_id]
+        );
+    }
 }
