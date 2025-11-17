@@ -58,7 +58,7 @@ impl LLExecutor {
 
         let mut mut_refs = vec![];
         for ent in interpreters.iter() {
-            let tupl = ent.downcast::<PyTuple>()?;
+            let tupl = ent.cast::<PyTuple>()?;
             if tupl.len() != 2 {
                 return Err(PyValueError::new_err("Expecting (LLMatcher, int) tuple"));
             }
@@ -115,7 +115,7 @@ impl LLExecutor {
 
         let mut mut_refs = vec![];
         for ent in interpreters.iter() {
-            let tupl = ent.downcast::<PyTuple>()?;
+            let tupl = ent.cast::<PyTuple>()?;
             if tupl.len() != 3 {
                 return Err(PyValueError::new_err(
                     "Expecting (LLMatcher, int, List[int]) tuple",
