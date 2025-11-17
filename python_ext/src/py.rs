@@ -320,7 +320,7 @@ impl TokenizerEnv for PyTokenizer {
 
     fn tokenize_bytes(&self, utf8bytes: &[u8]) -> Vec<TokenId> {
         self.tok_trie.tokenize_with_greedy_fallback(utf8bytes, |s| {
-            Python::with_gil(|py| {
+            Python::attach(|py| {
                 let r = self.tokenizer_fun.call1(py, (s,)).unwrap();
                 r.extract::<Vec<TokenId>>(py).unwrap()
             })
