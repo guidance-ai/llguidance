@@ -22,7 +22,7 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: Large_Linux
 
     steps:
     - name: Checkout repo at ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
