@@ -50,6 +50,7 @@ if [ "$TEST_RUST" = 1 ] ; then
     (cd parser && cargo check --no-default-features)
 
     cargo test
+    cargo clean # we're done with debug builds
     cargo test --release
 
     echo "Running sample_parser"
