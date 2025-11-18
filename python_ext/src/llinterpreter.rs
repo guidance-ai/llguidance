@@ -150,7 +150,7 @@ impl LLInterpreter {
 
     fn compute_mask(&mut self, py: Python<'_>) -> PyResult<(Option<Cow<'_, [u8]>>, String)> {
         let r = py
-            .allow_threads(|| self.inner.compute_mask())
+            .detach(|| self.inner.compute_mask())
             .map_err(val_error)?
             .clone();
         let mask = if r.is_stop() || r.unconditional_splice().is_some() {

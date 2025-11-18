@@ -58,7 +58,7 @@ impl LLExecutor {
 
         let mut mut_refs = vec![];
         for ent in interpreters.iter() {
-            let tupl = ent.downcast::<PyTuple>()?;
+            let tupl = ent.cast::<PyTuple>()?;
             if tupl.len() != 2 {
                 return Err(PyValueError::new_err("Expecting (LLMatcher, int) tuple"));
             }
@@ -87,7 +87,7 @@ impl LLExecutor {
 
         use rayon::prelude::*;
 
-        py.allow_threads(|| {
+        py.detach(|| {
             self.pool.install(|| {
                 mut_refs2.into_par_iter().for_each(|(interp, idx)| {
                     interp.unsafe_compute_mask_ptr_inner(
@@ -115,7 +115,7 @@ impl LLExecutor {
 
         let mut mut_refs = vec![];
         for ent in interpreters.iter() {
-            let tupl = ent.downcast::<PyTuple>()?;
+            let tupl = ent.cast::<PyTuple>()?;
             if tupl.len() != 3 {
                 return Err(PyValueError::new_err(
                     "Expecting (LLMatcher, int, List[int]) tuple",
@@ -151,7 +151,7 @@ impl LLExecutor {
 
         use rayon::prelude::*;
 
-        py.allow_threads(|| {
+        py.detach(|| {
             self.pool.install(|| {
                 mut_refs2
                     .into_par_iter()
@@ -247,7 +247,7 @@ fn new_matcher(
     let logger = Logger::new(0, std::cmp::max(0, log_level) as u32);
     // constructing a grammar can take on the order of 100ms
     // for very large grammars, so we drop the GIL here
-    let inner = py.allow_threads(|| {
+    let inner = py.detach(|| {
         let mut r = fact.create_parser_from_init_ext(
             GrammarInit::Serialized(grammar),
             logger,
@@ -306,7 +306,7 @@ impl LLMatcher {
         py: Python<'_>,
     ) -> String {
         match extract_grammar(grammar) {
-            Ok((_, grammar)) => py.allow_threads(|| {
+            Ok((_, grammar)) => py.detach(|| {
                 GrammarInit::Serialized(grammar)
                     .validate(
                         tokenizer.map(|t| t.factory().tok_env().clone()),
@@ -328,7 +328,7 @@ impl LLMatcher {
         py: Python<'_>,
     ) -> (bool, Vec<String>) {
         match extract_grammar(grammar) {
-            Ok((_, grammar)) => py.allow_threads(|| {
+            Ok((_, grammar)) => py.detach(|| {
                 GrammarInit::Serialized(grammar)
                     .validate(
                         tokenizer.map(|t| t.factory().tok_env().clone()),
@@ -428,7 +428,7 @@ impl LLMatcher {
         py: Python<'_>,
     ) -> PyResult<()> {
         self.validate_mask_ptr(trg_ptr, trg_bytes)?;
-        py.allow_threads(|| self.unsafe_compute_mask_ptr_inner(trg_ptr, trg_bytes));
+        py.detach(|| self.unsafe_compute_mask_ptr_inner(trg_ptr, trg_bytes));
         Ok(())
     }
 
@@ -440,14 +440,14 @@ impl LLMatcher {
         py: Python<'_>,
     ) -> PyResult<()> {
         self.validate_mask_ptr(trg_ptr, trg_bytes)?;
-        py.allow_threads(|| {
+        py.detach(|| {
             self.unsafe_compute_mask_ptr_inner_with_draft_tokens(trg_ptr, trg_bytes, draft_tokens)
         });
         Ok(())
     }
 
     fn compute_logit_bias(&mut self, py: Python<'_>) -> Cow<'_, [u8]> {
-        py.allow_threads(|| {
+        py.detach(|| {
             let m = self.compute_mask_or_eos();
             let mut res = vec![0u8; m.len()];
             m.iter_set_entries(|i| res[i] = 200);
@@ -456,7 +456,7 @@ impl LLMatcher {
     }
 
     fn compute_bitmask(&mut self, py: Python<'_>) -> Cow<'_, [u8]> {
-        py.allow_threads(|| {
+        py.detach(|| {
             let m = self.compute_mask_or_eos();
             Cow::Owned(bytemuck::cast_slice(m.as_slice()).to_vec())
         })

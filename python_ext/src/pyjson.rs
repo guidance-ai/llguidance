@@ -67,7 +67,7 @@ impl Serialize for SerializePyObject<'_> {
         extract!(String);
         extract!(bool);
 
-        if let Ok(x) = self.v.downcast::<PyFloat>() {
+        if let Ok(x) = self.v.cast::<PyFloat>() {
             return x.value().serialize(serializer);
         }
 
@@ -78,7 +78,7 @@ impl Serialize for SerializePyObject<'_> {
             return serializer.serialize_unit();
         }
 
-        if let Ok(x) = self.v.downcast::<PyDict>() {
+        if let Ok(x) = self.v.cast::<PyDict>() {
             let mut map = serializer.serialize_map(Some(x.len()))?;
             for (key, value) in x {
                 if let Ok(key) = key.str() {
@@ -94,7 +94,7 @@ impl Serialize for SerializePyObject<'_> {
             return map.end();
         }
 
-        if let Ok(x) = self.v.downcast::<PyList>() {
+        if let Ok(x) = self.v.cast::<PyList>() {
             let mut seq = serializer.serialize_seq(Some(x.len()))?;
             for element in x {
                 seq.serialize_element(&SerializePyObject { v: element })?
@@ -102,7 +102,7 @@ impl Serialize for SerializePyObject<'_> {
             return seq.end();
         }
 
-        if let Ok(x) = self.v.downcast::<PyTuple>() {
+        if let Ok(x) = self.v.cast::<PyTuple>() {
             let mut seq = serializer.serialize_seq(Some(x.len()))?;
             for element in x {
                 seq.serialize_element(&SerializePyObject { v: element })?

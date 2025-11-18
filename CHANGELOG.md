@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file. Dates are d
 
 If a release doesn't introduce any interesting changes (build fixes etc.), it's skipped.
 
+#### [v1.4.0](https://github.com/guidance-ai/llguidance/compare/v1.3.0...v1.4.0) 2025-11-18
+
+- Update pyo3 dependency to latest version to support python 3.14t [`#255`](https://github.com/guidance-ai/llguidance/pull/255)
+  - Thank you [@ngoldbaum](https://github.com/ngoldbaum)!
+- Fix tokenization of special tokens for ByteTokenizer [`#249`](https://github.com/guidance-ai/llguidance/pull/249)
+  - Thank you [@daulet](https://github.com/daulet)!
+- Bump minimum python version to 3.10 [`#252`](https://github.com/guidance-ai/llguidance/pull/252)
+- Update MSRV in README [`30d1515`](https://github.com/guidance-ai/llguidance/commit/30d15150e2c6bae9e52dea58c72574c160f4697a)
+  - Thank you for pointing out the error [@nteodosio](https://github.com/nteodosio)!
+
 #### [v1.3.0](https://github.com/guidance-ai/llguidance/compare/v1.2.0...v1.3.0) 2025-10-20
 
 - change semantics of JSON separators (now regex patterns instead of text literals) [`#246`](https://github.com/guidance-ai/llguidance/pull/246)
