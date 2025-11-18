@@ -178,11 +178,11 @@ def test_par_errors() -> None:
     with pytest.raises(RuntimeError, match="Already borrowed"):
         fill_next_token_bitmask_par(exec, [(g0, 0), (g1, 1), (g1, 2)], mask)
 
-    with pytest.raises(TypeError, match="cannot be converted"):
+    with pytest.raises(TypeError, match="cannot be cast"):
         l = [1, (g1, 0), (g1, 1)]
         fill_next_token_bitmask_par(exec, l, mask)  # type: ignore
 
-    with pytest.raises(TypeError, match="cannot be converted"):
+    with pytest.raises(TypeError, match="cannot be cast"):
         l = [(tokenizer(), 0)]
         fill_next_token_bitmask_par(exec, l, mask)  # type: ignore
 
