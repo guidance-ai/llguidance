@@ -1,7 +1,7 @@
 use llguidance::api::ParserLimits;
 use pyo3::prelude::*;
 
-#[pyclass]
+#[pyclass(frozen)]
 pub struct LLParserLimits {
     inner: ParserLimits,
 }

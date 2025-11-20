@@ -22,7 +22,7 @@ struct LLMatcher {
     tok_env: TokEnv,
 }
 
-#[pyclass]
+#[pyclass(frozen)]
 struct LLExecutor {
     pool: rayon::ThreadPool,
 }
