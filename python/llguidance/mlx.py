@@ -8,7 +8,7 @@ from .numpy import get_bitmask_shape, allocate_token_bitmask, fill_next_token_bi
 from numpy.typing import NDArray
 
 
-@mx.custom_function # type: ignore[no-untyped-def]
+@mx.custom_function # type: ignore[untyped-decorator]
 def apply_token_bitmask_kernel(data: mx.array, mask: mx.array) -> mx.array:
     source = """
         uint batch = thread_position_in_grid.y;  // Batch index
