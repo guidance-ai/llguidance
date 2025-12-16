@@ -224,6 +224,15 @@ impl SimpleVob {
         self.set(tok as usize, true)
     }
 
+    /// # Safety
+    /// tok must be a valid token id (less than vocab_size)
+    #[inline(always)]
+    pub unsafe fn allow_token_unchecked(&mut self, tok: TokenId) {
+        let word_idx = (tok >> 5) as usize;
+        let bit_idx = tok & 31;
+        *self.data.get_unchecked_mut(word_idx) |= 1u32 << bit_idx;
+    }
+
     #[inline(always)]
     pub fn disallow_token(&mut self, tok: TokenId) {
         self.set(tok as usize, false)

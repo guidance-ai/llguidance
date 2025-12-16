@@ -855,31 +855,30 @@ impl TokTrie {
         }
         r.trie_finished();
         r.save_stats(nodes_walked);
-        // revert the fake token
-        let defl_tok = self.vocab_size() as u32;
-        toks.disallow_token(defl_tok);
     }
 
-    #[inline(never)]
+    #[inline(always)]
     fn add_bias_inner(
         &self,
         r: &mut impl Recognizer,
         toks: &mut SimpleVob,
         n: &TrieNode,
     ) -> (usize, usize) {
-        let defl_tok = self.vocab_size() as u32;
         let off = self.node_offset(n);
         let total_nodes = n.subtree_size();
         let mut p = off + 1;
         let endp = off + total_nodes;
+        let nodes = &self.nodes[..endp];
         let mut next_pop = 0;
         let mut num_skip = 0;
         while p < endp {
             r.pop_bytes(next_pop);
-            let n = &self.nodes[p];
+            let n = unsafe { nodes.get_unchecked(p) };
             let b = n.byte();
             if r.try_push_byte(b) {
-                toks.allow_token(n.token_id().unwrap_or(defl_tok));
+                if let Some(tok) = n.token_id() {
+                    unsafe { toks.allow_token_unchecked(tok) };
+                }
                 next_pop = if n.subtree_size() == 1 {
                     n.num_parents()
                 } else {
