@@ -39,4 +39,9 @@ ahash = ["derivre/ahash"]
 crate-type = ["staticlib", "rlib", "cdylib"]
 
 [dev-dependencies]
+criterion = "0.8.1"
 regex = "1.11.1"
+
+[[bench]]
+name = "compute_mask"
+harness = false
