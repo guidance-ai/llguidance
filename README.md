@@ -23,7 +23,7 @@
 ## About
 
 This library implements constrained decoding (also called constrained sampling or
-structured outputs) for Large Langauge Models (LLMs).
+structured outputs) for Large Language Models (LLMs).
 It can enforce arbitrary context-free grammar on the output of LLM
 and is fast - on the order of 50μs of CPU time per token
 (for 128k tokenizer) with negligible startup costs.
