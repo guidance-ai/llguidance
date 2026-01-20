@@ -167,6 +167,63 @@ impl LLExecutor {
 
         Ok(())
     }
+
+    fn consume_token_par(
+        &self,
+        matchers_and_tokens: Bound<'_, PyList>,
+        py: Python<'_>,
+    ) -> PyResult<Vec<bool>> {
+        if matchers_and_tokens.len() == 0 {
+            return Ok(vec![]);
+        }
+
+        let mut mut_refs = vec![];
+        for (idx, ent) in matchers_and_tokens.iter().enumerate() {
+            let tupl = ent.cast::<PyTuple>()?;
+            if tupl.len() != 2 {
+                return Err(PyValueError::new_err(
+                    "Expecting (LLMatcher, TokenId) tuple",
+                ));
+            }
+            let interp = tupl.get_item(0)?.extract::<PyRefMut<LLMatcher>>()?;
+            let token = tupl.get_item(1)?.extract::<TokenId>()?;
+            mut_refs.push((interp, token, idx));
+        }
+
+        if mut_refs.len() == 1 {
+            let (mut interp, token, _) = mut_refs.pop().unwrap();
+            return Ok(vec![interp.consume_token(token)]);
+        }
+
+        let len = mut_refs.len();
+        let results = std::sync::Arc::new(
+            (0..len)
+                .map(|_| std::sync::atomic::AtomicBool::new(false))
+                .collect::<Vec<_>>(),
+        );
+
+        let mut_refs2: Vec<_> = mut_refs
+            .iter_mut()
+            .map(|(x, token, idx)| (x.deref_mut(), *token, *idx))
+            .collect();
+
+        use rayon::prelude::*;
+
+        let results_ref = results.clone();
+        py.detach(|| {
+            self.pool.install(|| {
+                mut_refs2.into_par_iter().for_each(|(interp, token, idx)| {
+                    let success = interp.consume_token_inner(token);
+                    results_ref[idx].store(success, std::sync::atomic::Ordering::Relaxed);
+                })
+            })
+        });
+
+        Ok(results
+            .iter()
+            .map(|b| b.load(std::sync::atomic::Ordering::Relaxed))
+            .collect())
+    }
 }
 
 impl LLMatcher {
@@ -232,6 +289,14 @@ impl LLMatcher {
             self.inner
                 .compute_mask()
                 .unwrap_or_else(|_| self.eos_token_set())
+        }
+    }
+
+    fn consume_token_inner(&mut self, sampled_token: TokenId) -> bool {
+        if self.inner.is_stopped() && sampled_token == self.tok_env.tok_trie().eos_token() {
+            true
+        } else {
+            self.inner.consume_token(sampled_token).is_ok()
         }
     }
 }
@@ -463,11 +528,7 @@ impl LLMatcher {
     }
 
     fn consume_token(&mut self, sampled_token: TokenId) -> bool {
-        if self.inner.is_stopped() && sampled_token == self.tok_env.tok_trie().eos_token() {
-            true
-        } else {
-            self.inner.consume_token(sampled_token).is_ok()
-        }
+        self.consume_token_inner(sampled_token)
     }
 
     fn consume_tokens(&mut self, tokens: Vec<TokenId>) -> bool {

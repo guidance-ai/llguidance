@@ -570,6 +570,22 @@ class LLExecutor:
         State rollback is performed to maintain matcher consistency.
         """
 
+    def consume_token_par(
+        self,
+        matchers: List[Tuple[LLMatcher, int]],
+    ) -> List[bool]:
+        """
+        Consume a single token for each matcher in parallel.
+
+        Args:
+            matchers: List of tuples containing:
+                - LLMatcher: The matcher object
+                - int: The token ID to consume
+
+        Returns:
+            List[bool]: Success/failure for each matcher (in order).
+        """
+
 class JsonCompileOptions(TypedDict, total=False):
     # defaults to ","
     item_separator: Optional[str]

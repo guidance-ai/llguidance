@@ -80,3 +80,18 @@ def fill_next_token_bitmask_par_with_draft_tokens(executor: LLExecutor,
     batch, vocab = bitmask.shape
     assert bitmask.flags["C_CONTIGUOUS"], "Mask must be contiguous"
     executor.unsafe_compute_mask_ptr_with_draft_token(matchers, bitmask.ctypes.data, vocab * 4, batch)
+
+
+def consume_token_par(executor: LLExecutor,
+                      matchers: List[Tuple[LLMatcher, int]]) -> List[bool]:
+    """
+    Consume a single token for each matcher in parallel.
+
+    Args:
+        executor: The LLExecutor to use for parallel execution.
+        matchers: List of tuples containing (LLMatcher, token_id).
+
+    Returns:
+        List[bool]: Success/failure for each matcher (in order).
+    """
+    return executor.consume_token_par(matchers)

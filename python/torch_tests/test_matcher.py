@@ -4,6 +4,7 @@ from llguidance.numpy import (
     fill_next_token_bitmask_par,
     fill_next_token_bitmask_par_with_draft_tokens,
     allocate_token_bitmask,
+    consume_token_par,
 )
 
 from llguidance import LLMatcher, LLTokenizer, StructTag, LLParserLimits
@@ -211,6 +212,65 @@ def test_par_errors() -> None:
     assert not mask_has(mask[0, :], t_1)
     assert not mask_has(mask[2, :], t_a)
     assert mask_has(mask[2, :], t_1)
+
+
+def test_consume_token_par() -> None:
+    t = tokenizer()
+    exec = llguidance.LLExecutor()
+
+    # Create matchers with different grammars
+    g0 = matcher(r"start: /[a-zA-Z]+/")
+    g1 = matcher(r"start: /[0-9]+/")
+    g2 = matcher(r"start: /[a-z]+/")
+
+    # Get tokens for testing
+    t_a = t.tokenize_str("a")[0]  # valid for g0 and g2
+    t_1 = t.tokenize_str("1")[0]  # valid for g1 only
+
+    # Test consuming valid tokens
+    results = consume_token_par(exec, [(g0, t_a), (g1, t_1), (g2, t_a)])
+    assert results == [True, True, True]
+
+    # Consume more tokens to continue each matcher
+    t_b = t.tokenize_str("b")[0]
+    t_2 = t.tokenize_str("2")[0]
+
+    results = consume_token_par(exec, [(g0, t_b), (g1, t_2), (g2, t_b)])
+    assert results == [True, True, True]
+
+    # Test consuming invalid tokens
+    g3 = matcher(r"start: /[a-z]+/")
+    g4 = matcher(r"start: /[0-9]+/")
+    g5 = matcher(r"start: /[A-Z]+/")
+
+    # 'a' is not valid for g4, '1' is not valid for g3, '1' is not valid for g5
+    results = consume_token_par(exec, [(g3, t_1), (g4, t_a), (g5, t_1)])
+    assert results == [False, False, False]
+
+    # Mixed valid/invalid
+    g6 = matcher(r"start: /[a-z]+/")
+    g7 = matcher(r"start: /[0-9]+/")
+    g8 = matcher(r"start: /[a-z]+/")
+
+    results = consume_token_par(exec, [(g6, t_a), (g7, t_a), (g8, t_a)])
+    assert results == [True, False, True]
+
+
+def test_consume_token_par_errors() -> None:
+    exec = llguidance.LLExecutor()
+    g0 = matcher(r"start: /[a-zA-Z]+/")
+
+    # Test empty list
+    results = consume_token_par(exec, [])
+    assert results == []
+
+    # Test wrong tuple size
+    with pytest.raises(ValueError, match=r"Expecting.*tuple"):
+        exec.consume_token_par([(g0, 1, 2)])  # type: ignore
+
+    # Test already borrowed error (same matcher used twice)
+    with pytest.raises(RuntimeError, match="Already borrowed"):
+        consume_token_par(exec, [(g0, 1), (g0, 2)])
 
 
 def retrieve_tokens_from_bitmask(
