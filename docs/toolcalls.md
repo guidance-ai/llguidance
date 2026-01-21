@@ -118,10 +118,10 @@ One way to express that with a grammar is:
 
 ```py
 grammar = f"""
-start: /(tool)+/
-tool: <tool_call> "\n" (func1 | func2) "\n" <|/tool_call|>
-func1: %json {json.dumps(tool_descs[0])}
-func2: %json {json.dumps(tool_descs[1])}
+start: tool*
+tool: <tool_call> "\\n" (func1 | func2) "\\n" </tool_call> ("\\n")*
+func1: %json {json.dumps(json_funcs[0])}
+func2: %json {json.dumps(json_funcs[1])}
 """
 ```
 
