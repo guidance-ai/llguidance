@@ -24,46 +24,50 @@ The sections below show examples for building grammars for model-specific output
 Consider the following example tool definitions (Python-style):
 
 ```py
-tools = [
-    {
-        "name": "add",
-        "description": "Adds two floating-point numbers.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "x": {"type": "number", "description": "The first number."},
-                "y": {"type": "number", "description": "The second number."},
-            },
-            "required": ["x", "y"],
-        },
-        "returns": {"type": "number", "description": "The sum."},
-    },
-    {
-        "name": "mul",
-        "description": "Multiplies two floating-point numbers.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "x": {"type": "number", "description": "The first number."},
-                "y": {"type": "number", "description": "The second number."},
-            },
-            "required": ["x", "y"],
-        },
-        "returns": {"type": "number", "description": "The product."},
-    },
+phi4_tools = [
+  {
+      "name": "add",
+      "description": "Adds two floating-point numbers together.",
+      "parameters": {
+          "type": "object",
+          "properties": {
+              "x": {"type": "number", "description": "The first number to add."},
+              "y": {"type": "number", "description": "The second number to add."},
+          },
+          "required": ["x", "y"],
+      },
+      "returns": {"type": "number", "description": "The sum of the two input numbers."},
+  },
+  {
+      "name": "mul",
+      "description": "Multiplies two floating-point numbers together.",
+      "parameters": {
+          "type": "object",
+          "properties": {
+              "x": {"type": "number", "description": "The first number to multiply."},
+              "y": {"type": "number", "description": "The second number to multiply."},
+          },
+          "required": ["x", "y"],
+      },
+      "returns": {"type": "number", "description": "The product of the two input numbers."},
+  }
 ]
 
-funcs = [
-    {
-        "type": "object",
-        "properties": {
-            "name": {"const": tool["name"]},
-            "arguments": tool["parameters"],
-        },
-        "required": ["name", "arguments"],
-    }
-    for tool in tools
-]
+# format passing to openai client
+tools = [{"type": "function", "function": tool} for tool in phi4_tools]
+
+tool_descs = []
+for tool in tools:
+  tool = tool["function"]
+  json_desc = {
+      "type": "object",
+      "properties": {
+          "name": {"const": tool["name"]},
+          "arguments": tool["parameters"],
+      },
+      "required": ["name", "arguments"],
+  }
+  tool_descs.append(json_desc)
 ```
 
 ## Model-specific grammars
@@ -87,7 +91,7 @@ A corresponding JSON schema and grammar might look like:
 ```py
 schema = {
   "type": "array",
-  "items": {"anyOf": funcs},
+  "items": {"anyOf": tool_descs},
   "minItems": 1,
 }
 
@@ -116,8 +120,8 @@ One way to express that with a grammar is:
 grammar = f"""
 start: /(tool)+/
 tool: <tool_call> "\n" (func1 | func2) "\n" <|/tool_call|>
-func1: %json {json.dumps(funcs[0])}
-func2: %json {json.dumps(funcs[1])}
+func1: %json {json.dumps(tool_descs[0])}
+func2: %json {json.dumps(tool_descs[1])}
 """
 ```
 
@@ -164,7 +168,7 @@ You can then define a single, unified grammar to parse toolcall outputs from any
 ```py
 schema = {
   "type": "array",
-  "items": {"anyOf": funcs},
+  "items": {"anyOf": tool_descs},
   "minItems": 1,
 }
 
