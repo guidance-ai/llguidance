@@ -22,7 +22,7 @@ But if you force the model to start its answer with `{ "name": "`, a pattern it 
 
 > `{ "name": "The capital of France is Paris and its population is 2,050,000`
 
-However, since the model doesn't inherently know it must close the string with a `"`, it may continue generating text, resulting in malformed or irrelevant output, for example:
+However, without any context, the model does not know that it has to close the string with a `"`, it may continue generating text for the "name" key until it reaches the token limit. Although this output technically remains a valid JSON string value, it often leads to incomplete JSON objects or irrelevant content, such as:
 
 > `{ "name": "The capital of France is Paris and its population is 2,050,000. Paris is famous for its iconic landmarks like the Eiffel Tower, Louvre Museum, and Notre-Dame Cathedral, its world-class art. 撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤"`
 
@@ -99,7 +99,7 @@ for tool in tools:
 When targeting one model or a model family, match its native tool call format — it's the most reliable.
 
 Simple instructions
-- Inspect a few real outputs (for single and multiple tool calls) to capture delimiters, wrappers, and spacing.
+- Read model documentation and carefully inspect a few real outputs (for single and multiple tool calls) to capture delimiters, wrappers, and spacing.
 - Define grammar rules that mirror exact wrappers and the JSON shape (single vs. multi-tool call).
 
 ### Phi-4-Mini (example)
@@ -202,4 +202,6 @@ tools: %json {json.dumps(schema)}
 """
 ```
 
-**Note:** This is just one possible approach. You can adjust the injected prompt to produce any output format you prefer, such as a plain JSON array of tool calls without the `functools` prefix, depending on your integration needs.
+**Note:** 
+- This is just one possible approach. You can adjust the injected prompt to produce any output format you prefer, such as a plain JSON array of tool calls without the `functools` prefix, depending on your integration needs.
+- While prompt-injection can unify outputs, it may not be as reliable as model-specific grammars as the model was trained intensively for its own format. However, careful prompting and, if possible, fine-tuning can help improve consistency and close the gap.
