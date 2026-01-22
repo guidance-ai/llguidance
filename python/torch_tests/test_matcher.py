@@ -261,8 +261,8 @@ def test_consume_token_par_errors() -> None:
     g0 = matcher(r"start: /[a-zA-Z]+/")
 
     # Test empty list
-    results = consume_token_par(exec, [])
-    assert results == []
+    with pytest.raises(ValueError, match="No matchers"):
+        consume_token_par(exec, [])
 
     # Test wrong tuple size
     with pytest.raises(ValueError, match=r"Expecting.*tuple"):

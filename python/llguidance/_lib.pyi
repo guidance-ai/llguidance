@@ -572,7 +572,7 @@ class LLExecutor:
 
     def consume_token_par(
         self,
-        matchers: List[Tuple[LLMatcher, int]],
+        matchers: List[Tuple[LLMatcher, TokenId]],
     ) -> List[bool]:
         """
         Consume a single token for each matcher in parallel.
@@ -580,7 +580,7 @@ class LLExecutor:
         Args:
             matchers: List of tuples containing:
                 - LLMatcher: The matcher object
-                - int: The token ID to consume
+                - TokenId: The token ID to consume
 
         Returns:
             List[bool]: Success/failure for each matcher (in order).

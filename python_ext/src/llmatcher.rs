@@ -174,16 +174,14 @@ impl LLExecutor {
         py: Python<'_>,
     ) -> PyResult<Vec<bool>> {
         if matchers_and_tokens.len() == 0 {
-            return Ok(vec![]);
+            return Err(PyValueError::new_err("No matchers"));
         }
 
         let mut mut_refs = vec![];
         for (idx, ent) in matchers_and_tokens.iter().enumerate() {
             let tupl = ent.cast::<PyTuple>()?;
             if tupl.len() != 2 {
-                return Err(PyValueError::new_err(
-                    "Expecting (LLMatcher, TokenId) tuple",
-                ));
+                return Err(PyValueError::new_err("Expecting (LLMatcher, int) tuple"));
             }
             let interp = tupl.get_item(0)?.extract::<PyRefMut<LLMatcher>>()?;
             let token = tupl.get_item(1)?.extract::<TokenId>()?;
