@@ -43,6 +43,33 @@ To avoid out-of-distribution (OOD) outputs when using grammar for tool-calling, 
 
 The following sections provide examples for both approaches: building grammars for model-specific outputs and designing a unified interface with prompt-injection.
 
+## How To Find Tool-Call Format
+1. ** Check the chat template **
+
+Most HuggingFace models ship with a Jinja2 template in tokenizer_config.json. This is often the authoritative source:
+```py
+from transformers import AutoTokenizer
+tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-4-mini-instruct")
+print(tokenizer.chat_template)
+```
+Look for tool-related blocks. They'll reveal delimiters, JSON structure, and whether tools go in system vs. user messages.
+
+2. ** Read the model card / technical report **
+
+Official documentation sometimes specifies the format explicitly, though it's often incomplete or buried.
+
+3. ** Empirical probing **
+
+When docs are lacking, just run the model with a simple tool and inspect raw output:
+
+Try single and multiple tool calls
+Check for delimiters, newlines, array vs. separate objects
+Note whether it emits a preamble before the tool call
+
+4. ** Look at existing integrations **
+
+Projects like vLLM, llama.cpp, and Ollama often have chat templates or parsing code for popular models.
+
 ## Example tool definitions
 
 Consider the following example tool definitions (Python-style):
@@ -171,7 +198,7 @@ Use the following rule to decide when to call a function:
 If you decide to call functions:
   * prefix function calls with functools marker (no closing marker required)
   * all function calls should be generated in a single JSON list formatted as functools[{"name": [function name], "arguments": [function arguments as JSON]}, ...]
-  * follow the provided JSON schema. Do not hallucinate arguments or values. Do to blindly copy values from the provided samples
+  * follow the provided JSON schema. Do not hallucinate arguments or values. Do not blindly copy values from the provided samples
   * respect the argument type formatting. E.g., if the type is number and format is float, write value 7 as 7.0
   * make sure you pick the right functions that match the user intent
 """
