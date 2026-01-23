@@ -178,49 +178,38 @@ impl LLExecutor {
         }
 
         let mut mut_refs = vec![];
-        for (idx, ent) in matchers_and_tokens.iter().enumerate() {
+        for ent in matchers_and_tokens.iter() {
             let tupl = ent.cast::<PyTuple>()?;
             if tupl.len() != 2 {
                 return Err(PyValueError::new_err("Expecting (LLMatcher, int) tuple"));
             }
             let interp = tupl.get_item(0)?.extract::<PyRefMut<LLMatcher>>()?;
             let token = tupl.get_item(1)?.extract::<TokenId>()?;
-            mut_refs.push((interp, token, idx));
+            mut_refs.push((interp, token));
         }
 
         if mut_refs.len() == 1 {
-            let (mut interp, token, _) = mut_refs.pop().unwrap();
+            let (mut interp, token) = mut_refs.pop().unwrap();
             return Ok(vec![interp.consume_token(token)]);
         }
 
-        let len = mut_refs.len();
-        let results = std::sync::Arc::new(
-            (0..len)
-                .map(|_| std::sync::atomic::AtomicBool::new(false))
-                .collect::<Vec<_>>(),
-        );
-
         let mut_refs2: Vec<_> = mut_refs
             .iter_mut()
-            .map(|(x, token, idx)| (x.deref_mut(), *token, *idx))
+            .map(|(x, token)| (x.deref_mut(), *token))
             .collect();
 
         use rayon::prelude::*;
 
-        let results_ref = results.clone();
-        py.detach(|| {
+        let results = py.detach(|| {
             self.pool.install(|| {
-                mut_refs2.into_par_iter().for_each(|(interp, token, idx)| {
-                    let success = interp.consume_token_inner(token);
-                    results_ref[idx].store(success, std::sync::atomic::Ordering::Relaxed);
-                })
+                mut_refs2
+                    .into_par_iter()
+                    .map(|(interp, token)| interp.consume_token_inner(token))
+                    .collect()
             })
         });
 
-        Ok(results
-            .iter()
-            .map(|b| b.load(std::sync::atomic::Ordering::Relaxed))
-            .collect())
+        Ok(results)
     }
 }
 
