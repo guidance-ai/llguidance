@@ -23,17 +23,17 @@ But if you force the model to start its answer with `{ "name": "`, a pattern it 
 
 > `{ "name": "The capital of France is Paris and its population is 2,050,000`
 
-However, without any context, the model does not know that it has to close the string with a `"`, it may continue generating text for the "name" key until it reaches the token limit. Forcing unfamiliar formats may provide outputs that technically follow the format but are incoherent or otherwise garbled and may hit the token limit, leading to invalid output such as:
+However, without any context, the model does not know that it has to close the string with a `"`, it may continue generating text for the "name" key until it reaches the token limit such as:
 
 > `{ "name": "The capital of France is Paris and its population is 2,050,000. Paris is famous for its iconic landmarks like the Eiffel Tower, Louvre Museum, and Notre-Dame Cathedral, its world-class art. 撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤"`
 
-This happens because the model is operating outside the distribution of outputs it was trained on. Models are typically trained or fine-tuned on specific output styles and token sequences, so they reliably reproduce those formats. When forced to generate unfamiliar formats, they may produce invalid JSON, incomplete outputs, or unrelated text.
+This happens because the model is operating outside the distribution of outputs it was trained on. Models are typically trained or fine-tuned on specific output styles and token sequences, so they reliably reproduce those formats. When forced to generate unfamiliar formats, models may produce outputs that technically follow the format from the grammar but are incoherent or otherwise garbled and may hit the token limit, leading to invalid output.
 
 **Preventing Out-of-Distribution Tool Call Outputs**
 
 To avoid out-of-distribution (OOD) outputs when using grammar for tool-calling, you can use one of two main strategies:
 
-1. **Tailor the grammar to each model’s native output format.**  
+1. **Tailor the grammar to each model’s `native` output format.**  
   - This approach maximizes reliability by matching the model’s expected output structure, reducing parsing errors and unexpected results.
   - Recommended for production scenarios or when you need robust, predictable parsing.
 
