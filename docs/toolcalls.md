@@ -1,9 +1,10 @@
 # Tool calls
+This document describes how to design grammars for tool calls across different LLMs. Since models often use unique output formats, you can use either:
 
-This document explains how to design and parse tool call outputs produced by different LLMs. Models often use distinct output formats, so you can either:
+- **Model-specific grammar:** Create a grammar that matches the exact output format the model was trained to produce. This approach is strongly recommended for maximum reliability and performance.
+- **Prompt-injection for a unified format:** Use prompt injection to guide models to emit tool calls in a standardized, universal format. This enables interoperability and allows you to switch between models without modifying your grammar or parsing logic.
 
-- build a model-specific grammar tailored to the model's expected format (recommended for best accuracy), or
-- use prompt-injection to coerce self-hosted models into a consistent, universal format.
+Both approaches are covered in detail below.
 
 ### Why tailor a grammar to each model format?
 
@@ -22,7 +23,7 @@ But if you force the model to start its answer with `{ "name": "`, a pattern it 
 
 > `{ "name": "The capital of France is Paris and its population is 2,050,000`
 
-However, without any context, the model does not know that it has to close the string with a `"`, it may continue generating text for the "name" key until it reaches the token limit. Although this output technically remains a valid JSON string value, it often leads to incomplete JSON objects or irrelevant content, such as:
+However, without any context, the model does not know that it has to close the string with a `"`, it may continue generating text for the "name" key until it reaches the token limit. Forcing unfamiliar formats may provide outputs that technically follow the format but are incoherent or otherwise garbled and may hit the token limit, leading to invalid output such as:
 
 > `{ "name": "The capital of France is Paris and its population is 2,050,000. Paris is famous for its iconic landmarks like the Eiffel Tower, Louvre Museum, and Notre-Dame Cathedral, its world-class art. 撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤"`
 
