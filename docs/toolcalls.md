@@ -27,7 +27,7 @@ However, without any context, the model does not know that it has to close the s
 
 > `{ "name": "The capital of France is Paris and its population is 2,050,000. Paris is famous for its iconic landmarks like the Eiffel Tower, Louvre Museum, and Notre-Dame Cathedral, its world-class art. 撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤"`
 
-This happens because the model is operating outside the distribution of outputs it was trained on. Models are typically trained or fine-tuned on specific output styles and token sequences, so they reliably reproduce those formats. When forced to generate unfamiliar formats, models may produce outputs that technically follow the format from the grammar but are incoherent or otherwise garbled and may hit the token limit, leading to invalid output.
+This happens because the model is operating outside the distribution of outputs it was trained on. Models are typically trained or fine-tuned on specific output styles and token sequences, so they can reliably reproduce those formats. When forced to generate unfamiliar formats, models may produce outputs that technically follow the format from the grammar but are incoherent or otherwise garbled and may hit the token limit, leading to invalid output.
 
 **Preventing Out-of-Distribution Tool Call Outputs**
 
@@ -47,7 +47,7 @@ The following sections provide examples for both approaches: building grammars f
 ## How To Find Tool-Call Format
 1. ** Check the chat template **
 
-Most HuggingFace models ship with a Jinja2 template in tokenizer_config.json. This is often the authoritative source:
+Most HuggingFace models ship with a template in tokenizer_config.json. This is often the authoritative source:
 ```py
 from transformers import AutoTokenizer
 tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-4-mini-instruct")
