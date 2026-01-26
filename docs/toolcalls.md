@@ -13,9 +13,9 @@ A common mistake is assuming that simply providing a grammar will make a model g
 **Example: Out-of-distribution output**
 
 - **Input:** "Tell me the capital and population of France"
-- **Grammar:** `{"name": string, "population": int}`
+- **JSON Schema:** `{"name": string, "population": int}`
 
-If you do not provide explicit context or examples in the prompt, the model may default to its usual conversational style, such as:
+If you do not provide explicit context or examples in the prompt, the model may try to default to its usual conversational style, such as:
 
 > "The capital of France is Paris and its population is 2,050,000."
 
@@ -27,7 +27,7 @@ However, without any context, the model does not know that it has to close the s
 
 > `{ "name": "The capital of France is Paris and its population is 2,050,000. Paris is famous for its iconic landmarks like the Eiffel Tower, Louvre Museum, and Notre-Dame Cathedral, its world-class art. 撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤撤"`
 
-This happens because the model is operating outside the distribution of outputs it was trained on. Models are typically trained or fine-tuned on specific output styles and token sequences, so they can reliably reproduce those formats. When forced to generate unfamiliar formats, models may produce outputs that technically follow the format from the grammar but are incoherent or otherwise garbled and may hit the token limit, leading to invalid output.
+The model may keep appending the last token forever if you extend the token limit. This happens because the model is operating outside the distribution of outputs it was trained on. Models are typically trained or fine-tuned on specific output styles and token sequences, so they can reliably reproduce those formats. When forced to generate unfamiliar formats, models may produce outputs that technically follow the format from the grammar but are incoherent or otherwise garbled and may hit the token limit, leading to invalid output.
 
 **Preventing Out-of-Distribution Tool Call Outputs**
 
