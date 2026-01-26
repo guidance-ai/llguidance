@@ -857,7 +857,7 @@ impl TokTrie {
         r.save_stats(nodes_walked);
     }
 
-    #[inline(always)]
+    #[inline(never)]
     fn add_bias_inner(
         &self,
         r: &mut impl Recognizer,
