@@ -855,6 +855,9 @@ impl TokTrie {
         }
         r.trie_finished();
         r.save_stats(nodes_walked);
+        // clean up the fake token set by add_bias_inner for nodes without token_id
+        let defl_tok = self.vocab_size() as u32;
+        toks.disallow_token(defl_tok);
     }
 
     #[inline(never)]
@@ -864,6 +867,10 @@ impl TokTrie {
         toks: &mut SimpleVob,
         n: &TrieNode,
     ) -> (usize, usize) {
+        // Use a fake token at vocab_size to avoid branching in the hot loop.
+        // This is safe because alloc_token_set() allocates capacity for vocab_size + 1 tokens.
+        // The fake token is cleaned up in add_bias() after the walk completes.
+        let defl_tok = self.vocab_size() as u32;
         let off = self.node_offset(n);
         let total_nodes = n.subtree_size();
         let mut p = off + 1;
@@ -876,9 +883,8 @@ impl TokTrie {
             let n = unsafe { nodes.get_unchecked(p) };
             let b = n.byte();
             if r.try_push_byte(b) {
-                if let Some(tok) = n.token_id() {
-                    unsafe { toks.allow_token_unchecked(tok) };
-                }
+                // Avoid branching: always set a token (either real or fake at defl_tok)
+                unsafe { toks.allow_token_unchecked(n.token_id().unwrap_or(defl_tok)) };
                 next_pop = if n.subtree_size() == 1 {
                     n.num_parents()
                 } else {
