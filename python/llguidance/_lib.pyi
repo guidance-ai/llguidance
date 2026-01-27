@@ -584,6 +584,10 @@ class LLExecutor:
 
         Returns:
             List[bool]: Success/failure for each matcher (in order).
+
+        Note:
+            Matchers that fail (return False) are left in an error state,
+            consistent with the behavior of consume_token on a single matcher.
         """
 
 class JsonCompileOptions(TypedDict, total=False):

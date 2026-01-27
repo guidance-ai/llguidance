@@ -90,5 +90,9 @@ def consume_token_par(executor: LLExecutor,
 
     Returns:
         List[bool]: Success/failure for each matcher (in order).
+
+    Note:
+        Matchers that fail (return False) are left in an error state,
+        consistent with the behavior of consume_token on a single matcher.
     """
     return executor.consume_token_par(matchers)

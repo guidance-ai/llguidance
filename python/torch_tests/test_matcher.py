@@ -272,6 +272,14 @@ def test_consume_token_par_errors() -> None:
     with pytest.raises(RuntimeError, match="Already borrowed"):
         consume_token_par(exec, [(g0, 1), (g0, 2)])
 
+    # Test wrong type in first slot (not an LLMatcher)
+    with pytest.raises(TypeError):
+        exec.consume_token_par([("not a matcher", 1)])  # type: ignore
+
+    # Test wrong type in second slot (not an int)
+    with pytest.raises(TypeError):
+        exec.consume_token_par([(g0, "not an int")])  # type: ignore
+
 
 def retrieve_tokens_from_bitmask(
     bitmask: NDArray[np.int32], vocab_size: int
