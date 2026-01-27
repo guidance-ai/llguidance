@@ -225,7 +225,7 @@ impl SimpleVob {
     }
 
     /// # Safety
-    /// tok must be a valid token id (less than vocab_size)
+    /// tok must be a valid token id (less than or equal to vocab_size, where equality is a stand-in for NO_TOKEN)
     #[inline(always)]
     pub unsafe fn allow_token_unchecked(&mut self, tok: TokenId) {
         let word_idx = (tok >> 5) as usize;
