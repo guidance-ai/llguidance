@@ -228,6 +228,7 @@ impl SimpleVob {
     /// tok must be a valid token id (less than or equal to vocab_size, where equality is a stand-in for NO_TOKEN)
     #[inline(always)]
     pub unsafe fn allow_token_unchecked(&mut self, tok: TokenId) {
+        debug_assert_eq!(BITS, 32, "BITS must be 32 for bit shift operations to work");
         debug_assert!(
             tok as usize <= self.data.len() * BITS,
             "token {} exceeds maximum capacity",
