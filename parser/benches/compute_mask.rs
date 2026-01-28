@@ -1,7 +1,7 @@
 use std::hint::black_box;
 use std::sync::Arc;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use llguidance::{
     api::TopLevelGrammar,
     toktrie::{TokEnv, TokRxInfo, TokTrie, TokenId, TokenizerEnv},
@@ -69,32 +69,111 @@ fn matcher_at_prefix(tok_env: &TokEnv, prefix: &[u8]) -> Matcher {
 }
 
 fn bench_compute_mask(c: &mut Criterion) {
-    let tok_env = synthetic_tok_env(32_768);
-    let mut matcher = matcher_at_prefix(&tok_env, TITLE_STRING_PREFIX);
+    let mut group = c.benchmark_group("compute_mask");
 
-    c.bench_function("compute_mask/title_string/32k", |b| {
-        b.iter(|| black_box(matcher.compute_mask().unwrap()))
-    });
+    // Test different vocabulary sizes to see how optimizations scale
+    for vocab_size in [1_024, 8_192, 32_768, 65_536] {
+        group.throughput(Throughput::Elements(1));
+        group.bench_with_input(
+            BenchmarkId::from_parameter(vocab_size),
+            &vocab_size,
+            |b, &size| {
+                let tok_env = synthetic_tok_env(size);
+                let mut matcher = matcher_at_prefix(&tok_env, TITLE_STRING_PREFIX);
+                b.iter(|| black_box(matcher.compute_mask().unwrap()))
+            },
+        );
+    }
+    group.finish();
 }
 
 fn bench_generate_string(c: &mut Criterion) {
-    let tok_env = synthetic_tok_env(32_768);
-    let matcher = matcher_at_prefix(&tok_env, TITLE_STRING_PREFIX);
+    use criterion::BatchSize;
 
-    c.bench_function("generate_string/10tok/32k", |b| {
-        let mut m = matcher.deep_clone();
-        b.iter(|| {
-            for _ in 0..10 {
-                let mask = m.compute_mask().unwrap();
-                let tok = (b'a' as TokenId..=b'z' as TokenId)
-                    .find(|&t| mask.is_allowed(t))
-                    .unwrap_or(b'a' as TokenId);
-                m.consume_token(tok).unwrap();
-            }
-            m.rollback(10).unwrap();
-        })
-    });
+    let mut group = c.benchmark_group("generate_string");
+
+    for vocab_size in [1_024, 8_192, 32_768, 65_536] {
+        group.throughput(Throughput::Elements(10)); // 10 tokens generated
+        group.bench_with_input(
+            BenchmarkId::from_parameter(vocab_size),
+            &vocab_size,
+            |b, &size| {
+                let tok_env = synthetic_tok_env(size);
+                let matcher = matcher_at_prefix(&tok_env, TITLE_STRING_PREFIX);
+
+                b.iter_batched(
+                    || matcher.deep_clone(),
+                    |mut m| {
+                        for _ in 0..10 {
+                            let mask = m.compute_mask().unwrap();
+                            let tok = (b'a' as TokenId..=b'z' as TokenId)
+                                .find(|&t| mask.is_allowed(t))
+                                .unwrap_or(b'a' as TokenId);
+                            m.consume_token(tok).unwrap();
+                        }
+                        m.rollback(10).unwrap();
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    group.finish();
 }
 
-criterion_group!(benches, bench_compute_mask, bench_generate_string);
+fn bench_allow_token_operations(c: &mut Criterion) {
+    use criterion::BatchSize;
+    use llguidance::toktrie::SimpleVob;
+
+    let mut group = c.benchmark_group("allow_token");
+
+    for vocab_size in [1_024, 8_192, 32_768, 65_536] {
+        // Benchmark checked version
+        group.bench_with_input(
+            BenchmarkId::new("checked", vocab_size),
+            &vocab_size,
+            |b, &size| {
+                b.iter_batched(
+                    || SimpleVob::alloc_with_capacity(size, size + 1),
+                    |mut vob| {
+                        for tok in 0..100 {
+                            vob.allow_token(tok);
+                        }
+                        black_box(vob)
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+
+        // Benchmark unchecked version (the optimization)
+        group.bench_with_input(
+            BenchmarkId::new("unchecked", vocab_size),
+            &vocab_size,
+            |b, &size| {
+                b.iter_batched(
+                    || SimpleVob::alloc_with_capacity(size, size + 1),
+                    |mut vob| {
+                        for tok in 0..100 {
+                            unsafe { vob.allow_token_unchecked(tok) };
+                        }
+                        black_box(vob)
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
+    group.finish();
+}
+
+criterion_group! {
+    name = benches;
+    config = Criterion::default()
+        .sample_size(100)
+        .warm_up_time(std::time::Duration::from_secs(3))
+        .measurement_time(std::time::Duration::from_secs(5))
+        .noise_threshold(0.05);
+    targets = bench_compute_mask, bench_generate_string, bench_allow_token_operations
+}
 criterion_main!(benches);
