@@ -855,7 +855,10 @@ impl TokTrie {
         }
         r.trie_finished();
         r.save_stats(nodes_walked);
-        // clean up the fake token set by add_bias_inner for nodes without token_id
+        // Clean up the fake token set by add_bias_inner for nodes without token_id.
+        // Note: If add_bias_inner panics, this cleanup won't run, leaving the fake token set.
+        // This is acceptable since panics indicate unrecoverable errors and the program state
+        // is likely already corrupted.
         let defl_tok = self.vocab_size() as u32;
         toks.disallow_token(defl_tok);
     }

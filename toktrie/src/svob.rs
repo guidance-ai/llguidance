@@ -49,6 +49,10 @@ impl From<SimpleVob> for Vec<u32> {
 
 const BITS: usize = 32;
 
+// Compile-time assertion: BITS must be 32 because the implementation uses Vec<u32>
+// and hardcoded bit shift operations (>> 5 and & 31) that only work for 32-bit words
+const _: () = assert!(BITS == 32, "BITS must be 32 to match Vec<u32> storage and bit shift operations");
+
 impl SimpleVob {
     pub fn new() -> Self {
         Self {
@@ -228,15 +232,14 @@ impl SimpleVob {
     /// tok must be a valid token id (less than or equal to vocab_size, where equality is a stand-in for NO_TOKEN)
     #[inline(always)]
     pub unsafe fn allow_token_unchecked(&mut self, tok: TokenId) {
-        debug_assert_eq!(BITS, 32, "BITS must be 32 for bit shift operations to work");
         debug_assert!(
             tok as usize <= self.data.len() * BITS,
             "token {} exceeds maximum capacity",
             tok
         );
-        // Bit trick: tok >> 5 is equivalent to tok / 32, gives us which 32-bit word contains this token's bit
+        // tok >> 5 is fast equivalent to tok / 32, gives us which 32-bit word contains this token's bit
         let word_idx = (tok >> 5) as usize;
-        // Bit trick: tok & 31 is equivalent to tok % 32, gives us which bit within that word (0-31)
+        // tok & 31 is fast equivalent to tok % 32, gives us which bit within that word (0-31)
         let bit_idx = tok & 31;
         debug_assert!(
             word_idx < self.data.len(),
@@ -244,7 +247,7 @@ impl SimpleVob {
             word_idx,
             tok
         );
-        // Bit trick: 1u32 << bit_idx creates a mask with only the target bit set (e.g., 1 << 5 = 0b100000)
+        // 1u32 << bit_idx creates a mask with only the target bit set (e.g., 1 << 5 = 0b100000)
         // Then |= sets that bit in the word without affecting other bits
         *self.data.get_unchecked_mut(word_idx) |= 1u32 << bit_idx;
     }
