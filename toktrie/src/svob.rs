@@ -230,6 +230,14 @@ impl SimpleVob {
     pub unsafe fn allow_token_unchecked(&mut self, tok: TokenId) {
         let word_idx = (tok >> 5) as usize;
         let bit_idx = tok & 31;
+        debug_assert!(
+            word_idx < self.data.len(),
+            "word index {} out of bounds for token {} (data len: {}, capacity: {})",
+            word_idx,
+            tok,
+            self.data.len(),
+            self.data.len() * 32
+        );
         *self.data.get_unchecked_mut(word_idx) |= 1u32 << bit_idx;
     }
 
