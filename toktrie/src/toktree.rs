@@ -884,14 +884,24 @@ impl TokTrie {
         while p < endp {
             r.pop_bytes(next_pop);
             let n = unsafe {
-                debug_assert!(p < nodes.len(), "node index {} out of bounds (len: {})", p, nodes.len());
+                debug_assert!(
+                    p < nodes.len(),
+                    "node index {} out of bounds (len: {})",
+                    p,
+                    nodes.len()
+                );
                 nodes.get_unchecked(p)
             };
             let b = n.byte();
             if r.try_push_byte(b) {
                 // Avoid branching: always set a token (either real or fake at defl_tok)
                 let tok = n.token_id().unwrap_or(defl_tok);
-                debug_assert!(tok <= self.vocab_size() as u32, "token {} out of valid range (vocab_size: {})", tok, self.vocab_size());
+                debug_assert!(
+                    tok <= self.vocab_size() as u32,
+                    "token {} out of valid range (vocab_size: {})",
+                    tok,
+                    self.vocab_size()
+                );
                 unsafe { toks.allow_token_unchecked(tok) };
                 next_pop = if n.subtree_size() == 1 {
                     n.num_parents()

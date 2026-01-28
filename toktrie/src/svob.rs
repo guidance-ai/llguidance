@@ -51,7 +51,10 @@ const BITS: usize = 32;
 
 // Compile-time assertion: BITS must be 32 because the implementation uses Vec<u32>
 // and hardcoded bit shift operations (>> 5 and & 31) that only work for 32-bit words
-const _: () = assert!(BITS == 32, "BITS must be 32 to match Vec<u32> storage and bit shift operations");
+const _: () = assert!(
+    BITS == 32,
+    "BITS must be 32 to match Vec<u32> storage and bit shift operations"
+);
 
 impl SimpleVob {
     pub fn new() -> Self {
