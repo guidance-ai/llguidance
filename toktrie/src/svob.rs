@@ -296,7 +296,7 @@ impl SimpleVob {
     }
 
     pub fn resize(&mut self, size: usize) {
-        let new_size = (size + BITS - 1) / BITS;
+        let new_size = size.div_ceil(BITS);
         assert!(new_size >= self.data.len());
         self.data.resize(new_size, 0);
         self.size = size;
