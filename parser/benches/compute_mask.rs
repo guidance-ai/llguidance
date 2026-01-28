@@ -121,52 +121,6 @@ fn bench_generate_string(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_allow_token_operations(c: &mut Criterion) {
-    use criterion::BatchSize;
-    use llguidance::toktrie::SimpleVob;
-
-    let mut group = c.benchmark_group("allow_token");
-
-    for vocab_size in [1_024, 8_192, 32_768, 65_536] {
-        // Benchmark checked version
-        group.bench_with_input(
-            BenchmarkId::new("checked", vocab_size),
-            &vocab_size,
-            |b, &size| {
-                b.iter_batched(
-                    || SimpleVob::alloc_with_capacity(size, size + 1),
-                    |mut vob| {
-                        for tok in 0..100 {
-                            vob.allow_token(tok);
-                        }
-                        black_box(vob)
-                    },
-                    BatchSize::SmallInput,
-                )
-            },
-        );
-
-        // Benchmark unchecked version (the optimization)
-        group.bench_with_input(
-            BenchmarkId::new("unchecked", vocab_size),
-            &vocab_size,
-            |b, &size| {
-                b.iter_batched(
-                    || SimpleVob::alloc_with_capacity(size, size + 1),
-                    |mut vob| {
-                        for tok in 0..100 {
-                            unsafe { vob.allow_token_unchecked(tok) };
-                        }
-                        black_box(vob)
-                    },
-                    BatchSize::SmallInput,
-                )
-            },
-        );
-    }
-    group.finish();
-}
-
 criterion_group! {
     name = benches;
     config = Criterion::default()
@@ -174,6 +128,6 @@ criterion_group! {
         .warm_up_time(std::time::Duration::from_secs(3))
         .measurement_time(std::time::Duration::from_secs(5))
         .noise_threshold(0.05);
-    targets = bench_compute_mask, bench_generate_string, bench_allow_token_operations
+    targets = bench_compute_mask, bench_generate_string
 }
 criterion_main!(benches);
