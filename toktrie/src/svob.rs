@@ -229,7 +229,7 @@ impl SimpleVob {
     #[inline(always)]
     pub unsafe fn allow_token_unchecked(&mut self, tok: TokenId) {
         debug_assert!(
-            tok as usize <= self.data.len() * 32,
+            tok as usize <= self.data.len() * BITS,
             "token {} exceeds maximum capacity",
             tok
         );
