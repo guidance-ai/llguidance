@@ -4,7 +4,7 @@ use std::{
     path::Path,
     sync::Arc,
 };
-use tokenizers::{normalizers::Sequence, NormalizerWrapper, Tokenizer};
+use tokenizers::{normalizers, pre_tokenizers, NormalizerWrapper, PreTokenizerWrapper, Tokenizer};
 use toktrie::{TokEnv, TokRxInfo, TokTrie, TokenId, TokenizerEnv};
 
 pub struct ByteTokenizer {
@@ -54,21 +54,56 @@ impl ByteTokenizer {
         let mut is_byte_fallback = false;
         let mut space_ch = ' ';
 
-        // remove the "Prepend space"
-        if let Some(n) = hft.get_normalizer() {
-            let n = match n {
-                NormalizerWrapper::Sequence(x) => NormalizerWrapper::Sequence(Sequence::new(
-                    x.as_ref()
+        // remove the "Prepend space" normalizer if present
+        fn remove_prepend_normalizer(n: NormalizerWrapper) -> Option<NormalizerWrapper> {
+            match n {
+                NormalizerWrapper::Prepend(_) => None,
+                NormalizerWrapper::Sequence(x) => {
+                    let filtered: Vec<_> = x
+                        .as_ref()
                         .iter()
-                        .filter_map(|n| match n {
-                            NormalizerWrapper::Prepend(_) => None,
-                            _ => Some(n.clone()),
-                        })
-                        .collect(),
-                )),
-                _ => n.clone(),
-            };
-            hft.with_normalizer(Some(n));
+                        .filter_map(|n| remove_prepend_normalizer(n.clone()))
+                        .collect();
+                    if filtered.is_empty() {
+                        None
+                    } else {
+                        Some(NormalizerWrapper::Sequence(normalizers::Sequence::new(
+                            filtered,
+                        )))
+                    }
+                }
+                _ => Some(n),
+            }
+        }
+
+        let norm = hft.get_normalizer().cloned();
+        if let Some(n) = norm {
+            hft.with_normalizer(remove_prepend_normalizer(n));
+        }
+
+        // fix pre-tokenizers that prepend spaces (e.g., Metaspace with prepend_scheme: First/Always)
+        fn fix_metaspace(pt: PreTokenizerWrapper) -> PreTokenizerWrapper {
+            match pt {
+                PreTokenizerWrapper::Metaspace(ms) => {
+                    let mut ms = ms.clone();
+                    ms.prepend_scheme = pre_tokenizers::metaspace::PrependScheme::Never;
+                    PreTokenizerWrapper::Metaspace(ms)
+                }
+                PreTokenizerWrapper::Sequence(x) => {
+                    PreTokenizerWrapper::Sequence(pre_tokenizers::sequence::Sequence::new(
+                        x.as_ref()
+                            .iter()
+                            .map(|pt| fix_metaspace(pt.clone()))
+                            .collect(),
+                    ))
+                }
+                _ => pt,
+            }
+        }
+
+        let pretok = hft.get_pre_tokenizer().cloned();
+        if let Some(pt) = pretok {
+            hft.with_pre_tokenizer(Some(fix_metaspace(pt)));
         }
 
         if let Some(d) = hft.get_decoder() {
@@ -329,5 +364,126 @@ mod tests {
             tokens,
             vec![special_id]
         );
+    }
+
+    use rstest::rstest;
+
+    #[rstest]
+    #[case::metaspace_always_top_level(
+        r#"null"#,
+        r#"{
+            "type": "Metaspace",
+            "replacement": "▁",
+            "prepend_scheme": "always",
+            "split": false
+        }"#
+    )]
+    #[case::metaspace_always_nested_in_sequence(
+        r#"null"#,
+        r#"{
+            "type": "Sequence",
+            "pretokenizers": [
+                {
+                    "type": "Metaspace",
+                    "replacement": "▁",
+                    "prepend_scheme": "always",
+                    "split": false
+                }
+            ]
+        }"#
+    )]
+    #[case::metaspace_first_top_level(
+        r#"null"#,
+        r#"{
+            "type": "Metaspace",
+            "replacement": "▁",
+            "prepend_scheme": "first",
+            "split": false
+        }"#
+    )]
+    #[case::metaspace_first_nested_in_sequence(
+        r#"null"#,
+        r#"{
+            "type": "Sequence",
+            "pretokenizers": [
+                {
+                    "type": "Metaspace",
+                    "replacement": "▁",
+                    "prepend_scheme": "first",
+                    "split": false
+                }
+            ]
+        }"#
+    )]
+    #[case::prepend_normalizer_top_level(
+        r#"{
+            "type": "Prepend",
+            "prepend": "▁"
+        }"#,
+        r#"null"#
+    )]
+    #[case::prepend_normalizer_nested_in_sequence(
+        r#"{
+            "type": "Sequence",
+            "normalizers": [
+                {
+                    "type": "Prepend",
+                    "prepend": "▁"
+                }
+            ]
+        }"#,
+        r#"null"#
+    )]
+    fn test_tokenizer_fixes(#[case] normalizer: &str, #[case] pre_tokenizer: &str) {
+        let tokenizer_json = format!(
+            r#"{{
+            "version": "1.0",
+            "truncation": null,
+            "padding": null,
+            "added_tokens": [],
+            "normalizer": {normalizer},
+            "pre_tokenizer": {pre_tokenizer},
+            "post_processor": null,
+            "decoder": {{
+                "type": "ByteLevel",
+                "add_prefix_space": false,
+                "trim_offsets": true
+            }},
+            "model": {{
+                "type": "BPE",
+                "dropout": null,
+                "unk_token": null,
+                "continuing_subword_prefix": "",
+                "end_of_word_suffix": "",
+                "fuse_unk": false,
+                "vocab": {{
+                    "▁a": 0,
+                    "▁>": 1,
+                    "a": 2,
+                    ">": 3,
+                    "▁": 4
+                }},
+                "merges": [
+                    "▁ a",
+                    "▁ >"
+                ]
+            }}
+        }}"#
+        );
+
+        let hf_tokenizer = Tokenizer::from_str(&tokenizer_json).unwrap();
+
+        // Before fix: tokenizer would add unwanted ▁ prefix
+        let before_encoded = hf_tokenizer.encode("a>", false).unwrap();
+        let before_ids = before_encoded.get_ids();
+        assert_eq!(before_ids, vec![0, 3], "Before fix: expected [▁a, >]");
+
+        // Create ByteTokenizer which should apply the fixes
+        let tokenizer = ByteTokenizer::from_tokenizer(hf_tokenizer).unwrap();
+
+        // After fix: tokenizer should NOT add unwanted prefixes
+        let after_encoded = tokenizer.hf_tokenizer.encode("a>", false).unwrap();
+        let after_ids = after_encoded.get_ids();
+        assert_eq!(after_ids, vec![2, 3], "After fix: expected [a, >]");
     }
 }

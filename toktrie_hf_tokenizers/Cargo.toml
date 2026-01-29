@@ -17,3 +17,6 @@ tokenizers = { version = "0.21.2", default-features = false, features = [
     "fancy-regex",
 ] }
 log = "0.4.25"
+
+[dev-dependencies]
+rstest = "0.25.0"

@@ -2698,6 +2698,7 @@ version = "1.4.0"
 dependencies = [
  "anyhow",
  "log",
+ "rstest",
  "serde",
  "serde_json",
  "tokenizers",
