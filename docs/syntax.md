@@ -256,6 +256,11 @@ except for the exact string `\n\n`.
 Also, `/[a-zA-Z \n]*/ & ~/(.*)\n\n(.*)/` would allow double newlines, but if there is at least two of them
 (`/./` doesn't match newline).
 
+Unlike all other regexes, negation `~` may match invalid UTF-8 sequences.
+To avoid this, intersect your negated regex with `/(?s:.*)/`.
+For example, `/(?s:.*)/ & ~/(?s:.*)AAA(?s:.*)/` will match any byte sequence 
+that does not contain `AAA` but is otherwise valid UTF-8.
+
 These operators are sometimes expensive to use, so you should generally avoid them if alternatives exist.
 
 ### Structured %regex
