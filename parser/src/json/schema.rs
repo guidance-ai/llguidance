@@ -920,8 +920,10 @@ fn compile_numeric(schema: &HashMap<&str, &Value>, integer: bool) -> Result<Sche
             let f = val.as_f64().ok_or_else(|| {
                 anyhow!("Expected f64 for 'multipleOf', got {}", limited_str(val))
             })?;
-            // Can discard the sign of f
-            Some(Decimal::try_from(f.abs())?)
+            if f <= 0.0 {
+                bail!("'multipleOf' must be a positive number, got {}", f);
+            }
+            Some(Decimal::try_from(f)?)
         }
     };
     Ok(Schema::Number(NumberSchema {
