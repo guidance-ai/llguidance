@@ -22,7 +22,13 @@ env:
 jobs:
   build:
 
+    name: Test with Python ${{ matrix.python-version }}
+
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.14t"]
 
     steps:
     - name: Checkout repo at ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
@@ -35,9 +41,9 @@ jobs:
       working-directory: parser
 
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
-        python-version: "3.11"
+        python-version: ${{ matrix.python-version }}
 
     - name: Install python test dependencies
       run: ./scripts/install-deps.sh
@@ -79,9 +85,9 @@ jobs:
       run: df -h .
 
     - name: Upload sdist and wheel artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
-        name: wheels
+        name: wheels-${{ matrix.python-version }}
         path: target/wheels/*
 
   msrv:
