@@ -23,7 +23,6 @@ struct PyTokenizer {
     tok_bos: Option<u32>,
 }
 
-#[derive(Clone)]
 #[pyclass(frozen)]
 pub(crate) struct LLTokenizer {
     factory: Arc<ParserFactory>,
@@ -328,7 +327,6 @@ impl TokenizerEnv for PyTokenizer {
     }
 }
 
-#[derive(Clone)]
 #[pyclass(frozen)]
 struct JsonCompiler {
     item_separator: String,
@@ -392,7 +390,6 @@ fn check_grammar(grm: TopLevelGrammar, check: bool) -> PyResult<String> {
     Ok(res)
 }
 
-#[derive(Clone)]
 #[pyclass(frozen)]
 struct LarkCompiler {}
 
@@ -409,7 +406,6 @@ impl LarkCompiler {
     }
 }
 
-#[derive(Clone)]
 #[pyclass(frozen)]
 struct RegexCompiler {}
 

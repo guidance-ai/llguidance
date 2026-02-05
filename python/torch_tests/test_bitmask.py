@@ -9,7 +9,13 @@ from typing import List, Tuple
 
 from llguidance.numpy import get_bitmask_shape
 import llguidance.numpy
-import llguidance.torch
+try:
+    import llguidance.torch
+except (ImportError, RuntimeError):
+    pytest.skip(
+        reason="tests require torch and torch.compile",
+        allow_module_level=True
+    )
 
 try:
     import llguidance.mlx as ll_mlx
