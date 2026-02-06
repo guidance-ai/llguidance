@@ -95,11 +95,13 @@ pub fn lookup_format(name: &str) -> Option<&str> {
             // IPv4address
             r"(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|",
             // reg-name = *( unreserved / pct-encoded / sub-delims )
+            // Note: [ and \ are not valid in reg-name, host validation happens at regex level
             r"(?:[a-zA-Z0-9\-._~!$&'()*+,;=]|%[0-9a-fA-F]{2})*",
             r")",
             // [ ":" port ]
             r"(?::(?P<port>[0-9]*))?",
             // path-abempty = *( "/" segment )
+            // Disallow invalid characters: \, <, >, {, }, ^, `, |, space, control chars
             r"(?P<path_abempty>(?:/(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})*)*)",
             r"|",
             // path-absolute = "/" [ segment-nz *( "/" segment ) ]

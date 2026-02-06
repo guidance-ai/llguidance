@@ -226,8 +226,8 @@ pub fn valid_uri(#[case] s: &str) {
 #[case(":// should fail")] // Missing scheme with spaces
 #[case("bar,baz:foo")]
 // Comma in scheme
-// #[case("https://[@example.org/test.txt")]                  // Invalid userinfo - TODO: requires stricter validation
-// #[case("https://example.org/foobar\\.txt")]                // Backslash - TODO: requires stricter validation
+#[case("https://[@example.org/test.txt")]                     // Invalid userinfo with [
+#[case("https://example.org/foobar\\.txt")]                   // Backslash in path
 #[case("https://example.org/foobar<>.txt")] // Invalid <> characters
 #[case("https://example.org/foobar{}.txt")] // Invalid {} characters
 #[case("https://example.org/foobar^.txt")] // Invalid ^ character
