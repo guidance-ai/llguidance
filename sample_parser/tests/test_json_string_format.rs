@@ -197,6 +197,13 @@ pub fn bad_uuid(#[case] s: &str) {
 #[case("ms-windows-store://pdp?productid=abc123")] // Microsoft Store
 // Complex URI with multiple components
 #[case("https://user:pass@api.example.com:8443/v2/users/123/profile?name=John%20Doe&active=true&sort=desc#contact-info")]
+// JSON Schema Test Suite cases (draft2020-12)
+#[case("http://foo.bar/?baz=qux#quux")] // URL with anchor tag
+#[case("http://foo.com/blah_(wikipedia)_blah#cite-1")] // URL with parentheses and anchor
+#[case("http://foo.bar/?q=Test%20URL-encoded%20stuff")] // URL-encoded query
+#[case("http://xn--nw2a.xn--j6w193g/")] // Puny-coded URL
+#[case("http://-.~_!$&'()*+,;=:%40:80%2f::::::@example.com")] // Many special characters
+#[case("http://223.255.255.254")] // IPv4-based URL
 pub fn valid_uri(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"uri"});
     json_schema_check(&schema, &json!(s), true);
@@ -212,6 +219,21 @@ pub fn valid_uri(#[case] s: &str) {
 #[case("http://[:::]/")] // Too many colons
 #[case("http://2001:db8::1/")] // IPv6 without brackets
 #[case("http://[2001:db8:85a3:0000:0000:8a2e:0370:7334:extra]/")] // Too many groups
+// JSON Schema Test Suite invalid cases (draft2020-12)
+#[case("\\\\WINDOWS\\fileshare")] // Windows path
+#[case("abc")] // Just a string, no scheme
+#[case("http:// shouldfail.com")] // Space after scheme
+#[case(":// should fail")] // Missing scheme with spaces
+#[case("bar,baz:foo")]
+// Comma in scheme
+// #[case("https://[@example.org/test.txt")]                  // Invalid userinfo - TODO: requires stricter validation
+// #[case("https://example.org/foobar\\.txt")]                // Backslash - TODO: requires stricter validation
+#[case("https://example.org/foobar<>.txt")] // Invalid <> characters
+#[case("https://example.org/foobar{}.txt")] // Invalid {} characters
+#[case("https://example.org/foobar^.txt")] // Invalid ^ character
+#[case("https://example.org/foobar`.txt")] // Invalid ` character
+#[case("https://example.org/foo bar.txt")] // Invalid SPACE character
+#[case("https://example.org/foobar|.txt")] // Invalid | character
 pub fn bad_uri(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"uri"});
     json_schema_check(&schema, &json!(s), false);
