@@ -133,6 +133,44 @@ pub fn bad_uuid(#[case] s: &str) {
     json_schema_check(&schema, &json!(s), false);
 }
 
+// RFC 3986 Section 1.1.2 examples
+#[rstest]
+#[case("ftp://ftp.is.co.za/rfc/rfc1808.txt")]
+#[case("http://www.ietf.org/rfc/rfc2396.txt")]
+#[case("ldap://[2001:db8::7]/c=GB?objectClass?one")]
+#[case("mailto:John.Doe@example.com")]
+#[case("news:comp.infosystems.www.servers.unix")]
+#[case("tel:+1-816-555-1212")]
+#[case("telnet://192.0.2.16:80/")]
+#[case("urn:oasis:names:specification:docbook:dtd:xml:4.1.2")]
+// Additional valid URIs
+#[case("http://example.com")]
+#[case("https://example.com/path/to/resource")]
+#[case("https://example.com?query=value")]
+#[case("https://example.com#section")]
+#[case("http://example.com:8080/")]
+#[case("ftp://user:pass@ftp.example.com/")]
+#[case("http://192.168.1.1/")]
+#[case("http://[::1]:8080/path")]
+#[case("https://example.com/path%20with%20spaces")]
+#[case("file:///path/to/file")]
+#[case("tel:+1-201-555-0123;ext=456")]
+pub fn valid_uri(#[case] s: &str) {
+    let schema = json!({"type":"string", "format":"uri"});
+    json_schema_check(&schema, &json!(s), true);
+}
+
+#[rstest]
+#[case("//example.com/path")]        // No scheme
+#[case("123://example.com")]          // Invalid scheme (starts with digit)
+#[case("http://example.com/%GG")]     // Invalid percent-encoding
+#[case("/path/to/resource")]          // Bare path (no scheme)
+#[case("http://example.com/path with spaces")] // Unencoded spaces
+pub fn bad_uri(#[case] s: &str) {
+    let schema = json!({"type":"string", "format":"uri"});
+    json_schema_check(&schema, &json!(s), false);
+}
+
 #[rstest]
 #[case("Some string")]
 pub fn valid_unknown(#[case] s: &str) {
