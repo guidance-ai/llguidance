@@ -193,6 +193,8 @@ pub fn bad_uuid(#[case] s: &str) {
 #[case("git+ssh://git@github.com/user/repo.git")]             // Git over SSH
 #[case("coap+tcp://example.com/sensor")]                      // CoAP over TCP
 #[case("ms-windows-store://pdp?productid=abc123")]            // Microsoft Store
+// Complex URI with multiple components
+#[case("https://user:pass@api.example.com:8443/v2/users/123/profile?name=John%20Doe&active=true&sort=desc#contact-info")]
 pub fn valid_uri(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"uri"});
     json_schema_check(&schema, &json!(s), true);
