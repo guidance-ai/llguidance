@@ -64,52 +64,52 @@ pub fn lookup_format(name: &str) -> Option<&str> {
             r":",
             // hier-part = "//" authority path-abempty / path-absolute / path-rootless / path-empty
             r"(?:",
-                // "//" authority path-abempty
-                r"//",
-                // authority = [ userinfo "@" ] host [ ":" port ]
-                r"(?:",
-                    // userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
-                    r"(?P<userinfo>(?:[a-zA-Z0-9\-._~!$&'()*+,;=:]|%[0-9a-fA-F]{2})*)",
-                    r"@",
-                r")?",
-                // host = IP-literal / IPv4address / reg-name
-                r"(?P<host>",
-                    // IP-literal = "[" ( IPv6address / IPvFuture ) "]"
-                    r"\[",
-                    r"(?:",
-                        // IPv6address (simplified - covers common forms)
-                        r"(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|",                           // full
-                        r"(?:[0-9a-fA-F]{1,4}:){1,7}:|",                                         // with trailing ::
-                        r"(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|",                        // :: with 1 group after
-                        r"(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|",               // :: with 2 groups after
-                        r"(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|",               // :: with 3 groups after
-                        r"(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|",               // :: with 4 groups after
-                        r"(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|",               // :: with 5 groups after
-                        r"[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|",                        // :: with 6 groups after
-                        r":(?::[0-9a-fA-F]{1,4}){1,7}|",                                         // ::x:x:x:x:x:x:x
-                        r"::|",                                                                  // :: alone
-                        // IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
-                        r"v[0-9a-fA-F]+\.[a-zA-Z0-9\-._~!$&'()*+,;=:]+",
-                    r")",
-                    r"\]|",
-                    // IPv4address
-                    r"(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|",
-                    // reg-name = *( unreserved / pct-encoded / sub-delims )
-                    r"(?:[a-zA-Z0-9\-._~!$&'()*+,;=]|%[0-9a-fA-F]{2})*",
-                r")",
-                // [ ":" port ]
-                r"(?::(?P<port>[0-9]*))?",
-                // path-abempty = *( "/" segment )
-                r"(?P<path_abempty>(?:/(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})*)*)",
+            // "//" authority path-abempty
+            r"//",
+            // authority = [ userinfo "@" ] host [ ":" port ]
+            r"(?:",
+            // userinfo = *( unreserved / pct-encoded / sub-delims / ":" )
+            r"(?P<userinfo>(?:[a-zA-Z0-9\-._~!$&'()*+,;=:]|%[0-9a-fA-F]{2})*)",
+            r"@",
+            r")?",
+            // host = IP-literal / IPv4address / reg-name
+            r"(?P<host>",
+            // IP-literal = "[" ( IPv6address / IPvFuture ) "]"
+            r"\[",
+            r"(?:",
+            // IPv6address (simplified - covers common forms)
+            r"(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|", // full
+            r"(?:[0-9a-fA-F]{1,4}:){1,7}:|",              // with trailing ::
+            r"(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|", // :: with 1 group after
+            r"(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|", // :: with 2 groups after
+            r"(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|", // :: with 3 groups after
+            r"(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|", // :: with 4 groups after
+            r"(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|", // :: with 5 groups after
+            r"[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|", // :: with 6 groups after
+            r":(?::[0-9a-fA-F]{1,4}){1,7}|",              // ::x:x:x:x:x:x:x
+            r"::|",                                       // :: alone
+            // IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+            r"v[0-9a-fA-F]+\.[a-zA-Z0-9\-._~!$&'()*+,;=:]+",
+            r")",
+            r"\]|",
+            // IPv4address
+            r"(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|",
+            // reg-name = *( unreserved / pct-encoded / sub-delims )
+            r"(?:[a-zA-Z0-9\-._~!$&'()*+,;=]|%[0-9a-fA-F]{2})*",
+            r")",
+            // [ ":" port ]
+            r"(?::(?P<port>[0-9]*))?",
+            // path-abempty = *( "/" segment )
+            r"(?P<path_abempty>(?:/(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})*)*)",
             r"|",
-                // path-absolute = "/" [ segment-nz *( "/" segment ) ]
-                r"(?P<path_absolute>/(?:(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})+(?:/(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})*)*)?)",
+            // path-absolute = "/" [ segment-nz *( "/" segment ) ]
+            r"(?P<path_absolute>/(?:(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})+(?:/(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})*)*)?)",
             r"|",
-                // path-rootless = segment-nz *( "/" segment )
-                r"(?P<path_rootless>(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})+(?:/(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})*)*)",
+            // path-rootless = segment-nz *( "/" segment )
+            r"(?P<path_rootless>(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})+(?:/(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})*)*)",
             r"|",
-                // path-empty = ""
-                r"(?P<path_empty>)",
+            // path-empty = ""
+            r"(?P<path_empty>)",
             r")",
             // [ "?" query ]
             r"(?:\?(?P<query>(?:[a-zA-Z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-fA-F]{2})*))?",
