@@ -1064,9 +1064,7 @@
   },
   "Github_easy---o10295.json": {},
   "Github_easy---o10298.json": {},
-  "Github_easy---o10318.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o10318.json": {},
   "Github_easy---o10337.json": {},
   "Github_easy---o10467.json": {},
   "Github_easy---o10468.json": {},
@@ -1097,9 +1095,7 @@
   "Github_easy---o12086.json": {},
   "Github_easy---o12087.json": {},
   "Github_easy---o12088.json": {},
-  "Github_easy---o12176.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o12176.json": {},
   "Github_easy---o12182.json": {},
   "Github_easy---o12209.json": {},
   "Github_easy---o12214.json": {},
@@ -1323,9 +1319,7 @@
   "Github_easy---o21861.json": {},
   "Github_easy---o21865.json": {},
   "Github_easy---o21868.json": {},
-  "Github_easy---o21869.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o21869.json": {},
   "Github_easy---o22050.json": {},
   "Github_easy---o2231.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/LevelOneContainer"
@@ -1521,9 +1515,7 @@
   "Github_easy---o33831.json": {},
   "Github_easy---o33832.json": {},
   "Github_easy---o33834.json": {},
-  "Github_easy---o33940.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o33940.json": {},
   "Github_easy---o33942.json": {},
   "Github_easy---o33959.json": {},
   "Github_easy---o34358.json": {},
@@ -1571,9 +1563,7 @@
   "Github_easy---o36595.json": {},
   "Github_easy---o36596.json": {},
   "Github_easy---o36598.json": {},
-  "Github_easy---o36641.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o36641.json": {},
   "Github_easy---o37070.json": {},
   "Github_easy---o37085.json": {},
   "Github_easy---o37087.json": {},
@@ -1653,9 +1643,7 @@
   "Github_easy---o39508.json": {},
   "Github_easy---o39514.json": {},
   "Github_easy---o39515.json": {},
-  "Github_easy---o39536.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o39536.json": {},
   "Github_easy---o39754.json": {},
   "Github_easy---o39766.json": {},
   "Github_easy---o39767.json": {},
@@ -1699,9 +1687,7 @@
   "Github_easy---o41802.json": {},
   "Github_easy---o41803.json": {},
   "Github_easy---o42024.json": {},
-  "Github_easy---o42028.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o42028.json": {},
   "Github_easy---o42146.json": {},
   "Github_easy---o42167.json": {},
   "Github_easy---o42168.json": {},
@@ -1774,12 +1760,8 @@
   "Github_easy---o43295.json": {},
   "Github_easy---o43297.json": {},
   "Github_easy---o43309.json": {},
-  "Github_easy---o43322.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_easy---o43323.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o43322.json": {},
+  "Github_easy---o43323.json": {},
   "Github_easy---o4354.json": {},
   "Github_easy---o43974.json": {},
   "Github_easy---o43976.json": {},
@@ -1796,9 +1778,7 @@
   "Github_easy---o44009.json": {},
   "Github_easy---o44020.json": {},
   "Github_easy---o44022.json": {},
-  "Github_easy---o44051.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o44051.json": {},
   "Github_easy---o44052.json": {},
   "Github_easy---o44065.json": {},
   "Github_easy---o44097.json": {},
@@ -1974,9 +1954,7 @@
   "Github_easy---o49986.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
-  "Github_easy---o50163.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o50163.json": {},
   "Github_easy---o50666.json": {},
   "Github_easy---o50674.json": {
     "json_error": "Unknown format: counter"
@@ -1987,9 +1965,7 @@
   "Github_easy---o51078.json": {},
   "Github_easy---o51081.json": {},
   "Github_easy---o5116.json": {},
-  "Github_easy---o51165.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o51165.json": {},
   "Github_easy---o51170.json": {},
   "Github_easy---o5118.json": {},
   "Github_easy---o51221.json": {},
@@ -2075,9 +2051,7 @@
   "Github_easy---o54986.json": {},
   "Github_easy---o54993.json": {},
   "Github_easy---o55045.json": {},
-  "Github_easy---o55086.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o55086.json": {},
   "Github_easy---o55159.json": {},
   "Github_easy---o55173.json": {},
   "Github_easy---o55249.json": {},
@@ -2098,7 +2072,7 @@
   "Github_easy---o56015.json": {},
   "Github_easy---o56027.json": {},
   "Github_easy---o56866.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at \u27e6{\"\u2027@\u2027type\u2027\":\"\u2027Offer\u2027Item\u2027Condition\u2027\",\"\u2027@\u2027context\u2027\":\"\u2027http\u2027://\u2027schema\u2027.org\u2027/\u2027\",\"\u2027additional\u2027Type\u27e7 * \u27e6\":\"\u27e7 * \u27e6http\u2027://\u2027schema\u2027.org\u27e7 mask: TokenSet: 123231/128256; ALL EXCEPT EOS \u27e8\"\u27e9 \u227aHEX[a1]\u227b \u227aHEX[a2]\u227b \ufffd"
   },
   "Github_easy---o57041.json": {},
   "Github_easy---o57047.json": {},
@@ -2124,9 +2098,7 @@
   "Github_easy---o58216.json": {},
   "Github_easy---o58271.json": {},
   "Github_easy---o58273.json": {},
-  "Github_easy---o58320.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o58320.json": {},
   "Github_easy---o58442.json": {},
   "Github_easy---o58486.json": {},
   "Github_easy---o58489.json": {},
