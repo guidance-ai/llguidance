@@ -2140,9 +2140,7 @@
   "Github_easy---o58916.json": {},
   "Github_easy---o58930.json": {},
   "Github_easy---o59284.json": {},
-  "Github_easy---o5956.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o5956.json": {},
   "Github_easy---o5966.json": {},
   "Github_easy---o59667.json": {},
   "Github_easy---o59670.json": {},
@@ -2163,9 +2161,7 @@
   "Github_easy---o60268.json": {},
   "Github_easy---o60269.json": {},
   "Github_easy---o60275.json": {},
-  "Github_easy---o60660.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o60660.json": {},
   "Github_easy---o60758.json": {},
   "Github_easy---o60760.json": {},
   "Github_easy---o60835.json": {},
@@ -2333,18 +2329,14 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_easy---o65541.json": {},
-  "Github_easy---o65635.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o65635.json": {},
   "Github_easy---o65660.json": {},
   "Github_easy---o65711.json": {},
   "Github_easy---o65921.json": {},
   "Github_easy---o65925.json": {},
   "Github_easy---o65929.json": {},
   "Github_easy---o65933.json": {},
-  "Github_easy---o65935.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o65935.json": {},
   "Github_easy---o65941.json": {},
   "Github_easy---o65951.json": {},
   "Github_easy---o65953.json": {},
@@ -2388,7 +2380,7 @@
   "Github_easy---o66587.json": {},
   "Github_easy---o66589.json": {},
   "Github_easy---o67010.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at \u27e6{\"\u2027f\u2027ritz\u2027box\u2027\":{\"\u27e7 * \u27e6uri\u27e7 * \u27e6\":\"\u2027http\u2027://\u2027example\u27e7 forced tokens \"\u27e6pass\u27e7\" != \"\u27e6uri\u27e7\""
   },
   "Github_easy---o67056.json": {},
   "Github_easy---o67175.json": {},
@@ -2580,9 +2572,7 @@
   "Github_easy---o74019.json": {},
   "Github_easy---o74022.json": {},
   "Github_easy---o74171.json": {},
-  "Github_easy---o74172.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o74172.json": {},
   "Github_easy---o74185.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/info-update-input"
   },
@@ -2661,17 +2651,11 @@
   },
   "Github_easy---o78064.json": {},
   "Github_easy---o78128.json": {},
-  "Github_easy---o78130.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o78130.json": {},
   "Github_easy---o78131.json": {},
-  "Github_easy---o78132.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o78132.json": {},
   "Github_easy---o78134.json": {},
-  "Github_easy---o78135.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o78135.json": {},
   "Github_easy---o78447.json": {},
   "Github_easy---o78457.json": {},
   "Github_easy---o78477.json": {},
@@ -2686,40 +2670,26 @@
   "Github_easy---o79434.json": {},
   "Github_easy---o79441.json": {},
   "Github_easy---o79442.json": {},
-  "Github_easy---o79443.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_easy---o79445.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_easy---o79448.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o79443.json": {},
+  "Github_easy---o79445.json": {},
+  "Github_easy---o79448.json": {},
   "Github_easy---o79449.json": {},
   "Github_easy---o79456.json": {},
-  "Github_easy---o79475.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o79475.json": {},
   "Github_easy---o79476.json": {
     "json_error": "Unknown format: url"
   },
-  "Github_easy---o79477.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o79477.json": {},
   "Github_easy---o79489.json": {},
   "Github_easy---o79490.json": {},
   "Github_easy---o79491.json": {},
   "Github_easy---o79495.json": {},
-  "Github_easy---o79498.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o79498.json": {},
   "Github_easy---o79500.json": {},
   "Github_easy---o79513.json": {},
   "Github_easy---o79516.json": {},
   "Github_easy---o79518.json": {},
-  "Github_easy---o79519.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o79519.json": {},
   "Github_easy---o79522.json": {},
   "Github_easy---o79539.json": {},
   "Github_easy---o79541.json": {},
@@ -2728,9 +2698,7 @@
   "Github_easy---o79554.json": {},
   "Github_easy---o79561.json": {},
   "Github_easy---o79592.json": {},
-  "Github_easy---o79600.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_easy---o79600.json": {},
   "Github_easy---o79609.json": {},
   "Github_easy---o79650.json": {},
   "Github_easy---o79705.json": {},
@@ -3058,7 +3026,7 @@
   "Github_easy---o90306.json": {},
   "Github_easy---o90308.json": {},
   "Github_easy---o90313.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_easy---o90314.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
