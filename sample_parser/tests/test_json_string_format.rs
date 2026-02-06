@@ -238,7 +238,6 @@ pub fn valid_uri(#[case] s: &str) {
 // Scheme issues
 #[case("a@b://example.com")] // Invalid @ in scheme
 #[case("://example.com")] // Empty scheme
-// #[case("http::://example.com")] // Double colon in scheme - TODO: not yet rejected
 // Authority issues
 #[case("http://example.com:abc/")] // Non-numeric port
 #[case("http://user@@example.com/")] // Double @
