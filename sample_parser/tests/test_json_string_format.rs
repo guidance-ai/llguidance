@@ -155,6 +155,40 @@ pub fn bad_uuid(#[case] s: &str) {
 #[case("https://example.com/path%20with%20spaces")]
 #[case("file:///path/to/file")]
 #[case("tel:+1-201-555-0123;ext=456")]
+// IPv6 address variations
+#[case("http://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]/")] // Full IPv6
+#[case("http://[2001:db8:85a3::8a2e:370:7334]/")]             // Compressed IPv6
+// #[case("http://[::ffff:192.0.2.1]/")]                      // IPv4-mapped IPv6 style - TODO: not yet supported
+#[case("http://[::1]/")]                                       // Loopback
+#[case("http://[::]/")]                                        // All zeros
+// #[case("http://[fe80::1%25eth0]/")]                        // Link-local with zone ID - TODO: not yet supported
+#[case("http://[2001:db8::1]:8080/path")]                     // IPv6 with port and path
+#[case("http://[v1.test]/")]                                   // IPvFuture format
+// Additional schemes
+#[case("ssh://git@github.com:22/user/repo.git")]              // SSH
+#[case("git://github.com/user/repo.git")]                     // Git protocol
+#[case("svn://svn.example.com/repo/trunk")]                   // Subversion
+#[case("sftp://user@host.example.com/path/to/file")]          // SFTP
+#[case("s3://bucket-name/key/path")]                          // Amazon S3
+#[case("data:text/plain;base64,SGVsbG8=")]                    // Data URI
+#[case("javascript:void(0)")]                                  // JavaScript (common in web)
+#[case("magnet:?xt=urn:btih:abc123")]                         // Magnet link
+#[case("redis://localhost:6379/0")]                           // Redis
+#[case("postgres://user:pass@localhost:5432/db")]             // PostgreSQL
+#[case("mysql://user:pass@localhost:3306/db")]                // MySQL
+#[case("mongodb://localhost:27017/mydb")]                     // MongoDB
+#[case("amqp://user:pass@host:5672/vhost")]                   // AMQP (RabbitMQ)
+#[case("ws://example.com/socket")]                            // WebSocket
+#[case("wss://example.com/socket")]                           // WebSocket Secure
+#[case("irc://irc.example.com:6667/channel")]                 // IRC
+#[case("xmpp:user@example.com")]                              // XMPP/Jabber
+#[case("sip:user@example.com")]                               // SIP
+#[case("sips:user@example.com:5061")]                         // SIPS (secure SIP)
+#[case("rtsp://media.example.com:554/stream")]                // RTSP (streaming)
+#[case("spotify:track:4uLU6hMCjMI75M1A2tKUQC")]               // Spotify
+#[case("slack://channel?team=T123&id=C456")]                  // Slack
+#[case("vscode://file/path/to/file.txt")]                     // VS Code
+#[case("x-custom-scheme://anything/goes/here")]               // Custom scheme with x- prefix
 pub fn valid_uri(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"uri"});
     json_schema_check(&schema, &json!(s), true);
@@ -166,6 +200,10 @@ pub fn valid_uri(#[case] s: &str) {
 #[case("http://example.com/%GG")]     // Invalid percent-encoding
 #[case("/path/to/resource")]          // Bare path (no scheme)
 #[case("http://example.com/path with spaces")] // Unencoded spaces
+// Invalid IPv6
+#[case("http://[:::]/")] // Too many colons
+#[case("http://2001:db8::1/")] // IPv6 without brackets
+#[case("http://[2001:db8:85a3:0000:0000:8a2e:0370:7334:extra]/")] // Too many groups
 pub fn bad_uri(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"uri"});
     json_schema_check(&schema, &json!(s), false);
