@@ -6726,33 +6726,19 @@
   "Github_medium---o60981.json": {
     "json_error": "Unknown format: uri"
   },
-  "Github_medium---o60982.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_medium---o60983.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_medium---o60984.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o60982.json": {},
+  "Github_medium---o60983.json": {},
+  "Github_medium---o60984.json": {},
   "Github_medium---o60985.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o60987.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o60997.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_medium---o60999.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_medium---o61000.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_medium---o61001.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o60997.json": {},
+  "Github_medium---o60999.json": {},
+  "Github_medium---o61000.json": {},
+  "Github_medium---o61001.json": {},
   "Github_medium---o61004.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -6848,9 +6834,7 @@
   "Github_medium---o6243.json": {},
   "Github_medium---o6245.json": {},
   "Github_medium---o6247.json": {},
-  "Github_medium---o6249.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o6249.json": {},
   "Github_medium---o6256.json": {},
   "Github_medium---o6257.json": {},
   "Github_medium---o62651.json": {
@@ -6921,7 +6905,7 @@
   "Github_medium---o63475.json": {},
   "Github_medium---o63514.json": {},
   "Github_medium---o63552.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "test #1: token not accepted at \u27e6{\"\u2027email\u2027Details\u2027\":{\"\u27e7 * \u27e6to\u27e7 * \u27e6\":[\"\u2027recipient\u20271\u2027@example\u27e7 mask: TokenSet: 15/128256; \u27e8a\u27e9 \u27e8b\u27e9 \u27e8c\u27e9 \u27e8f\u27e9 \u27e8at\u27e9 \u27e8cc\u27e9 \u27e8from\u27e9 \u27e8att\u27e9 \u27e8fr\u27e9 \u27e8bc\u27e9 \u27e8attach\u27e9 \u27e8attachment\u27e9 \u27e8atta\u27e9 \u27e8attachments\u27e9 \u27e8bcc\u27e9"
   },
   "Github_medium---o63608.json": {},
   "Github_medium---o63683.json": {},
