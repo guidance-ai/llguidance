@@ -165,6 +165,7 @@ pub fn bad_uuid(#[case] s: &str) {
 // All zeros
 // #[case("http://[fe80::1%25eth0]/")]                        // Link-local with zone ID - TODO: not yet supported
 #[case("http://[2001:db8::1]:8080/path")] // IPv6 with port and path
+#[case("http://user:pass@[2001:db8::1]:8080/path/to/resource")] // IPv6 with userinfo and path
 #[case("http://[v1.test]/")] // IPvFuture format
 // Additional schemes
 #[case("ssh://git@github.com:22/user/repo.git")] // SSH
