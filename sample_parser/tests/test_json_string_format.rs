@@ -235,6 +235,21 @@ pub fn valid_uri(#[case] s: &str) {
 #[case("https://example.org/foobar`.txt")] // Invalid ` character
 #[case("https://example.org/foo bar.txt")] // Invalid SPACE character
 #[case("https://example.org/foobar|.txt")] // Invalid | character
+// Scheme issues
+#[case("a@b://example.com")] // Invalid @ in scheme
+#[case("://example.com")] // Empty scheme
+// #[case("http::://example.com")] // Double colon in scheme - TODO: not yet rejected
+// Authority issues
+#[case("http://example.com:abc/")] // Non-numeric port
+#[case("http://user@@example.com/")] // Double @
+#[case("http://[::1/path")] // Unclosed IPv6 bracket
+#[case("http://exa mple.com/")] // Space in host
+// Encoding issues
+#[case("http://example.com/%")] // Incomplete percent encoding
+#[case("http://example.com/%a")] // Incomplete percent encoding (one hex digit)
+// Control characters
+#[case("http://example.com/path\x00")] // Null byte
+#[case("http://example.com/\t")] // Tab character
 pub fn bad_uri(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"uri"});
     json_schema_check(&schema, &json!(s), false);
