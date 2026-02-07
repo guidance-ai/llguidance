@@ -3104,7 +3104,7 @@
     "json_error": "Unknown format: evenlength"
   },
   "Github_easy---o91581.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_easy---o91584.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -3226,19 +3226,15 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o10421.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unsatisfiable schema: incompatible types"
   },
   "Github_hard---o10495.json": {},
   "Github_hard---o10499.json": {},
-  "Github_hard---o1051.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o1051.json": {},
   "Github_hard---o10515.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unsatisfiable schema: incompatible types\nwhile processing json-schema:///#/definitions/ContentTypeType"
   },
-  "Github_hard---o1052.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o1052.json": {},
   "Github_hard---o10532.json": {},
   "Github_hard---o1184.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/stroke"
@@ -3405,9 +3401,7 @@
   "Github_hard---o21160.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21163.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21163.json": {},
   "Github_hard---o21164.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
