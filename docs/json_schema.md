@@ -50,7 +50,7 @@ String features:
 - `minLength`
 - `maxLength`
 - `pattern` (99%) - lookarounds not supported
-- `format` (74%), with the following formats: `date-time`, `time`, `date`, `duration`, `email`, `hostname`, `ipv4`, `ipv6`, `uuid`,
+- `format` (74%), with the following formats: `date-time`, `time`, `date`, `duration`, `email`, `hostname`, `ipv4`, `ipv6`, `uuid`, `uri`
 
 Number features (for both integer and number):
 
