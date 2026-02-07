@@ -11331,7 +11331,7 @@
   },
   "JsonSchemaStore---bungee-plugin.json": {},
   "JsonSchemaStore---bxci.schema-2.x.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---cargo-make.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11343,12 +11343,8 @@
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "JsonSchemaStore---cdk.json": {},
-  "JsonSchemaStore---chart-lock.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "JsonSchemaStore---chart.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---chart-lock.json": {},
+  "JsonSchemaStore---chart.json": {},
   "JsonSchemaStore---chisel-slices.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
@@ -11362,13 +11358,13 @@
     "json_error": "Unknown format: regex"
   },
   "JsonSchemaStore---ci.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---circleciconfig.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/circleciconfig.json#/definitions/jobs"
   },
   "JsonSchemaStore---cityjson.min.schema.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unknown format: uri-reference"
   },
   "JsonSchemaStore---clang-format.json": {
     "json_error": "Unimplemented keys: [\"contains\"]"
@@ -11383,9 +11379,7 @@
   },
   "JsonSchemaStore---cluster.json": {},
   "JsonSchemaStore---cluster.yml.json": {},
-  "JsonSchemaStore---codeclimate.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---codeclimate.json": {},
   "JsonSchemaStore---codecov.json": {},
   "JsonSchemaStore---codemagic-schema.json": {},
   "JsonSchemaStore---codeship-services.json": {
@@ -11908,7 +11902,7 @@
   "JsonSchemaStore---qodana-1.0.json": {},
   "JsonSchemaStore---ray-schema.json": {},
   "JsonSchemaStore---red_cog.schema.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---red_cog_repo.schema.json": {},
   "JsonSchemaStore---renovate-schema.json": {
@@ -11947,28 +11941,28 @@
   },
   "JsonSchemaStore---samtrc.json": {},
   "JsonSchemaStore---sarif-1.0.0.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sarif-2.0.0.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sarif-2.1.0-rtm.2.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sarif-2.1.0-rtm.3.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sarif-2.1.0-rtm.4.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sarif-2.1.0-rtm.5.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sarif-2.1.0-rtm.6.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sarif-2.1.0.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---saucectl.schema.json": {
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
