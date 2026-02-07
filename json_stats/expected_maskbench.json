@@ -12046,7 +12046,7 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---specif-1.1.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sponge-mixins.json": {},
   "JsonSchemaStore---sprite.json": {},
@@ -12057,9 +12057,7 @@
   },
   "JsonSchemaStore---staticwebapp.config.json": {},
   "JsonSchemaStore---strings.json": {},
-  "JsonSchemaStore---stripe-app.schema.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---stripe-app.schema.json": {},
   "JsonSchemaStore---strmprivacy.api.entities.v1.BatchJob.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/strmprivacy.api.entities.v1.BatchJobState/definitions/state_time"
   },
@@ -12083,7 +12081,7 @@
   },
   "JsonSchemaStore---swa-cli.config.json": {},
   "JsonSchemaStore---swagger-2.0.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---task.json": {
     "json_error": "Unknown format: regex"
@@ -12092,9 +12090,7 @@
   "JsonSchemaStore---template.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
-  "JsonSchemaStore---templatesources.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---templatesources.json": {},
   "JsonSchemaStore---tenants.json": {},
   "JsonSchemaStore---testenvironments.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/testenvironments.json#/definitions/config"
@@ -12112,24 +12108,20 @@
   },
   "JsonSchemaStore---tmuxinator.json": {},
   "JsonSchemaStore---tokenlist.schema.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "JsonSchemaStore---tools-schema.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "test #0: token not accepted at \u27e6 definitions\u2027.\",\"\u2027links\u2027\":{\"\u2027website\u2027Url\u2027\":\"\u2027https\u2027://\u2027async\u2027api\u2027-generator\u2027.com\u2027\",\"\u2027docs\u2027Url\u2027\":\"\u2027https\u2027://\u2027async\u2027api\u2027-generator\u2027.com\u2027/docs\u2027"
   },
   "JsonSchemaStore---traefik-v2.json": {},
   "JsonSchemaStore---transcend-yml-schema-v4.json": {},
   "JsonSchemaStore---travis.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
-  "JsonSchemaStore---trivia.schema.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---trivia.schema.json": {},
   "JsonSchemaStore---ts-force-config.json": {},
   "JsonSchemaStore---tsd.json": {},
-  "JsonSchemaStore---tsdrc.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---tsdrc.json": {},
   "JsonSchemaStore---tson.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
@@ -12143,7 +12135,7 @@
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "JsonSchemaStore---ubuntu-server-autoinstall.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---ui5-workspace.yaml.json": {},
   "JsonSchemaStore---ui5.yaml.json": {
@@ -12175,7 +12167,7 @@
   },
   "JsonSchemaStore---vercel.json": {},
   "JsonSchemaStore---vim-addon-info.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "JsonSchemaStore---vs-nesting.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -12200,7 +12192,7 @@
     "json_error": "circular references with sibling keys are not supported: https://json.schemastore.org/web-types.json#/definitions/base-contribution"
   },
   "JsonSchemaStore---webextension.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---webhook.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -12224,7 +12216,7 @@
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "JsonSchemaStore---zapp-schema-1.0.0.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---zcodeformat-schema-0.0.1.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/cobol"
@@ -13336,7 +13328,7 @@
   "MCPspec---CancelledNotification.json": {},
   "MCPspec---ClientNotification.json": {},
   "MCPspec---ClientRequest.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unknown format: uri-template"
   },
   "MCPspec---ClientResult.json": {
     "json_error": "Unknown format: byte"
@@ -13367,47 +13359,31 @@
   "MCPspec---ListPromptsResult.json": {},
   "MCPspec---ListResourcesRequest.json": {},
   "MCPspec---ListResourcesResult.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at \u27e6https\u2027://\u2027example\u2027.com\u2027/resource\u2027\"},{\"\u2027annotations\u2027\":{\"\u2027aud\u2027ience\u2027\":[\"\u2027assistant\u2027\"],\"\u2027priority\u2027\":\u20270\u2027.\u20275\u2027},\"\u2027description\u2027\":\"\u2027Another\u2027 resource\u2027 description\u2027\",\"\u2027m\u2027imeType\u2027\":\"\u2027application\u2027/json\u2027\",\"\u2027name\u2027\":"
   },
   "MCPspec---ListRootsRequest.json": {},
-  "MCPspec---ListRootsResult.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "MCPspec---ListRootsResult.json": {},
   "MCPspec---ListToolsRequest.json": {},
   "MCPspec---ListToolsResult.json": {},
   "MCPspec---LoggingMessageNotification.json": {},
   "MCPspec---PingRequest.json": {},
   "MCPspec---ProgressNotification.json": {},
   "MCPspec---PromptListChangedNotification.json": {},
-  "MCPspec---ReadResourceRequest.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "MCPspec---ReadResourceResult.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "MCPspec---ReadResourceRequest.json": {},
+  "MCPspec---ReadResourceResult.json": {},
   "MCPspec---ResourceListChangedNotification.json": {},
-  "MCPspec---ResourceUpdatedNotification.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "MCPspec---ResourceUpdatedNotification.json": {},
   "MCPspec---Result.json": {},
   "MCPspec---RootsListChangedNotification.json": {},
-  "MCPspec---ServerNotification.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "MCPspec---ServerNotification.json": {},
   "MCPspec---ServerRequest.json": {
     "json_error": "Unknown format: byte"
   },
-  "MCPspec---ServerResult.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "MCPspec---ServerResult.json": {},
   "MCPspec---SetLevelRequest.json": {},
-  "MCPspec---SubscribeRequest.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "MCPspec---SubscribeRequest.json": {},
   "MCPspec---ToolListChangedNotification.json": {},
-  "MCPspec---UnsubscribeRequest.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "MCPspec---UnsubscribeRequest.json": {},
   "Snowplow---sp_0_Normalized.json": {},
   "Snowplow---sp_100_Normalized.json": {},
   "Snowplow---sp_101_Normalized.json": {},
