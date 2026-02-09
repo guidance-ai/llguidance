@@ -2072,7 +2072,7 @@
   "Github_easy---o56015.json": {},
   "Github_easy---o56027.json": {},
   "Github_easy---o56866.json": {
-    "validation_error": "test #0: token not accepted at \u27e6{\"\u2027@\u2027type\u2027\":\"\u2027Offer\u2027Item\u2027Condition\u2027\",\"\u2027@\u2027context\u2027\":\"\u2027http\u2027://\u2027schema\u2027.org\u2027/\u2027\",\"\u2027additional\u2027Type\u27e7 * \u27e6\":\"\u27e7 * \u27e6http\u2027://\u2027schema\u2027.org\u27e7 mask: TokenSet: 123231/128256; ALL EXCEPT EOS \u27e8\"\u27e9 \u227aHEX[a1]\u227b \u227aHEX[a2]\u227b \ufffd"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧@‧type‧\":\"‧Offer‧Item‧Condition‧\",\"‧@‧context‧\":\"‧http‧://‧schema‧.org‧/‧\",\"‧additional‧Type⟧ * ⟦\":\"⟧ * ⟦http‧://‧schema‧.org⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "Github_easy---o57041.json": {},
   "Github_easy---o57047.json": {},
@@ -2380,7 +2380,7 @@
   "Github_easy---o66587.json": {},
   "Github_easy---o66589.json": {},
   "Github_easy---o67010.json": {
-    "validation_error": "test #0: token not accepted at \u27e6{\"\u2027f\u2027ritz\u2027box\u2027\":{\"\u27e7 * \u27e6uri\u27e7 * \u27e6\":\"\u2027http\u2027://\u2027example\u27e7 forced tokens \"\u27e6pass\u27e7\" != \"\u27e6uri\u27e7\""
+    "validation_error": "test #0: token not accepted at ⟦{\"‧f‧ritz‧box‧\":{\"⟧ * ⟦uri⟧ * ⟦\":\"‧http‧://‧example⟧ forced tokens \"⟦pass⟧\" != \"⟦uri⟧\""
   },
   "Github_easy---o67056.json": {},
   "Github_easy---o67175.json": {},
@@ -3104,7 +3104,7 @@
     "json_error": "Unknown format: evenlength"
   },
   "Github_easy---o91581.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/arraySingleStringUri"
   },
   "Github_easy---o91584.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -3226,13 +3226,13 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o10421.json": {
-    "json_error": "Unsatisfiable schema: incompatible types"
+    "json_error": "Unsatisfiable schema: incompatible types\n  while processing json-schema:///#/definitions/ContentTypeType"
   },
   "Github_hard---o10495.json": {},
   "Github_hard---o10499.json": {},
   "Github_hard---o1051.json": {},
   "Github_hard---o10515.json": {
-    "json_error": "Unsatisfiable schema: incompatible types\nwhile processing json-schema:///#/definitions/ContentTypeType"
+    "json_error": "Unsatisfiable schema: incompatible types\n  while processing json-schema:///#/definitions/ContentTypeType"
   },
   "Github_hard---o1052.json": {},
   "Github_hard---o10532.json": {},
@@ -3273,7 +3273,7 @@
   },
   "Github_hard---o12477.json": {},
   "Github_hard---o12498.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧07‧/schema‧#‧\",\"‧name⟧ * ⟦\":\"⟧ * ⟦my‧-package‧\",\"‧slug⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "Github_hard---o12499.json": {},
   "Github_hard---o12613.json": {},
@@ -3316,7 +3316,7 @@
   "Github_hard---o14513.json": {},
   "Github_hard---o14514.json": {},
   "Github_hard---o14528.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦team‧Key‧\":\"‧team‧-‧1‧\",\"‧question‧\":\"‧Application‧ Team‧ Question‧\",\"‧answer‧\":\"‧Application‧ Team‧ Answer‧\",\"‧joined‧On‧\":\"‧202‧2‧-‧01‧-‧01‧T‧12‧:‧00‧:‧00‧Z‧\"}}‧,\"‧application‧\":{\"‧application‧-‧1‧\":{\"‧opp‧Key‧\":\"‧opp‧-‧1‧\",\"⟧ * ⟦project⟧ * ⟦Key‧\":\"‧project‧-⟧ forced tokens \"⟦profile‧Key⟧\" != \"⟦project‧Key⟧\""
   },
   "Github_hard---o14723.json": {},
   "Github_hard---o15103.json": {
@@ -3416,29 +3416,23 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21171.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details"
   },
   "Github_hard---o21172.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21175.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21175.json": {},
   "Github_hard---o21176.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21184.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21187.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21187.json": {},
   "Github_hard---o21188.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21191.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21191.json": {},
   "Github_hard---o21192.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -3450,7 +3444,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21199.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required\n  while processing json-schema:///#/definitions/details"
   },
   "Github_hard---o21200.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
@@ -3493,11 +3487,9 @@
   "Github_hard---o21232.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21234.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21234.json": {},
   "Github_hard---o21235.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
   },
   "Github_hard---o21239.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -3642,7 +3634,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
   },
   "Github_hard---o21332.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n   while processing json-schema:///#/definitions/frontend_links"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
   },
   "Github_hard---o21334.json": {},
   "Github_hard---o21335.json": {
@@ -3664,18 +3656,14 @@
   "Github_hard---o21352.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21354.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21354.json": {},
   "Github_hard---o21355.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21356.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21358.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21358.json": {},
   "Github_hard---o21359.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -3696,9 +3684,7 @@
   "Github_hard---o21368.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21370.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21370.json": {},
   "Github_hard---o21371.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -3716,9 +3702,7 @@
   "Github_hard---o21384.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21386.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21386.json": {},
   "Github_hard---o21387.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -3733,7 +3717,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
   },
   "Github_hard---o21394.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/individual_step"
   },
   "Github_hard---o21395.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -3770,7 +3754,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21414.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦.\",\"‧content‧_type‧\":\"‧text‧/html‧\"},{\"‧content‧\":\"‧This‧ is‧ other‧ ways‧ to‧ apply‧ in‧ go‧vs‧peak‧.\",\"‧content‧_type‧\":\"‧text‧/g‧ov‧s‧peak‧\"}‧],\"‧start‧_button‧_text‧\":\"‧Start‧ now‧\",\"‧transaction‧_start‧_link‧\":\"‧https‧://‧www‧.example‧.com‧/start‧\",\"‧variants‧\":[{\"⟧ * ⟦title⟧ * ⟦\":\"‧Variant‧ ‧1⟧ mask: TokenSet: 17/128256; ⟨i⟩ ⟨m⟩ ⟨o⟩ ⟨s⟩ ⟨in⟩ ⟨ot⟩ ⟨int⟩ ⟨other⟩ ⟨sl⟩ ⟨mo⟩ ⟨more⟩ ⟨oth⟩ ⟨slug⟩ ⟨intro⟩ ⟨mor⟩ ⟨intr⟩ ⟨slu⟩"
   },
   "Github_hard---o21415.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -3784,16 +3768,14 @@
   },
   "Github_hard---o21422.json": {},
   "Github_hard---o21423.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21424.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21426.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21426.json": {},
   "Github_hard---o21427.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
   },
   "Github_hard---o21428.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -3801,18 +3783,14 @@
   "Github_hard---o21429.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21431.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21431.json": {},
   "Github_hard---o21432.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o21436.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21439.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o21439.json": {},
   "Github_hard---o21442.json": {},
   "Github_hard---o21480.json": {},
   "Github_hard---o21699.json": {
@@ -3838,13 +3816,9 @@
   "Github_hard---o25886.json": {},
   "Github_hard---o26566.json": {},
   "Github_hard---o26603.json": {},
-  "Github_hard---o26621.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o26621.json": {},
   "Github_hard---o26649.json": {},
-  "Github_hard---o26690.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o26690.json": {},
   "Github_hard---o27019.json": {},
   "Github_hard---o27023.json": {},
   "Github_hard---o27039.json": {
@@ -3941,7 +3915,7 @@
   "Github_hard---o33698.json": {},
   "Github_hard---o33704.json": {},
   "Github_hard---o33778.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧Short‧ package‧ description‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 91/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ..."
   },
   "Github_hard---o33924.json": {},
   "Github_hard---o34341.json": {},
@@ -3951,9 +3925,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/metric"
   },
   "Github_hard---o34871.json": {},
-  "Github_hard---o34872.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o34872.json": {},
   "Github_hard---o34887.json": {},
   "Github_hard---o34896.json": {},
   "Github_hard---o34897.json": {},
@@ -3983,10 +3955,10 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/annotations"
   },
   "Github_hard---o37075.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o37102.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧This‧ is‧ a‧ sample‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 94/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ..."
   },
   "Github_hard---o37603.json": {},
   "Github_hard---o37609.json": {},
@@ -4008,9 +3980,7 @@
   "Github_hard---o38538.json": {
     "validation_error": "test #0: token not accepted at ⟦{\"‧st‧ages‧\":{\"‧stage‧1‧\":{\"‧cmd‧\":\"‧python‧ script‧.py‧\",\"‧w‧dir‧\":\"‧.\",\"‧deps‧\":[\"‧data‧.csv‧\"],\"‧params‧\":[\"‧params‧.yaml‧\"],\"‧outs‧\":[\"‧output‧.txt‧\"],\"‧metrics‧\":[{\"‧metric‧.txt⟧ * ⟦\":{\"⟧ * ⟦cache‧\":‧true‧,\"⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ⟨\\u{5}⟩ ..."
   },
-  "Github_hard---o38732.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o38732.json": {},
   "Github_hard---o3895.json": {
     "json_error": "Unimplemented keys: [\"else\", \"if\", \"then\"]"
   },
@@ -4030,7 +4000,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/identifiable"
   },
   "Github_hard---o39794.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
   },
   "Github_hard---o40360.json": {},
   "Github_hard---o40394.json": {},
@@ -4259,7 +4229,7 @@
     "json_error": "Unknown format: uri-reference"
   },
   "Github_hard---o53107.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/nanopub"
   },
   "Github_hard---o53128.json": {},
   "Github_hard---o53129.json": {},
@@ -4329,7 +4299,7 @@
   "Github_hard---o55320.json": {},
   "Github_hard---o55639.json": {},
   "Github_hard---o55640.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧A‧ short‧ description‧ of‧ the‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 88/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ⟨home⟩ ⟨conf⟩ ..."
   },
   "Github_hard---o55657.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
@@ -4374,7 +4344,7 @@
   "Github_hard---o5790.json": {},
   "Github_hard---o57978.json": {},
   "Github_hard---o58218.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o58281.json": {
     "json_error": "Unknown format: url"
@@ -4390,9 +4360,7 @@
     "json_error": "Unknown format: path"
   },
   "Github_hard---o58481.json": {},
-  "Github_hard---o5863.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o5863.json": {},
   "Github_hard---o58639.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
@@ -4407,7 +4375,7 @@
   "Github_hard---o59215.json": {},
   "Github_hard---o59668.json": {},
   "Github_hard---o5983.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unknown format: color-hex"
   },
   "Github_hard---o59981.json": {},
   "Github_hard---o59999.json": {},
@@ -4416,7 +4384,7 @@
   "Github_hard---o60171.json": {},
   "Github_hard---o60179.json": {},
   "Github_hard---o6023.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧/package‧\",\"‧description‧\":\"‧This‧ is‧ an‧ example‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 100/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ..."
   },
   "Github_hard---o60287.json": {},
   "Github_hard---o60288.json": {},
@@ -4456,25 +4424,25 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o60989.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
   },
   "Github_hard---o60990.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
   },
   "Github_hard---o60991.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
   },
   "Github_hard---o60993.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
   },
   "Github_hard---o60994.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
   },
   "Github_hard---o60995.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
   },
   "Github_hard---o60996.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
   },
   "Github_hard---o61003.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -4530,10 +4498,10 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o63152.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o63156.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #1: token not accepted at ⟦{\"⟧ * ⟦uuid⟧ * ⟦\":\"‧123‧456‧78⟧ mask: TokenSet: 10/128256; ⟨c⟩ ⟨d⟩ ⟨de⟩ ⟨co⟩ ⟨description⟩ ⟨des⟩ ⟨copy⟩ ⟨desc⟩ ⟨cop⟩ ⟨descr⟩"
   },
   "Github_hard---o63177.json": {},
   "Github_hard---o63198.json": {
@@ -4561,9 +4529,7 @@
   "Github_hard---o6360.json": {},
   "Github_hard---o64002.json": {},
   "Github_hard---o64004.json": {},
-  "Github_hard---o64008.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o64008.json": {},
   "Github_hard---o64538.json": {
     "json_error": "Unknown format: year"
   },
@@ -4571,9 +4537,7 @@
     "json_error": "Unknown format: /^[0-9]{4}/"
   },
   "Github_hard---o64540.json": {},
-  "Github_hard---o64543.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o64543.json": {},
   "Github_hard---o64544.json": {},
   "Github_hard---o64556.json": {},
   "Github_hard---o64563.json": {},
@@ -4626,7 +4590,7 @@
   "Github_hard---o66267.json": {},
   "Github_hard---o66331.json": {},
   "Github_hard---o66683.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o66689.json": {},
   "Github_hard---o66711.json": {},
@@ -4637,14 +4601,12 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_hard---o67026.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧A‧ short‧ description‧ of‧ the‧ package‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 100/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ..."
   },
   "Github_hard---o67158.json": {},
   "Github_hard---o67268.json": {},
   "Github_hard---o67269.json": {},
-  "Github_hard---o67273.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o67273.json": {},
   "Github_hard---o67291.json": {
     "validation_error": "test #4: token not accepted at ⟦{\"‧name‧\":\"‧Monster‧\",\"⟧ * ⟦pos⟧ * ⟦\":{\"‧x‧\":‧10⟧ mask: TokenSet: 49/128256; ⟨a⟩ ⟨c⟩ ⟨e⟩ ⟨f⟩ ⟨i⟩ ⟨n⟩ ⟨p⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨en⟩ ⟨an⟩ ⟨ve⟩ ⟨te⟩ ⟨co⟩ ⟨fl⟩ ⟨fr⟩ ⟨par⟩ ⟨test⟩ ⟨ene⟩ ⟨col⟩ ⟨no⟩ ⟨signed⟩ ⟨tes⟩ ⟨vector⟩ ⟨pare⟩ ⟨color⟩ ⟨parent⟩ ⟨any⟩ ⟨vec⟩ ⟨non⟩ ⟨si⟩ ⟨pa⟩ ⟨sign⟩ ⟨friend⟩ ⟨flex⟩ ⟨inv⟩ ⟨single⟩ ⟨sin⟩ ⟨sig⟩ ⟨enemy⟩ ⟨inventory⟩ ⟨paren⟩ ⟨colo⟩ ⟨vect⟩ ⟨sing⟩ ⟨friendly⟩ ⟨teste⟩"
   },
@@ -4696,9 +4658,7 @@
   "Github_hard---o69808.json": {},
   "Github_hard---o69862.json": {},
   "Github_hard---o69886.json": {},
-  "Github_hard---o69956.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o69956.json": {},
   "Github_hard---o69965.json": {},
   "Github_hard---o69969.json": {},
   "Github_hard---o69970.json": {},
@@ -4734,7 +4694,7 @@
   },
   "Github_hard---o71552.json": {},
   "Github_hard---o71565.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧/vendor‧\",\"‧description‧\":\"‧Example‧ package‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 94/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ..."
   },
   "Github_hard---o71568.json": {},
   "Github_hard---o71827.json": {},
@@ -4749,7 +4709,7 @@
   "Github_hard---o72528.json": {},
   "Github_hard---o72536.json": {},
   "Github_hard---o7264.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ forced tokens \"⟦format‧Version⟧\" != \"⟦$‧schema⟧\""
   },
   "Github_hard---o7271.json": {},
   "Github_hard---o7290.json": {},
@@ -4798,9 +4758,7 @@
   "Github_hard---o75605.json": {
     "json_error": "regex parse error:\n    ^\\s*<([A-Za-z]+).+?(\\/>|\\/\\1>)\\s*$\n                              ^^\nerror: backreferences are not supported\n  while processing json-schema:///#/definitions/icon"
   },
-  "Github_hard---o7573.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o7573.json": {},
   "Github_hard---o7607.json": {},
   "Github_hard---o76546.json": {},
   "Github_hard---o76577.json": {
@@ -4827,20 +4785,20 @@
   "Github_hard---o77276.json": {},
   "Github_hard---o77302.json": {},
   "Github_hard---o77303.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/related_application"
   },
   "Github_hard---o77304.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o77312.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required\n  while processing json-schema:///#/definitions/author"
   },
   "Github_hard---o77317.json": {},
   "Github_hard---o77367.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o77403.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧company‧\":{\"⟧ * ⟦id⟧ * ⟦\":‧1‧,\"‧name⟧ forced tokens \"⟦address⟧\" != \"⟦id⟧\""
   },
   "Github_hard---o77405.json": {},
   "Github_hard---o77406.json": {},
@@ -4867,12 +4825,10 @@
     "json_error": "Unknown format: uri-reference"
   },
   "Github_hard---o79080.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧This‧ is‧ a‧ sample‧ package‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 91/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ..."
   },
   "Github_hard---o79409.json": {},
-  "Github_hard---o79440.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o79440.json": {},
   "Github_hard---o79613.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
@@ -4899,7 +4855,7 @@
   "Github_hard---o80821.json": {},
   "Github_hard---o81117.json": {},
   "Github_hard---o81119.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧Short‧ package‧ description‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 100/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ..."
   },
   "Github_hard---o81127.json": {},
   "Github_hard---o81128.json": {},
@@ -4916,12 +4872,10 @@
   "Github_hard---o81160.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
-  "Github_hard---o81164.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o81164.json": {},
   "Github_hard---o81498.json": {},
   "Github_hard---o81650.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o81652.json": {},
   "Github_hard---o82144.json": {
@@ -4986,7 +4940,7 @@
   "Github_hard---o8370.json": {},
   "Github_hard---o83745.json": {},
   "Github_hard---o83748.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧A‧ short‧ package‧ description‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 91/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ..."
   },
   "Github_hard---o83813.json": {
     "json_error": "Unknown format: textFile"
@@ -5024,9 +4978,7 @@
   },
   "Github_hard---o83990.json": {},
   "Github_hard---o83993.json": {},
-  "Github_hard---o84042.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_hard---o84042.json": {},
   "Github_hard---o84047.json": {},
   "Github_hard---o84048.json": {},
   "Github_hard---o84049.json": {},
@@ -5119,7 +5071,7 @@
   "Github_hard---o89748.json": {},
   "Github_hard---o89890.json": {},
   "Github_hard---o89915.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧This‧ is‧ a‧ short‧ description‧ of‧ the‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 100/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ..."
   },
   "Github_hard---o90420.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -5177,7 +5129,7 @@
   "Github_hard---o91037.json": {},
   "Github_hard---o91040.json": {},
   "Github_hard---o91394.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧This‧ is‧ a‧ sample‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 91/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ..."
   },
   "Github_hard---o91595.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing http://thrift.apache.org/program-schema#/definitions/function"
@@ -5280,7 +5232,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_medium---o11670.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
   },
   "Github_medium---o11684.json": {},
   "Github_medium---o11689.json": {},
@@ -5300,7 +5252,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "Github_medium---o12178.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
   },
   "Github_medium---o1218.json": {},
   "Github_medium---o12210.json": {},
@@ -5326,7 +5278,7 @@
   "Github_medium---o12496.json": {},
   "Github_medium---o12505.json": {},
   "Github_medium---o12562.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "lookarounds not supported yet; End in regex /^$[a-zA-Z0-9$_]*$/"
   },
   "Github_medium---o12603.json": {},
   "Github_medium---o12605.json": {},
@@ -5412,7 +5364,7 @@
   "Github_medium---o16047.json": {},
   "Github_medium---o16067.json": {},
   "Github_medium---o16373.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unknown format: (\\d{2}-(\\d{2})-(\\d{4}))"
   },
   "Github_medium---o16736.json": {},
   "Github_medium---o16744.json": {},
@@ -5879,7 +5831,7 @@
   },
   "Github_medium---o39147.json": {},
   "Github_medium---o39166.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦.com‧/‧phen‧omen‧ons‧\",\"‧measure‧ments‧\":\"‧https‧://‧example‧.com‧/‧measure‧ments‧\",\"‧schema‧\":\"‧https‧://‧example‧.com‧/schema‧\",\"‧terms‧Of‧Use‧\":\"‧https‧://‧example‧.com‧/terms‧-of‧-use‧\",\"‧privacy‧Statements‧\":\"‧https‧://‧example‧.com‧/‧privacy‧-stat‧ements‧\",\"‧statistics⟧ * ⟦\":\"⟧ * ⟦https‧://‧example‧.com⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX.. (152 more)"
   },
   "Github_medium---o39168.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -5903,9 +5855,7 @@
   "Github_medium---o39527.json": {},
   "Github_medium---o39529.json": {},
   "Github_medium---o39749.json": {},
-  "Github_medium---o39780.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o39780.json": {},
   "Github_medium---o40179.json": {},
   "Github_medium---o40220.json": {},
   "Github_medium---o40395.json": {},
@@ -5975,20 +5925,14 @@
     "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
   },
   "Github_medium---o42021.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o42027.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_medium---o42029.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o42027.json": {},
+  "Github_medium---o42029.json": {},
   "Github_medium---o42041.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/linguist_details"
   },
-  "Github_medium---o42140.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o42140.json": {},
   "Github_medium---o42148.json": {},
   "Github_medium---o42179.json": {},
   "Github_medium---o42186.json": {},
@@ -6037,9 +5981,7 @@
   "Github_medium---o42889.json": {},
   "Github_medium---o42890.json": {},
   "Github_medium---o42892.json": {},
-  "Github_medium---o42976.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o42976.json": {},
   "Github_medium---o42985.json": {},
   "Github_medium---o42988.json": {},
   "Github_medium---o42994.json": {
@@ -6059,7 +6001,7 @@
   "Github_medium---o43298.json": {},
   "Github_medium---o43342.json": {},
   "Github_medium---o43729.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧Example‧ Place‧\",\"⟧ * ⟦description⟧ * ⟦\":\"‧This‧ is‧ an⟧ forced tokens \"⟦url⟧\" != \"⟦description⟧\""
   },
   "Github_medium---o43971.json": {},
   "Github_medium---o43985.json": {},
@@ -6147,7 +6089,7 @@
   "Github_medium---o45806.json": {},
   "Github_medium---o45807.json": {},
   "Github_medium---o46145.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/domainSet"
   },
   "Github_medium---o46250.json": {},
   "Github_medium---o46257.json": {},
@@ -6201,19 +6143,13 @@
   "Github_medium---o48116.json": {},
   "Github_medium---o48248.json": {},
   "Github_medium---o48313.json": {},
-  "Github_medium---o4832.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o4832.json": {},
   "Github_medium---o4833.json": {},
   "Github_medium---o48339.json": {},
-  "Github_medium---o4836.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "Github_medium---o4837.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o4836.json": {},
+  "Github_medium---o4837.json": {},
   "Github_medium---o4838.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/submittableRef"
   },
   "Github_medium---o48406.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/MyUnion"
@@ -6223,7 +6159,7 @@
   },
   "Github_medium---o48419.json": {},
   "Github_medium---o4842.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/submittableRef"
   },
   "Github_medium---o48420.json": {},
   "Github_medium---o48421.json": {},
@@ -6317,9 +6253,7 @@
   },
   "Github_medium---o53044.json": {},
   "Github_medium---o53085.json": {},
-  "Github_medium---o53100.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o53100.json": {},
   "Github_medium---o53109.json": {},
   "Github_medium---o53110.json": {},
   "Github_medium---o53111.json": {},
@@ -6350,7 +6284,7 @@
   "Github_medium---o53694.json": {},
   "Github_medium---o53698.json": {},
   "Github_medium---o53702.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦ https‧://‧conda‧.io‧/docs‧/user‧-guide‧/configuration‧/use‧-cond‧arc‧.html‧\",\"‧id‧\":\"‧https‧://‧raw‧.githubusercontent‧.com‧/M‧icrosoft‧/v‧s‧code‧-python‧/master‧/s‧chemas‧/‧cond‧arc‧.json‧\",\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧04‧/schema‧#‧\",\"‧channels⟧ * ⟦\":[\"⟧ * ⟦https‧://‧conda‧.⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ �.. (142 more)"
   },
   "Github_medium---o5372.json": {},
   "Github_medium---o5373.json": {},
@@ -6488,7 +6422,7 @@
     "json_error": "Unknown format: path"
   },
   "Github_medium---o58478.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o58599.json": {},
   "Github_medium---o58601.json": {},
@@ -6538,25 +6472,17 @@
     "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
   },
   "Github_medium---o59980.json": {},
-  "Github_medium---o60099.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o60099.json": {},
   "Github_medium---o60118.json": {},
   "Github_medium---o60120.json": {},
-  "Github_medium---o60170.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o60170.json": {},
   "Github_medium---o60173.json": {},
   "Github_medium---o6020.json": {},
   "Github_medium---o60227.json": {},
   "Github_medium---o6027.json": {},
-  "Github_medium---o60278.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o60278.json": {},
   "Github_medium---o60302.json": {},
-  "Github_medium---o60319.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o60319.json": {},
   "Github_medium---o60375.json": {},
   "Github_medium---o60757.json": {},
   "Github_medium---o60823.json": {},
@@ -6576,7 +6502,7 @@
   "Github_medium---o60879.json": {},
   "Github_medium---o60880.json": {},
   "Github_medium---o60973.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦.com‧/crypto‧_al‧gorithms‧_result‧-v‧1‧-‧0‧-‧0‧.json‧\"},\"‧_‧release‧\":\"‧npm‧:‧crypto‧-al‧gorithms‧:‧1‧.‧0‧.‧0‧\",\"‧status‧\":\"‧success‧\",\"‧details‧\":[{\"‧crypto‧\":\"‧AES‧\",\"‧file‧\":\"‧path‧/to‧/file‧.js‧\",\"‧match‧type‧\":\"‧content‧\",\"⟧ * ⟦matched⟧ * ⟦_lines‧\":‧10‧,\"⟧ mask: TokenSet: 6/128256; ⟨s⟩ ⟨sa⟩ ⟨sample⟩ ⟨samples⟩ ⟨sam⟩ ⟨samp⟩"
   },
   "Github_medium---o60974.json": {},
   "Github_medium---o60975.json": {},
@@ -6763,7 +6689,7 @@
   "Github_medium---o63475.json": {},
   "Github_medium---o63514.json": {},
   "Github_medium---o63552.json": {
-    "validation_error": "test #1: token not accepted at \u27e6{\"\u2027email\u2027Details\u2027\":{\"\u27e7 * \u27e6to\u27e7 * \u27e6\":[\"\u2027recipient\u20271\u2027@example\u27e7 mask: TokenSet: 15/128256; \u27e8a\u27e9 \u27e8b\u27e9 \u27e8c\u27e9 \u27e8f\u27e9 \u27e8at\u27e9 \u27e8cc\u27e9 \u27e8from\u27e9 \u27e8att\u27e9 \u27e8fr\u27e9 \u27e8bc\u27e9 \u27e8attach\u27e9 \u27e8attachment\u27e9 \u27e8atta\u27e9 \u27e8attachments\u27e9 \u27e8bcc\u27e9"
+    "validation_error": "test #1: token not accepted at ⟦{\"‧email‧Details‧\":{\"⟧ * ⟦to⟧ * ⟦\":[\"‧recipient‧1‧@example⟧ mask: TokenSet: 15/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨f⟩ ⟨at⟩ ⟨cc⟩ ⟨from⟩ ⟨att⟩ ⟨fr⟩ ⟨bc⟩ ⟨attach⟩ ⟨attachment⟩ ⟨atta⟩ ⟨attachments⟩ ⟨bcc⟩"
   },
   "Github_medium---o63608.json": {},
   "Github_medium---o63683.json": {},
@@ -6969,7 +6895,7 @@
   "Github_medium---o69522.json": {},
   "Github_medium---o69599.json": {},
   "Github_medium---o69631.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦id⟧ * ⟦\":\"‧example‧-item‧-⟧ mask: TokenSet: 16/128256; ⟨a⟩ ⟨d⟩ ⟨al⟩ ⟨ad⟩ ⟨de⟩ ⟨add⟩ ⟨alt⟩ ⟨description⟩ ⟨des⟩ ⟨desc⟩ ⟨additional⟩ ⟨alter⟩ ⟨altern⟩ ⟨descr⟩ ⟨alternate⟩ ⟨alte⟩"
   },
   "Github_medium---o69729.json": {},
   "Github_medium---o69733.json": {},
@@ -7088,11 +7014,9 @@
   "Github_medium---o72521.json": {},
   "Github_medium---o72570.json": {},
   "Github_medium---o72586.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧id‧\":\"‧example‧-article‧\",\"‧title‧\":\"‧Example‧ Article‧\",\"‧visible‧\":‧true⟧ * ⟦,\"⟧ * ⟦categories‧\":[\"‧category‧1⟧ mask: TokenSet: 425/128256; ⟨}⟩ ⟨\\t⟩ ⟨\\n⟩ ⟨\\r⟩ ⟨ ⟩ ⟨  ⟩ ⟨    ⟩ ⟨        ⟩ ⟨   ⟩ ⟨\\n\\n⟩ ⟨       ⟩ ⟨\\t\\t⟩ ⟨           ⟩ ⟨\\r\\n⟩ ⟨ }⟩ ⟨                ⟩ ⟨               ⟩ ⟨     ⟩ ⟨\\t\\t\\t\\t⟩ ⟨                   ⟩ ⟨\\t\\t\\t⟩ ⟨                       ⟩ ⟨         ⟩ ⟨ \\n⟩ ⟨                                ⟩ ⟨\\r\\n\\r\\n⟩ ⟨      ⟩ ⟨                           ⟩ ⟨\\n\\n\\n\\n⟩ ⟨             ⟩ ⟨    \\n⟩ ⟨\\t\\t\\t\\t\\t⟩ ⟨                               ⟩ ⟨\\n\\n\\n⟩ ⟨\\t\\n⟩ ⟨\\t\\t\\t\\t\\t\\t⟩ ⟨                 ⟩ ⟨        \\n⟩ ⟨            ⟩ ⟨          ⟩ ⟨                                   ⟩ ⟨\\t\\t\\t\\t\\t\\t\\t\\t⟩ ⟨              ⟩ ⟨  \\n⟩ ⟨\\t\\t\\n⟩ ⟨ \\r\\n⟩ ⟨                     ⟩ .. (82 more)"
   },
-  "Github_medium---o7276.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o7276.json": {},
   "Github_medium---o7287.json": {},
   "Github_medium---o7288.json": {},
   "Github_medium---o7292.json": {},
@@ -7118,9 +7042,7 @@
   "Github_medium---o7383.json": {},
   "Github_medium---o73913.json": {},
   "Github_medium---o73914.json": {},
-  "Github_medium---o73919.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o73919.json": {},
   "Github_medium---o7392.json": {},
   "Github_medium---o73925.json": {},
   "Github_medium---o73926.json": {
@@ -7134,9 +7056,7 @@
   "Github_medium---o73953.json": {},
   "Github_medium---o73955.json": {},
   "Github_medium---o73958.json": {},
-  "Github_medium---o73959.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o73959.json": {},
   "Github_medium---o73962.json": {},
   "Github_medium---o73996.json": {},
   "Github_medium---o74003.json": {},
@@ -7199,7 +7119,7 @@
   "Github_medium---o75602.json": {},
   "Github_medium---o75613.json": {},
   "Github_medium---o7574.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_medium---o7579.json": {},
   "Github_medium---o7633.json": {},
@@ -7210,17 +7130,13 @@
   "Github_medium---o76473.json": {},
   "Github_medium---o76474.json": {},
   "Github_medium---o76475.json": {},
-  "Github_medium---o76552.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o76552.json": {},
   "Github_medium---o76576.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o76740.json": {},
   "Github_medium---o76743.json": {},
-  "Github_medium---o76764.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o76764.json": {},
   "Github_medium---o76765.json": {},
   "Github_medium---o76785.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -7249,9 +7165,7 @@
   "Github_medium---o78137.json": {},
   "Github_medium---o78155.json": {},
   "Github_medium---o78400.json": {},
-  "Github_medium---o78460.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o78460.json": {},
   "Github_medium---o78478.json": {},
   "Github_medium---o78479.json": {},
   "Github_medium---o78735.json": {},
@@ -7275,7 +7189,7 @@
   "Github_medium---o79429.json": {},
   "Github_medium---o79452.json": {},
   "Github_medium---o79458.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧packageName‧\":\"‧example‧-package‧\",\"‧package‧Version‧\":\"‧1‧.‧0‧.‧0‧\",\"‧appId‧\":\"‧example‧-app‧\",\"‧post‧Install‧Notes‧\":\"‧Please‧ restart‧ your‧ system‧ after‧ installation‧.\",\"‧cli‧\":{\"‧bin‧aries‧\":{\"‧darwin‧\":{\"‧x‧86‧-‧64‧\":{\"⟧ * ⟦url⟧ * ⟦\":\"‧https‧://‧example⟧ forced tokens \"⟦content‧Hash⟧\" != \"⟦url‧\\\":\\\"⟧\""
   },
   "Github_medium---o79473.json": {
     "json_error": "Unknown format: url"
@@ -7297,7 +7211,7 @@
   "Github_medium---o79727.json": {},
   "Github_medium---o79851.json": {},
   "Github_medium---o79893.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦as‧en‧otes‧/‧\",\"‧status‧\":\"‧current‧\"},\"‧106‧\":{\"‧release‧_date‧\":\"‧202‧2‧-‧10‧-‧18‧\",\"‧release‧_notes‧\":\"‧https‧://‧www‧.mozilla‧.org‧/en‧-US‧/fire‧fox‧/‧106‧.‧0‧/re‧le‧as‧en‧otes‧/‧\",\"‧status‧\":\"‧ret‧ired‧\"}}‧},\"⟧ * ⟦edge⟧ * ⟦\":{\"‧name‧\":\"‧Microsoft⟧ mask: TokenSet: 25/128256; ⟨f⟩ ⟨i⟩ ⟨n⟩ ⟨o⟩ ⟨q⟩ ⟨s⟩ ⟨u⟩ ⟨w⟩ ⟨op⟩ ⟨ie⟩ ⟨we⟩ ⟨uc⟩ ⟨no⟩ ⟨ope⟩ ⟨web⟩ ⟨oper⟩ ⟨node⟩ ⟨sa⟩ ⟨fi⟩ ⟨fire⟩ ⟨qq⟩ ⟨nod⟩ ⟨sam⟩ ⟨fir⟩ ⟨firefox⟩"
   },
   "Github_medium---o80161.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -7327,7 +7241,7 @@
   "Github_medium---o81649.json": {},
   "Github_medium---o81686.json": {},
   "Github_medium---o81746.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_medium---o81880.json": {
     "json_error": "Unknown format: uri-reference"
@@ -7403,9 +7317,7 @@
     "json_error": "Unknown format: host-name"
   },
   "Github_medium---o83078.json": {},
-  "Github_medium---o83086.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_medium---o83086.json": {},
   "Github_medium---o83130.json": {},
   "Github_medium---o83131.json": {},
   "Github_medium---o83151.json": {
@@ -7584,7 +7496,7 @@
   "Github_medium---o90323.json": {},
   "Github_medium---o90333.json": {},
   "Github_medium---o90347.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧url‧\":\"‧http‧://‧maps‧.w‧ien‧.g‧v‧.at‧/w‧mts⟧ * ⟦\",\"⟧ * ⟦layer‧Identifier‧\":\"‧lb⟧ mask: TokenSet: 47800/128256; ⟨!⟩ ⟨\"⟩ ⟨#⟩ ⟨$⟩ ⟨%⟩ ⟨&⟩ ⟨'⟩ ⟨(⟩ ⟨)⟩ ⟨*⟩ ⟨+⟩ ⟨,⟩ ⟨-⟩ ⟨.⟩ ⟨/⟩ ⟨0⟩ ⟨1⟩ ⟨2⟩ ⟨3⟩ ⟨4⟩ ⟨5⟩ ⟨6⟩ ⟨7⟩ ⟨8⟩ ⟨9⟩ ⟨:⟩ ⟨;⟩ ⟨=⟩ ⟨?⟩ ⟨@⟩ ⟨A⟩ ⟨B⟩ ⟨C⟩ ⟨D⟩ ⟨E⟩ ⟨F⟩ ⟨G⟩ ⟨H⟩ ⟨I⟩ ⟨J⟩ ⟨K⟩ ⟨L⟩ ⟨M⟩ ⟨N⟩ ⟨O⟩ ⟨P⟩ ⟨Q⟩ ⟨R⟩ ⟨S⟩ ⟨T⟩ ..."
   },
   "Github_medium---o90352.json": {
     "json_error": "Unknown format: cidr"
@@ -8249,9 +8161,7 @@
   "Github_trivial---o76160.json": {},
   "Github_trivial---o76464.json": {},
   "Github_trivial---o76469.json": {},
-  "Github_trivial---o76554.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_trivial---o76554.json": {},
   "Github_trivial---o76654.json": {},
   "Github_trivial---o76865.json": {},
   "Github_trivial---o76868.json": {},
@@ -8266,7 +8176,7 @@
   "Github_trivial---o78102.json": {},
   "Github_trivial---o78110.json": {},
   "Github_trivial---o78117.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: lexer error: too many expressions constructed"
   },
   "Github_trivial---o78127.json": {},
   "Github_trivial---o78129.json": {},
@@ -8284,9 +8194,7 @@
   "Github_trivial---o79481.json": {},
   "Github_trivial---o79494.json": {},
   "Github_trivial---o79557.json": {},
-  "Github_trivial---o79589.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_trivial---o79589.json": {},
   "Github_trivial---o79654.json": {},
   "Github_trivial---o79715.json": {},
   "Github_trivial---o80334.json": {},
@@ -8333,9 +8241,7 @@
   "Github_trivial---o87854.json": {},
   "Github_trivial---o87858.json": {},
   "Github_trivial---o88603.json": {},
-  "Github_trivial---o88605.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_trivial---o88605.json": {},
   "Github_trivial---o88607.json": {},
   "Github_trivial---o88608.json": {},
   "Github_trivial---o89088.json": {},
@@ -8385,10 +8291,10 @@
   "Github_ultra---o10420.json": {},
   "Github_ultra---o12343.json": {},
   "Github_ultra---o12344.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ mask: TokenSet: 20/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨d⟩ ⟨con⟩ ⟨aw⟩ ⟨cont⟩ ⟨co⟩ ⟨date⟩ ⟨da⟩ ⟨dat⟩ ⟨contr⟩ ⟨awa⟩ ⟨bu⟩ ⟨buy⟩ ⟨contract⟩ ⟨buyer⟩ ⟨contracts⟩ ⟨award⟩ ⟨contra⟩"
   },
   "Github_ultra---o12652.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ mask: TokenSet: 20/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨d⟩ ⟨con⟩ ⟨aw⟩ ⟨cont⟩ ⟨co⟩ ⟨date⟩ ⟨da⟩ ⟨dat⟩ ⟨contr⟩ ⟨awa⟩ ⟨bu⟩ ⟨buy⟩ ⟨contract⟩ ⟨buyer⟩ ⟨contracts⟩ ⟨award⟩ ⟨contra⟩"
   },
   "Github_ultra---o12653.json": {},
   "Github_ultra---o13020.json": {
@@ -8583,11 +8489,9 @@
   "Github_ultra---o6374.json": {},
   "Github_ultra---o6375.json": {},
   "Github_ultra---o65323.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ mask: TokenSet: 20/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨d⟩ ⟨con⟩ ⟨aw⟩ ⟨cont⟩ ⟨co⟩ ⟨date⟩ ⟨da⟩ ⟨dat⟩ ⟨contr⟩ ⟨awa⟩ ⟨bu⟩ ⟨buy⟩ ⟨contract⟩ ⟨buyer⟩ ⟨contracts⟩ ⟨award⟩ ⟨contra⟩"
   },
-  "Github_ultra---o65325.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_ultra---o65325.json": {},
   "Github_ultra---o65414.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
@@ -8632,7 +8536,7 @@
   },
   "Github_ultra---o65891.json": {},
   "Github_ultra---o65975.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/paypal/definitions/payer"
   },
   "Github_ultra---o66714.json": {},
   "Github_ultra---o66715.json": {},
@@ -8645,13 +8549,11 @@
     "validation_error": "test #0: token not accepted at ⟦{\"‧inputs‧\":[{\"‧id‧\":\"‧input‧1‧\",\"‧type⟧ * ⟦\":\"⟧ * ⟦File‧\",\"‧s‧bg⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "Github_ultra---o69900.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_ultra---o69966.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "Github_ultra---o69966.json": {},
   "Github_ultra---o69992.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unknown format: idn-email"
   },
   "Github_ultra---o70036.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/string_or_input"
@@ -8681,7 +8583,7 @@
   "Github_ultra---o81125.json": {},
   "Github_ultra---o83390.json": {},
   "Github_ultra---o83854.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o83932.json": {
     "json_error": "Unknown format: color"
@@ -11131,13 +11033,11 @@
   },
   "JsonSchemaStore---apibuilder.json": {},
   "JsonSchemaStore---appsemblerc.schema.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "regex parse error:\n    ^@([[0-9]a-z](?:(?!.*--)[[0-9]a-z-]*[[0-9]a-z])?)\\/([[0-9]a-z](?:(?!.*--)[[0-9]a-z-]*[[0-9]a-z])?)$\n                    ^^^\nerror: look-around, including look-ahead and look-behind, is not supported"
   },
-  "JsonSchemaStore---appsettings.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---appsettings.json": {},
   "JsonSchemaStore---appsscript.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧$‧id‧\":\"‧https‧://‧json‧.s‧chem‧ast‧ore‧.org‧/app‧ss‧cript‧.json‧\",\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧07‧/schema‧#‧\",\"‧runtime‧Version⟧ * ⟦\":\"⟧ * ⟦V‧8‧\",\"‧time⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "JsonSchemaStore---appveyor.json": {
     "json_error": "Unknown format: regex"
@@ -11166,7 +11066,7 @@
   },
   "JsonSchemaStore---bamboo-spec.json": {},
   "JsonSchemaStore---band-manifest.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ forced tokens \"⟦manifest‧Version⟧\" != \"⟦$‧schema⟧\""
   },
   "JsonSchemaStore---base-04.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/nullable-timezone"
@@ -11203,14 +11103,10 @@
     "json_error": "Unknown format: uri-reference"
   },
   "JsonSchemaStore---bower.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧-package‧\",\"‧version‧\":\"‧1‧.‧0‧.‧0‧\",\"‧description⟧ * ⟦\":\"⟧ * ⟦This‧ is‧ an‧ example⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
-  "JsonSchemaStore---bowerrc.json": {
-    "json_error": "Unknown format: uri"
-  },
-  "JsonSchemaStore---box.schema.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---bowerrc.json": {},
+  "JsonSchemaStore---box.schema.json": {},
   "JsonSchemaStore---bozr.json": {
     "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
   },
@@ -11226,7 +11122,7 @@
   },
   "JsonSchemaStore---buildinfo-schema.json": {},
   "JsonSchemaStore---bukkit-plugin.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "circular references with sibling keys are not supported: https://json.schemastore.org/bukkit-plugin#/definitions/permission"
   },
   "JsonSchemaStore---bundleconfig.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/bundleconfig.json#/definitions/bundle"
@@ -11297,7 +11193,7 @@
   "JsonSchemaStore---commands.json": {},
   "JsonSchemaStore---compile-commands.json": {},
   "JsonSchemaStore---component-detection-manifest.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ forced tokens \"⟦registr‧ations⟧\" != \"⟦$‧schema⟧\""
   },
   "JsonSchemaStore---component.json": {},
   "JsonSchemaStore---component_spec.json_schema.json": {
@@ -11307,7 +11203,7 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---composer-schema.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/repository"
   },
   "JsonSchemaStore---config-file.v1.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11330,9 +11226,7 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---creatomic.json": {},
-  "JsonSchemaStore---crowdin.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---crowdin.json": {},
   "JsonSchemaStore---cryproj.52.schema.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
@@ -11374,7 +11268,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/$defs/test_configs"
   },
   "JsonSchemaStore---debugsettings.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "JsonSchemaStore---dein.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/dein.json#/definitions/Plugin"
@@ -11390,7 +11284,7 @@
   "JsonSchemaStore---docker-seq.schema.json": {},
   "JsonSchemaStore---dockerd.json": {},
   "JsonSchemaStore---dotnet-releases-index.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/dotnet-releases-index.json#/definitions/product"
   },
   "JsonSchemaStore---dotnetcli.host.json": {},
   "JsonSchemaStore---drupal-breakpoints.json": {
@@ -11422,16 +11316,14 @@
   },
   "JsonSchemaStore---drush.site.yml.json": {},
   "JsonSchemaStore---dss-2.0.0.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required\n  while processing https://json.schemastore.org/dss-2.0.0.json#/definitions/dss2-SignatureObjectType"
   },
   "JsonSchemaStore---embrace-config-schema-1.0.0.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---entity.beef-5.json": {},
   "JsonSchemaStore---entity.beef.json": {},
-  "JsonSchemaStore---epr-manifest.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---epr-manifest.json": {},
   "JsonSchemaStore---es6importsorterrc.json": {},
   "JsonSchemaStore---eslintrc.json": {},
   "JsonSchemaStore---esmrc.json": {
@@ -11504,9 +11396,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---helmfile.json": {},
-  "JsonSchemaStore---host-meta.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---host-meta.json": {},
   "JsonSchemaStore---host.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
@@ -11557,7 +11447,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://www.sourcemeta.com/schemas/vendor/json-e@1.json#/$defs/jsone-value"
   },
   "JsonSchemaStore---jsonld.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "Schema intersection stack level exceeded"
   },
   "JsonSchemaStore---jx-requirements.json": {},
   "JsonSchemaStore---jx-schema.json": {},
@@ -11568,7 +11458,7 @@
   },
   "JsonSchemaStore---label-commenter-config.json": {},
   "JsonSchemaStore---launchsettings.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #1: token not accepted at ⟦NET‧CORE‧_ENV‧IRONMENT‧\":\"‧Development‧\"}}‧,\"‧My‧Project‧\":{\"‧command‧Name‧\":\"‧Project‧\",\"‧launch‧Browser‧\":‧true‧,\"‧launch‧Url‧\":\"‧https‧://‧localhost‧:‧500‧1‧\",\"‧application‧Url‧\":\"‧https‧://‧localhost‧:‧500‧1‧;‧http‧://‧localhost‧:‧500‧0‧\",\"‧environment‧Variables⟧ * ⟦\":{\"⟧ * ⟦ASP‧NET‧CORE‧_ENV⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HE.. (139 more)"
   },
   "JsonSchemaStore---lazydocker.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11606,11 +11496,9 @@
   "JsonSchemaStore---markdown-lint-check.json": {},
   "JsonSchemaStore---markdownlint-config-schema.json": {},
   "JsonSchemaStore---mason-registry.json": {
-    "json_error": "Unknown format: uri"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/mason-registry.json#/definitions/components:source"
   },
-  "JsonSchemaStore---mboats-config-0.2.json": {
-    "json_error": "Unknown format: uri"
-  },
+  "JsonSchemaStore---mboats-config-0.2.json": {},
   "JsonSchemaStore---meltano.schema.json": {
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
@@ -11680,7 +11568,7 @@
   },
   "JsonSchemaStore---nightwatch.json": {},
   "JsonSchemaStore---ninjs-1.3.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦standard‧\":{\"‧name‧\":\"⟧ forced tokens \"⟦uri⟧\" != \"⟦$⟧\""
   },
   "JsonSchemaStore---nlu.schema.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -11789,7 +11677,7 @@
   "JsonSchemaStore---pterodactyl.json": {},
   "JsonSchemaStore---publiccode.json": {},
   "JsonSchemaStore---pubspec.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/pubspec#/definitions/dependency"
   },
   "JsonSchemaStore---pull-request-labeler.json": {},
   "JsonSchemaStore---pulumi.json": {
@@ -11934,7 +11822,7 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---sourcery_yaml_schema.json": {
-    "json_error": "Unknown format: uri"
+    "validation_error": "test #0: token not accepted at ⟦\"],\"‧rule‧_types‧\":[\"‧ref‧actoring‧\",\"‧s‧uggestion‧\",\"‧comment‧\",\"‧hover‧\"],\"‧python‧_version‧\":{\"‧major‧\":‧3‧,\"‧minor‧\":‧8‧}}‧,\"‧rules‧\":[{\"‧id‧\":\"‧rule‧1‧\",\"‧description‧\":\"‧Rule‧ ‧1‧ description‧\",\"‧pattern‧\":\"‧pattern‧1‧\",\"‧replacement‧\":\"‧replacement‧1‧\",\"⟧ * ⟦language⟧ * ⟦\":\"‧python‧\",\"‧paths⟧ mask: TokenSet: 22/128256; ⟨c⟩ ⟨e⟩ ⟨p⟩ ⟨t⟩ ⟨ex⟩ ⟨con⟩ ⟨te⟩ ⟨co⟩ ⟨cond⟩ ⟨test⟩ ⟨tes⟩ ⟨path⟩ ⟨ta⟩ ⟨tag⟩ ⟨exp⟩ ⟨pat⟩ ⟨pa⟩ ⟨condition⟩ ⟨tags⟩ ⟨paths⟩ ⟨tests⟩ ⟨expl⟩"
   },
   "JsonSchemaStore---spacefile.schema.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -12005,7 +11893,7 @@
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "JsonSchemaStore---tools-schema.json": {
-    "json_error": "test #0: token not accepted at \u27e6 definitions\u2027.\",\"\u2027links\u2027\":{\"\u2027website\u2027Url\u2027\":\"\u2027https\u2027://\u2027async\u2027api\u2027-generator\u2027.com\u2027\",\"\u2027docs\u2027Url\u2027\":\"\u2027https\u2027://\u2027async\u2027api\u2027-generator\u2027.com\u2027/docs\u2027"
+    "validation_error": "test #0: token not accepted at ⟦ definitions‧.\",\"‧links‧\":{\"‧website‧Url‧\":\"‧https‧://‧async‧api‧-generator‧.com‧\",\"‧docs‧Url‧\":\"‧https‧://‧async‧api‧-generator‧.com‧/docs‧\",\"‧repo‧Url‧\":\"‧https‧://‧github‧.com‧/‧async‧api‧/‧async‧api‧-generator‧\"},\"‧filters‧\":{\"‧categories‧\":[\"‧code‧-generator‧\",\"‧documentation‧-generator‧\"],\"⟧ * ⟦language⟧ * ⟦\":\"‧JavaScript‧\",\"‧technology⟧ forced tokens \"⟦has‧Commercial⟧\" != \"⟦language‧\\\":\\\"⟧\""
   },
   "JsonSchemaStore---traefik-v2.json": {},
   "JsonSchemaStore---transcend-yml-schema-v4.json": {},
@@ -13253,7 +13141,7 @@
   "MCPspec---ListPromptsResult.json": {},
   "MCPspec---ListResourcesRequest.json": {},
   "MCPspec---ListResourcesResult.json": {
-    "validation_error": "test #0: token not accepted at \u27e6https\u2027://\u2027example\u2027.com\u2027/resource\u2027\"},{\"\u2027annotations\u2027\":{\"\u2027aud\u2027ience\u2027\":[\"\u2027assistant\u2027\"],\"\u2027priority\u2027\":\u20270\u2027.\u20275\u2027},\"\u2027description\u2027\":\"\u2027Another\u2027 resource\u2027 description\u2027\",\"\u2027m\u2027imeType\u2027\":\"\u2027application\u2027/json\u2027\",\"\u2027name\u2027\":"
+    "validation_error": "test #0: token not accepted at ⟦https‧://‧example‧.com‧/resource‧\"},{\"‧annotations‧\":{\"‧aud‧ience‧\":[\"‧assistant‧\"],\"‧priority‧\":‧0‧.‧5‧},\"‧description‧\":\"‧Another‧ resource‧ description‧\",\"‧m‧imeType‧\":\"‧application‧/json‧\",\"‧name‧\":\"‧Another‧ Example‧ Resource‧\",\"‧uri‧\":\"‧https‧://‧example‧.com‧/‧another‧-resource‧\"}‧],\"‧next‧Cursor⟧ * ⟦\":\"⟧ * ⟦opaque‧-pagination‧-token‧\"}⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻.. (187 more)"
   },
   "MCPspec---ListRootsRequest.json": {},
   "MCPspec---ListRootsResult.json": {},
