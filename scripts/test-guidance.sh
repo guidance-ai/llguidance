@@ -116,7 +116,7 @@ echo "Running mypy..."
 
 PYTEST_FLAGS=
 
-if [ "$(python -c "import sysconfig; print(sysconfig.get_config_var('Py_GIL_DISABLED'))")" == "1" ]; then
+if [ "$(python -c "import sysconfig; print(sysconfig.get_config_var('Py_GIL_DISABLED'))")" -eq "1" ]; then
     # force-disable the GIL because some dependencies do not yet declare support
     # TODO: delete when this is no longer the case for tokenizers, safetensors,
     # and llama-cpp-python
