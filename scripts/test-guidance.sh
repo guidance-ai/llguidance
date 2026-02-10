@@ -116,6 +116,15 @@ echo "Running mypy..."
 
 PYTEST_FLAGS=
 
+if [ "$(python -c "import sysconfig; print(sysconfig.get_config_var('Py_GIL_DISABLED'))")" == "1" ]; then
+    # force-disable the GIL because some dependencies do not yet declare support
+    # TODO: delete when this is no longer the case for tokenizers, safetensors,
+    # and llama-cpp-python
+    PYTHON_FLAGS=-Xgil=0
+else
+    PYTHON_FLAGS=
+fi
+
 if test -f ../guidance/tests/unit/test_ll.py ; then
     echo "Guidance side by side"
     cd ../guidance
@@ -138,8 +147,8 @@ fi
 # not so relevant anymore, we do it anyways below
 # python -m pytest $PYTEST_FLAGS tests/unit/test_ll.py # main test
 
-(cd "$TOP" && python -m pytest $PYTEST_FLAGS python/torch_tests/)
-python -m pytest $PYTEST_FLAGS tests/unit/test_[lgmp]*.py tests/unit/library "$@"
+(cd "$TOP" && python $PYTHON_FLAGS -m pytest $PYTEST_FLAGS python/torch_tests/)
+python $PYTHON_FLAGS -m pytest $PYTEST_FLAGS tests/unit/test_[lgmp]*.py tests/unit/library "$@"
 
 
 fi # TEST_PY
