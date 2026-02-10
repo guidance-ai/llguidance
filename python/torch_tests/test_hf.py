@@ -6,19 +6,13 @@ import pytest
 import json
 import time
 
-try:
-    from llguidance.torch import (
-        apply_token_bitmask_inplace,
-        get_bitmask_shape,
-        fill_next_token_bitmask,
-        allocate_token_bitmask,
-        fill_next_token_bitmask_par,
-    )
-except (ImportError, RuntimeError):
-    pytest.skip(
-        reason="tests require torch and torch.compile",
-        allow_module_level=True
-    )
+from llguidance.torch import (
+    apply_token_bitmask_inplace,
+    get_bitmask_shape,
+    fill_next_token_bitmask,
+    allocate_token_bitmask,
+    fill_next_token_bitmask_par,
+)
 from llguidance import LLMatcher, LLTokenizer, LLExecutor
 
 import llguidance.hf
