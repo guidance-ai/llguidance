@@ -203,11 +203,14 @@ fn linked_list_failures(#[case] obj: &Value) {
 }
 
 #[rstest]
-#[case::neither_required(&json!({"$schema": "http://json-schema.org/draft-07/schema#","a_string": "Hello"}))]
+#[case::neither_present(&json!({"$schema": "http://json-schema.org/draft-07/schema#","c_string": "Extra"}))]
 #[case::only_first(&json!({"$schema": "http://json-schema.org/draft-07/schema#","a_string": "Hello"}))]
 #[case::only_second(&json!({"$schema": "http://json-schema.org/draft-07/schema#","b_string": "World"}))]
 #[case::both(&json!({"$schema": "http://json-schema.org/draft-07/schema#","a_string": "Hello", "b_string": "World"}))]
-#[case::extra(&json!({"$schema": "http://json-schema.org/draft-07/schema#", "a_string": "Hello", "b_string": "World", "c_string": "Extra"}))]
+#[case::only_extra(&json!({"$schema": "http://json-schema.org/draft-07/schema#", "c_string": "Extra"}))]
+#[case::first_and_extra(&json!({"$schema": "http://json-schema.org/draft-07/schema#", "a_string": "Hello", "c_string": "Extra"}))]
+#[case::second_and_extra(&json!({"$schema": "http://json-schema.org/draft-07/schema#", "b_string": "World", "c_string": "Extra"}))]
+#[case::both_with_extra(&json!({"$schema": "http://json-schema.org/draft-07/schema#", "a_string": "Hello", "b_string": "World", "c_string": "Extra"}))]
 fn object_no_required(#[case] obj: &Value) {
     let schema = json!({"type": "object", "properties": {"a_string": {"type": "string"}, "b_string": {"type": "string"}}});
     json_schema_check(&schema, obj, true);
