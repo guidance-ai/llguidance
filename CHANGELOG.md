@@ -4,19 +4,25 @@ All notable changes to this project will be documented in this file. Dates are d
 
 If a release doesn't introduce any interesting changes (build fixes etc.), it's skipped.
 
+#### [v1.5.1](https://github.com/guidance-ai/llguidance/compare/v1.5.0...v1.5.1) 2026-02-10
+
+- Mask caching to improve performance, especially for lazy lexemes [`#279`](https://github.com/guidance-ai/llguidance/pull/279)
+- Bump `bytes` from 1.10.1 to 1.11.1 [`#281`](https://github.com/guidance-ai/llguidance/pull/281)
+- Add sentence to docs about negation and UTF-8 [`#280`](https://github.com/guidance-ai/llguidance/pull/280)
+
 #### [v1.5.0](https://github.com/guidance-ai/llguidance/compare/v1.4.0...v1.5.0) 2026-02-02
 
 - [FIX] Coerce `Metaspace` prepend_scheme to `never` [`#272`](https://github.com/guidance-ai/llguidance/pull/272)
 - Speed up toktrie add_bias (~3% improvement) [`#264`](https://github.com/guidance-ai/llguidance/pull/264)
-  - Thanks @omarkilani!
+  - Thanks [@omarkilani](https://github.com/omarkilani)!
 - Add discord & email to readme [`#273`](https://github.com/guidance-ai/llguidance/pull/273)
 - Add parallel token consumption API (consume_token_par) [`#271`](https://github.com/guidance-ai/llguidance/pull/271)
-  - Thanks @alecsolder!
+  - Thanks [@alecsolder](https://github.com/alecsolder)!
 - Add toolcalls doc [`#270`](https://github.com/guidance-ai/llguidance/pull/270)
 - Fix typo in README.md [`#269`](https://github.com/guidance-ai/llguidance/pull/269)
-  - Thanks @juliendenize!
+  - Thanks [@juliendenize](https://github.com/juliendenize)!
 - Mark immutable pyclasses as frozen [`#260`](https://github.com/guidance-ai/llguidance/pull/260)
-  - Thanks @ngoldbaum!
+  - Thanks [@ngoldbaum](https://github.com/ngoldbaum)!
 
 #### [v1.4.0](https://github.com/guidance-ai/llguidance/compare/v1.3.0...v1.4.0) 2025-11-18
 
