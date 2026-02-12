@@ -2071,9 +2071,7 @@
   "Github_easy---o56009.json": {},
   "Github_easy---o56015.json": {},
   "Github_easy---o56027.json": {},
-  "Github_easy---o56866.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧@‧type‧\":\"‧Offer‧Item‧Condition‧\",\"‧@‧context‧\":\"‧http‧://‧schema‧.org‧/‧\",\"‧additional‧Type⟧ * ⟦\":\"⟧ * ⟦http‧://‧schema‧.org⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
+  "Github_easy---o56866.json": {},
   "Github_easy---o57041.json": {},
   "Github_easy---o57047.json": {},
   "Github_easy---o57048.json": {},
@@ -2379,9 +2377,7 @@
   "Github_easy---o66586.json": {},
   "Github_easy---o66587.json": {},
   "Github_easy---o66589.json": {},
-  "Github_easy---o67010.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧f‧ritz‧box‧\":{\"⟧ * ⟦uri⟧ * ⟦\":\"‧http‧://‧example⟧ forced tokens \"⟦pass⟧\" != \"⟦uri⟧\""
-  },
+  "Github_easy---o67010.json": {},
   "Github_easy---o67056.json": {},
   "Github_easy---o67175.json": {},
   "Github_easy---o67195.json": {},
@@ -3272,9 +3268,7 @@
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "Github_hard---o12477.json": {},
-  "Github_hard---o12498.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧07‧/schema‧#‧\",\"‧name⟧ * ⟦\":\"⟧ * ⟦my‧-package‧\",\"‧slug⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
+  "Github_hard---o12498.json": {},
   "Github_hard---o12499.json": {},
   "Github_hard---o12613.json": {},
   "Github_hard---o12958.json": {},
