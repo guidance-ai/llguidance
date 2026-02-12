@@ -24,7 +24,7 @@ struct PyTokenizer {
 }
 
 #[derive(Clone)]
-#[pyclass(frozen)]
+#[pyclass(frozen, skip_from_py_object)]
 pub(crate) struct LLTokenizer {
     factory: Arc<ParserFactory>,
 }
@@ -329,7 +329,7 @@ impl TokenizerEnv for PyTokenizer {
 }
 
 #[derive(Clone)]
-#[pyclass(frozen)]
+#[pyclass(frozen, skip_from_py_object)]
 struct JsonCompiler {
     item_separator: String,
     key_separator: String,
@@ -393,7 +393,7 @@ fn check_grammar(grm: TopLevelGrammar, check: bool) -> PyResult<String> {
 }
 
 #[derive(Clone)]
-#[pyclass(frozen)]
+#[pyclass(frozen, skip_from_py_object)]
 struct LarkCompiler {}
 
 #[pymethods]
@@ -410,7 +410,7 @@ impl LarkCompiler {
 }
 
 #[derive(Clone)]
-#[pyclass(frozen)]
+#[pyclass(frozen, skip_from_py_object)]
 struct RegexCompiler {}
 
 #[pymethods]
