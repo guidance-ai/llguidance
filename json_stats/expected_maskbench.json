@@ -4580,9 +4580,7 @@
   "Github_hard---o67017.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
-  "Github_hard---o67026.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧A‧ short‧ description‧ of‧ the‧ package‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 100/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ..."
-  },
+  "Github_hard---o67026.json": {},
   "Github_hard---o67158.json": {},
   "Github_hard---o67268.json": {},
   "Github_hard---o67269.json": {},
@@ -4673,9 +4671,7 @@
     "json_error": "Unknown format: uri-reference"
   },
   "Github_hard---o71552.json": {},
-  "Github_hard---o71565.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧/vendor‧\",\"‧description‧\":\"‧Example‧ package‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 94/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ..."
-  },
+  "Github_hard---o71565.json": {},
   "Github_hard---o71568.json": {},
   "Github_hard---o71827.json": {},
   "Github_hard---o72113.json": {
@@ -4688,9 +4684,7 @@
   },
   "Github_hard---o72528.json": {},
   "Github_hard---o72536.json": {},
-  "Github_hard---o7264.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ forced tokens \"⟦format‧Version⟧\" != \"⟦$‧schema⟧\""
-  },
+  "Github_hard---o7264.json": {},
   "Github_hard---o7271.json": {},
   "Github_hard---o7290.json": {},
   "Github_hard---o73021.json": {},
@@ -4804,9 +4798,7 @@
   "Github_hard---o79015.json": {
     "json_error": "Unknown format: uri-reference"
   },
-  "Github_hard---o79080.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧This‧ is‧ a‧ sample‧ package‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 91/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ..."
-  },
+  "Github_hard---o79080.json": {},
   "Github_hard---o79409.json": {},
   "Github_hard---o79440.json": {},
   "Github_hard---o79613.json": {
@@ -4834,9 +4826,7 @@
   "Github_hard---o80670.json": {},
   "Github_hard---o80821.json": {},
   "Github_hard---o81117.json": {},
-  "Github_hard---o81119.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧Short‧ package‧ description‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 100/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ..."
-  },
+  "Github_hard---o81119.json": {},
   "Github_hard---o81127.json": {},
   "Github_hard---o81128.json": {},
   "Github_hard---o81129.json": {},
@@ -4919,9 +4909,7 @@
   },
   "Github_hard---o8370.json": {},
   "Github_hard---o83745.json": {},
-  "Github_hard---o83748.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧A‧ short‧ package‧ description‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 91/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ..."
-  },
+  "Github_hard---o83748.json": {},
   "Github_hard---o83813.json": {
     "json_error": "Unknown format: textFile"
   },
@@ -5050,9 +5038,7 @@
   "Github_hard---o89747.json": {},
   "Github_hard---o89748.json": {},
   "Github_hard---o89890.json": {},
-  "Github_hard---o89915.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧This‧ is‧ a‧ short‧ description‧ of‧ the‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 100/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ..."
-  },
+  "Github_hard---o89915.json": {},
   "Github_hard---o90420.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -5108,9 +5094,7 @@
   "Github_hard---o91034.json": {},
   "Github_hard---o91037.json": {},
   "Github_hard---o91040.json": {},
-  "Github_hard---o91394.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧This‧ is‧ a‧ sample‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 91/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ..."
-  },
+  "Github_hard---o91394.json": {},
   "Github_hard---o91595.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing http://thrift.apache.org/program-schema#/definitions/function"
   },
@@ -5810,9 +5794,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/maybeCircularException"
   },
   "Github_medium---o39147.json": {},
-  "Github_medium---o39166.json": {
-    "validation_error": "test #0: token not accepted at ⟦.com‧/‧phen‧omen‧ons‧\",\"‧measure‧ments‧\":\"‧https‧://‧example‧.com‧/‧measure‧ments‧\",\"‧schema‧\":\"‧https‧://‧example‧.com‧/schema‧\",\"‧terms‧Of‧Use‧\":\"‧https‧://‧example‧.com‧/terms‧-of‧-use‧\",\"‧privacy‧Statements‧\":\"‧https‧://‧example‧.com‧/‧privacy‧-stat‧ements‧\",\"‧statistics⟧ * ⟦\":\"⟧ * ⟦https‧://‧example‧.com⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX.. (152 more)"
-  },
+  "Github_medium---o39166.json": {},
   "Github_medium---o39168.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
@@ -5980,9 +5962,7 @@
   "Github_medium---o43296.json": {},
   "Github_medium---o43298.json": {},
   "Github_medium---o43342.json": {},
-  "Github_medium---o43729.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧Example‧ Place‧\",\"⟧ * ⟦description⟧ * ⟦\":\"‧This‧ is‧ an⟧ forced tokens \"⟦url⟧\" != \"⟦description⟧\""
-  },
+  "Github_medium---o43729.json": {},
   "Github_medium---o43971.json": {},
   "Github_medium---o43985.json": {},
   "Github_medium---o43986.json": {},
@@ -6263,9 +6243,7 @@
   "Github_medium---o5369.json": {},
   "Github_medium---o53694.json": {},
   "Github_medium---o53698.json": {},
-  "Github_medium---o53702.json": {
-    "validation_error": "test #0: token not accepted at ⟦ https‧://‧conda‧.io‧/docs‧/user‧-guide‧/configuration‧/use‧-cond‧arc‧.html‧\",\"‧id‧\":\"‧https‧://‧raw‧.githubusercontent‧.com‧/M‧icrosoft‧/v‧s‧code‧-python‧/master‧/s‧chemas‧/‧cond‧arc‧.json‧\",\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧04‧/schema‧#‧\",\"‧channels⟧ * ⟦\":[\"⟧ * ⟦https‧://‧conda‧.⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ �.. (142 more)"
-  },
+  "Github_medium---o53702.json": {},
   "Github_medium---o5372.json": {},
   "Github_medium---o5373.json": {},
   "Github_medium---o5375.json": {},
@@ -6481,9 +6459,7 @@
   "Github_medium---o60876.json": {},
   "Github_medium---o60879.json": {},
   "Github_medium---o60880.json": {},
-  "Github_medium---o60973.json": {
-    "validation_error": "test #0: token not accepted at ⟦.com‧/crypto‧_al‧gorithms‧_result‧-v‧1‧-‧0‧-‧0‧.json‧\"},\"‧_‧release‧\":\"‧npm‧:‧crypto‧-al‧gorithms‧:‧1‧.‧0‧.‧0‧\",\"‧status‧\":\"‧success‧\",\"‧details‧\":[{\"‧crypto‧\":\"‧AES‧\",\"‧file‧\":\"‧path‧/to‧/file‧.js‧\",\"‧match‧type‧\":\"‧content‧\",\"⟧ * ⟦matched⟧ * ⟦_lines‧\":‧10‧,\"⟧ mask: TokenSet: 6/128256; ⟨s⟩ ⟨sa⟩ ⟨sample⟩ ⟨samples⟩ ⟨sam⟩ ⟨samp⟩"
-  },
+  "Github_medium---o60973.json": {},
   "Github_medium---o60974.json": {},
   "Github_medium---o60975.json": {},
   "Github_medium---o60976.json": {},
@@ -6668,9 +6644,7 @@
   },
   "Github_medium---o63475.json": {},
   "Github_medium---o63514.json": {},
-  "Github_medium---o63552.json": {
-    "validation_error": "test #1: token not accepted at ⟦{\"‧email‧Details‧\":{\"⟧ * ⟦to⟧ * ⟦\":[\"‧recipient‧1‧@example⟧ mask: TokenSet: 15/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨f⟩ ⟨at⟩ ⟨cc⟩ ⟨from⟩ ⟨att⟩ ⟨fr⟩ ⟨bc⟩ ⟨attach⟩ ⟨attachment⟩ ⟨atta⟩ ⟨attachments⟩ ⟨bcc⟩"
-  },
+  "Github_medium---o63552.json": {},
   "Github_medium---o63608.json": {},
   "Github_medium---o63683.json": {},
   "Github_medium---o6378.json": {},
@@ -6874,9 +6848,7 @@
   "Github_medium---o69469.json": {},
   "Github_medium---o69522.json": {},
   "Github_medium---o69599.json": {},
-  "Github_medium---o69631.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦id⟧ * ⟦\":\"‧example‧-item‧-⟧ mask: TokenSet: 16/128256; ⟨a⟩ ⟨d⟩ ⟨al⟩ ⟨ad⟩ ⟨de⟩ ⟨add⟩ ⟨alt⟩ ⟨description⟩ ⟨des⟩ ⟨desc⟩ ⟨additional⟩ ⟨alter⟩ ⟨altern⟩ ⟨descr⟩ ⟨alternate⟩ ⟨alte⟩"
-  },
+  "Github_medium---o69631.json": {},
   "Github_medium---o69729.json": {},
   "Github_medium---o69733.json": {},
   "Github_medium---o69741.json": {},
