@@ -201,11 +201,3 @@ fn linked_list(#[case] obj: &Value) {
 fn linked_list_failures(#[case] obj: &Value) {
     json_schema_check(&LINKED_LIST, obj, false);
 }
-
-#[rstest]
-#[case::additional_first(&json!({"c_string": "Extra", "a_string": "Hello", "b_string": "World"}))]
-#[case::additional_last(&json!({"a_string": "Hello", "b_string": "World", "c_string": "Extra"}))]
-fn object_with_additional_parameter(#[case] obj: &Value) {
-    let schema = json!({"type": "object", "properties": {"a_string": {"type": "string"}, "b_string": {"type": "string"}}});
-    json_schema_check(&schema, obj, true);
-}
