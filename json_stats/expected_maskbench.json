@@ -8235,9 +8235,7 @@
   "Github_ultra---o10420.json": {},
   "Github_ultra---o12343.json": {},
   "Github_ultra---o12344.json": {},
-  "Github_ultra---o12652.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ mask: TokenSet: 20/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨d⟩ ⟨con⟩ ⟨aw⟩ ⟨cont⟩ ⟨co⟩ ⟨date⟩ ⟨da⟩ ⟨dat⟩ ⟨contr⟩ ⟨awa⟩ ⟨bu⟩ ⟨buy⟩ ⟨contract⟩ ⟨buyer⟩ ⟨contracts⟩ ⟨award⟩ ⟨contra⟩"
-  },
+  "Github_ultra---o12652.json": {},
   "Github_ultra---o12653.json": {},
   "Github_ultra---o13020.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -10976,9 +10974,7 @@
     "json_error": "regex parse error:\n    ^@([[0-9]a-z](?:(?!.*--)[[0-9]a-z-]*[[0-9]a-z])?)\\/([[0-9]a-z](?:(?!.*--)[[0-9]a-z-]*[[0-9]a-z])?)$\n                    ^^^\nerror: look-around, including look-ahead and look-behind, is not supported"
   },
   "JsonSchemaStore---appsettings.json": {},
-  "JsonSchemaStore---appsscript.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧$‧id‧\":\"‧https‧://‧json‧.s‧chem‧ast‧ore‧.org‧/app‧ss‧cript‧.json‧\",\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧07‧/schema‧#‧\",\"‧runtime‧Version⟧ * ⟦\":\"⟧ * ⟦V‧8‧\",\"‧time⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
+  "JsonSchemaStore---appsscript.json": {},
   "JsonSchemaStore---appveyor.json": {
     "json_error": "Unknown format: regex"
   },
@@ -11040,9 +11036,7 @@
   "JsonSchemaStore---bounded-context.json": {
     "json_error": "Unknown format: uri-reference"
   },
-  "JsonSchemaStore---bower.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧-package‧\",\"‧version‧\":\"‧1‧.‧0‧.‧0‧\",\"‧description⟧ * ⟦\":\"⟧ * ⟦This‧ is‧ an‧ example⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
+  "JsonSchemaStore---bower.json": {},
   "JsonSchemaStore---bowerrc.json": {},
   "JsonSchemaStore---box.schema.json": {},
   "JsonSchemaStore---bozr.json": {
