@@ -3309,9 +3309,7 @@
   "Github_hard---o14495.json": {},
   "Github_hard---o14513.json": {},
   "Github_hard---o14514.json": {},
-  "Github_hard---o14528.json": {
-    "validation_error": "test #0: token not accepted at ⟦team‧Key‧\":\"‧team‧-‧1‧\",\"‧question‧\":\"‧Application‧ Team‧ Question‧\",\"‧answer‧\":\"‧Application‧ Team‧ Answer‧\",\"‧joined‧On‧\":\"‧202‧2‧-‧01‧-‧01‧T‧12‧:‧00‧:‧00‧Z‧\"}}‧,\"‧application‧\":{\"‧application‧-‧1‧\":{\"‧opp‧Key‧\":\"‧opp‧-‧1‧\",\"⟧ * ⟦project⟧ * ⟦Key‧\":\"‧project‧-⟧ forced tokens \"⟦profile‧Key⟧\" != \"⟦project‧Key⟧\""
-  },
+  "Github_hard---o14528.json": {},
   "Github_hard---o14723.json": {},
   "Github_hard---o15103.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -3747,9 +3745,7 @@
   "Github_hard---o21412.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o21414.json": {
-    "validation_error": "test #0: token not accepted at ⟦.\",\"‧content‧_type‧\":\"‧text‧/html‧\"},{\"‧content‧\":\"‧This‧ is‧ other‧ ways‧ to‧ apply‧ in‧ go‧vs‧peak‧.\",\"‧content‧_type‧\":\"‧text‧/g‧ov‧s‧peak‧\"}‧],\"‧start‧_button‧_text‧\":\"‧Start‧ now‧\",\"‧transaction‧_start‧_link‧\":\"‧https‧://‧www‧.example‧.com‧/start‧\",\"‧variants‧\":[{\"⟧ * ⟦title⟧ * ⟦\":\"‧Variant‧ ‧1⟧ mask: TokenSet: 17/128256; ⟨i⟩ ⟨m⟩ ⟨o⟩ ⟨s⟩ ⟨in⟩ ⟨ot⟩ ⟨int⟩ ⟨other⟩ ⟨sl⟩ ⟨mo⟩ ⟨more⟩ ⟨oth⟩ ⟨slug⟩ ⟨intro⟩ ⟨mor⟩ ⟨intr⟩ ⟨slu⟩"
-  },
+  "Github_hard---o21414.json": {},
   "Github_hard---o21415.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -3908,9 +3904,7 @@
   "Github_hard---o33426.json": {},
   "Github_hard---o33698.json": {},
   "Github_hard---o33704.json": {},
-  "Github_hard---o33778.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧Short‧ package‧ description‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 91/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ..."
-  },
+  "Github_hard---o33778.json": {},
   "Github_hard---o33924.json": {},
   "Github_hard---o34341.json": {},
   "Github_hard---o34342.json": {},
@@ -3951,9 +3945,7 @@
   "Github_hard---o37075.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o37102.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧This‧ is‧ a‧ sample‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 94/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ..."
-  },
+  "Github_hard---o37102.json": {},
   "Github_hard---o37603.json": {},
   "Github_hard---o37609.json": {},
   "Github_hard---o37682.json": {},
@@ -4292,9 +4284,7 @@
   "Github_hard---o55184.json": {},
   "Github_hard---o55320.json": {},
   "Github_hard---o55639.json": {},
-  "Github_hard---o55640.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧A‧ short‧ description‧ of‧ the‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧version⟧ mask: TokenSet: 88/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ⟨auto⟩ ⟨require⟩ ⟨version⟩ ⟨lice⟩ ⟨home⟩ ⟨conf⟩ ..."
-  },
+  "Github_hard---o55640.json": {},
   "Github_hard---o55657.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
@@ -4377,9 +4367,7 @@
   "Github_hard---o60168.json": {},
   "Github_hard---o60171.json": {},
   "Github_hard---o60179.json": {},
-  "Github_hard---o6023.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧/package‧\",\"‧description‧\":\"‧This‧ is‧ an‧ example‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 100/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ⟨auth⟩ ..."
-  },
+  "Github_hard---o6023.json": {},
   "Github_hard---o60287.json": {},
   "Github_hard---o60288.json": {},
   "Github_hard---o60290.json": {},
@@ -4494,9 +4482,7 @@
   "Github_hard---o63152.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o63156.json": {
-    "validation_error": "test #1: token not accepted at ⟦{\"⟧ * ⟦uuid⟧ * ⟦\":\"‧123‧456‧78⟧ mask: TokenSet: 10/128256; ⟨c⟩ ⟨d⟩ ⟨de⟩ ⟨co⟩ ⟨description⟩ ⟨des⟩ ⟨copy⟩ ⟨desc⟩ ⟨cop⟩ ⟨descr⟩"
-  },
+  "Github_hard---o63156.json": {},
   "Github_hard---o63177.json": {},
   "Github_hard---o63198.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
