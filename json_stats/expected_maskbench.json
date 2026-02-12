@@ -6965,9 +6965,7 @@
   },
   "Github_medium---o72521.json": {},
   "Github_medium---o72570.json": {},
-  "Github_medium---o72586.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧id‧\":\"‧example‧-article‧\",\"‧title‧\":\"‧Example‧ Article‧\",\"‧visible‧\":‧true⟧ * ⟦,\"⟧ * ⟦categories‧\":[\"‧category‧1⟧ mask: TokenSet: 425/128256; ⟨}⟩ ⟨\\t⟩ ⟨\\n⟩ ⟨\\r⟩ ⟨ ⟩ ⟨  ⟩ ⟨    ⟩ ⟨        ⟩ ⟨   ⟩ ⟨\\n\\n⟩ ⟨       ⟩ ⟨\\t\\t⟩ ⟨           ⟩ ⟨\\r\\n⟩ ⟨ }⟩ ⟨                ⟩ ⟨               ⟩ ⟨     ⟩ ⟨\\t\\t\\t\\t⟩ ⟨                   ⟩ ⟨\\t\\t\\t⟩ ⟨                       ⟩ ⟨         ⟩ ⟨ \\n⟩ ⟨                                ⟩ ⟨\\r\\n\\r\\n⟩ ⟨      ⟩ ⟨                           ⟩ ⟨\\n\\n\\n\\n⟩ ⟨             ⟩ ⟨    \\n⟩ ⟨\\t\\t\\t\\t\\t⟩ ⟨                               ⟩ ⟨\\n\\n\\n⟩ ⟨\\t\\n⟩ ⟨\\t\\t\\t\\t\\t\\t⟩ ⟨                 ⟩ ⟨        \\n⟩ ⟨            ⟩ ⟨          ⟩ ⟨                                   ⟩ ⟨\\t\\t\\t\\t\\t\\t\\t\\t⟩ ⟨              ⟩ ⟨  \\n⟩ ⟨\\t\\t\\n⟩ ⟨ \\r\\n⟩ ⟨                     ⟩ .. (82 more)"
-  },
+  "Github_medium---o72586.json": {},
   "Github_medium---o7276.json": {},
   "Github_medium---o7287.json": {},
   "Github_medium---o7288.json": {},
@@ -7140,9 +7138,7 @@
   "Github_medium---o79425.json": {},
   "Github_medium---o79429.json": {},
   "Github_medium---o79452.json": {},
-  "Github_medium---o79458.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧packageName‧\":\"‧example‧-package‧\",\"‧package‧Version‧\":\"‧1‧.‧0‧.‧0‧\",\"‧appId‧\":\"‧example‧-app‧\",\"‧post‧Install‧Notes‧\":\"‧Please‧ restart‧ your‧ system‧ after‧ installation‧.\",\"‧cli‧\":{\"‧bin‧aries‧\":{\"‧darwin‧\":{\"‧x‧86‧-‧64‧\":{\"⟧ * ⟦url⟧ * ⟦\":\"‧https‧://‧example⟧ forced tokens \"⟦content‧Hash⟧\" != \"⟦url‧\\\":\\\"⟧\""
-  },
+  "Github_medium---o79458.json": {},
   "Github_medium---o79473.json": {
     "json_error": "Unknown format: url"
   },
@@ -7162,9 +7158,7 @@
   "Github_medium---o79651.json": {},
   "Github_medium---o79727.json": {},
   "Github_medium---o79851.json": {},
-  "Github_medium---o79893.json": {
-    "validation_error": "test #0: token not accepted at ⟦as‧en‧otes‧/‧\",\"‧status‧\":\"‧current‧\"},\"‧106‧\":{\"‧release‧_date‧\":\"‧202‧2‧-‧10‧-‧18‧\",\"‧release‧_notes‧\":\"‧https‧://‧www‧.mozilla‧.org‧/en‧-US‧/fire‧fox‧/‧106‧.‧0‧/re‧le‧as‧en‧otes‧/‧\",\"‧status‧\":\"‧ret‧ired‧\"}}‧},\"⟧ * ⟦edge⟧ * ⟦\":{\"‧name‧\":\"‧Microsoft⟧ mask: TokenSet: 25/128256; ⟨f⟩ ⟨i⟩ ⟨n⟩ ⟨o⟩ ⟨q⟩ ⟨s⟩ ⟨u⟩ ⟨w⟩ ⟨op⟩ ⟨ie⟩ ⟨we⟩ ⟨uc⟩ ⟨no⟩ ⟨ope⟩ ⟨web⟩ ⟨oper⟩ ⟨node⟩ ⟨sa⟩ ⟨fi⟩ ⟨fire⟩ ⟨qq⟩ ⟨nod⟩ ⟨sam⟩ ⟨fir⟩ ⟨firefox⟩"
-  },
+  "Github_medium---o79893.json": {},
   "Github_medium---o80161.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -7447,9 +7441,7 @@
   "Github_medium---o90322.json": {},
   "Github_medium---o90323.json": {},
   "Github_medium---o90333.json": {},
-  "Github_medium---o90347.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧url‧\":\"‧http‧://‧maps‧.w‧ien‧.g‧v‧.at‧/w‧mts⟧ * ⟦\",\"⟧ * ⟦layer‧Identifier‧\":\"‧lb⟧ mask: TokenSet: 47800/128256; ⟨!⟩ ⟨\"⟩ ⟨#⟩ ⟨$⟩ ⟨%⟩ ⟨&⟩ ⟨'⟩ ⟨(⟩ ⟨)⟩ ⟨*⟩ ⟨+⟩ ⟨,⟩ ⟨-⟩ ⟨.⟩ ⟨/⟩ ⟨0⟩ ⟨1⟩ ⟨2⟩ ⟨3⟩ ⟨4⟩ ⟨5⟩ ⟨6⟩ ⟨7⟩ ⟨8⟩ ⟨9⟩ ⟨:⟩ ⟨;⟩ ⟨=⟩ ⟨?⟩ ⟨@⟩ ⟨A⟩ ⟨B⟩ ⟨C⟩ ⟨D⟩ ⟨E⟩ ⟨F⟩ ⟨G⟩ ⟨H⟩ ⟨I⟩ ⟨J⟩ ⟨K⟩ ⟨L⟩ ⟨M⟩ ⟨N⟩ ⟨O⟩ ⟨P⟩ ⟨Q⟩ ⟨R⟩ ⟨S⟩ ⟨T⟩ ..."
-  },
+  "Github_medium---o90347.json": {},
   "Github_medium---o90352.json": {
     "json_error": "Unknown format: cidr"
   },
@@ -8242,9 +8234,7 @@
   "Github_ultra---o10335.json": {},
   "Github_ultra---o10420.json": {},
   "Github_ultra---o12343.json": {},
-  "Github_ultra---o12344.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ mask: TokenSet: 20/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨d⟩ ⟨con⟩ ⟨aw⟩ ⟨cont⟩ ⟨co⟩ ⟨date⟩ ⟨da⟩ ⟨dat⟩ ⟨contr⟩ ⟨awa⟩ ⟨bu⟩ ⟨buy⟩ ⟨contract⟩ ⟨buyer⟩ ⟨contracts⟩ ⟨award⟩ ⟨contra⟩"
-  },
+  "Github_ultra---o12344.json": {},
   "Github_ultra---o12652.json": {
     "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ mask: TokenSet: 20/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨d⟩ ⟨con⟩ ⟨aw⟩ ⟨cont⟩ ⟨co⟩ ⟨date⟩ ⟨da⟩ ⟨dat⟩ ⟨contr⟩ ⟨awa⟩ ⟨bu⟩ ⟨buy⟩ ⟨contract⟩ ⟨buyer⟩ ⟨contracts⟩ ⟨award⟩ ⟨contra⟩"
   },
@@ -8440,9 +8430,7 @@
   "Github_ultra---o6373.json": {},
   "Github_ultra---o6374.json": {},
   "Github_ultra---o6375.json": {},
-  "Github_ultra---o65323.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ mask: TokenSet: 20/128256; ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨d⟩ ⟨con⟩ ⟨aw⟩ ⟨cont⟩ ⟨co⟩ ⟨date⟩ ⟨da⟩ ⟨dat⟩ ⟨contr⟩ ⟨awa⟩ ⟨bu⟩ ⟨buy⟩ ⟨contract⟩ ⟨buyer⟩ ⟨contracts⟩ ⟨award⟩ ⟨contra⟩"
-  },
+  "Github_ultra---o65323.json": {},
   "Github_ultra---o65325.json": {},
   "Github_ultra---o65414.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -11017,9 +11005,7 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---bamboo-spec.json": {},
-  "JsonSchemaStore---band-manifest.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ forced tokens \"⟦manifest‧Version⟧\" != \"⟦$‧schema⟧\""
-  },
+  "JsonSchemaStore---band-manifest.json": {},
   "JsonSchemaStore---base-04.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/nullable-timezone"
   },
@@ -11144,9 +11130,7 @@
   "JsonSchemaStore---coffeelint.json": {},
   "JsonSchemaStore---commands.json": {},
   "JsonSchemaStore---compile-commands.json": {},
-  "JsonSchemaStore---component-detection-manifest.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦schema‧\":\"‧http‧://⟧ forced tokens \"⟦registr‧ations⟧\" != \"⟦$‧schema⟧\""
-  },
+  "JsonSchemaStore---component-detection-manifest.json": {},
   "JsonSchemaStore---component.json": {},
   "JsonSchemaStore---component_spec.json_schema.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://github.com/Cloud-Pipelines/component_spec_schema/components.json_schema.json#/definitions/ImplementationType"
@@ -11409,9 +11393,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/Kustomization"
   },
   "JsonSchemaStore---label-commenter-config.json": {},
-  "JsonSchemaStore---launchsettings.json": {
-    "validation_error": "test #1: token not accepted at ⟦NET‧CORE‧_ENV‧IRONMENT‧\":\"‧Development‧\"}}‧,\"‧My‧Project‧\":{\"‧command‧Name‧\":\"‧Project‧\",\"‧launch‧Browser‧\":‧true‧,\"‧launch‧Url‧\":\"‧https‧://‧localhost‧:‧500‧1‧\",\"‧application‧Url‧\":\"‧https‧://‧localhost‧:‧500‧1‧;‧http‧://‧localhost‧:‧500‧0‧\",\"‧environment‧Variables⟧ * ⟦\":{\"⟧ * ⟦ASP‧NET‧CORE‧_ENV⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HE.. (139 more)"
-  },
+  "JsonSchemaStore---launchsettings.json": {},
   "JsonSchemaStore---lazydocker.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
