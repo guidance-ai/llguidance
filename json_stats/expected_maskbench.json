@@ -11501,9 +11501,7 @@
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
   "JsonSchemaStore---nightwatch.json": {},
-  "JsonSchemaStore---ninjs-1.3.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦$⟧ * ⟦standard‧\":{\"‧name‧\":\"⟧ forced tokens \"⟦uri⟧\" != \"⟦$⟧\""
-  },
+  "JsonSchemaStore---ninjs-1.3.json": {},
   "JsonSchemaStore---nlu.schema.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -11755,9 +11753,7 @@
   "JsonSchemaStore---sourcemap-v3.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
-  "JsonSchemaStore---sourcery_yaml_schema.json": {
-    "validation_error": "test #0: token not accepted at ⟦\"],\"‧rule‧_types‧\":[\"‧ref‧actoring‧\",\"‧s‧uggestion‧\",\"‧comment‧\",\"‧hover‧\"],\"‧python‧_version‧\":{\"‧major‧\":‧3‧,\"‧minor‧\":‧8‧}}‧,\"‧rules‧\":[{\"‧id‧\":\"‧rule‧1‧\",\"‧description‧\":\"‧Rule‧ ‧1‧ description‧\",\"‧pattern‧\":\"‧pattern‧1‧\",\"‧replacement‧\":\"‧replacement‧1‧\",\"⟧ * ⟦language⟧ * ⟦\":\"‧python‧\",\"‧paths⟧ mask: TokenSet: 22/128256; ⟨c⟩ ⟨e⟩ ⟨p⟩ ⟨t⟩ ⟨ex⟩ ⟨con⟩ ⟨te⟩ ⟨co⟩ ⟨cond⟩ ⟨test⟩ ⟨tes⟩ ⟨path⟩ ⟨ta⟩ ⟨tag⟩ ⟨exp⟩ ⟨pat⟩ ⟨pa⟩ ⟨condition⟩ ⟨tags⟩ ⟨paths⟩ ⟨tests⟩ ⟨expl⟩"
-  },
+  "JsonSchemaStore---sourcery_yaml_schema.json": {},
   "JsonSchemaStore---spacefile.schema.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
@@ -11826,9 +11822,7 @@
   "JsonSchemaStore---tokenlist.schema.json": {
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
-  "JsonSchemaStore---tools-schema.json": {
-    "validation_error": "test #0: token not accepted at ⟦ definitions‧.\",\"‧links‧\":{\"‧website‧Url‧\":\"‧https‧://‧async‧api‧-generator‧.com‧\",\"‧docs‧Url‧\":\"‧https‧://‧async‧api‧-generator‧.com‧/docs‧\",\"‧repo‧Url‧\":\"‧https‧://‧github‧.com‧/‧async‧api‧/‧async‧api‧-generator‧\"},\"‧filters‧\":{\"‧categories‧\":[\"‧code‧-generator‧\",\"‧documentation‧-generator‧\"],\"⟧ * ⟦language⟧ * ⟦\":\"‧JavaScript‧\",\"‧technology⟧ forced tokens \"⟦has‧Commercial⟧\" != \"⟦language‧\\\":\\\"⟧\""
-  },
+  "JsonSchemaStore---tools-schema.json": {},
   "JsonSchemaStore---traefik-v2.json": {},
   "JsonSchemaStore---transcend-yml-schema-v4.json": {},
   "JsonSchemaStore---travis.json": {
@@ -13074,9 +13068,7 @@
   "MCPspec---ListPromptsRequest.json": {},
   "MCPspec---ListPromptsResult.json": {},
   "MCPspec---ListResourcesRequest.json": {},
-  "MCPspec---ListResourcesResult.json": {
-    "validation_error": "test #0: token not accepted at ⟦https‧://‧example‧.com‧/resource‧\"},{\"‧annotations‧\":{\"‧aud‧ience‧\":[\"‧assistant‧\"],\"‧priority‧\":‧0‧.‧5‧},\"‧description‧\":\"‧Another‧ resource‧ description‧\",\"‧m‧imeType‧\":\"‧application‧/json‧\",\"‧name‧\":\"‧Another‧ Example‧ Resource‧\",\"‧uri‧\":\"‧https‧://‧example‧.com‧/‧another‧-resource‧\"}‧],\"‧next‧Cursor⟧ * ⟦\":\"⟧ * ⟦opaque‧-pagination‧-token‧\"}⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻.. (187 more)"
-  },
+  "MCPspec---ListResourcesResult.json": {},
   "MCPspec---ListRootsRequest.json": {},
   "MCPspec---ListRootsResult.json": {},
   "MCPspec---ListToolsRequest.json": {},
