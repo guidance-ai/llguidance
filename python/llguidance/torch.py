@@ -8,12 +8,16 @@ def get_bitmask_shape(batch_size: int, vocab_size: int) -> Tuple[int, int]:
 
 
 def allocate_token_bitmask(batch_size: int, vocab_size: int) -> torch.Tensor:
-    return torch.full(
-        get_bitmask_shape(batch_size, vocab_size),
-        -1,
-        dtype=torch.int32,
-        pin_memory=torch.cuda.is_available(),
-    )
+    shape = get_bitmask_shape(batch_size, vocab_size)
+    try:
+        return torch.full(
+            shape,
+            -1,
+            dtype=torch.int32,
+            pin_memory=torch.cuda.is_available(),
+        )
+    except Exception:
+        return torch.full(shape, -1, dtype=torch.int32, pin_memory=False)
 
 
 @torch.compile(dynamic=True)  # faster than dynamic=False and jit.script
