@@ -671,6 +671,32 @@ fn test_json_dw_pattern() {
 }
 
 #[test]
+fn test_json_unconstrained_string_unicode_escapes() {
+    lark_str_test_many(
+        r#"
+            start: %json { "type": "string" }
+        "#,
+        &[
+            // non-control unicode escapes are allowed
+            "\"Guillain-Barr\\u00e9 syndrome\"",
+            "\"Sloan\\u2019s\"",
+            "\"It\\u00b0s a test.\"",
+            // literal escaped-backslash form is fine for non-control code points
+            "\"Guillain-Barr\\\\u00e9 syndrome\"",
+        ],
+        &[
+            // control-code unicode escapes are rejected
+            "\"Guillain-Barr\\u0000e9 syndrome\"",
+            "\"Sloan\\u0019s\"",
+            "\"SpO2 \\u001e88%\"",
+            // literal escaped-backslash control forms are also rejected
+            "\"Guillain-Barr\\\\u0000e9 syndrome\"",
+            "\"SpO2 \\\\u001e88%\"",
+        ],
+    );
+}
+
+#[test]
 fn test_json_anchoring() {
     lark_str_test_many(
         r#"

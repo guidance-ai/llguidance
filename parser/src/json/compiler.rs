@@ -48,6 +48,15 @@ impl std::fmt::Display for UnsatisfiableSchemaError {
 }
 
 const CHAR_REGEX: &str = r#"(\\([\"\\\/bfnrt]|u[a-fA-F0-9]{4})|[^\"\\\x00-\x1F\x7F])"#;
+// Same as CHAR_REGEX, but disallows \uXXXX escapes for control characters.
+// This blocks U+0000..U+001F, U+007F, and U+0080..U+009F while keeping
+// standard non-control escapes like \u00b0, \u00e9, \u2019, and \u2265.
+const CHAR_REGEX_NO_CONTROL_UNICODE_ESCAPES: &str =
+    r#"(\\([\"\\\/bfnrt]|u(?:00(?:[2-6A-Fa-f][0-9A-Fa-f]|7[0-9A-Ea-e])|0[1-9A-Fa-f][0-9A-Fa-f]{2}|[1-9A-Fa-f][0-9A-Fa-f]{3}))|[^\"\\\x00-\x1F\x7F])"#;
+// Hex tails for control-code unicode escapes in the C0 + DEL + C1 ranges.
+// Used to block both direct control escapes (\u00XX) and literal escaped
+// backslash forms (\\u00XX) that appear in structured JSON output.
+const CONTROL_UNICODE_ESCAPE_HEX: &str = r#"00(?:[01][0-9A-Fa-f]|7[Ff]|[89][0-9A-Fa-f])"#;
 
 struct Compiler {
     builder: GrammarBuilder,
@@ -738,7 +747,18 @@ impl Compiler {
             }
         }
         if min_length == 0 && max_length.is_none() && opts.regex.is_none() {
-            return Ok(self.json_quote(RegexAst::Regex("(?s:.*)".to_string())));
+            // For unconstrained strings:
+            // 1) allow regular JSON escapes and non-control unicode escapes
+            // 2) block control-code unicode escapes like \u0000 and \u0019
+            // 3) block literal escaped-backslash control forms (\\u00XX)
+            //    that can later be interpreted by downstream JSON parsers.
+            let safe_string = RegexAst::Regex(format!(
+                "\"({CHAR_REGEX_NO_CONTROL_UNICODE_ESCAPES})*\""
+            ));
+            let no_literal_control_escapes = RegexAst::Not(Box::new(RegexAst::Regex(format!(
+                r#""([^"\\]|\\.)*\\\\u{CONTROL_UNICODE_ESCAPE_HEX}([^"\\]|\\.)*""#
+            ))));
+            return Ok(RegexAst::And(vec![safe_string, no_literal_control_escapes]));
         }
         if let Some(mut ast) = opts.regex {
             let mut positive = false;
