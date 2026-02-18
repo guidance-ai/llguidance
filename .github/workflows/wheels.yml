@@ -65,11 +65,17 @@ jobs:
       matrix:
         platform:
           - runner: ubuntu-latest
-            target: x86_64
+            target: x86_64-unknown-linux-gnu
+            arch: x86_64
+            zig: true
           - runner: ubuntu-latest
-            target: x86
+            target: i686-unknown-linux-gnu
+            arch: x86
+            zig: true
           - runner: ubuntu-latest
-            target: aarch64
+            target: aarch64-unknown-linux-gnu
+            arch: aarch64
+            zig: true
         python-version: ['3.12', '3.14t']
     steps:
       - uses: actions/checkout@v6
@@ -82,11 +88,11 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist ${{ matrix.python-version != '3.14t' && '--zig' || '' }}
           sccache: 'true'
-          manylinux: auto
+          manylinux: 2_39
       - name: Upload wheels
         uses: actions/upload-artifact@v6
         with:
-          name: wheels-linux-${{ matrix.platform.target }}-${{ matrix.python-version }}
+          name: wheels-linux-${{ matrix.platform.arch }}-${{ matrix.python-version }}
           path: dist
 
   windows:
