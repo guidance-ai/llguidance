@@ -29,8 +29,8 @@ pub struct JsonCompileOptions {
     pub coerce_one_of: bool,
     pub lenient: bool,
     /// Allowed escape letters after '\' when quoting JSON strings.
-    /// Defaults to full JSON set: nrbtf\"u
-    /// For example, set to nrbtf\" to disallow \uXXXX escapes.
+    /// Defaults to full JSON set: nrbtf"u\
+    /// For example, set to nrbtf"\ to disallow \uXXXX escapes.
     pub json_allowed_escapes: Option<String>,
     #[serde(skip)]
     pub retriever: Option<RetrieveWrapper>,
