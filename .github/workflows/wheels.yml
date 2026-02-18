@@ -76,6 +76,10 @@ jobs:
             target: aarch64-unknown-linux-gnu
             arch: aarch64
             zig: true
+          - runner: ubuntu-latest
+            target: riscv64gc-unknown-linux-gnu
+            arch: riscv64
+            zig: false
         python-version: ['3.12', '3.14t']
     steps:
       - uses: actions/checkout@v6
