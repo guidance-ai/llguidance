@@ -82,6 +82,11 @@ Following keys are available inside of it:
 - `whitespace_pattern`, optional string, overrides `whitespace_flexible`;
   `whitespace_flexible: true` is equivalent to `whitespace_pattern: r"[\x20\x0A\x0D\x09]+"`
 - `coerce_one_of`, defaults to `false`; when set to `true`, the `"oneOf"` will be treated as `"anyOf"`
+- `json_allowed_escapes`, optional string, defaults to `"nrbtf\\\"u"`; controls which escape
+  sequences are allowed after `\` in JSON strings. Each character in the string enables the
+  corresponding escape (for example, `n` enables `\n`, `u` enables `\uXXXX`). Set to
+  `"nrbtf\\\""` to disallow `\uXXXX` escapes. Note that removing `u` means control characters
+  without named escapes (for example, U+0000, U+001E) become unrepresentable.
 - `lenient`, defaults to `false`; when set to `true`, the unsupported keywords and formats will be ignored; implies `coerce_one_of: true`
 
 For example:
