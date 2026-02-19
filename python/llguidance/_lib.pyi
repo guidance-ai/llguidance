@@ -427,6 +427,17 @@ class LLMatcher:
         This drops the GIL; prefer to use fill_next_token_bitmask() or fill_next_token_bitmask_par().
         """
 
+    def get_capture(self, name: str) -> Optional[bytes]:
+        """
+        Get the captured bytes for a named capture group.
+        Returns None if the capture group does not exist.
+        """
+
+    def get_captures(self) -> List[Tuple[str, bytes]]:
+        """
+        Get all captured groups as a list of (name, bytes) tuples.
+        """
+
 
 class JsonCompiler:
 
