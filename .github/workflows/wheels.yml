@@ -80,7 +80,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist ${{ matrix.python-version == '3.12' && '--zig' || '' }}
+          args: --release --out dist ${{ matrix.python-version != '3.14t' && '--zig' || '' }}
           sccache: 'true'
           manylinux: auto
       - name: Upload wheels
