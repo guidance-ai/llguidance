@@ -1,19 +1,26 @@
+import logging
 from typing import Tuple, List, Union
 import torch
 from ._lib import LLMatcher, LLExecutor, LLInterpreter
 
+logger = logging.getLogger(__name__)
 
 def get_bitmask_shape(batch_size: int, vocab_size: int) -> Tuple[int, int]:
     return (batch_size, (vocab_size + 31) // 32)
 
 
 def allocate_token_bitmask(batch_size: int, vocab_size: int) -> torch.Tensor:
-    return torch.full(
-        get_bitmask_shape(batch_size, vocab_size),
-        -1,
-        dtype=torch.int32,
-        pin_memory=torch.cuda.is_available(),
-    )
+    shape = get_bitmask_shape(batch_size, vocab_size)
+    try:
+        return torch.full(
+            shape,
+            -1,
+            dtype=torch.int32,
+            pin_memory=torch.cuda.is_available(),
+        )
+    except RuntimeError as e:
+        logger.warning(f"Failed to pin memory: {e}. Falling back to non-pinned memory.")
+        return torch.full(shape, -1, dtype=torch.int32, pin_memory=False)
 
 
 @torch.compile(dynamic=True)  # faster than dynamic=False and jit.script
