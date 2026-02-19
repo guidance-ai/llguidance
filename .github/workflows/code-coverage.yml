@@ -27,7 +27,7 @@ jobs:
 
     steps:
     - name: Checkout repo at ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
@@ -56,7 +56,7 @@ jobs:
     - name: Check output
       run: ls target/debug/coverage/
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: coverage-report-rust
         path: target/debug/coverage/
@@ -66,12 +66,12 @@ jobs:
 
     steps:
     - name: Checkout repo at ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: "3.11"
 
@@ -119,7 +119,7 @@ jobs:
     - name: Check output
       run: ls target/debug/coverage/
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         name: coverage-report-python
         path: target/debug/coverage/
