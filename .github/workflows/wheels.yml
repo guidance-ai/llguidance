@@ -65,28 +65,53 @@ jobs:
       matrix:
         platform:
           - runner: ubuntu-latest
-            target: x86_64
+            target: x86_64-unknown-linux-gnu
+            arch: x86_64
+            zig: true
+            manylinux: auto
           - runner: ubuntu-latest
-            target: x86
+            target: i686-unknown-linux-gnu
+            arch: x86
+            zig: true
+            manylinux: auto
           - runner: ubuntu-latest
-            target: aarch64
-        python-version: ['3.12', '3.14t']
+            target: aarch64-unknown-linux-gnu
+            arch: aarch64
+            zig: true
+            manylinux: auto
+          - runner: ubuntu-latest
+            target: riscv64gc-unknown-linux-gnu
+            arch: riscv64
+            zig: false
+            manylinux: 2_39
+            before-script: 'sudo apt-get install -y gcc-riscv64-linux-gnu && mkdir -p ~/.cargo && printf "[target.riscv64gc-unknown-linux-gnu]\nlinker = \"riscv64-linux-gnu-gcc\"\n" >> ~/.cargo/config.toml'
+        python:
+          - version: '3.12'
+            zig: true
+          - version: '3.14t'
+            zig: false
+        exclude:
+          - platform:
+              arch: riscv64
+            python:
+              version: '3.14t'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python.version }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist ${{ matrix.python-version != '3.14t' && '--zig' || '' }}
+          args: --release --out dist ${{ matrix.python.zig && matrix.platform.zig && '--zig' || '' }}
           sccache: 'true'
-          manylinux: auto
+          manylinux: ${{ matrix.platform.manylinux }}
+          before-script-linux: ${{ matrix.platform.before-script || '' }}
       - name: Upload wheels
         uses: actions/upload-artifact@v6
         with:
-          name: wheels-linux-${{ matrix.platform.target }}-${{ matrix.python-version }}
+          name: wheels-linux-${{ matrix.platform.arch }}-${{ matrix.python.version }}
           path: dist
 
   windows:
