@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file. Dates are d
 
 If a release doesn't introduce any interesting changes (build fixes etc.), it's skipped.
 
+#### [v1.6.0](https://github.com/guidance-ai/llguidance/compare/v1.5.1...v1.6.0) 2026-02-23
+
+- Add riscv64 Linux wheel build [`#288`](https://github.com/guidance-ai/llguidance/pull/288)
+  - Note: riscv64 wheels are provided as-is and are not validated on native hardware
+  - Thanks [@threexc](https://github.com/threexc) and the [RISE Project](https://riseproject.dev/)!
+- Build wheels for free-threaded Python 3.14 [`#285`](https://github.com/guidance-ai/llguidance/pull/285); fixes [`#256`](https://github.com/guidance-ai/llguidance/issues/256)
+  - Thanks [@ngoldbaum](https://github.com/ngoldbaum)!
+- fix: add fallback for token bitmask allocation when CUDA is unavailable [`#286`](https://github.com/guidance-ai/llguidance/pull/286)
+  - Thanks [@0xjunhao](https://github.com/0xjunhao)!
+- Make JSON escape policy configurable via JsonCompileOptions [`#287`](https://github.com/guidance-ai/llguidance/pull/287)
+  - Thanks [@ostepanian](https://github.com/ostepanian)!
+- Support for 'uri' format in JSON [`#283`](https://github.com/guidance-ai/llguidance/pull/283)
+- Update PyO3 and add free-threaded CI testing [`#282`](https://github.com/guidance-ai/llguidance/pull/282)
+  - Thanks [@ngoldbaum](https://github.com/ngoldbaum)!
+
 #### [v1.5.1](https://github.com/guidance-ai/llguidance/compare/v1.5.0...v1.5.1) 2026-02-10
 
 - Mask caching to improve performance, especially for lazy lexemes [`#279`](https://github.com/guidance-ai/llguidance/pull/279)
