@@ -11,6 +11,7 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   PYTHON_VERSION: '3.12'
+  MATURIN_VERSION: 'v1.11.5'
 
 jobs:
   sdist:
@@ -103,8 +104,9 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
+          maturin-version: ${{ env.MATURIN_VERSION }}
           target: ${{ matrix.platform.target }}
-          args: --release --out dist ${{ matrix.python.zig && matrix.platform.zig && '--zig' || '' }}
+          args: --release --out dist --compatibility pypi ${{ matrix.python.zig && matrix.platform.zig && '--zig' || '' }}
           sccache: 'true'
           manylinux: ${{ matrix.platform.manylinux }}
           before-script-linux: ${{ matrix.platform.before-script || '' }}
@@ -134,8 +136,9 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
+          maturin-version: ${{ env.MATURIN_VERSION }}
           target: ${{ matrix.platform.target }}
-          args: --release --out dist
+          args: --release --out dist --compatibility pypi
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v6
@@ -162,8 +165,9 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
+          maturin-version: ${{ env.MATURIN_VERSION }}
           target: ${{ matrix.platform.target }}
-          args: --release --out dist
+          args: --release --out dist --compatibility pypi
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v6
@@ -186,3 +190,5 @@ jobs:
           merge-multiple: true
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
