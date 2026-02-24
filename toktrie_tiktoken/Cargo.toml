@@ -1,6 +1,6 @@
 [package]
 name = "toktrie_tiktoken"
-version = "1.6.0"
+version = "1.6.1"
 edition = "2021"
 license = "MIT"
 description = "HuggingFace tokenizers library support for toktrie and llguidance"
