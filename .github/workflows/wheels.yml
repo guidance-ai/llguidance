@@ -98,15 +98,12 @@ jobs:
               version: '3.14t'
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python.version }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           maturin-version: ${{ env.MATURIN_VERSION }}
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --compatibility pypi ${{ matrix.python.zig && matrix.platform.zig && '--zig' || '' }}
+          args: --release --out dist --compatibility pypi -i python${{ matrix.python.version }} ${{ matrix.python.zig && matrix.platform.zig && '--zig' || '' }}
           sccache: 'true'
           manylinux: ${{ matrix.platform.manylinux }}
           before-script-linux: ${{ matrix.platform.before-script || '' }}
