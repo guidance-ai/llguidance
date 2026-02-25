@@ -56,19 +56,19 @@ jobs:
       profile: release
       ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
-  sample-parser:
-    name: Sample Parser
-    runs-on: ubuntu-latest
+  sample-parser-debug:
+    name: Sample Parser (debug)
+    uses: ./.github/workflows/sample-parser-tests.yml
+    with:
+      profile: debug
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
-    steps:
-    - name: Checkout repo
-      uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-
-    - name: Run sample_parser
-      run: ./run.sh
-      working-directory: sample_parser
+  sample-parser-release:
+    name: Sample Parser (release)
+    uses: ./.github/workflows/sample-parser-tests.yml
+    with:
+      profile: release
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
   c-sample:
     name: C Sample
