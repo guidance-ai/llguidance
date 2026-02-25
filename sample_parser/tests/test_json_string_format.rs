@@ -190,8 +190,8 @@ pub fn valid_email(#[case] s: &str) {
 #[case("te..st@example.com")] // Test Suite: "two subsequent dots inside local part are not valid"
 #[case("joe.bloggs@invalid=domain.com")] // Test Suite: "an invalid domain"
 #[case("joe.bloggs@[127.0.0.300]")] // Test Suite: "an invalid IPv4-address-literal"
-// Note: Quoted-string tests (e.g., "joe bloggs"@example.com) are NOT ported —
-// our regex only supports RFC 5321 §4.1.2 dot-string format, not quoted-string.
+                                    // Note: Quoted-string tests (e.g., "joe bloggs"@example.com) are NOT ported —
+                                    // our regex only supports RFC 5321 §4.1.2 dot-string format, not quoted-string.
 pub fn bad_email(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"email"});
     json_schema_check(&schema, &json!(s), false);
@@ -220,8 +220,8 @@ pub fn valid_hostname(#[case] s: &str) {
 #[case("-hostname")] // Test Suite: "starts with hyphen" (RFC 1123 §2.1)
 #[case("host_name")] // Test Suite: "contains underscore" (RFC 1123 §2.1)
 #[case("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl.com")] // Test Suite: "exceeds maximum label length (63)"
-// Note: Punycode/IDN tests from the Test Suite are NOT ported — our regex only
-// validates ASCII label structure per RFC 1123.
+                                                                                // Note: Punycode/IDN tests from the Test Suite are NOT ported — our regex only
+                                                                                // validates ASCII label structure per RFC 1123.
 pub fn bad_hostname(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"hostname"});
     json_schema_check(&schema, &json!(s), false);
@@ -279,8 +279,8 @@ pub fn valid_ipv6(#[case] s: &str) {
 #[case("1:2:3:4:5:::8")] // Test Suite: "triple colons is invalid"
 #[case("1:2:3:4:5:6:7")] // Test Suite: "insufficient octets without double colons"
 #[case("1")] // Test Suite: "no colons is invalid"
-// Note: IPv4-mapped tests (e.g., ::ffff:192.168.0.1) are NOT ported — the
-// standalone ipv6 regex does not support RFC 4291 §2.5.5 mixed notation.
+             // Note: IPv4-mapped tests (e.g., ::ffff:192.168.0.1) are NOT ported — the
+             // standalone ipv6 regex does not support RFC 4291 §2.5.5 mixed notation.
 pub fn bad_ipv6(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"ipv6"});
     json_schema_check(&schema, &json!(s), false);
@@ -480,11 +480,11 @@ pub fn regex_accepts_but_invalid_date(#[case] s: &str) {
 pub fn regex_accepts_but_invalid_hostname() {
     let schema = json!({"type":"string", "format":"hostname"});
     // Build a hostname >253 chars with valid per-label lengths (each ≤63)
-    let long_hostname = format!(
-        "{0}.{0}.{0}.{0}.{0}.com",
-        "a".repeat(50)
+    let long_hostname = format!("{0}.{0}.{0}.{0}.{0}.com", "a".repeat(50));
+    assert!(
+        long_hostname.len() > 253,
+        "Test hostname must exceed 253 chars"
     );
-    assert!(long_hostname.len() > 253, "Test hostname must exceed 253 chars");
     json_schema_check(&schema, &json!(long_hostname), true);
 }
 
