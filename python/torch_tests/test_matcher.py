@@ -665,3 +665,23 @@ def test_grammar_warnings() -> None:
                             {"not": {
                                 "type": "object"
                             }})
+
+
+def test_get_capture() -> None:
+    grm = r"""start: "hello " group1 group2+ group3 " end"
+group1[capture,lazy]: /[a-z]+/
+group2[capture="body"]: /[a-z]{4}/
+group3[capture="body"]: /[0-9]{4}/"""
+    m = matcher(grm)
+    check_err(m)
+
+    assert m.get_capture("group1") is None
+    assert m.get_capture("body") is None
+    assert m.get_capture("non-existent-group") is None
+    assert m.get_captures() == []
+    m.consume_tokens(tokenizer().tokenize_str("hello worldabcd1234 end"))
+    assert m.is_stopped()
+    assert m.get_capture("group1") == b"w"
+    assert m.get_capture("body") == b"1234"
+    assert m.get_capture("non-existent-group") is None
+    assert m.get_captures() == [("group1", b"w"), ("body", b"orld"), ("body", b"abcd"), ("body", b"1234")]

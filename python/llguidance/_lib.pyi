@@ -430,12 +430,16 @@ class LLMatcher:
     def get_capture(self, name: str) -> Optional[bytes]:
         """
         Get the captured bytes for a named capture group.
-        Returns None if the capture group does not exist.
+        If there are multiple captures with the same name (e.g., due to repetition of rules),
+        returns the last matching capture.
+        Returns None if no capture with the given name exists.
         """
 
     def get_captures(self) -> List[Tuple[str, bytes]]:
         """
         Get all captured groups as a list of (name, bytes) tuples.
+        Includes all captures, even when there are multiple captures
+        with the same name (e.g., due to repetition of rules).
         """
 
 
