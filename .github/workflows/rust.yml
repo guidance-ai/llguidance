@@ -39,6 +39,10 @@ jobs:
     - name: Check doc links
       run: python3 scripts/checklinks.py *.md */*.md parser/src/*/*.md
 
+    - name: Check no-default-features
+      run: cargo check --no-default-features
+      working-directory: parser
+
     - name: Check cbindgen
       run: ./scripts/cbindgen.sh --check
 

@@ -29,10 +29,5 @@ jobs:
     - name: Build
       run: cargo build --locked ${{ inputs.profile == 'release' && '--release' || '' }}
 
-    - name: Check no-default-features
-      if: inputs.profile == 'debug'
-      run: cargo check --no-default-features
-      working-directory: parser
-
     - name: Test
       run: cargo test ${{ inputs.profile == 'release' && '--release' || '' }}
