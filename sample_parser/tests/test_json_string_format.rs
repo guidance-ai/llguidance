@@ -10,6 +10,7 @@
 //   - RFC 4122 (uuid) — https://www.rfc-editor.org/rfc/rfc4122
 //   - RFC 3986 (uri) — https://www.rfc-editor.org/rfc/rfc3986
 //   - JSON Schema Test Suite (draft2020-12) — https://github.com/json-schema-org/JSON-Schema-Test-Suite
+//   - Python tests (guidance) — https://github.com/guidance-ai/guidance/blob/main/tests/unit/library/json/test_string_format.py
 //
 // The regex_accepts_but_invalid_* tests document values that the current regex
 // incorrectly accepts. When the regex is improved, flip true → false and move
@@ -56,6 +57,8 @@ pub fn valid_date_time(#[case] s: &str) {
 #[case("1963-06-1T08:30:06.283185Z")] // Test Suite: "invalid non-padded day dates"
 #[case("2020-04-31T12:00:00Z")] // RFC 3339 §5.7: April has max 30 days
 #[case("2020-13-01T00:00:00Z")] // RFC 3339 §5.7: month must be 01-12
+#[case("1963-06-1\u{09ea}T00:00:00Z")] // Python tests: non-ASCII Bengali ৪ in date portion
+#[case("1963-06-11T0\u{09ea}:00:00Z")] // Python tests: non-ASCII Bengali ৪ in time portion
 pub fn bad_date_time(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"date-time"});
     json_schema_check(&schema, &json!(s), false);
@@ -70,6 +73,10 @@ pub fn bad_date_time(#[case] s: &str) {
 #[case("08:30:06-08:00")] // Test Suite: "a valid time string with minus offset"
 #[case("08:30:06z")] // Test Suite: "a valid time string with case-insensitive Z"
 #[case("23:59:60+00:00")] // Test Suite: "valid leap second, zero time-offset"
+#[case("01:29:60+01:30")] // Python tests: "valid leap second, positive time-offset"
+#[case("23:29:60+23:30")] // Python tests: "valid leap second, large positive time-offset"
+#[case("15:59:60-08:00")] // Python tests: "valid leap second, negative time-offset"
+#[case("00:29:60-23:30")] // Python tests: "valid leap second, large negative time-offset"
 #[case("00:00:00Z")] // Boundary: midnight
 #[case("23:59:59Z")] // Boundary: max valid time
 pub fn valid_time(#[case] s: &str) {
@@ -91,6 +98,11 @@ pub fn valid_time(#[case] s: &str) {
 #[case("08:30:06 PST")] // Test Suite: "an invalid offset indicator"
 #[case("01:01:01,1111")] // Test Suite: "only RFC3339 not all of ISO 8601 are valid"
 #[case("12:00:00")] // Test Suite: "no time offset" (RFC 3339 §5.6: time-offset required)
+#[case("12:00:00.52")] // Python tests: "no time offset with second fraction"
+#[case("08:30:06#00:20")] // Python tests: "offset not starting with plus or minus"
+#[case("ab:cd:ef")] // Python tests: "contains letters"
+#[case("1\u{09e8}:00:00Z")] // Python tests: non-ASCII Bengali ২ in hour
+#[case("08:30:06-8:000")] // Python tests: "time-offset digits must be two digits"
 pub fn bad_time(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"time"});
     json_schema_check(&schema, &json!(s), false);
@@ -129,6 +141,11 @@ pub fn valid_date(#[case] s: &str) {
 #[case("1998-1-20")] // Test Suite: "non-padded month dates are not valid"
 #[case("1998-01-1")] // Test Suite: "non-padded day dates are not valid"
 #[case("2020-00-01")] // RFC 3339 §5.6: month must be 01-12
+#[case("1963-06-1\u{09ea}")] // Python tests: non-ASCII Bengali ৪ replacing day digit
+#[case("20230328")] // Python tests: ISO 8601 / non-RFC 3339: YYYYMMDD without dashes
+#[case("2023-W01")] // Python tests: ISO 8601 / non-RFC 3339: week number implicit day of week
+#[case("2023-W13-2")] // Python tests: ISO 8601 / non-RFC 3339: week number with day of week
+#[case("2022W527")] // Python tests: ISO 8601 / non-RFC 3339: week number rollover to next year
 pub fn bad_date(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"date"});
     json_schema_check(&schema, &json!(s), false);
@@ -163,6 +180,7 @@ pub fn valid_duration(#[case] s: &str) {
 #[case("P2S")] // Test Suite: "time element in the date position"
 #[case("P1Y2W")] // Test Suite: "weeks cannot be combined with other units"
 #[case("P1")] // Test Suite: "element without unit"
+#[case("P\u{09e8}Y")] // Python tests: non-ASCII Bengali ২ replacing year count
 pub fn bad_duration(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"duration"});
     json_schema_check(&schema, &json!(s), false);
@@ -247,6 +265,7 @@ pub fn valid_ipv4(#[case] s: &str) {
 #[case("2130706433")] // Test Suite: "an IP address as an integer (decimal)"
 #[case("087.10.0.1")] // Test Suite: "invalid leading zeroes, as they are treated as octals"
 #[case("192.168.1.0/24")] // Test Suite: "netmask is not a part of ipv4 address"
+#[case("1\u{09e8}7.0.0.1")] // Python tests: non-ASCII Bengali ২ in first octet
 pub fn bad_ipv4(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"ipv4"});
     json_schema_check(&schema, &json!(s), false);
@@ -279,6 +298,7 @@ pub fn valid_ipv6(#[case] s: &str) {
 #[case("1:2:3:4:5:::8")] // Test Suite: "triple colons is invalid"
 #[case("1:2:3:4:5:6:7")] // Test Suite: "insufficient octets without double colons"
 #[case("1")] // Test Suite: "no colons is invalid"
+#[case("1:2:3:4:5:6:7:\u{09ea}")] // Python tests: non-ASCII Bengali ৪ in last group
              // Note: IPv4-mapped tests (e.g., ::ffff:192.168.0.1) are NOT ported — the
              // standalone ipv6 regex does not support RFC 4291 §2.5.5 mixed notation.
 pub fn bad_ipv6(#[case] s: &str) {
