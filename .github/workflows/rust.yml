@@ -22,29 +22,9 @@ env:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repo
-      uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-
-    - name: Check formatting
-      run: cargo fmt --check
-
-    - name: Clippy
-      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-    - name: Check doc links
-      run: python3 scripts/checklinks.py *.md */*.md parser/src/*/*.md
-
-    - name: Check no-default-features
-      run: cargo check --no-default-features
-      working-directory: parser
-
-    - name: Check cbindgen
-      run: ./scripts/cbindgen.sh --check
+    uses: ./.github/workflows/lint.yml
+    with:
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
   rust-tests:
     name: Rust Tests (${{ matrix.profile }})
@@ -68,130 +48,31 @@ jobs:
 
   c-sample:
     name: C Sample
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repo
-      uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-
-    - name: Build and run C sample
-      run: make
-      working-directory: c_sample
+    uses: ./.github/workflows/c-sample.yml
+    with:
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
   lark-tests:
     name: Lark Tests
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repo
-      uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-
-    - name: Convert GBNF to Lark
-      run: ../scripts/gbnf_to_lark.py data/from-llama.cpp/*.gbnf
-      working-directory: sample_parser
-
-    - name: Build sample_parser
-      run: cargo build
-      working-directory: sample_parser
-
-    - name: Run Lark tests
-      run: |
-        for f in data/from-llama.cpp/*.lark ; do
-          ../target/debug/sample_parser "$f"
-        done
-      working-directory: sample_parser
+    uses: ./.github/workflows/lark-tests.yml
+    with:
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
   maskbench:
     name: MaskBench
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repo
-      uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-
-    - name: Clone jsonschemabench
-      run: git clone -b main https://github.com/guidance-ai/jsonschemabench tmp/jsonschemabench
-
-    - name: Run MaskBench
-      run: |
-        mkdir -p tmp
-        cargo run --release -- \
-          --llg-masks \
-          --expected expected_maskbench.json \
-          ../tmp/jsonschemabench/maskbench/data
-      working-directory: json_stats
+    uses: ./.github/workflows/maskbench.yml
+    with:
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
   python-tests:
     name: Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
-
+    uses: ./.github/workflows/python-tests.yml
     strategy:
       matrix:
         python-version: ["3.11", "3.14t"]
-
-    steps:
-    - name: Checkout repo
-      uses: actions/checkout@v6
-      with:
-        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-
-    - name: Setup Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install dependencies
-      run: ./scripts/install-deps.sh
-
-    - name: Build and install llguidance
-      run: |
-        pip uninstall -y llguidance || :
-        pip install -v -e .
-
-    - name: Run mypy
-      run: mypy
-      working-directory: python
-
-    - name: Detect free-threaded Python
-      id: gil
-      run: |
-        if python -c "import sysconfig; exit(0 if sysconfig.get_config_var('Py_GIL_DISABLED') == 1 else 1)"; then
-          echo "python_flags=-Xgil=0" >> "$GITHUB_OUTPUT"
-        else
-          echo "python_flags=" >> "$GITHUB_OUTPUT"
-        fi
-
-    - name: Run torch tests
-      run: python ${{ steps.gil.outputs.python_flags }} -m pytest -v python/torch_tests/
-
-    - name: Clone guidance
-      run: git clone -b main https://github.com/guidance-ai/guidance tmp/guidance
-
-    - name: Print guidance info
-      run: echo "Branch:$(git branch --show-current) Remote:$(git remote get-url origin) HEAD:$(git rev-parse HEAD)"
-      working-directory: tmp/guidance
-
-    - name: Run guidance tests
-      run: python ${{ steps.gil.outputs.python_flags }} -m pytest -v tests/unit/test_[lgmp]*.py tests/unit/library
-      working-directory: tmp/guidance
-
-    - name: Build sdist
-      run: maturin build --sdist --zig
-
-    - name: Build wheel
-      run: maturin build --zig
-
-    - name: Upload sdist and wheel artifact
-      uses: actions/upload-artifact@v6
-      with:
-        name: wheels-${{ matrix.python-version }}
-        path: target/wheels/*
+    with:
+      python-version: ${{ matrix.python-version }}
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
   msrv:
     name: MSRV Check

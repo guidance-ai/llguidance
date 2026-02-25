@@ -1,0 +1,35 @@
+name: MaskBench
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+        description: 'Git ref to checkout'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  maskbench:
+    name: MaskBench
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Clone jsonschemabench
+      run: git clone -b main https://github.com/guidance-ai/jsonschemabench tmp/jsonschemabench
+
+    - name: Run MaskBench
+      run: |
+        mkdir -p tmp
+        cargo run --release -- \
+          --llg-masks \
+          --expected expected_maskbench.json \
+          ../tmp/jsonschemabench/maskbench/data
+      working-directory: json_stats

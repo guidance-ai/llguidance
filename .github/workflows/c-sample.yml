@@ -1,0 +1,27 @@
+name: C Sample
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+        description: 'Git ref to checkout'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  c-sample:
+    name: C Sample
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Build and run C sample
+      run: make
+      working-directory: c_sample
