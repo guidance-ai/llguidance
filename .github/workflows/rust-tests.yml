@@ -36,13 +36,3 @@ jobs:
 
     - name: Test
       run: cargo test ${{ inputs.profile == 'release' && '--release' || '' }}
-
-    - name: Run sample_parser
-      if: inputs.profile == 'release'
-      run: ./run.sh >/dev/null
-      working-directory: sample_parser
-
-    - name: Build C sample
-      if: inputs.profile == 'release'
-      run: make
-      working-directory: c_sample

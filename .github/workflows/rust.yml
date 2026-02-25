@@ -56,6 +56,34 @@ jobs:
       profile: release
       ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
+  sample-parser:
+    name: Sample Parser
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+
+    - name: Run sample_parser
+      run: ./run.sh
+      working-directory: sample_parser
+
+  c-sample:
+    name: C Sample
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+
+    - name: Build and run C sample
+      run: make
+      working-directory: c_sample
+
   lark-tests:
     name: Lark Tests
     runs-on: ubuntu-latest
