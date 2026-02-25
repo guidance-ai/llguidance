@@ -299,8 +299,8 @@ pub fn valid_ipv6(#[case] s: &str) {
 #[case("1:2:3:4:5:6:7")] // Test Suite: "insufficient octets without double colons"
 #[case("1")] // Test Suite: "no colons is invalid"
 #[case("1:2:3:4:5:6:7:\u{09ea}")] // Python tests: non-ASCII Bengali ৪ in last group
-             // Note: IPv4-mapped tests (e.g., ::ffff:192.168.0.1) are NOT ported — the
-             // standalone ipv6 regex does not support RFC 4291 §2.5.5 mixed notation.
+                                  // Note: IPv4-mapped tests (e.g., ::ffff:192.168.0.1) are NOT ported — the
+                                  // standalone ipv6 regex does not support RFC 4291 §2.5.5 mixed notation.
 pub fn bad_ipv6(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"ipv6"});
     json_schema_check(&schema, &json!(s), false);
