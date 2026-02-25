@@ -1,0 +1,48 @@
+name: Rust Tests
+
+on:
+  workflow_call:
+    inputs:
+      profile:
+        required: true
+        type: string
+        description: 'Build profile: debug or release'
+      ref:
+        required: true
+        type: string
+        description: 'Git ref to checkout'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: ${{ inputs.profile }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Build
+      run: cargo build --locked ${{ inputs.profile == 'release' && '--release' || '' }}
+
+    - name: Check no-default-features
+      if: inputs.profile == 'debug'
+      run: cargo check --no-default-features
+      working-directory: parser
+
+    - name: Test
+      run: cargo test ${{ inputs.profile == 'release' && '--release' || '' }}
+
+    - name: Run sample_parser
+      if: inputs.profile == 'release'
+      run: ./run.sh >/dev/null
+      working-directory: sample_parser
+
+    - name: Build C sample
+      if: inputs.profile == 'release'
+      run: make
+      working-directory: c_sample

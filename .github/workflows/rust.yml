@@ -20,10 +20,91 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
 
-    name: Test with Python ${{ matrix.python-version }}
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
+    - name: Check formatting
+      run: cargo fmt --check
+
+    - name: Clippy
+      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+    - name: Check doc links
+      run: python3 scripts/checklinks.py *.md */*.md parser/src/*/*.md
+
+    - name: Check cbindgen
+      run: ./scripts/cbindgen.sh --check
+
+  rust-tests-debug:
+    name: Rust Tests (debug)
+    uses: ./.github/workflows/rust-tests.yml
+    with:
+      profile: debug
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+
+  rust-tests-release:
+    name: Rust Tests (release)
+    uses: ./.github/workflows/rust-tests.yml
+    with:
+      profile: release
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+
+  lark-tests:
+    name: Lark Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+
+    - name: Convert GBNF to Lark
+      run: ../scripts/gbnf_to_lark.py data/from-llama.cpp/*.gbnf
+      working-directory: sample_parser
+
+    - name: Build sample_parser
+      run: cargo build
+      working-directory: sample_parser
+
+    - name: Run Lark tests
+      run: |
+        for f in data/from-llama.cpp/*.lark ; do
+          ../target/debug/sample_parser "$f"
+        done
+      working-directory: sample_parser
+
+  maskbench:
+    name: MaskBench
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+
+    - name: Clone jsonschemabench
+      run: git clone -b main https://github.com/guidance-ai/jsonschemabench tmp/jsonschemabench
+
+    - name: Run MaskBench
+      run: |
+        mkdir -p tmp
+        cargo run --release -- \
+          --llg-masks \
+          --expected expected_maskbench.json \
+          ../tmp/jsonschemabench/maskbench/data
+      working-directory: json_stats
+
+  python-tests:
+    name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -31,58 +112,56 @@ jobs:
         python-version: ["3.11", "3.14t"]
 
     steps:
-    - name: Checkout repo at ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+    - name: Checkout repo
       uses: actions/checkout@v6
       with:
         ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-
-    - name: Build parser
-      run: cargo build --verbose
-      working-directory: parser
 
     - name: Setup Python
       uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install python test dependencies
+    - name: Install dependencies
       run: ./scripts/install-deps.sh
 
-    - name: Disk Space Check
-      run: df -h .
+    - name: Build and install llguidance
+      run: |
+        pip uninstall -y llguidance || :
+        pip install -v -e .
 
-    # The three test steps are equivalent to just ./scripts/test-guidance.sh
-    # but we want to run them separately to get better timings/logs/etc
+    - name: Run mypy
+      run: mypy
+      working-directory: python
 
-    - name: Run Rust tests
-      run: ./scripts/test-guidance.sh --rust
+    - name: Detect free-threaded Python
+      id: gil
+      run: |
+        if python -c "import sysconfig; exit(0 if sysconfig.get_config_var('Py_GIL_DISABLED') == 1 else 1)"; then
+          echo "python_flags=-Xgil=0" >> "$GITHUB_OUTPUT"
+        else
+          echo "python_flags=" >> "$GITHUB_OUTPUT"
+        fi
 
-    - name: Disk Space Check
-      run: df -h .
+    - name: Run torch tests
+      run: python ${{ steps.gil.outputs.python_flags }} -m pytest -v python/torch_tests/
 
-    - name: Run MaskBench
-      run: ./scripts/test-guidance.sh --mb
+    - name: Clone guidance
+      run: git clone -b main https://github.com/guidance-ai/guidance tmp/guidance
 
-    - name: Disk Space Check
-      run: df -h .
+    - name: Print guidance info
+      run: echo "Branch:$(git branch --show-current) Remote:$(git remote get-url origin) HEAD:$(git rev-parse HEAD)"
+      working-directory: tmp/guidance
 
-    - name: Run Python Guidance tests
-      run: ./scripts/test-guidance.sh --py
-
-    - name: Disk Space Check
-      run: df -h .
+    - name: Run guidance tests
+      run: python ${{ steps.gil.outputs.python_flags }} -m pytest -v tests/unit/test_[lgmp]*.py tests/unit/library
+      working-directory: tmp/guidance
 
     - name: Build sdist
       run: maturin build --sdist --zig
 
-    - name: Disk Space Check
-      run: df -h .
-
     - name: Build wheel
       run: maturin build --zig
-
-    - name: Disk Space Check
-      run: df -h .
 
     - name: Upload sdist and wheel artifact
       uses: actions/upload-artifact@v6
