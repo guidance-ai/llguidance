@@ -46,32 +46,24 @@ jobs:
     - name: Check cbindgen
       run: ./scripts/cbindgen.sh --check
 
-  rust-tests-debug:
-    name: Rust Tests (debug)
+  rust-tests:
+    name: Rust Tests (${{ matrix.profile }})
     uses: ./.github/workflows/rust-tests.yml
+    strategy:
+      matrix:
+        profile: [debug, release]
     with:
-      profile: debug
+      profile: ${{ matrix.profile }}
       ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
-  rust-tests-release:
-    name: Rust Tests (release)
-    uses: ./.github/workflows/rust-tests.yml
-    with:
-      profile: release
-      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-
-  sample-parser-debug:
-    name: Sample Parser (debug)
+  sample-parser:
+    name: Sample Parser (${{ matrix.profile }})
     uses: ./.github/workflows/sample-parser-tests.yml
+    strategy:
+      matrix:
+        profile: [debug, release]
     with:
-      profile: debug
-      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
-
-  sample-parser-release:
-    name: Sample Parser (release)
-    uses: ./.github/workflows/sample-parser-tests.yml
-    with:
-      profile: release
+      profile: ${{ matrix.profile }}
       ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
   c-sample:
