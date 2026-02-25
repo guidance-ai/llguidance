@@ -1,0 +1,38 @@
+name: Lark Tests
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+        description: 'Git ref to checkout'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lark-tests:
+    name: Lark Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Convert GBNF to Lark
+      run: ../scripts/gbnf_to_lark.py data/from-llama.cpp/*.gbnf
+      working-directory: sample_parser
+
+    - name: Build sample_parser
+      run: cargo build
+      working-directory: sample_parser
+
+    - name: Run Lark tests
+      run: |
+        for f in data/from-llama.cpp/*.lark ; do
+          ../target/debug/sample_parser "$f"
+        done
+      working-directory: sample_parser

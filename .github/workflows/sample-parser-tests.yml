@@ -1,0 +1,43 @@
+name: Sample Parser Tests
+
+on:
+  workflow_call:
+    inputs:
+      profile:
+        required: true
+        type: string
+        description: 'Build profile: debug or release'
+      ref:
+        required: true
+        type: string
+        description: 'Git ref to checkout'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: ${{ inputs.profile }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Run blog schema (ll)
+      run: cargo run ${{ inputs.profile == 'release' && '--release' || '' }} data/blog.schema.ll.json --input data/blog.sample.json
+      working-directory: sample_parser
+
+    - name: Run blog schema
+      run: cargo run ${{ inputs.profile == 'release' && '--release' || '' }} data/blog.schema.json --input data/blog.sample.json
+      working-directory: sample_parser
+
+    - name: Run minimal binary
+      run: cargo run ${{ inputs.profile == 'release' && '--release' || '' }} --bin minimal data/blog.schema.json data/blog.sample.json
+      working-directory: sample_parser
+
+    - name: Run RFC Lark grammar
+      run: cargo run ${{ inputs.profile == 'release' && '--release' || '' }} data/rfc.lark --input data/rfc.xml
+      working-directory: sample_parser

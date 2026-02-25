@@ -1,0 +1,39 @@
+name: Lint
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+        description: 'Git ref to checkout'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Check formatting
+      run: cargo fmt --check
+
+    - name: Clippy
+      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+    - name: Check doc links
+      run: python3 scripts/checklinks.py *.md */*.md parser/src/*/*.md
+
+    - name: Check no-default-features
+      run: cargo check --no-default-features
+      working-directory: parser
+
+    - name: Check cbindgen
+      run: ./scripts/cbindgen.sh --check
