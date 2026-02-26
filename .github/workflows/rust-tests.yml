@@ -40,3 +40,4 @@ jobs:
       if: always()
       with:
         report_paths: target/nextest/ci/junit.xml
+        include_passed: true
