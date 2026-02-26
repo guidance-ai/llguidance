@@ -27,7 +27,7 @@ jobs:
         ref: ${{ inputs.ref }}
 
     - name: Install nextest
-      run: cargo install cargo-nextest
+      run: cargo install cargo-nextest --locked
 
     - name: Build
       run: cargo build --locked ${{ inputs.profile == 'release' && '--release' || '' }}
