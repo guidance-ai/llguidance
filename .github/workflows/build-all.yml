@@ -1,8 +1,9 @@
 name: Build and Test All
 
 permissions:
-    contents: read
-    checks: write
+  contents: read
+  checks: write
+  pull-requests: write 
 
 on:
   push:
