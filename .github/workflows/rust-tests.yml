@@ -40,5 +40,8 @@ jobs:
       if: always()
       with:
         report_paths: target/nextest/ci/junit.xml
+        fail_on_error: true
+        require_passed_tests: true
         include_passed: true
         comment: true
+        check_name: Rust Tests - ${{ inputs.profile }}
