@@ -26,8 +26,22 @@ jobs:
       with:
         ref: ${{ inputs.ref }}
 
+    - name: Install nextest
+      run: cargo install cargo-nextest --locked
+
     - name: Build
       run: cargo build --locked ${{ inputs.profile == 'release' && '--release' || '' }}
 
     - name: Test
-      run: cargo test ${{ inputs.profile == 'release' && '--release' || '' }}
+      run: cargo nextest run --profile ci ${{ inputs.profile == 'release' && '--release' || '' }}
+
+    - name: Publish Test Report
+      uses: mikepenz/action-junit-report@v5
+      if: always()
+      with:
+        report_paths: target/nextest/ci/junit.xml
+        fail_on_error: true
+        require_passed_tests: true
+        include_passed: true
+        comment: true
+        check_name: Rust Tests - ${{ inputs.profile }}
