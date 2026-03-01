@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::rc::Rc;
 
 use crate::{
@@ -512,9 +513,54 @@ impl Parser {
         } else {
             (s, "")
         };
+        // Convert \xHH escape sequences to \u00HH for serde_json compatibility,
+        // since JSON only supports \uNNNN unicode escapes.
+        let inner = Self::convert_hex_escapes(inner);
         let inner =
-            serde_json::from_str(inner).map_err(|e| anyhow!("error parsing string: {e}"))?;
+            serde_json::from_str(&inner).map_err(|e| anyhow!("error parsing string: {e}"))?;
         Ok((inner, flags.to_string()))
+    }
+
+    /// Converts `\xHH` escape sequences to `\u00HH` so that serde_json can parse them.
+    /// Returns a borrowed reference when no conversion is needed (common case).
+    fn convert_hex_escapes(s: &str) -> Cow<'_, str> {
+        if !s.contains("\\x") {
+            return Cow::Borrowed(s);
+        }
+        let mut result = String::with_capacity(s.len() + s.len() / 4);
+        let mut chars = s.chars();
+        while let Some(c) = chars.next() {
+            if c == '\\' {
+                if let Some(next) = chars.next() {
+                    if next == 'x' {
+                        // Collect the two hex digits.
+                        // The lexer regex enforces exactly 2 hex digits after \x,
+                        // so the None branches below are unreachable in practice.
+                        let h1 = chars.next();
+                        let h2 = chars.next();
+                        if let (Some(d1), Some(d2)) = (h1, h2) {
+                            result.push_str("\\u00");
+                            result.push(d1);
+                            result.push(d2);
+                        } else {
+                            result.push('\\');
+                            result.push('x');
+                            if let Some(d1) = h1 {
+                                result.push(d1);
+                            }
+                        }
+                    } else {
+                        result.push('\\');
+                        result.push(next);
+                    }
+                } else {
+                    result.push('\\');
+                }
+            } else {
+                result.push(c);
+            }
+        }
+        Cow::Owned(result)
     }
 
     fn parse_simple_string(&self, string1: &str) -> Result<String> {

@@ -215,10 +215,10 @@ impl Token {
         (Token::Op, r"[+*?]"),
         (Token::Rule, r"!?[_?]?[a-z][_a-z0-9\-]*"),
         (Token::Token, r"_?[A-Z][_A-Z0-9\-]*"),
-        // use JSON string syntax
+        // use JSON string syntax, extended with \xHH escape sequences
         (
             Token::String,
-            r#""(\\([\"\\\/bfnrt]|u[a-fA-F0-9]{4})|[^\"\\\x00-\x1F\x7F])*"(i|)"#,
+            r#""(\\([\"\\\/bfnrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2})|[^\"\\\x00-\x1F\x7F])*"(i|)"#,
         ),
         (Token::Regexp, r#"/(\\.|[^/\\])+/[imslux]*"#),
         (Token::Number, r#"[+-]?[0-9]+(\.[0-9]*)?([eE][+-]?[0-9]+)?"#),
