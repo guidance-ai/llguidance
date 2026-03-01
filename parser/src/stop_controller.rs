@@ -96,7 +96,7 @@ impl StopController {
             self.is_stopped = true;
         } else {
             let bytes = self.tok_env.tok_trie().token(tok_id);
-            if !bytes.is_empty() && bytes[0] == TokTrie::SPECIAL_TOKEN_MARKER {
+            if bytes.len() > 1 && bytes[0] == TokTrie::SPECIAL_TOKEN_MARKER {
                 if let Some(rx) = self.regex.as_mut() {
                     rx.state = rx.initial_state;
                 }
