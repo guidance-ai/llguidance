@@ -40,7 +40,7 @@ jobs:
       if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
       with:
         report_paths: target/nextest/ci/junit.xml
-        fail_on_error: true
+        fail_on_failure: true
         require_passed_tests: true
         include_passed: true
         comment: true
@@ -51,5 +51,5 @@ jobs:
       if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
       with:
         report_paths: target/nextest/ci/junit.xml
-        anotate_only: true
-        fail_on_error: true
+        annotate_only: true
+        fail_on_failure: true
