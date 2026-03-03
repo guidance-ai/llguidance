@@ -36,8 +36,8 @@ jobs:
       run: cargo nextest run --profile ci ${{ inputs.profile == 'release' && '--release' || '' }}
 
     - name: Publish Test Report
-      uses: mikepenz/action-junit-report@v5
-      if: always()
+      uses: mikepenz/action-junit-report@v6
+      if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
       with:
         report_paths: target/nextest/ci/junit.xml
         fail_on_error: true
@@ -45,3 +45,11 @@ jobs:
         include_passed: true
         comment: true
         check_name: Rust Tests - ${{ inputs.profile }}
+
+    - name: Publish Test Report (PR from fork)
+      uses: mikepenz/action-junit-report@v6
+      if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+      with:
+        report_paths: target/nextest/ci/junit.xml
+        anotate_only: true
+        fail_on_error: true
