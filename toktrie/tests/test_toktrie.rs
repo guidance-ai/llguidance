@@ -441,6 +441,7 @@ fn test_sorted_tokens() {
 
     // The IDs should map back correctly.
     let sorted_ids: Vec<u32> = sorted.iter().map(|(id, _)| *id).collect();
+    #[rustfmt::skip]
     assert_eq!(
         sorted_ids,
         vec![23, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 10, 13, 14, 16, 17, 15, 18, 19, 20, 21, 22, 24, 25]
