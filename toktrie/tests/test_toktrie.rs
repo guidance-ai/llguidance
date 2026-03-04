@@ -212,7 +212,7 @@ fn test_trie_navigation() {
 struct AlphaOnly;
 
 impl FunctionalRecognizer<()> for AlphaOnly {
-    fn initial(&self) -> () {}
+    fn initial(&self) {}
 
     fn try_append(&self, _state: (), byte: u8) -> Option<()> {
         if byte.is_ascii_lowercase() {
