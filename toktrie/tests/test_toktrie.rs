@@ -1,6 +1,3 @@
-// We use manual alignment for readability in this sample-code test,
-// so wrap in #[rustfmt::skip] to prevent cargo fmt from reformatting.
-
 /// Sample-code test for TokTrie.
 ///
 /// This test file builds a small, hand-crafted vocabulary and uses it to demonstrate
@@ -43,6 +40,8 @@
 /// ```
 ///
 /// Token 0 is the empty/padding token, and token 25 doubles as EOS.
+// We use manual alignment for readability in this sample-code test,
+// so wrap in #[rustfmt::skip] to prevent cargo fmt from reformatting.
 #[rustfmt::skip]
 mod tests {
 
