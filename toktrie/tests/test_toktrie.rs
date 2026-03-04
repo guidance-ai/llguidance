@@ -40,11 +40,6 @@
 /// ```
 ///
 /// Token 0 is the empty/padding token, and token 25 doubles as EOS.
-// We use manual alignment for readability in this sample-code test,
-// so wrap in #[rustfmt::skip] to prevent cargo fmt from reformatting.
-#[rustfmt::skip]
-mod tests {
-
 use toktrie::recognizer::{FunctionalRecognizer, StackRecognizer};
 use toktrie::{SimpleVob, TokRxInfo, TokTrie, TokenId};
 
@@ -121,21 +116,21 @@ fn test_construction_and_lookups() {
     assert_eq!(trie.vocab_size(), VOCAB_SIZE as usize);
 
     // Spot-check: token bytes round-trip through token().
-    assert_eq!(trie.token(0), b"");       // empty token
+    assert_eq!(trie.token(0), b""); // empty token
     assert_eq!(trie.token(1), b"a");
     assert_eq!(trie.token(5), b"apple");
     assert_eq!(trie.token(15), b"cat");
     assert_eq!(trie.token(25), b"the");
 
     // token_id() finds exact matches.
-    assert_eq!(trie.token_id(b"cat"), Some(15));   // "cat" → 15
-    assert_eq!(trie.token_id(b"band"), Some(12));  // "band" → 12
-    assert_eq!(trie.token_id(b"the"), Some(25));   // "the" → 25
+    assert_eq!(trie.token_id(b"cat"), Some(15)); // "cat" → 15
+    assert_eq!(trie.token_id(b"band"), Some(12)); // "band" → 12
+    assert_eq!(trie.token_id(b"the"), Some(25)); // "the" → 25
 
     // token_id() returns None for strings that are not exact tokens.
-    assert_eq!(trie.token_id(b"catz"), None);      // no such token
-    assert_eq!(trie.token_id(b"ap"), None);         // "ap" is not a token (only "app" is)
-    assert_eq!(trie.token_id(b"appl"), None);       // "appl" is not a token
+    assert_eq!(trie.token_id(b"catz"), None); // no such token
+    assert_eq!(trie.token_id(b"ap"), None); // "ap" is not a token (only "app" is)
+    assert_eq!(trie.token_id(b"appl"), None); // "appl" is not a token
 }
 
 #[test]
@@ -188,6 +183,7 @@ fn test_trie_navigation() {
     // The root's children correspond to the distinct first bytes of all non-empty tokens:
     // ' ' (0x20), 'a', 'b', 'c', 'd', 'e', 't'
     let root_child_bytes: Vec<u8> = trie.node_children(root).map(|n| n.byte()).collect();
+    #[rustfmt::skip]
     assert_eq!(root_child_bytes, vec![b' ', b'a', b'b', b'c', b'd', b'e', b't']);
 
     // Walking a→p→p should land on the node for "app" (token 4).
@@ -250,6 +246,7 @@ fn test_add_bias_alpha_only() {
     );
 
     // Specifically verify space is NOT allowed.
+    #[rustfmt::skip]
     assert!(!set.is_allowed(23), "space token should be rejected by AlphaOnly");
     // And that "cat" IS allowed.
     assert!(set.is_allowed(15), "\"cat\" should be allowed by AlphaOnly");
@@ -431,6 +428,7 @@ fn test_sorted_tokens() {
     // < "d" < "do" < "dog" < "dot"
     // < "e"
     // < "th" < "the"
+    #[rustfmt::skip]
     let expected_bytes: Vec<&[u8]> = vec![
         b" ", b"a", b"an", b"ant", b"app", b"apple", b"apply", b"apps",
         b"b", b"ba", b"ban", b"band", b"bat",
@@ -443,13 +441,10 @@ fn test_sorted_tokens() {
 
     // The IDs should map back correctly.
     let sorted_ids: Vec<u32> = sorted.iter().map(|(id, _)| *id).collect();
-    assert_eq!(
-        sorted_ids,
-        vec![23, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 10, 13, 14, 16, 17, 15, 18, 19, 20, 21, 22, 24, 25]
-    );
+    #[rustfmt::skip]
+    let expected_ids = vec![23, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 10, 13, 14, 16, 17, 15, 18, 19, 20, 21, 22, 24, 25];
+    assert_eq!(sorted_ids, expected_ids);
     // Note: token 0 (empty) is absent — it has no bytes so it's not in the trie.
     // "bat"(10) comes after "band"(12) because 't' > 'n' in byte order.
     // "cat"(15) comes after "card"(17) because 't' > 'r' in byte order.
 }
-
-} // mod tests
