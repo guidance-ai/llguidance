@@ -441,9 +441,10 @@ fn test_sorted_tokens() {
 
     // The IDs should map back correctly.
     let sorted_ids: Vec<u32> = sorted.iter().map(|(id, _)| *id).collect();
-    #[rustfmt::skip]
-    let expected_ids = vec![23, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 10, 13, 14, 16, 17, 15, 18, 19, 20, 21, 22, 24, 25];
-    assert_eq!(sorted_ids, expected_ids);
+    assert_eq!(
+        sorted_ids,
+        vec![23, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 10, 13, 14, 16, 17, 15, 18, 19, 20, 21, 22, 24, 25]
+    );
     // Note: token 0 (empty) is absent — it has no bytes so it's not in the trie.
     // "bat"(10) comes after "band"(12) because 't' > 'n' in byte order.
     // "cat"(15) comes after "card"(17) because 't' > 'r' in byte order.
