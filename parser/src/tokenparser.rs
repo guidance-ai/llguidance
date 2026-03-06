@@ -128,6 +128,10 @@ impl TokenParser {
         self.parser.get_capture(name)
     }
 
+    pub fn captures(&self) -> &[(String, Vec<u8>)] {
+        self.parser.captures()
+    }
+
     // regular .clone() uses a shared lexer state
     pub fn deep_clone(&self) -> Self {
         let mut copy = self.clone();

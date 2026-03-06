@@ -217,4 +217,18 @@ impl Matcher {
             inner.parser.invalidate_bias_cache();
         }
     }
+
+    pub fn get_capture(&self, name: &str) -> Option<&[u8]> {
+        match &self.0 {
+            MatcherState::Normal(inner) => inner.parser.get_capture(name),
+            MatcherState::Error(_) => None,
+        }
+    }
+
+    pub fn captures(&self) -> &[(String, Vec<u8>)] {
+        match &self.0 {
+            MatcherState::Normal(inner) => inner.parser.captures(),
+            MatcherState::Error(_) => &[],
+        }
+    }
 }
