@@ -9,6 +9,54 @@
 
 #include "llguidance.h"
 
+// Create an LlgTokenizer using the v2 API with an extra EOS token.
+// tok_eos is the primary; extra_eos_tokens are additional EOS token IDs.
+LlgTokenizer *create_tokenizer_v2(std::vector<std::vector<uint8_t>> &tokens,
+                                   uint32_t tok_eos,
+                                   std::vector<uint32_t> extra_eos_tokens,
+                                   LlgTokenizeFn tokenize_fn,
+                                   const void *tokenize_user_data) {
+  auto token_lens = new uint32_t[tokens.size()];
+  size_t total_size = 0;
+  for (size_t i = 0; i < tokens.size(); i++) {
+    token_lens[i] = tokens[i].size();
+    total_size += token_lens[i];
+  }
+  auto token_bytes = new uint8_t[total_size];
+  size_t offset = 0;
+  for (size_t i = 0; i < tokens.size(); i++) {
+    memcpy(token_bytes + offset, tokens[i].data(), token_lens[i]);
+    offset += token_lens[i];
+  }
+
+  LlgTokenizerInitV2 tok_init = {};
+  tok_init.struct_size = sizeof(tok_init);
+  tok_init.vocab_size = (uint32_t)tokens.size();
+  tok_init.tok_eos = tok_eos;
+  tok_init.token_lens = token_lens;
+  tok_init.token_bytes = token_bytes;
+  tok_init.tokenize_assumes_string = false;
+  tok_init.tokenize_user_data = tokenize_user_data;
+  tok_init.tokenize_fn = tokenize_fn;
+  if (!extra_eos_tokens.empty()) {
+    tok_init.tok_eos_extra = extra_eos_tokens.data();
+    tok_init.tok_eos_extra_count = (uint32_t)extra_eos_tokens.size();
+  }
+
+  char error_buf[128];
+  auto tok = llg_new_tokenizer_v2(&tok_init, error_buf, sizeof(error_buf));
+
+  if (tok == nullptr) {
+    printf("Error (v2): %s\n", error_buf);
+    exit(1);
+  }
+
+  delete[] token_lens;
+  delete[] token_bytes;
+
+  return tok;
+}
+
 // Create an LlgTokenizer; tokens[token_id] is a byte sequence corresponding to
 // given token_id; see below for tokenize_fn
 LlgTokenizer *create_tokenizer(std::vector<std::vector<uint8_t>> &tokens,
@@ -35,6 +83,19 @@ LlgTokenizer *create_tokenizer(std::vector<std::vector<uint8_t>> &tokens,
   tok_init.tokenize_user_data = tokenize_user_data;
   tok_init.tokenize_fn = tokenize_fn;
 
+  // For models with multiple EOS tokens (e.g., Qwen3), use the v2 API:
+  //   LlgTokenizerInitV2 init_v2 = {};
+  //   init_v2.struct_size = sizeof(init_v2);
+  //   init_v2.vocab_size = tok_init.vocab_size;
+  //   init_v2.tok_eos = tok_init.tok_eos;
+  //   init_v2.token_lens = tok_init.token_lens;
+  //   init_v2.token_bytes = tok_init.token_bytes;
+  //   init_v2.tokenize_fn = tok_init.tokenize_fn;
+  //   LlgToken extra_eos[] = {second_eos, third_eos};
+  //   init_v2.tok_eos_extra = extra_eos;
+  //   init_v2.tok_eos_extra_count = sizeof(extra_eos) / sizeof(extra_eos[0]);
+  //   auto tok = llg_new_tokenizer_v2(&init_v2, error_buf, sizeof(error_buf));
+
   char error_buf[128];
   auto tok = llg_new_tokenizer(&tok_init, error_buf, sizeof(error_buf));
 
@@ -42,6 +103,9 @@ LlgTokenizer *create_tokenizer(std::vector<std::vector<uint8_t>> &tokens,
     printf("Error: %s\n", error_buf);
     exit(1);
   }
+
+  delete[] token_lens;
+  delete[] token_bytes;
 
   return tok;
 }
@@ -80,6 +144,22 @@ LlgTokenizer *create_byte_tokenizer(void) {
   tokens.push_back(std::vector<uint8_t>(eos, eos + strlen(eos)));
   return create_tokenizer(tokens, tokens.size() - 1, tokenize_callback,
                           nullptr);
+}
+
+// Same as above but using the v2 API with an extra (unused) EOS token.
+LlgTokenizer *create_byte_tokenizer_v2(void) {
+  std::vector<std::vector<uint8_t>> tokens;
+  for (size_t i = 0; i < 256; i++) {
+    tokens.push_back({(uint8_t)i});
+  }
+  const char *eos = "<EOS>";
+  tokens.push_back(std::vector<uint8_t>(eos, eos + strlen(eos)));
+  const char *eos2 = "<EOS2>";
+  tokens.push_back(std::vector<uint8_t>(eos2, eos2 + strlen(eos2)));
+  // Primary EOS is token 256 (<EOS>), extra EOS is token 257 (<EOS2>)
+  std::vector<uint32_t> extra_eos = {(uint32_t)(tokens.size() - 1)};
+  return create_tokenizer_v2(tokens, tokens.size() - 2, extra_eos,
+                             tokenize_callback, nullptr);
 }
 
 LlgTokenizer *create_hf_tokenizer(std::string tokenizer_json,
@@ -141,21 +221,8 @@ std::string do_llg_stringify_tokens(const LlgTokenizer *tok,
   }
 }
 
-int main(int argc, const char *argv[]) {
-  if (argc < 3) {
-    printf("Usage: %s <schema.ll.json> <sample.json> [tokenizer.json]\n",
-           argv[0]);
-    return 1;
-  }
-
-  // the tokenizer can (and should) be shared between constraints
-  LlgTokenizer *tokenizer = argc > 3
-                                ? create_hf_tokenizer(read_file(argv[3]), 2)
-                                : create_byte_tokenizer();
-
-  auto schema_json = read_file(argv[1]);
-  auto sample_json = read_file(argv[2]);
-
+void run_constraint_test(LlgTokenizer *tokenizer, const std::string &schema_json,
+                         const std::string &sample_json, const char *label) {
   LlgConstraintInit init;
   llg_constraint_init_set_defaults(&init, tokenizer);
   init.log_stderr_level = 0; // default to 1 (warnings only)
@@ -166,14 +233,6 @@ int main(int argc, const char *argv[]) {
   if (llg_get_error(c)) {
     fail_constraint(c);
   }
-
-  // for debugging the tokenizer:
-  // for (int i = 0; i < 320; ++i) {
-  //   std::vector<uint32_t> tokens;
-  //   tokens.push_back(i);
-  //   std::string s = do_llg_stringify_tokens(tokenizer, tokens);
-  //   printf("Token %d: %s\n", i, s.c_str());
-  // }
 
   // we assume our "LLM" will generate these tokens
   auto tokens = do_llg_tokenize(tokenizer, sample_json);
@@ -212,6 +271,35 @@ int main(int argc, const char *argv[]) {
   // we assume the constraint will force EOS at the end of the input
   assert(mask_res.is_stop);
 
-  printf("OK!\n");
+  llg_free_constraint(c);
+  printf("%s: OK!\n", label);
+}
+
+int main(int argc, const char *argv[]) {
+  if (argc < 3) {
+    printf("Usage: %s <schema.ll.json> <sample.json> [tokenizer.json]\n",
+           argv[0]);
+    return 1;
+  }
+
+  auto schema_json = read_file(argv[1]);
+  auto sample_json = read_file(argv[2]);
+
+  // Test with v1 API (LlgTokenizerInit + llg_new_tokenizer)
+  {
+    LlgTokenizer *tokenizer = argc > 3
+                                  ? create_hf_tokenizer(read_file(argv[3]), 2)
+                                  : create_byte_tokenizer();
+    run_constraint_test(tokenizer, schema_json, sample_json, "v1");
+    llg_free_tokenizer(tokenizer);
+  }
+
+  // Test with v2 API (LlgTokenizerInitV2 + llg_new_tokenizer_v2)
+  {
+    LlgTokenizer *tokenizer = create_byte_tokenizer_v2();
+    run_constraint_test(tokenizer, schema_json, sample_json, "v2");
+    llg_free_tokenizer(tokenizer);
+  }
+
   return 0;
 }

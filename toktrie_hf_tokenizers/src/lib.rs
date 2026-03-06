@@ -12,6 +12,7 @@ pub struct ByteTokenizer {
     pub hf_tokenizer: Tokenizer,
     info: TokRxInfo,
     token_bytes: Vec<Vec<u8>>,
+    eos_tokens_extra: Vec<TokenId>,
 }
 
 // useful when debugging this: https://www.cogsci.ed.ac.uk/~richard/utf-8.cgi
@@ -148,6 +149,7 @@ impl ByteTokenizer {
             info: TokRxInfo::new(vocab_size, 0),
             token_bytes: (0..vocab_size).map(|_| Vec::new()).collect(),
             hf_tokenizer: hft,
+            eos_tokens_extra: Vec::new(),
         };
 
         let mut specials = HashSet::new();
@@ -230,7 +232,32 @@ impl ByteTokenizer {
     }
 
     pub fn set_eos_token(&mut self, tok_id: u32) {
+        assert!(
+            tok_id < self.info.vocab_size,
+            "EOS token ID {tok_id} is out of range (vocab_size={})",
+            self.info.vocab_size
+        );
         self.info.tok_eos = tok_id;
+        self.eos_tokens_extra.clear();
+    }
+
+    pub fn set_eos_tokens(&mut self, tokens: &[TokenId]) {
+        assert!(!tokens.is_empty(), "eos_tokens must not be empty");
+        for &tok in tokens {
+            assert!(
+                tok < self.info.vocab_size,
+                "EOS token ID {tok} is out of range (vocab_size={})",
+                self.info.vocab_size
+            );
+        }
+        self.info.tok_eos = tokens[0];
+        self.eos_tokens_extra = tokens[1..].to_vec();
+    }
+
+    pub fn eos_tokens(&self) -> Vec<TokenId> {
+        let mut r = vec![self.info.tok_eos];
+        r.extend_from_slice(&self.eos_tokens_extra);
+        r
     }
 
     pub fn into_tok_env(self, n_vocab: Option<usize>) -> Result<TokEnv> {
@@ -259,7 +286,11 @@ impl ByteTokenizerEnv {
             }
             info.vocab_size = n_vocab as u32;
         }
-        let tok_trie = TokTrie::from(&info, &token_bytes);
+        let eos_tokens = tokenizer.eos_tokens();
+        let mut tok_trie = TokTrie::from(&info, &token_bytes);
+        if eos_tokens.len() > 1 {
+            tok_trie = tok_trie.with_eos_tokens(&eos_tokens);
+        }
         Ok(ByteTokenizerEnv {
             tokenizer,
             tok_trie,
@@ -352,6 +383,7 @@ mod tests {
             hf_tokenizer,
             info,
             token_bytes,
+            eos_tokens_extra: Vec::new(),
         };
         let env = ByteTokenizerEnv::new(tokenizer, None).unwrap();
         let special_id = env.tok_trie().get_special_token("<|end|>").unwrap();

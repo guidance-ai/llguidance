@@ -109,8 +109,7 @@ impl Matcher {
     pub fn compute_mask_or_eos(&mut self) -> Result<SimpleVob> {
         self.with_inner(|inner| {
             if inner.parser.stop_reason() != StopReason::NotStopped {
-                let trie = inner.parser.token_env.tok_trie();
-                Ok(trie.singleton_token_set(trie.eos_token()))
+                Ok(inner.parser.token_env.tok_trie().eos_token_set())
             } else {
                 inner.parser.compute_mask()
             }

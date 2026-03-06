@@ -119,13 +119,25 @@ pub fn tokenv_from_llamacpp(
     tokens: Vec<Vec<u8>>,
     vocab_ptr: usize,
     tokenize_fptr: usize,
-    eos_token: u32,
+    eos_tokens: &[u32],
 ) -> Result<TokEnv> {
+    ensure!(!eos_tokens.is_empty(), "eos_tokens must not be empty");
     ensure!(vocab_ptr != 0, "vocab_ptr must be non-null");
     ensure!(tokenize_fptr != 0, "tokenize_fptr must be non-null");
 
-    let info = TokRxInfo::new(tokens.len() as u32, eos_token);
-    let trie = TokTrie::from(&info, &tokens);
+    let vocab_size = tokens.len() as u32;
+    for &id in eos_tokens {
+        ensure!(
+            id < vocab_size,
+            "EOS token ID {id} is out of range (vocab_size={vocab_size})"
+        );
+    }
+
+    let info = TokRxInfo::new(tokens.len() as u32, eos_tokens[0]);
+    let mut trie = TokTrie::from(&info, &tokens);
+    if eos_tokens.len() > 1 {
+        trie = trie.with_eos_tokens(eos_tokens);
+    }
 
     let mut llama_tok = LlamaTokenizer {
         trie,
