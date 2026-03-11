@@ -79,6 +79,10 @@ impl TikTokenBPE {
         *self.tok_trie.info()
     }
 
+    pub fn set_eos_tokens(&mut self, tokens: &[TokenId]) {
+        self.tok_trie = self.tok_trie.with_eos_tokens(tokens);
+    }
+
     pub fn to_env(self) -> TokEnv {
         Arc::new(self)
     }

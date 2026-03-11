@@ -2,10 +2,11 @@ use lazy_static::lazy_static;
 use llguidance::{
     api::TopLevelGrammar,
     earley::SlicedBiasComputer,
-    toktrie::{InferenceCapabilities, TokEnv},
+    toktrie::{ApproximateTokEnv, InferenceCapabilities, TokEnv, TokenizerEnv},
     Matcher, ParserFactory, TokenParser,
 };
 use serde_json::{json, Value};
+use std::sync::Arc;
 
 lazy_static! {
     static ref PARSER_FACTORY_PHI: ParserFactory = {
@@ -354,4 +355,46 @@ fn test_try_consume_eos_consistency() {
     let eos_consumed = matcher.try_consume_tokens(&[eos]).unwrap();
     assert!(eos_consumed <= 1);
     assert_eq!(n_consumed_no_eos + eos_consumed, n_consumed_all);
+}
+
+#[test]
+fn test_multi_eos_mask_when_stopped() {
+    // Build a byte-level tokenizer with two EOS tokens
+    let base = ApproximateTokEnv::single_byte();
+    let base_trie = base.tok_trie();
+    let primary_eos = base_trie.eos_token();
+    // Pick a special token as the second EOS
+    let extra_eos = primary_eos - 1;
+    let multi_trie = base_trie.clone().with_eos_tokens(&[primary_eos, extra_eos]);
+    let tok_env: TokEnv = Arc::new(ApproximateTokEnv::new(multi_trie));
+
+    let factory = ParserFactory::new(
+        &tok_env,
+        InferenceCapabilities::default(),
+        &SlicedBiasComputer::general_slices(),
+    )
+    .unwrap();
+
+    let grm = TopLevelGrammar::from_lark(r#"start: "a""#.to_string());
+    let mut parser = factory.create_parser(grm).unwrap();
+    parser.start_without_prompt();
+    let mut matcher = Matcher::new(Ok(parser));
+
+    // Consume "a" — grammar should accept
+    let mask = matcher.compute_mask().unwrap();
+    assert!(mask.is_allowed(b'a' as u32));
+    matcher.consume_token(b'a' as u32).unwrap();
+
+    // Parser stops after accepting the full input.
+    // compute_mask_or_eos should include BOTH EOS tokens.
+    let mask = matcher.compute_mask_or_eos().unwrap();
+    assert!(
+        mask.is_allowed(primary_eos),
+        "primary EOS should be in stopped mask"
+    );
+    assert!(
+        mask.is_allowed(extra_eos),
+        "extra EOS should be in stopped mask"
+    );
+    assert!(matcher.is_stopped());
 }

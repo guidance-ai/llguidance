@@ -1,5 +1,5 @@
 from copy import copy
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import transformers
 
@@ -9,7 +9,7 @@ from ._lib import LLTokenizer
 def from_tokenizer(
     hf_tokenizer: transformers.PreTrainedTokenizerFast,
     n_vocab: Optional[int] = None,
-    eos_token: Optional[int] = None,
+    eos_token: Optional[Union[int, List[int]]] = None,
     slices: Optional[List[str]] = None,
 ) -> LLTokenizer:
     """
@@ -21,7 +21,7 @@ def from_tokenizer(
     Args:
         hf_tokenizer: transformers.PreTrainedTokenizerFast - the tokenizer to wrap
         n_vocab: int - override the size of the vocabulary
-        eos_token: int - override the EOS token
+        eos_token: int or list of ints - override the EOS token(s)
         slices: List[str] - configuration for slicer optimization; pass [] to disable,
             or None to use the default configuration
     """

@@ -100,6 +100,11 @@ unsafe fn slice_from_ptr_or_empty<'a, T>(data: *const T, len: usize) -> &'a [T] 
 
 impl LlgTokenizer {
     fn from_init(init: &LlgTokenizerInit) -> Result<Self> {
+        let trie = Self::build_trie(init)?;
+        Self::finish_init(init, trie)
+    }
+
+    fn build_trie(init: &LlgTokenizerInit) -> Result<TokTrie> {
         ensure!(
             init.tokenize_fn.is_some() || init.use_approximate_greedy_tokenize_fn,
             "Either tokenize_fn or use_approximate_greedy_tokenize_fn must be set"
@@ -137,8 +142,72 @@ impl LlgTokenizer {
             token_bytes
         };
 
-        let trie = TokTrie::from(&TokRxInfo::new(tokens.len() as u32, init.tok_eos), &tokens);
+        Ok(TokTrie::from(
+            &TokRxInfo::new(tokens.len() as u32, init.tok_eos),
+            &tokens,
+        ))
+    }
 
+    fn from_init_v2(init: &LlgTokenizerInitV2) -> Result<Self> {
+        // Build a v1 init from the shared fields and delegate
+        let v1 = LlgTokenizerInit {
+            vocab_size: init.vocab_size,
+            tok_eos: init.tok_eos,
+            token_lens: init.token_lens,
+            token_bytes: init.token_bytes,
+            tokenizer_json: init.tokenizer_json,
+            tokenize_assumes_string: init.tokenize_assumes_string,
+            tokenize_fn: init.tokenize_fn,
+            use_approximate_greedy_tokenize_fn: init.use_approximate_greedy_tokenize_fn,
+            tokenize_user_data: init.tokenize_user_data,
+            slices: init.slices,
+        };
+
+        // Build the trie via the v1 path
+        let mut trie = Self::build_trie(&v1)?;
+
+        // Apply additional EOS tokens if provided
+        if !init.tok_eos_extra.is_null() && init.tok_eos_extra_count > 0 {
+            let extra = unsafe {
+                std::slice::from_raw_parts(init.tok_eos_extra, init.tok_eos_extra_count as usize)
+            };
+            let mut eos_tokens = vec![init.tok_eos];
+            eos_tokens.extend_from_slice(extra);
+
+            let vocab_size = trie.vocab_size() as u32;
+            for &id in &eos_tokens {
+                ensure!(
+                    id < vocab_size,
+                    "EOS token ID {id} is out of range (vocab_size={vocab_size})"
+                );
+            }
+
+            trie = trie.with_eos_tokens(&eos_tokens);
+        }
+
+        Self::finish_init(&v1, trie)
+    }
+
+    fn read_slices_raw(slices: *const *const c_char) -> Result<Vec<String>> {
+        if slices.is_null() {
+            Ok(SlicedBiasComputer::general_slices())
+        } else {
+            let mut result = vec![];
+            let mut idx = 0;
+            loop {
+                let p = unsafe { *slices.add(idx) };
+                if p.is_null() {
+                    break;
+                }
+                let s = unsafe { c_str_to_str(p, "slice") }?;
+                result.push(s.to_string());
+                idx += 1;
+            }
+            Ok(result)
+        }
+    }
+
+    fn finish_init(init: &LlgTokenizerInit, trie: TokTrie) -> Result<Self> {
         let tok_env: TokEnv = Arc::new(CTokenizerInner {
             trie,
             tokenize_assumes_string: init.tokenize_assumes_string && init.tokenize_fn.is_some(),
@@ -146,22 +215,7 @@ impl LlgTokenizer {
             tokenize_user_data: init.tokenize_user_data,
         });
 
-        let slices = if init.slices.is_null() {
-            SlicedBiasComputer::general_slices()
-        } else {
-            let mut slices = vec![];
-            let mut idx = 0;
-            loop {
-                let p = unsafe { *init.slices.add(idx) };
-                if p.is_null() {
-                    break;
-                }
-                let s = unsafe { c_str_to_str(p, "slice") }?;
-                slices.push(s.to_string());
-                idx += 1;
-            }
-            slices
-        };
+        let slices = Self::read_slices_raw(init.slices)?;
 
         let factory = ParserFactory::new(&tok_env, InferenceCapabilities::default(), &slices)?;
 
@@ -206,6 +260,9 @@ pub type LlgTokenizeFn = Option<
 /// Function which llg calls when an operation is done.
 pub type LlgCallback = Option<extern "C" fn(user_data: *const c_void)>;
 
+/// This struct must be zero-initialized (e.g., `= {}` in C/C++) before setting fields.
+/// New fields may be appended in future versions, and zero-initialization ensures
+/// they receive safe default values.
 #[repr(C)]
 pub struct LlgTokenizerInit {
     /// The number of tokens in the vocabulary
@@ -249,6 +306,72 @@ pub struct LlgTokenizerInit {
     /// This is array of pointers to strings, terminated with NULL (argv style).
     /// Pass NULL to use defaults. Pass empty array to disable.
     pub slices: *const *const c_char,
+}
+
+/// V2 of the tokenizer initialization struct.
+/// Extends LlgTokenizerInit with support for multiple EOS tokens.
+/// Use with `llg_new_tokenizer_v2()`.
+///
+/// Initialize with: `LlgTokenizerInitV2 init = {}; init.struct_size = sizeof(init);`
+/// The library only reads `struct_size` bytes from the pointer, so callers
+/// compiled against an older header (with a smaller struct) will work with
+/// newer library versions — any new fields default to zero.
+#[repr(C)]
+pub struct LlgTokenizerInitV2 {
+    /// Must be set to `sizeof(LlgTokenizerInitV2)`.
+    /// The library uses this to determine how many bytes to read, enabling
+    /// forward compatibility when new fields are appended in future versions.
+    pub struct_size: usize,
+
+    /// The number of tokens in the vocabulary
+    pub vocab_size: u32,
+
+    /// The token ID for the end of sentence token
+    /// For chat mode, set it to end-of-turn token
+    pub tok_eos: LlgToken,
+
+    /// An array of the lengths of the token strings (vocab_size elements)
+    pub token_lens: *const u32,
+
+    /// A pointer to the token strings
+    /// The length of this the sum of all token_lens
+    pub token_bytes: *const u8,
+
+    /// Instead of passing token_lens and token_bytes, this can be set to
+    /// the contents of HF tokenizer.json file.
+    pub tokenizer_json: *const c_char,
+
+    /// Set to true to enable hack that works around the tokenize_fn only
+    /// accepting valid UTF-8 strings and possibly adding <BOS> etc.
+    /// TODO: the <BOS> bit not implemented yet
+    pub tokenize_assumes_string: bool,
+
+    /// Tokenization function, see LlgTokenizeFn docs.
+    /// It should only tokenize the bytes and not add
+    /// any <BOS> etc. It should also work on any byte sequence, including
+    /// invalid UTF-8. If this is not the case, set tokenize_assumes_string to true.
+    /// Either way, this function has to be thread-safe!
+    pub tokenize_fn: LlgTokenizeFn,
+
+    /// Set to true to not use tokenize_fn and instead tokenize greedily,
+    /// which is often incorrect and may reduce accuracy.
+    pub use_approximate_greedy_tokenize_fn: bool,
+
+    /// User data to pass to the tokenize_fn
+    pub tokenize_user_data: *const c_void,
+
+    /// Tokenizer partitions for the slicer optimization.
+    /// This is array of pointers to strings, terminated with NULL (argv style).
+    /// Pass NULL to use defaults. Pass empty array to disable.
+    pub slices: *const *const c_char,
+
+    /// Additional EOS token IDs beyond `tok_eos`.
+    /// Points to an array of `tok_eos_extra_count` elements.
+    /// When NULL (the default for zero-initialized structs), only `tok_eos` is used.
+    pub tok_eos_extra: *const LlgToken,
+
+    /// Number of elements in the `tok_eos_extra` array.
+    pub tok_eos_extra_count: u32,
 }
 
 #[derive(Clone)]
@@ -661,6 +784,71 @@ pub unsafe extern "C" fn llg_new_tokenizer(
     error_string_len: usize,
 ) -> *mut LlgTokenizer {
     match LlgTokenizer::from_init(tok_init) {
+        Ok(tok) => Box::into_raw(Box::new(tok)),
+        Err(e) => {
+            save_error_string(e, error_string, error_string_len);
+            std::ptr::null_mut()
+        }
+    }
+}
+
+/// Create a new tokenizer from a LlgTokenizerInitV2 struct.
+/// This is the v2 API that supports multiple EOS tokens.
+///
+/// The `tok_init` pointer must be valid and `tok_init->struct_size` must be set
+/// to `sizeof(LlgTokenizerInitV2)` as known by the caller. The library will
+/// only read `struct_size` bytes, so callers compiled against an older (smaller)
+/// version of the struct will work with newer library versions — new fields
+/// default to zero.
+///
+/// # Safety
+/// `tok_init` must point to at least `tok_init->struct_size` bytes of
+/// initialized memory, and `struct_size` must be at least
+/// `offsetof(LlgTokenizerInitV2, token_lens)` (i.e., include struct_size,
+/// vocab_size, and the complete tok_eos field).
+#[no_mangle]
+pub unsafe extern "C" fn llg_new_tokenizer_v2(
+    tok_init: *const LlgTokenizerInitV2,
+    error_string: *mut c_char,
+    error_string_len: usize,
+) -> *mut LlgTokenizer {
+    if tok_init.is_null() {
+        save_error_string(
+            anyhow::anyhow!("tok_init is NULL"),
+            error_string,
+            error_string_len,
+        );
+        return std::ptr::null_mut();
+    }
+
+    // Read struct_size from the first field (always safe if pointer is valid)
+    let struct_size = unsafe { std::ptr::read(tok_init as *const usize) };
+    let min_size = std::mem::offset_of!(LlgTokenizerInitV2, token_lens);
+    if struct_size < min_size {
+        save_error_string(
+            anyhow::anyhow!(
+                "LlgTokenizerInitV2.struct_size is {struct_size} but expected at least {min_size}. \
+                 Set struct_size = sizeof(LlgTokenizerInitV2)."
+            ),
+            error_string,
+            error_string_len,
+        );
+        return std::ptr::null_mut();
+    }
+
+    // Copy the caller's data into a zero-initialized local struct.
+    // Fields beyond what the caller provides default to zero.
+    let mut local: LlgTokenizerInitV2 = unsafe { std::mem::zeroed() };
+    let copy_size = std::cmp::min(struct_size, std::mem::size_of::<LlgTokenizerInitV2>());
+    unsafe {
+        std::ptr::copy_nonoverlapping(
+            tok_init as *const u8,
+            &mut local as *mut LlgTokenizerInitV2 as *mut u8,
+            copy_size,
+        );
+    }
+
+    match LlgTokenizer::from_init_v2(&local) {
         Ok(tok) => Box::into_raw(Box::new(tok)),
         Err(e) => {
             save_error_string(e, error_string, error_string_len);

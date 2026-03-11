@@ -1,4 +1,4 @@
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, Union, TYPE_CHECKING
 
 from ._lib import LLTokenizer
 
@@ -10,7 +10,7 @@ def lltokenizer_from_encoding(
     encoding: 'tiktoken.Encoding',
     *,
     n_vocab: Optional[int] = None,
-    eos_token: Optional[int] = None,
+    eos_token: Optional[Union[int, List[int]]] = None,
     slices: Optional[List[str]] = None,
 ) -> LLTokenizer:
     """
@@ -20,7 +20,7 @@ def lltokenizer_from_encoding(
     Args:
         encoding: tiktoken.Encoding - the encoding object to use
         n_vocab: int - override the size of the vocabulary
-        eos_token: int - override the EOS token
+        eos_token: int or list of ints - override the EOS token(s)
         slices: List[str] - configuration for slicer optimization; pass [] to disable,
             or None to use the default configuration
     """
