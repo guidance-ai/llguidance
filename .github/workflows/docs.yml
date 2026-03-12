@@ -14,7 +14,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   # To treat doc warnings as errors, uncomment the following line:
-  # RUSTDOCFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
 
 jobs:
   docs:
