@@ -227,13 +227,13 @@ pub struct LlgTokenizerInit {
     pub tokenizer_json: *const c_char,
 
     /// Set to true to enable hack that works around the tokenize_fn only
-    /// accepting valid UTF-8 strings and possibly adding <BOS> etc.
-    /// TODO: the <BOS> bit not implemented yet
+    /// accepting valid UTF-8 strings and possibly adding `<BOS>` etc.
+    /// TODO: the `<BOS>` bit not implemented yet
     pub tokenize_assumes_string: bool,
 
     /// Tokenization function, see LlgTokenizeFn docs.
     /// It should only tokenize the bytes and not add
-    /// any <BOS> etc. It should also work on any byte sequence, including
+    /// any `<BOS>` etc. It should also work on any byte sequence, including
     /// invalid UTF-8. If this is not the case, set tokenize_assumes_string to true.
     /// Either way, this function has to be thread-safe!
     pub tokenize_fn: LlgTokenizeFn,
@@ -767,7 +767,7 @@ pub unsafe extern "C" fn llg_stringify_tokens(
 pub const LLG_DECODE_NONE: u32 = 0;
 
 /// Include special tokens in the output.
-/// They may look like <|something|>, <something_else>, or <[12345]> if they don't have a name.
+/// They may look like `<|something|>`, `<something_else>`, or `<[12345]>` if they don't have a name.
 pub const LLG_DECODE_INCLUDE_SPECIAL: u32 = 1;
 
 /// Replace invalid UTF-8 with the replacement character.
@@ -974,12 +974,12 @@ impl LlgMatcher {
 /// (backtracking is always disabled, and ff_tokens can be retrieved using llg_matcher_compute_ff_tokens()).
 /// The data is of different format, depending on constraint_type:
 /// - "regex" - data is regular expression in rust regex format
-///   see https://docs.rs/regex/latest/regex/#syntax
+///   see <https://docs.rs/regex/latest/regex/#syntax>
 /// - "json" or "json_schema" - data is (stringifed) JSON schema
-///   see https://github.com/guidance-ai/llguidance/blob/main/docs/json_schema.md
+///   see <https://github.com/guidance-ai/llguidance/blob/main/docs/json_schema.md>
 /// - "json_object" - equivalent to JSON schema: {"type":"object"}
 /// - "lark" - data is grammar in a variant of Lark syntax
-///   see https://github.com/guidance-ai/llguidance/blob/main/docs/syntax.md
+///   see <https://github.com/guidance-ai/llguidance/blob/main/docs/syntax.md>
 /// - "llguidance" or "guidance" - data is a list of Lark or JSON schemas in JSON format
 /// # Safety
 /// This function should only be called from C code.

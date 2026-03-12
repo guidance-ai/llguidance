@@ -34,7 +34,7 @@ pub struct InferenceCapabilities {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StepArg {
     /// Sampling result for the previous iteration.
-    /// For simple sampled token 't', backtrack==0 and tokens==[t].
+    /// For simple sampled token 't', backtrack==0 and `tokens==[t]`.
     /// For first request, backtrack==0 and tokens==[] (prompt is passed separately, before).
     /// Can be more complex when splices are used.
     pub backtrack: u32,

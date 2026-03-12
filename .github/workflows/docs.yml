@@ -26,10 +26,10 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Build documentation
-      run: cargo doc --workspace --exclude python_ext --no-deps --all-features --locked
+      run: cargo doc --workspace --exclude llguidance_py --no-deps --all-features --locked
 
     - name: Upload documentation artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: documentation
         path: target/doc/
