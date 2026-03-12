@@ -1,0 +1,35 @@
+name: Documentation
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+  schedule:
+    # Every Monday at 08:00 UTC
+    - cron: '0 8 * * 1'
+
+env:
+  CARGO_TERM_COLOR: always
+  # To treat doc warnings as errors, uncomment the following line:
+  # RUSTDOCFLAGS: -D warnings
+
+jobs:
+  docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+
+    - name: Build documentation
+      run: cargo doc --workspace --exclude python_ext --no-deps --all-features --locked
+
+    - name: Upload documentation artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: documentation
+        path: target/doc/
