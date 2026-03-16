@@ -7,7 +7,7 @@
 //! own children 'there' and 'they'). If we know that the token 't' does not
 //! currently match our constraints, we know that all of its children (and their
 //! children) will not match either.
-//! 
+//!
 //! This crate is a highly optimized implementation of token tries, with a focus on
 //! efficient memory access.
 //!
