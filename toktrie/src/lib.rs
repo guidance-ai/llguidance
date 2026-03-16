@@ -1,3 +1,25 @@
+//! Utility library for working with tokens and token tries.
+//!
+//! Constraints on language-model output are typically expressed on strings or bytes,
+//! not tokens. To compute the set of tokens that match a string constraint, one
+//! walks a prefix tree (trie) of all tokens. The trie is laid out in memory in
+//! DFS order for cache-friendly traversal, requiring roughly five reads and two
+//! writes per node (~13 cycles on modern CPUs).
+//!
+//! # Key types
+//!
+//! - [`TokTrie`] – the token trie itself.
+//! - [`SimpleVob`] – a bit vector representing a set of allowed [`TokenId`]s.
+//! - [`TokenizerEnv`] – trait abstracting over tokenizer implementations.
+//!
+//! # Constraint interfaces
+//!
+//! Two traits express byte-level constraints that can be applied to the trie:
+//!
+//! - [`Recognizer`] – a byte-stack interface for trie-based filtering.
+//! - [`FunctionalRecognizer`] – a stateless, functional interface that can be
+//!   converted into a [`Recognizer`] via [`StackRecognizer`].
+
 use serde::{Deserialize, Serialize};
 
 pub mod bytes;
