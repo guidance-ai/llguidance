@@ -17,13 +17,10 @@
 //! - [`SimpleVob`] – a bit vector representing a set of allowed [`TokenId`]s.
 //! - [`TokenizerEnv`] – trait abstracting over tokenizer implementations.
 //!
-//! # Constraint interfaces
+//! # Constraint interface
 //!
-//! Two traits express byte-level constraints that can be applied to the trie:
-//!
-//! - [`Recognizer`] – a byte-stack interface for trie-based filtering.
-//! - [`FunctionalRecognizer`] – a stateless, functional interface that can be
-//!   converted into a [`Recognizer`] via [`StackRecognizer`].
+//! The [`Recognizer`] trait expresses byte-level constraints that can be
+//! applied to the trie as a byte-stack interface for trie-based filtering.
 
 use serde::{Deserialize, Serialize};
 

@@ -7,9 +7,8 @@
 //!
 //! # Key types
 //!
-//! - [`TopLevelGrammar`] — specification of the grammar to enforce.
 //! - [`ParserFactory`] — compiles grammars and holds shared tokenizer state.
-//! - [`TokenParser`] — built via [`TokenParser::from_llguidance_json()`]; drives
+//! - [`TokenParser`] — built via [`ParserFactory::create_parser()`]; drives
 //!   a single generation session.
 //! - [`Constraint`] — main entry point wrapping a `TokenParser` and exposing
 //!   the sampling-loop API.
