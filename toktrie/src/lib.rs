@@ -1,10 +1,15 @@
 //! Utility library for working with tokens and token tries.
 //!
-//! Constraints on language-model output are typically expressed on strings or bytes,
-//! not tokens. To compute the set of tokens that match a string constraint, one
-//! walks a prefix tree (trie) of all tokens. The trie is laid out in memory in
-//! DFS order for cache-friendly traversal, requiring roughly five reads and two
-//! writes per node (~13 cycles on modern CPUs).
+//! This crate provides efficient implementations of token tries, which are useful
+//! for when constraining large language models with a grammar. A token trie is a
+//! prefix tree of all tokens in a tokenizer. For example, the node 't' might have
+//! children 'the', 'token' and 'try' (and so on - the node 'the' would have its
+//! own children 'there' and 'they'). If we know that the token 't' does not
+//! currently match our constraints, we know that all of its children (and their
+//! children) will not match either.
+//! 
+//! This crate is a highly optimized implementation of token tries, with a focus on
+//! efficient memory access.
 //!
 //! # Key types
 //!

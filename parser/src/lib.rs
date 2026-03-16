@@ -2,8 +2,8 @@
 //!
 //! This crate enforces arbitrary context-free grammars on LLM output, enabling
 //! structured generation with negligible overhead (~50μs per token for a 128k
-//! tokenizer). Supported grammar formats include JSON Schema (large subset),
-//! regular expressions, and context-free grammars in a Lark-like notation.
+//! tokenizer). Context-free grammars can be provided with a Lark-like syntax,
+//! with specialised support for JSON.
 //!
 //! # Key types
 //!
