@@ -8,6 +8,11 @@ use crate::{
 use anyhow::{ensure, Result};
 use toktrie::{InferenceCapabilities, SimpleVob, TokEnv, TokenId, INVALID_TOKEN};
 
+/// Token-level parser that drives a single constrained-generation session.
+///
+/// Created by [`ParserFactory::create_parser()`] and typically wrapped in a
+/// [`crate::Constraint`] for the sampling loop.  Maintains the grammar state,
+/// computes token masks, and processes sampled tokens.
 #[derive(Clone)]
 pub struct TokenParser {
     pub token_env: TokEnv,

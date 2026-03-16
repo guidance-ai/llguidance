@@ -7,6 +7,7 @@ use bytemuck_derive::{Pod, Zeroable};
 
 use crate::{bytes::to_hex_string, tokenv::parse_numeric_token, SimpleVob};
 
+/// Numeric identifier for a single token in a tokenizer's vocabulary.
 pub type TokenId = u32;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Zeroable, Pod)]
@@ -57,6 +58,13 @@ impl TokRxInfo {
     }
 }
 
+/// Byte-level constraint interface used for trie-based token filtering.
+///
+/// Implementations maintain a stack of states. The trie walker pushes bytes
+/// onto the stack as it descends, queries [`Recognizer::byte_allowed`] or
+/// [`Recognizer::try_push_byte`] to test transitions, and pops bytes when
+/// backtracking. This lets [`TokTrie`] efficiently compute the set of
+/// tokens that satisfy the constraint.
 pub trait Recognizer {
     /// for _ in 0..num { stack.pop() }
     fn pop_bytes(&mut self, num: usize);
@@ -94,6 +102,12 @@ struct TokDesc {
     off: u32,
 }
 
+/// A prefix tree (trie) of every token in a tokenizer's vocabulary.
+///
+/// The trie maps byte sequences to [`TokenId`]s and supports efficient
+/// constrained-decoding queries: given a [`Recognizer`] that accepts or
+/// rejects byte sequences, [`TokTrie::add_bias`] walks the trie and
+/// returns the set of tokens whose byte representations are accepted.
 #[derive(Clone)]
 pub struct TokTrie {
     info: TokRxInfo,
