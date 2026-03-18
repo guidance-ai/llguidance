@@ -5,7 +5,10 @@ use crate::{TokRxInfo, TokTrie, TokenId};
 /// Abstraction over tokenizer implementations.
 ///
 /// Provides access to the associated [`TokTrie`] and tokenization of byte
-/// sequences.  Concrete implementations live in companion crates such as
+/// sequences. In particular, implementations can provide an alternative
+/// tokenization appropriate to a specific tokenizer, rather than the
+/// greedy tokenization which [`TokTrie`] provides by default. Concrete
+/// implementations live in companion crates such as
 /// `toktrie_hf_tokenizers` and `toktrie_tiktoken`.
 pub trait TokenizerEnv: Send {
     /// Associated trie.
