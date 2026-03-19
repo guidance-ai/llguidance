@@ -36,4 +36,4 @@ jobs:
       working-directory: parser
 
     - name: Check cbindgen
-      run: ./scripts/cbindgen.sh --check
+      run: python3 scripts/regenerate_c_header.py --check
