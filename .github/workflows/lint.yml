@@ -38,5 +38,5 @@ jobs:
     - name: Install cbindgen
       run: cargo install cbindgen
 
-    - name: Check cbindgen
+    - name: Ensure C header is up to date (uses cbindgen)
       run: python3 scripts/regenerate_c_header.py --check
