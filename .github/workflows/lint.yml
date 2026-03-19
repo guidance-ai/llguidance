@@ -35,5 +35,8 @@ jobs:
       run: cargo check --no-default-features
       working-directory: parser
 
+    - name: Install cbindgen
+      run: cargo install cbindgen
+
     - name: Check cbindgen
       run: python3 scripts/regenerate_c_header.py --check
