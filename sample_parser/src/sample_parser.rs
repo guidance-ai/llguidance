@@ -1,3 +1,19 @@
+/// Full-featured CLI tool demonstrating llguidance constrained decoding.
+///
+/// This binary exercises all major features of the llguidance library:
+///   - Loading grammars from JSON Schema, Lark, internal (.ll.json), and text formats
+///   - Using a real HuggingFace tokenizer (downloaded on first use)
+///   - Three operating modes:
+///     1. **Mask-only**: Compile the grammar and compute one token mask (no `--input` or `--rnd`)
+///     2. **Random generation** (`--rnd N`): Simulate an LLM by sampling random valid tokens
+///     3. **Input validation** (`--input FILE`): Verify a known input conforms to the grammar
+///
+/// See `minimal.rs` for a stripped-down version focused on the core decoding loop.
+///
+/// Usage examples:
+///   cargo run -- data/blog.schema.json --input data/blog.sample.json
+///   cargo run -- data/rfc.lark --input data/rfc.xml
+///   cargo run -- data/blog.schema.json --rnd 100 --verbose
 use clap::Parser;
 use std::{fs::File, io::Read, sync::Arc, vec};
 
@@ -17,6 +33,12 @@ fn dump_tokenizer(name: &str) {
     }
 }
 
+/// CLI arguments for the sample parser.
+///
+/// The tool operates in three modes depending on which arguments are provided:
+///   - No `--input` or `--rnd`: compile the grammar and compute one mask (test grammar validity)
+///   - `--rnd N`: generate N random tokens that satisfy the grammar (simulates an LLM)
+///   - `--input FILE`: validate that the tokens in FILE conform to the grammar
 #[derive(Parser, Debug, Default)]
 #[command(version, about, long_about = None)]
 pub struct CliOptions {
@@ -80,6 +102,13 @@ fn main() {
         return;
     }
 
+    // --- Grammar loading ---
+    // llguidance supports multiple grammar formats. The file extension determines
+    // how the grammar is parsed:
+    //   .ll.json      — internal llguidance JSON format (most powerful, used by Guidance library)
+    //   .schema.json  — JSON Schema (most common for structured output use cases)
+    //   .lark         — Lark-like context-free grammar (for arbitrary grammars)
+    //   .txt          — text file turned into a substring-matching regex
     let grammar_file = read_file_to_string(&opts.file);
     let grammar: TopLevelGrammar = if opts.file.ends_with(".ll.json") {
         serde_json::from_str(&grammar_file).expect("Invalid JSON in schema")
@@ -107,14 +136,20 @@ fn main() {
         panic!("Unknown schema file extension")
     };
 
-    // you can implement TokEnv yourself, if you have the tokenizer
-    // see the ByteTokenizerEnv for an example
+    // --- Tokenizer and factory setup ---
+    // TokEnv wraps the tokenizer. In production, use the same tokenizer as your LLM.
+    // toktrie_hf_downloader downloads the tokenizer from HuggingFace on first use.
+    // You can also implement the TokEnv trait yourself (see ByteTokenizerEnv).
     let tok_env: TokEnv = toktrie_hf_downloader::tok_env_from_name(&opts.tokenizer).unwrap();
 
+    // ParserFactory compiles grammars and holds shared state.
+    // Create once per tokenizer; it can be shared read-only across threads (via Arc).
     let mut factory = ParserFactory::new_simple(&tok_env).unwrap();
 
     factory.set_stderr_log_level(opts.log_level);
 
+    // Parser limits control resource usage for complex grammars.
+    // Increase lexer_limit if you have very complex regex patterns.
     factory.limits_mut().initial_lexer_fuel *= opts.lexer_limit as u64;
     factory.limits_mut().step_lexer_fuel *= opts.lexer_limit as u64;
 
@@ -129,14 +164,28 @@ fn main() {
 
     let mut t0 = std::time::Instant::now();
 
+    // create_parser() compiles the grammar for this request.
+    // Matcher wraps the parser with a simple server-side API.
     let parser = factory.create_parser(grammar.clone());
     let mut constraint = Matcher::new(parser);
 
+    // --- Mode 1: Mask-only ---
+    // When no --input or --rnd is given, just compile the grammar and compute
+    // one token mask. Useful for checking that a grammar is valid and measuring
+    // compilation time.
     if opts.input.is_none() && opts.rnd.is_none() {
         let _ = constraint.compute_mask().unwrap();
         return;
     }
 
+    // --- Mode 2: Random generation (--rnd N) ---
+    // This simulates an LLM by sampling random tokens from the allowed set.
+    // The loop mirrors real LLM inference:
+    //   1. compute_mask() → get allowed tokens (runs in background in production, ~1ms)
+    //   2. sample a token from the mask (replaces LLM logit sampling)
+    //   3. consume_token() → advance the parser (very fast, <100μs)
+    //   4. consume_ff_tokens() → handle grammar-forced tokens
+    //   5. repeat until stopped or max_tokens reached
     if let Some(max_tokens) = opts.rnd {
         let mut ttfm = vec![];
         for rep in 0..opts.repeat {
@@ -148,6 +197,8 @@ fn main() {
             let mut times = vec![prev_time.duration_since(t0).as_micros() as u64];
             ttfm.push(times[0]);
             for _ in 0..max_tokens {
+                // Compute the token mask — a bitset of allowed tokens.
+                // In production, apply this mask to the LLM's logits before sampling.
                 let mask = constraint.compute_mask().unwrap();
                 // eprintln!("stats: {}", constraint.last_step_stats().unwrap());
                 times.push(prev_time.elapsed().as_micros() as u64);
@@ -156,13 +207,19 @@ fn main() {
                     break;
                 }
                 let mut v = mask.clone();
-                // mostly disallow eos to make it run longer
+                // Suppress EOS 80% of the time to make generation run longer.
+                // In real usage, the LLM decides when to stop via temperature/logits.
                 if !rng.one_in(5) {
                     v.disallow_token(trie.eos_token());
                 }
+                // Sample a random token from the allowed set.
+                // In production: token = sample(softmax(logits * mask))
                 let t = rng.sample_from_vob(&v);
+                // Tell the parser which token was sampled.
                 constraint.consume_token(t).unwrap();
                 tokens.push(t);
+                // Consume fast-forward tokens — grammar-forced tokens that bypass sampling.
+                // These are appended directly to the output (like speculative decoding at 100%).
                 let ff = constraint.consume_ff_tokens();
                 tokens.extend_from_slice(&ff);
                 lens.push(ff.len());
@@ -188,6 +245,10 @@ fn main() {
         return;
     }
 
+    // --- Mode 3: Input validation (--input FILE) ---
+    // Validates that a pre-tokenized input file conforms to the grammar.
+    // This simulates an LLM that always produces the "right" answer — useful for
+    // testing grammars against known-good outputs.
     let trie = tok_env.tok_trie();
 
     let obj_str = read_file_to_string(opts.input.as_ref().unwrap());
@@ -199,16 +260,18 @@ fn main() {
 
     let mut idx = 0;
     while idx < tokens.len() {
+        // Compute the token mask for this position.
         let mask = constraint.compute_mask().unwrap();
 
         if constraint.is_stopped() {
-            // stop sequence
             break;
         }
 
-        // Simulate sampling - it should use the mask and temperature
+        // In real LLM inference, this token comes from sampling.
+        // Here we use the pre-tokenized input.
         let sampled_token = tokens[idx];
 
+        // Check that the grammar allows this token.
         let is_allowed = mask.is_allowed(sampled_token);
 
         let p_stats = constraint.last_step_stats().unwrap();
@@ -224,7 +287,9 @@ fn main() {
             );
         }
 
-        // run commit_token() before checking the mask - it produces more diagnostics that way
+        // Consume the token (tell the parser what was sampled), then check the mask.
+        // We call consume_token() before checking is_allowed so that any diagnostics
+        // from the parser include context about the failing token.
         constraint.consume_token(sampled_token).unwrap();
 
         if !is_allowed {
@@ -232,18 +297,16 @@ fn main() {
         }
 
         if constraint.is_stopped() {
-            // stop sequence
             break;
         }
 
         idx += 1;
 
+        // Get fast-forward tokens — tokens the grammar forces deterministically.
         let splice = constraint.compute_ff_tokens();
 
-        // The splice contains the tokens (possibly more than one since we enabled ff_tokens
-        // in InferenceCaps) that the parser wants to append to the output.
-
-        // if this fails, our test data is broken
+        // Verify the fast-forward tokens match what's in our input file.
+        // In production, ff_tokens are appended to the output without LLM sampling.
         if tokens[idx..idx + splice.len()] != splice {
             panic!(
                 "BAD TEST: ff_tokens mismatch:\n{}\n{}",
@@ -256,11 +319,14 @@ fn main() {
             println!("FF: {}", trie.tokens_dbg(&splice));
         }
 
+        // Advance the parser past the fast-forward tokens.
         constraint.consume_tokens(&splice).unwrap();
         idx += splice.len();
     }
 
-    // the stop reason should be likely also sent to the user
+    // Report why generation stopped.
+    // Common reasons: NoExtension (grammar complete), EndOfSentence (EOS sampled),
+    // MaxTokensTotal, or an error like LexerTooComplex.
     println!("Stop reason: {:?}", constraint.stop_reason());
 }
 

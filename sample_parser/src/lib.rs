@@ -1,3 +1,16 @@
+/// Test utilities for llguidance grammar testing.
+///
+/// This module is used by the integration tests in `tests/` — it is **not** intended
+/// as an example of how to use llguidance in production. For that, see `minimal.rs`
+/// and `sample_parser.rs`.
+///
+/// Key components:
+/// - [`PARSER_FACTORY`]: A shared [`ParserFactory`] with the Phi-3.5-mini-instruct
+///   tokenizer, configured for testing (ff_tokens + backtrack enabled, verbose logging).
+/// - [`check_lark_grammar`] and friends: Verify that a grammar produces the expected
+///   sequence of forced and generated tokens. Test traces are recorded by passing
+///   `"test_trace": true` in the llguidance request.
+/// - [`check_capture`]: Verify named captures in grammar output.
 use lazy_static::lazy_static;
 use llguidance::{
     api::{GrammarWithLexer, StopReason, TopLevelGrammar},
