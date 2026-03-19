@@ -21,7 +21,7 @@ every generated token is grammatically valid. The core loop is:
 │       grammar at this position (~1ms, background)   │
 │                                                     │
 │  2. LLM samples a token                             │
-│     → logits are masked so only valid tokens remain  │
+│     → logits are masked so only valid tokens remain │
 │                                                     │
 │  3. consume_token(token)                            │
 │     → tells the parser which token was chosen       │
