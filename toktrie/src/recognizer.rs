@@ -135,6 +135,7 @@ impl<S: Copy + Debug, R: FunctionalRecognizer<S>> Recognizer for StackRecognizer
         match self.rec.try_append(self.stack[self.stack_ptr], byte) {
             Some(state) => {
                 self.stack_ptr += 1;
+                // Stack growth logic would go here if needed
                 self.stack[self.stack_ptr] = state;
                 true
             }
