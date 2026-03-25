@@ -376,3 +376,76 @@ fn sample_combining_token_sets() {
     assert!(diff_set.contains(&1)); // "a" still present
     assert!(diff_set.contains(&5)); // "apple" still present
 }
+
+// ── get_error ──────────────────────────────────────────────────────────────────
+
+/// Demonstrates [`FunctionalRecognizer::get_error`] for diagnostic reporting.
+///
+/// `get_error` is called on the *current* state — i.e., the state at the top
+/// of the `StackRecognizer`'s stack — and returns a human-readable message
+/// explaining what the recognizer expects. The system calls this after
+/// `add_bias` or when a constraint fails, to surface a diagnostic to the user.
+///
+/// `AlphaOnly` has a single state `()` that is never a dead end (a-z
+/// transitions are always possible), so its `get_error` returns a constant
+/// hint describing the constraint.
+///
+/// `CaPrefix` has four states (0–3) and returns a state-specific message.
+/// State 3 is a dead end — no transitions exist from it — so its message
+/// explains that the pattern is complete.
+#[test]
+fn sample_get_error_alpha_only() {
+    let mut rec = StackRecognizer::from(AlphaOnly);
+
+    // In the initial state, get_error returns the constant diagnostic hint.
+    let err = rec.get_error();
+    assert_eq!(
+        err.as_deref(),
+        Some("AlphaOnly: expected lowercase ASCII letter (a-z)")
+    );
+
+    // After successfully pushing a byte, the state is still () — same message.
+    assert!(rec.try_push_byte(b'h'));
+    assert_eq!(
+        rec.get_error().as_deref(),
+        Some("AlphaOnly: expected lowercase ASCII letter (a-z)")
+    );
+}
+
+/// Demonstrates state-dependent [`FunctionalRecognizer::get_error`] messages
+/// from `CaPrefix`.
+///
+/// Each state produces a different diagnostic that describes what byte the
+/// recognizer expects next.
+#[test]
+fn sample_get_error_ca_prefix() {
+    let mut rec = StackRecognizer::from(CaPrefix);
+
+    // State 0: initial — expecting 'c'.
+    assert_eq!(rec.get_error().as_deref(), Some("CaPrefix: expected 'c'"));
+
+    // Push 'c' → state 1: expecting 'a'.
+    assert!(rec.try_push_byte(b'c'));
+    assert_eq!(
+        rec.get_error().as_deref(),
+        Some("CaPrefix: expected 'a' after 'c'")
+    );
+
+    // Push 'a' → state 2: expecting a lowercase letter.
+    assert!(rec.try_push_byte(b'a'));
+    assert_eq!(
+        rec.get_error().as_deref(),
+        Some("CaPrefix: expected lowercase letter after \"ca\"")
+    );
+
+    // Push 't' → state 3: pattern complete, dead end.
+    assert!(rec.try_push_byte(b't'));
+    assert_eq!(
+        rec.get_error().as_deref(),
+        Some("CaPrefix: pattern complete, no further bytes accepted")
+    );
+
+    // Verify state 3 is indeed a dead end — no byte is accepted.
+    assert!(!rec.try_push_byte(b'a'));
+    assert!(!rec.try_push_byte(b'z'));
+}

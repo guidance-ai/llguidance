@@ -79,11 +79,18 @@ impl FunctionalRecognizer<()> for AlphaOnly {
             None
         }
     }
+
+    fn get_error(&self, _state: ()) -> Option<String> {
+        Some("AlphaOnly: expected lowercase ASCII letter (a-z)".to_string())
+    }
 }
 
 /// A recognizer that only allows strings starting with "ca" followed by
 /// at most one more lowercase letter. This simulates a simple grammar
 /// constraint: the next token must match /^ca[a-z]?$/.
+///
+/// States: 0 = initial (expecting 'c'), 1 = seen "c" (expecting 'a'),
+/// 2 = seen "ca" (expecting a-z), 3 = complete (no further bytes accepted).
 #[derive(Clone, Copy)]
 pub struct CaPrefix;
 
@@ -98,6 +105,16 @@ impl FunctionalRecognizer<u8> for CaPrefix {
             1 if byte == b'a' => Some(2),
             2 if byte.is_ascii_lowercase() => Some(3),
             _ => None,
+        }
+    }
+
+    fn get_error(&self, state: u8) -> Option<String> {
+        match state {
+            0 => Some("CaPrefix: expected 'c'".to_string()),
+            1 => Some("CaPrefix: expected 'a' after 'c'".to_string()),
+            2 => Some("CaPrefix: expected lowercase letter after \"ca\"".to_string()),
+            3 => Some("CaPrefix: pattern complete, no further bytes accepted".to_string()),
+            _ => Some(format!("CaPrefix: unexpected state {state}")),
         }
     }
 }
