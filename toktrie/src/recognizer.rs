@@ -47,10 +47,10 @@ pub trait FunctionalRecognizer<S: Copy> {
 /// Each entry on the stack is a state value of type `S`, corresponding to one byte
 /// pushed by the trie walker. The maximum stack depth equals the length (in bytes) of
 /// the longest token in the vocabulary. The stack is pre-allocated to
-/// [`INITIAL_STACK_CAPACITY`] entries.
+/// [`STACK_CAPACITY`] entries.
 ///
 /// **Note:** The stack does not currently grow. If the vocabulary contains tokens
-/// longer than [`INITIAL_STACK_CAPACITY`] bytes (e.g., GLM4 has a 1024-space token),
+/// longer than [`STACK_CAPACITY`] bytes (e.g., GLM4 has a 1024-space token),
 /// `try_push_byte` will panic with an out-of-bounds index.
 ///
 /// As the trie walker descends it pushes states via
@@ -63,7 +63,7 @@ pub struct StackRecognizer<S: Copy, R: FunctionalRecognizer<S>> {
     stack_ptr: usize,
 }
 
-/// Initial number of state entries pre-allocated for [`StackRecognizer`]'s internal stack.
+/// Number of state entries pre-allocated for [`StackRecognizer`]'s internal stack.
 ///
 /// This is sufficient for most tokenizers, but the stack does **not** grow at runtime.
 /// Tokenizers with tokens longer than this many bytes will cause a panic.
