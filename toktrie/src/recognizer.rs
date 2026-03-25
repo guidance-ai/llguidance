@@ -44,8 +44,16 @@ pub trait FunctionalRecognizer<S: Copy> {
 /// A stack-based adapter that wraps a [`FunctionalRecognizer<S>`] and implements the
 /// [`Recognizer`] trait.
 ///
-/// Internally it maintains a pre-allocated stack of states (300 entries, supporting tokens
-/// up to 300 bytes). As the trie walker descends it pushes states via
+/// Each entry on the stack is a state value of type `S`, corresponding to one byte
+/// pushed by the trie walker. The maximum stack depth equals the length (in bytes) of
+/// the longest token in the vocabulary. The stack is pre-allocated to
+/// [`INITIAL_STACK_CAPACITY`] entries.
+///
+/// **Note:** The stack does not currently grow. If the vocabulary contains tokens
+/// longer than [`INITIAL_STACK_CAPACITY`] bytes (e.g., GLM4 has a 1024-space token),
+/// `try_push_byte` will panic with an out-of-bounds index.
+///
+/// As the trie walker descends it pushes states via
 /// [`try_push_byte`](Recognizer::try_push_byte), and pops them when backtracking via
 /// [`pop_bytes`](Recognizer::pop_bytes).
 #[derive(Clone)]
@@ -55,13 +63,20 @@ pub struct StackRecognizer<S: Copy, R: FunctionalRecognizer<S>> {
     stack_ptr: usize,
 }
 
+/// Initial number of state entries pre-allocated for [`StackRecognizer`]'s internal stack.
+///
+/// This is sufficient for most tokenizers, but the stack does **not** grow at runtime.
+/// Tokenizers with tokens longer than this many bytes will cause a panic.
+pub const INITIAL_STACK_CAPACITY: usize = 300;
+
 impl<S: Copy, R: FunctionalRecognizer<S>> StackRecognizer<S, R> {
     /// Creates a new `StackRecognizer` from a [`FunctionalRecognizer`].
     ///
-    /// The internal stack is pre-allocated to 300 entries, all initialized to the
-    /// recognizer's initial state, with the stack pointer at position 0.
+    /// The internal stack is pre-allocated to [`INITIAL_STACK_CAPACITY`] entries,
+    /// all initialized to the recognizer's initial state, with the stack pointer
+    /// at position 0. The stack does not grow at runtime.
     pub fn from(rec: R) -> Self {
-        let stack = vec![rec.initial(); 300];
+        let stack = vec![rec.initial(); INITIAL_STACK_CAPACITY];
         StackRecognizer {
             rec,
             stack,
