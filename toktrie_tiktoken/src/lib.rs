@@ -1,14 +1,25 @@
+//! This crate integrates the [`tiktoken`](tiktoken_rs) BPE tokenizer (used by OpenAI models)
+//! with [`toktrie`], providing a [`TokenizerEnv`] implementation backed by tiktoken's [`CoreBPE`].
+
 use anyhow::{bail, Result};
 use std::sync::Arc;
 use tiktoken_rs::{CoreBPE, Rank};
 use toktrie::{TokEnv, TokRxInfo, TokTrie, TokenId, TokenizerEnv};
 
+/// A tiktoken BPE tokenizer paired with a [`TokTrie`] for efficient
+/// constrained-decoding support. Implements [`TokenizerEnv`].
 pub struct TikTokenBPE {
+    /// The underlying tiktoken [`CoreBPE`] encoder.
     pub bpe: CoreBPE,
     tok_trie: TokTrie,
 }
 
 impl TikTokenBPE {
+    /// Creates a new `TikTokenBPE` from a BPE encoder vocabulary, special tokens,
+    /// a regex pattern, an optional vocabulary size override, and an EOS token ID.
+    ///
+    /// Empty token slots are filled with placeholder special tokens.
+    /// Returns an error if `n_vocab_override` is smaller than the actual vocabulary.
     pub fn new(
         encoder: Vec<(Vec<u8>, Rank)>,
         special_tokens_encoder: Vec<(String, Rank)>,
@@ -75,14 +86,17 @@ impl TikTokenBPE {
         Ok(TikTokenBPE { bpe, tok_trie })
     }
 
+    /// Returns the [`TokRxInfo`] metadata for this tokenizer.
     pub fn tokrx_info(&self) -> TokRxInfo {
         *self.tok_trie.info()
     }
 
+    /// Replaces the set of end-of-sequence tokens recognized by the trie.
     pub fn set_eos_tokens(&mut self, tokens: &[TokenId]) {
         self.tok_trie = self.tok_trie.with_eos_tokens(tokens);
     }
 
+    /// Wraps this tokenizer in an `Arc`, returning a [`TokEnv`].
     pub fn to_env(self) -> TokEnv {
         Arc::new(self)
     }
@@ -93,11 +107,14 @@ impl TokenizerEnv for TikTokenBPE {
         &self.tok_trie
     }
 
+    /// Tokenizes raw bytes using trie-based greedy fallback to tiktoken BPE encoding.
     fn tokenize_bytes(&self, s: &[u8]) -> Vec<TokenId> {
         self.tok_trie
             .tokenize_with_greedy_fallback(s, |s| self.bpe.encode_ordinary(s))
     }
 
+    /// Like [`tokenize_bytes`](Self::tokenize_bytes), but also recognizes special tokens
+    /// registered in the trie.
     fn tokenize_bytes_special(&self, s: &[u8]) -> Vec<TokenId> {
         self.tok_trie.tokenize_with_greedy_fallback(s, |s| {
             self.tok_trie

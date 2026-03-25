@@ -3,7 +3,7 @@ name = "toktrie_tiktoken"
 version = "1.7.0"
 edition = "2021"
 license = "MIT"
-description = "HuggingFace tokenizers library support for toktrie and llguidance"
+description = "tiktoken (OpenAI BPE) library support for toktrie and llguidance"
 repository = "https://github.com/guidance-ai/llguidance"
 rust-version.workspace = true
 

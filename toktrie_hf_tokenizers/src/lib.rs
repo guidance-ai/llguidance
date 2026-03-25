@@ -1,3 +1,8 @@
+//! Integration of the HuggingFace [`tokenizers`] library with [`toktrie`],
+//! providing byte-level tokenization support. This crate wraps HuggingFace
+//! tokenizers and adapts them for use with the `toktrie` token trie
+//! infrastructure.
+
 use anyhow::{anyhow, bail, Result};
 use std::{
     collections::{HashMap, HashSet},
@@ -7,8 +12,18 @@ use std::{
 use tokenizers::{normalizers, pre_tokenizers, NormalizerWrapper, PreTokenizerWrapper, Tokenizer};
 use toktrie::{TokEnv, TokRxInfo, TokTrie, TokenId, TokenizerEnv};
 
+/// A HuggingFace tokenizer adapted for byte-level token processing.
+///
+/// The constructor ([`ByteTokenizer::from_tokenizer`]) automatically applies several fixes
+/// to the underlying tokenizer:
+/// - Removes `Prepend` normalizers
+/// - Sets Metaspace pre-tokenizer `prepend_scheme` to `Never`
+/// - Detects whether the decoder is `ByteLevel` or `ByteFallback`
+/// - Identifies special tokens (EOS, end-of-turn, UNK, PAD) from added tokens
 pub struct ByteTokenizer {
+    /// Name or identifier of the HuggingFace model.
     pub hf_model: String,
+    /// The underlying HuggingFace [`Tokenizer`] instance.
     pub hf_tokenizer: Tokenizer,
     info: TokRxInfo,
     token_bytes: Vec<Vec<u8>>,
@@ -37,6 +52,7 @@ fn build_char_map() -> HashMap<char, u8> {
 }
 
 impl ByteTokenizer {
+    /// Loads a tokenizer from a `tokenizer.json` file on disk.
     pub fn from_file(name: impl AsRef<Path>) -> Result<ByteTokenizer> {
         let name_str = name.as_ref().display().to_string();
         let tok = Tokenizer::from_file(name)
@@ -44,12 +60,16 @@ impl ByteTokenizer {
         ByteTokenizer::from_tokenizer(tok)
     }
 
+    /// Loads a tokenizer from raw JSON bytes.
     pub fn from_json_bytes(bytes: &[u8]) -> Result<ByteTokenizer> {
         let tok =
             Tokenizer::from_bytes(bytes).map_err(|e| anyhow!("error loading tokenizer: {}", e))?;
         ByteTokenizer::from_tokenizer(tok)
     }
 
+    /// Creates a [`ByteTokenizer`] from an existing HuggingFace [`Tokenizer`],
+    /// applying normalizer and pre-tokenizer fixes and extracting byte-level
+    /// token representations.
     pub fn from_tokenizer(mut hft: Tokenizer) -> Result<ByteTokenizer> {
         let mut is_byte_level = false;
         let mut is_byte_fallback = false;
@@ -224,13 +244,16 @@ impl ByteTokenizer {
         Ok(res)
     }
 
+    /// Returns the [`TokRxInfo`] metadata for this tokenizer (vocab size, special token IDs).
     pub fn tokrx_info(&self) -> TokRxInfo {
         self.info
     }
+    /// Returns the byte representation of every token in the vocabulary.
     pub fn token_bytes(&self) -> Vec<Vec<u8>> {
         self.token_bytes.clone()
     }
 
+    /// Sets a single end-of-sequence token ID, clearing any previously set extra EOS tokens.
     pub fn set_eos_token(&mut self, tok_id: u32) {
         assert!(
             tok_id < self.info.vocab_size,
@@ -241,6 +264,8 @@ impl ByteTokenizer {
         self.eos_tokens_extra.clear();
     }
 
+    /// Sets multiple end-of-sequence token IDs. The first becomes the primary EOS token;
+    /// the rest are extras. Panics if the slice is empty or any ID is out of range.
     pub fn set_eos_tokens(&mut self, tokens: &[TokenId]) {
         assert!(!tokens.is_empty(), "eos_tokens must not be empty");
         for &tok in tokens {
@@ -254,24 +279,32 @@ impl ByteTokenizer {
         self.eos_tokens_extra = tokens[1..].to_vec();
     }
 
+    /// Returns all end-of-sequence token IDs (primary plus extras).
     pub fn eos_tokens(&self) -> Vec<TokenId> {
         let mut r = vec![self.info.tok_eos];
         r.extend_from_slice(&self.eos_tokens_extra);
         r
     }
 
+    /// Consumes this tokenizer and builds a [`TokEnv`], optionally overriding the vocabulary size.
     pub fn into_tok_env(self, n_vocab: Option<usize>) -> Result<TokEnv> {
         let b = ByteTokenizerEnv::new(self, n_vocab)?;
         Ok(b.to_env())
     }
 }
 
+/// Combines a [`ByteTokenizer`] with a [`TokTrie`] and implements the [`TokenizerEnv`] trait.
 pub struct ByteTokenizerEnv {
+    /// The wrapped [`ByteTokenizer`].
     pub tokenizer: ByteTokenizer,
+    /// The token trie built from the tokenizer's vocabulary.
     pub tok_trie: TokTrie,
 }
 
 impl ByteTokenizerEnv {
+    /// Builds a [`TokTrie`] from the tokenizer's vocabulary and metadata.
+    /// If `n_vocab` is provided and larger than the token count, the vocabulary
+    /// is padded with placeholder special tokens.
     pub fn new(tokenizer: ByteTokenizer, n_vocab: Option<usize>) -> Result<ByteTokenizerEnv> {
         let mut info = tokenizer.tokrx_info();
         let mut token_bytes = tokenizer.token_bytes();
@@ -297,6 +330,7 @@ impl ByteTokenizerEnv {
         })
     }
 
+    /// Wraps this environment in an `Arc`, returning a [`TokEnv`].
     pub fn to_env(self) -> TokEnv {
         Arc::new(self)
     }
@@ -307,6 +341,7 @@ impl TokenizerEnv for ByteTokenizerEnv {
         &self.tok_trie
     }
 
+    /// Tokenizes raw bytes using trie-based greedy fallback to HuggingFace encoding.
     fn tokenize_bytes(&self, s: &[u8]) -> Vec<TokenId> {
         self.tok_trie.tokenize_with_greedy_fallback(s, |s| {
             self.tokenizer
@@ -318,6 +353,7 @@ impl TokenizerEnv for ByteTokenizerEnv {
         })
     }
 
+    /// Like [`tokenize_bytes`](Self::tokenize_bytes), but also recognizes special tokens registered in the trie.
     fn tokenize_bytes_special(&self, s: &[u8]) -> Vec<TokenId> {
         self.tok_trie.tokenize_with_greedy_fallback(s, |s| {
             self.tok_trie.tokenize_with_special(s, |s| {
