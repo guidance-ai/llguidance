@@ -32,10 +32,13 @@ pub trait FunctionalRecognizer<S: Copy> {
     /// Returns `Some(next_state)` when `byte` is accepted from `state`,
     /// or `None` to reject the byte.
     fn try_append(&self, state: S, byte: u8) -> Option<S>;
-    /// Get an error message if the recognizer is in an error state.
+    /// Get a diagnostic message for the current state
     ///
-    /// The default implementation returns `None` (no error). Override this to
-    /// provide diagnostic messages when the recognizer reaches a dead-end state.
+    /// Returns a descriptive message about the given state (or `None` in this default
+    /// implementation). Users will most likely call this in response to a rejection
+    /// (i.e., when `try_append` returns `None`), and if used via [`StackRecognizer`],
+    /// the state passed to `get_error` will be the state which rejected the byte. As
+    /// such, the most useful messages will describe what bytes the state would accept.
     fn get_error(&self, _state: S) -> Option<String> {
         None
     }
