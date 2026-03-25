@@ -67,16 +67,16 @@ pub struct StackRecognizer<S: Copy, R: FunctionalRecognizer<S>> {
 ///
 /// This is sufficient for most tokenizers, but the stack does **not** grow at runtime.
 /// Tokenizers with tokens longer than this many bytes will cause a panic.
-pub const INITIAL_STACK_CAPACITY: usize = 300;
+pub const STACK_CAPACITY: usize = 300;
 
 impl<S: Copy, R: FunctionalRecognizer<S>> StackRecognizer<S, R> {
     /// Creates a new `StackRecognizer` from a [`FunctionalRecognizer`].
     ///
-    /// The internal stack is pre-allocated to [`INITIAL_STACK_CAPACITY`] entries,
+    /// The internal stack is pre-allocated to [`STACK_CAPACITY`] entries,
     /// all initialized to the recognizer's initial state, with the stack pointer
     /// at position 0. The stack does not grow at runtime.
     pub fn from(rec: R) -> Self {
-        let stack = vec![rec.initial(); INITIAL_STACK_CAPACITY];
+        let stack = vec![rec.initial(); STACK_CAPACITY];
         StackRecognizer {
             rec,
             stack,
