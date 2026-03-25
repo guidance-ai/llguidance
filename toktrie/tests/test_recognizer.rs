@@ -309,6 +309,18 @@ impl Recognizer for MaxLenRecognizer {
             false
         }
     }
+
+    fn get_error(&mut self) -> Option<String> {
+        let depth = *self.stack.last().unwrap();
+        if depth >= self.max_len {
+            Some(format!(
+                "MaxLenRecognizer: reached maximum length of {} bytes",
+                self.max_len
+            ))
+        } else {
+            None
+        }
+    }
 }
 
 /// Demonstrates implementing [`Recognizer`] directly to constrain token
@@ -448,4 +460,35 @@ fn sample_get_error_ca_prefix() {
     // Verify state 3 is indeed a dead end — no byte is accepted.
     assert!(!rec.try_push_byte(b'a'));
     assert!(!rec.try_push_byte(b'z'));
+}
+
+/// Demonstrates [`Recognizer::get_error`] on a direct `Recognizer`
+/// implementation.
+///
+/// `MaxLenRecognizer` returns `None` while the depth is below the limit,
+/// and an error message once the maximum length has been reached.
+#[test]
+fn sample_get_error_max_len() {
+    let mut rec = MaxLenRecognizer::new(2);
+
+    // Depth 0: no error yet.
+    assert_eq!(rec.get_error(), None);
+
+    // Push one byte → depth 1: still under the limit.
+    assert!(rec.try_push_byte(b'x'));
+    assert_eq!(rec.get_error(), None);
+
+    // Push another → depth 2: at the limit, error reported.
+    assert!(rec.try_push_byte(b'y'));
+    assert_eq!(
+        rec.get_error().as_deref(),
+        Some("MaxLenRecognizer: reached maximum length of 2 bytes")
+    );
+
+    // No further bytes accepted.
+    assert!(!rec.try_push_byte(b'z'));
+
+    // After popping, we're back under the limit — no error.
+    rec.pop_bytes(1);
+    assert_eq!(rec.get_error(), None);
 }
