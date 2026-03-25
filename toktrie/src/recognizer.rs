@@ -1,17 +1,53 @@
+//! Functional recognizer trait and stack-based adapter.
+//!
+//! This module provides the [`FunctionalRecognizer`] trait and the [`StackRecognizer`] adapter.
+//! Users implement `FunctionalRecognizer<S>` as a pure state-transition function: given the
+//! current state and a byte, return the next state (or `None` to reject). Then, wrapping that
+//! implementation in a [`StackRecognizer`] yields a full [`Recognizer`] implementation that
+//! [`TokTrie`](crate::TokTrie) can drive during trie walks.
+//!
+//! [`AnythingGoes`] is a convenience no-op recognizer that accepts every byte. It implements
+//! `FunctionalRecognizer<()>` and must be wrapped in `StackRecognizer` to be used with
+//! `TokTrie`. For a recognizer that implements the [`Recognizer`] trait directly (no wrapper
+//! needed), see [`toktrie::AnythingGoes`](crate::toktree::AnythingGoes) which is re-exported
+//! at the crate root.
+
 use crate::toktree::Recognizer;
 use std::fmt::Debug;
 
+/// A pure, stateless-object interface for recognizing byte sequences.
+///
+/// Implementors define a state type `S: Copy` and a transition function: given the current
+/// state and a byte, return `Some(next_state)` to accept the byte or `None` to reject it.
+/// The recognizer object itself is not mutated—all state lives in `S`.
+///
+/// This contrasts with the [`Recognizer`] trait, which manages its own mutable stack
+/// internally. To bridge the two, wrap a `FunctionalRecognizer` in a [`StackRecognizer`],
+/// which maintains the state stack and implements `Recognizer`.
 pub trait FunctionalRecognizer<S: Copy> {
-    /// Initial state
+    /// Returns the initial state of the recognizer, before any bytes have been processed.
     fn initial(&self) -> S;
-    /// Extend the recognizer with given byte if allowed.
+    /// Extend the recognizer with the given byte if allowed.
+    ///
+    /// Returns `Some(next_state)` when `byte` is accepted from `state`,
+    /// or `None` to reject the byte.
     fn try_append(&self, state: S, byte: u8) -> Option<S>;
-    /// Get error message if recognizer is in error state.
+    /// Get an error message if the recognizer is in an error state.
+    ///
+    /// The default implementation returns `None` (no error). Override this to
+    /// provide diagnostic messages when the recognizer reaches a dead-end state.
     fn get_error(&self, _state: S) -> Option<String> {
         None
     }
 }
 
+/// A stack-based adapter that wraps a [`FunctionalRecognizer<S>`] and implements the
+/// [`Recognizer`] trait.
+///
+/// Internally it maintains a pre-allocated stack of states (300 entries, supporting tokens
+/// up to 300 bytes). As the trie walker descends it pushes states via
+/// [`try_push_byte`](Recognizer::try_push_byte), and pops them when backtracking via
+/// [`pop_bytes`](Recognizer::pop_bytes).
 #[derive(Clone)]
 pub struct StackRecognizer<S: Copy, R: FunctionalRecognizer<S>> {
     rec: R,
@@ -20,6 +56,10 @@ pub struct StackRecognizer<S: Copy, R: FunctionalRecognizer<S>> {
 }
 
 impl<S: Copy, R: FunctionalRecognizer<S>> StackRecognizer<S, R> {
+    /// Creates a new `StackRecognizer` from a [`FunctionalRecognizer`].
+    ///
+    /// The internal stack is pre-allocated to 300 entries, all initialized to the
+    /// recognizer's initial state, with the stack pointer at position 0.
     pub fn from(rec: R) -> Self {
         let stack = vec![rec.initial(); 300];
         StackRecognizer {
@@ -29,15 +69,18 @@ impl<S: Copy, R: FunctionalRecognizer<S>> StackRecognizer<S, R> {
         }
     }
 
+    /// Resets the stack to contain only the initial state, as if no bytes had been pushed.
     pub fn reset(&mut self) {
         self.stack_ptr = 0;
         self.stack[0] = self.rec.initial();
     }
 
+    /// Returns a shared reference to the underlying [`FunctionalRecognizer`].
     pub fn recognizer(&self) -> &R {
         &self.rec
     }
 
+    /// Returns a mutable reference to the underlying [`FunctionalRecognizer`].
     pub fn recognizer_mut(&mut self) -> &mut R {
         &mut self.rec
     }
@@ -85,6 +128,15 @@ impl<S: Copy + Debug, R: FunctionalRecognizer<S>> Recognizer for StackRecognizer
     }
 }
 
+/// A no-op recognizer that accepts every byte sequence. The state type is `()`.
+///
+/// Useful for testing or when you want to perform trie operations without applying any
+/// constraint on the recognized bytes.
+///
+/// This type implements [`FunctionalRecognizer<()>`] and must be wrapped in a
+/// [`StackRecognizer`] to be used with [`TokTrie::add_bias`](crate::TokTrie::add_bias).
+/// For a recognizer that implements [`Recognizer`] directly (no wrapper needed), see
+/// [`toktrie::AnythingGoes`](crate::toktree::AnythingGoes).
 #[derive(Clone)]
 pub struct AnythingGoes {}
 
