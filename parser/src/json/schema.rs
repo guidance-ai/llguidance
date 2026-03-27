@@ -757,7 +757,7 @@ fn intersect_pattern_properties(
     // must be intersected with that side's additionalProperties.
     let mut o2_remaining = o2_pp;
     for (key, prop1) in o1_pp.into_iter() {
-        if let Some(prop2) = o2_remaining.swap_remove(&key) {
+        if let Some(prop2) = o2_remaining.shift_remove(&key) {
             result.insert(key, prop1.intersect(prop2, ctx, stack_level + 1)?);
         } else if let Some(ap) = o2_ap {
             result.insert(
