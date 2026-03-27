@@ -365,7 +365,7 @@ impl Schema {
                 },
             }),
 
-            (Schema::Object(mut o1), Schema::Object(mut o2)) => {
+            (Schema::Object(mut o1), Schema::Object(o2)) => {
                 let mut properties = IndexMap::new();
                 for (key, prop1) in std::mem::take(&mut o1.properties).into_iter() {
                     let prop2 = ctx.property_schema(&o2, &key)?;
@@ -381,40 +381,14 @@ impl Schema {
                 let mut required = o1.required;
                 required.extend(o2.required);
 
-                let mut pattern_properties = IndexMap::new();
-                // When a pattern exists only on one side, properties matching
-                // it are "additional" from the other side's perspective and
-                // must be intersected with that side's additionalProperties.
-                let o1_ap = o1.additional_properties.schema();
-                let o2_ap = o2.additional_properties.schema();
-                for (key, prop1) in o1.pattern_properties.into_iter() {
-                    if let Some(prop2) = o2.pattern_properties.get_mut(&key) {
-                        let prop2 = std::mem::replace(prop2, Schema::Null);
-                        pattern_properties.insert(
-                            key.clone(),
-                            prop1.intersect(prop2.clone(), ctx, stack_level + 1)?,
-                        );
-                    } else {
-                        pattern_properties.insert(
-                            key.clone(),
-                            prop1.intersect(o2_ap.clone(), ctx, stack_level + 1)?,
-                        );
-                    }
-                }
-                for (key, prop2) in o2.pattern_properties.into_iter() {
-                    if pattern_properties.contains_key(&key) {
-                        continue;
-                    }
-                    pattern_properties.insert(
-                        key.clone(),
-                        prop2.intersect(o1_ap.clone(), ctx, stack_level + 1)?,
-                    );
-                }
-
-                let keys = pattern_properties.keys().collect::<Vec<_>>();
-                if !keys.is_empty() {
-                    ctx.check_disjoint_pattern_properties(&keys)?;
-                }
+                let pattern_properties = intersect_pattern_properties(
+                    o1.pattern_properties,
+                    o2.pattern_properties,
+                    &o1.additional_properties,
+                    &o2.additional_properties,
+                    ctx,
+                    stack_level,
+                )?;
 
                 let additional_properties =
                     match (o1.additional_properties, o2.additional_properties) {
@@ -764,6 +738,51 @@ fn define_ref(ctx: &Context, ref_uri: &str) -> Result<()> {
         ctx.insert_ref(ref_uri, resolved_schema);
     }
     Ok(())
+}
+
+/// Merge pattern properties from two object schemas during intersection.
+/// Extracted from `intersect` to keep its stack frame small for deep recursion.
+#[inline(never)]
+fn intersect_pattern_properties(
+    o1_pp: IndexMap<String, Schema>,
+    o2_pp: IndexMap<String, Schema>,
+    o1_ap: &Option<Box<Schema>>,
+    o2_ap: &Option<Box<Schema>>,
+    ctx: &Context,
+    stack_level: usize,
+) -> Result<IndexMap<String, Schema>> {
+    let mut result = IndexMap::new();
+    // When a pattern exists only on one side, properties matching
+    // it are "additional" from the other side's perspective and
+    // must be intersected with that side's additionalProperties.
+    let mut o2_remaining = o2_pp;
+    for (key, prop1) in o1_pp.into_iter() {
+        if let Some(prop2) = o2_remaining.swap_remove(&key) {
+            result.insert(key, prop1.intersect(prop2, ctx, stack_level + 1)?);
+        } else if let Some(ap) = o2_ap {
+            result.insert(
+                key,
+                prop1.intersect(ap.as_ref().clone(), ctx, stack_level + 1)?,
+            );
+        } else {
+            result.insert(key, prop1);
+        }
+    }
+    for (key, prop2) in o2_remaining.into_iter() {
+        if let Some(ap) = o1_ap {
+            result.insert(
+                key,
+                prop2.intersect(ap.as_ref().clone(), ctx, stack_level + 1)?,
+            );
+        } else {
+            result.insert(key, prop2);
+        }
+    }
+    let keys = result.keys().collect::<Vec<_>>();
+    if !keys.is_empty() {
+        ctx.check_disjoint_pattern_properties(&keys)?;
+    }
+    Ok(result)
 }
 
 fn intersect_ref(
