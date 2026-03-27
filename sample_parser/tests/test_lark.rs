@@ -853,8 +853,8 @@ fn test_json_pattern_properties() {
         ],
     );
 
-    // Same schema but "foo" is required — since "foo" is unsatisfiable,
-    // the entire schema is unsatisfiable.
+    // Same schema but "foo" is required — since "foo" is unsatisfiable
+    // (string ∩ integer), the entire schema is unsatisfiable.
     json_err_test(
         &json!({
             "type": "object",
@@ -871,6 +871,64 @@ fn test_json_pattern_properties() {
             "required": ["foo", "mux", "foo1", "bar1"],
         }),
         "required property 'foo' is unsatisfiable",
+    );
+
+    // Corrected version: use a named property ("name") that doesn't match
+    // any pattern, so the schema is satisfiable. Tests required properties,
+    // property ordering, and type enforcement via patternProperties + additionalProperties.
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "name": { "type": "string" },
+            },
+            "patternProperties": {
+                "^foo": { "type": "integer" },
+                "^bar": { "type": "array" },
+            },
+            "additionalProperties": {
+                "type": "boolean",
+            },
+            "required": ["name", "mux", "foo1", "bar1"],
+        }),
+        &[
+            json!({
+                "name": "hello",
+                "mux": false,
+                "foo1": 123,
+                "bar1": [],
+            }),
+            json!({
+                "name": "hello",
+                "mux": false,
+                "foo1": 123,
+                "bar1": [],
+                "blah": true
+            }),
+        ],
+        &[
+            // wrong order
+            json!({
+                "name": "hello",
+                "mux": false,
+                "bar1": [],
+                "foo1": 123,
+            }),
+            // mux wrong type (must be boolean via additionalProperties)
+            json!({
+                "name": "hello",
+                "mux": "blah",
+                "foo1": 123,
+                "bar1": [],
+            }),
+            // foo1 wrong type (must be integer via ^foo pattern)
+            json!({
+                "name": "hello",
+                "mux": false,
+                "foo1": "aaa",
+                "bar1": [],
+            }),
+        ],
     );
 
     // Cross-schema: patternProperties from one side must be intersected with
