@@ -5,12 +5,6 @@
 //! current state and a byte, return the next state (or `None` to reject). Then, wrapping that
 //! implementation in a [`StackRecognizer`] yields a full [`Recognizer`] implementation that
 //! [`TokTrie`](crate::TokTrie) can drive during trie walks.
-//!
-//! [`AnythingGoes`] is a convenience no-op recognizer that accepts every byte. It implements
-//! `FunctionalRecognizer<()>` and must be wrapped in `StackRecognizer` to be used with
-//! `TokTrie`. For a recognizer that implements the [`Recognizer`] trait directly (no wrapper
-//! needed), see [`toktrie::AnythingGoes`](crate::toktree::AnythingGoes) which is re-exported
-//! at the crate root.
 
 use crate::toktree::Recognizer;
 use std::fmt::Debug;
