@@ -800,6 +800,9 @@ fn test_json_pattern_properties() {
         "required property 'foo' is unsatisfiable",
     );
 
+    // "foo" matches patternProperties "^foo" (type: integer), but properties says
+    // type: string. Per JSON Schema spec, both must be satisfied — string ∩ integer
+    // is unsatisfiable. Since "foo" is optional, objects without "foo" are still valid.
     json_test_many(
         &json!({
             "type": "object",
@@ -817,10 +820,6 @@ fn test_json_pattern_properties() {
         &[
             json!({}),
             json!({
-                "foo": "bar"
-            }),
-            json!({
-                "foo": "bar",
                 "foo1": 123,
                 "bar": [],
                 "qux": true,
@@ -837,6 +836,9 @@ fn test_json_pattern_properties() {
         ],
         &[
             json!({
+                "foo": "bar"
+            }),
+            json!({
                 "foo": 123
             }),
             json!({
@@ -851,7 +853,9 @@ fn test_json_pattern_properties() {
         ],
     );
 
-    json_test_many(
+    // Same schema but "foo" is required — since "foo" is unsatisfiable,
+    // the entire schema is unsatisfiable.
+    json_err_test(
         &json!({
             "type": "object",
             "properties": {
@@ -866,41 +870,7 @@ fn test_json_pattern_properties() {
             },
             "required": ["foo", "mux", "foo1", "bar1"],
         }),
-        &[
-            json!({
-                "foo": "bar",
-                "mux": false,
-                "foo1": 123,
-                "bar1": [],
-            }),
-            json!({
-                "foo": "bar",
-                "mux": false,
-                "foo1": 123,
-                "bar1": [],
-                "blah": true
-            }),
-        ],
-        &[
-            json!({
-                "foo": "bar",
-                "mux": false,
-                "bar1": [],
-                "foo1": 123,
-            }),
-            json!({
-                "foo": "bar",
-                "mux": "blah",
-                "foo1": 123,
-                "bar1": [],
-            }),
-            json!({
-                "foo": "bar",
-                "mux": false,
-                "foo1": "aaa",
-                "bar1": [],
-            }),
-        ],
+        "required property 'foo' is unsatisfiable",
     );
 }
 

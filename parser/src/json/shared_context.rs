@@ -155,6 +155,13 @@ impl Context<'_> {
             .property_schema(obj, prop)
     }
 
+    pub fn property_schema_matches(&self, pattern: &str, name: &str) -> Result<bool> {
+        self.shared
+            .borrow_mut()
+            .pattern_cache
+            .is_match(pattern, name)
+    }
+
     pub fn check_disjoint_pattern_properties(&self, regexes: &[&String]) -> Result<()> {
         self.shared
             .borrow_mut()

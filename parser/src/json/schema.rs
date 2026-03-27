@@ -1073,9 +1073,26 @@ fn compile_object(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schem
     let min_properties = get_usize(schema, "minProperties")?.unwrap_or(0);
     let max_properties = get_usize(schema, "maxProperties")?;
 
-    let properties = compile_prop_map(ctx, "properties", properties)?;
+    let mut properties = compile_prop_map(ctx, "properties", properties)?;
     let pattern_properties = compile_prop_map(ctx, "patternProperties", pattern_properties)?;
     ctx.check_disjoint_pattern_properties(&pattern_properties.keys().collect::<Vec<_>>())?;
+
+    // Per JSON Schema spec, a named property must validate against BOTH its
+    // properties schema AND any matching patternProperties schema. Pre-intersect
+    // here so that stage 2 (which excludes named properties from pattern regexes)
+    // produces correct constraints.
+    if !pattern_properties.is_empty() {
+        for (name, prop_schema) in properties.iter_mut() {
+            for (pattern, pat_schema) in pattern_properties.iter() {
+                if ctx.property_schema_matches(pattern, name)? {
+                    let owned = std::mem::replace(prop_schema, Schema::Null);
+                    *prop_schema = owned.intersect(pat_schema.clone(), ctx, 0)?;
+                    break; // patterns are disjoint, at most one match
+                }
+            }
+        }
+    }
+
     let additional_properties = match additional_properties {
         None => None,
         Some(val) => Some(Box::new(compile_resource(ctx, ctx.as_resource_ref(val))?)),
