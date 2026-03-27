@@ -2013,7 +2013,7 @@
         "additionalProperty invalidates others": "pass",
         "additionalProperty validates others": "pass",
         "patternProperty invalidates nonproperty": "pass",
-        "patternProperty invalidates property": "false_positive",
+        "patternProperty invalidates property": "pass",
         "patternProperty validates nonproperty": "pass",
         "property invalidates property": "pass",
         "property validates property": "pass"
