@@ -7,13 +7,13 @@
 //! 4. Comparing the two masks for equality
 
 use lazy_static::lazy_static;
+use llg_test_utils::get_tok_env;
 use llguidance::{
     api::TopLevelGrammar,
     earley::SlicedBiasComputer,
     toktrie::{InferenceCapabilities, SimpleVob},
     Matcher, ParserFactory,
 };
-use sample_parser::get_tok_env;
 
 lazy_static! {
     static ref PARSER_FACTORY: ParserFactory = {

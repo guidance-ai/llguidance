@@ -19,8 +19,7 @@
 use rstest::*;
 use serde_json::json;
 
-mod common_lark_utils;
-use common_lark_utils::json_schema_check;
+use llg_test_utils::json_schema_check;
 
 #[rstest]
 #[case("1963-06-19T08:30:06.283185Z")] // Test Suite: "a valid date-time string"

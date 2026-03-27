@@ -1,8 +1,7 @@
 use llguidance::{earley::XorShift, substring::chunk_into_words};
 use serde_json::json;
 
-mod common_lark_utils;
-use common_lark_utils::*;
+use llg_test_utils::*;
 
 #[test]
 fn test_dot_unicode() {
@@ -719,7 +718,7 @@ fn test_nested_lark() {
 
 #[test]
 fn test_large_real_substring() {
-    let data = include_str!("../data/ulysses.md");
+    let data = include_str!("data/ulysses.md");
     // 240k is the limit for 1M fuel
     let data = data[..200_000].to_string();
     let grm = format!(

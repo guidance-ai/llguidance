@@ -4,7 +4,7 @@
 // backtrack: 1↶ (one token)
 // end of string: ≺EOS≻
 
-use sample_parser::*;
+use llg_test_utils::*;
 use serde_json::json;
 
 #[test]

@@ -4,8 +4,7 @@ use lazy_static::lazy_static;
 use rstest::*;
 use serde_json::{json, Value};
 
-mod common_lark_utils;
-use common_lark_utils::{json_err_test, json_schema_check, NumericBounds};
+use llg_test_utils::{json_err_test, json_schema_check, NumericBounds};
 
 lazy_static! {
     static ref SIMPLE_ANYOF: Value = json!({"anyOf": [

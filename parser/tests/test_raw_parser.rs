@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 lazy_static! {
     static ref PARSER_FACTORY_PHI: ParserFactory = {
-        let env = sample_parser::get_tok_env();
+        let env = llg_test_utils::get_tok_env();
         let mut fact = ParserFactory::new(
             env,
             InferenceCapabilities {

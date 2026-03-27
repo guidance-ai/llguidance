@@ -1,24 +1,31 @@
-/*
-Per
-https://doc.rust-lang.org/book/ch11-03-test-organization.html#submodules-in-integration-tests
-we do have an 'old style' mod.rs, so that the test runner doesn't look inside
- */
-
+/// Acceptance / string-validation testing.
+///
+/// This module implements the "feed and check" testing strategy: tokenize an
+/// input string, feed the tokens one-by-one into a [`TokenParser`], and assert
+/// that the parser accepts or rejects the input at the expected point.
+///
+/// Helpers are provided for both raw Lark grammars ([`lark_str_test`],
+/// [`lark_ok`], [`lark_err_test`]) and JSON-schema grammars
+/// ([`json_schema_check`], [`json_test_many`]).
 use anyhow::Result;
 use llguidance::{
     api::{GrammarInit, TopLevelGrammar},
     toktrie::bytes::limit_str,
     TokenParser,
 };
-use sample_parser::*;
 use serde_json::Value;
 
-#[allow(dead_code)]
+use crate::{get_parser_factory, get_tok_env};
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
 #[derive(Debug)]
 pub enum NumericBounds {
     Inclusive,
     Exclusive,
 }
+
+// ── Parser construction helpers ──────────────────────────────────────────────
 
 pub fn make_parser(lark: &str, quiet: bool) -> Result<TokenParser> {
     let grm = TopLevelGrammar::from_lark(lark.to_string());
@@ -36,14 +43,14 @@ pub fn consume(parser: &mut TokenParser, tok: u32) {
     assert!(n == 0);
 }
 
-#[allow(dead_code)]
+// ── Lark string testing ─────────────────────────────────────────────────────
+
 pub fn lark_ok(lark: &str) {
     if let Err(e) = make_parser(lark, false) {
         panic!("unexpected error: {e}, grm:\n{lark}")
     }
 }
 
-#[allow(dead_code)]
 pub fn lark_err_test(lark: &str, err: &str) {
     match make_parser(lark, false) {
         Err(e) => {
@@ -56,7 +63,6 @@ pub fn lark_err_test(lark: &str, err: &str) {
     }
 }
 
-#[allow(dead_code)]
 pub fn json_err_test(schema: &Value, err: &str) {
     lark_err_test(
         &format!(r#"start: %json {}"#, serde_json::to_string(schema).unwrap()),
@@ -124,7 +130,6 @@ pub fn lark_str_test(lark: &str, should_accept: bool, input: &str, quiet: bool) 
     }
 }
 
-#[allow(dead_code)]
 pub fn lark_str_test_many_ext(quiet: bool, lark: &str, passing: &[&str], failing: &[&str]) {
     for s in passing {
         lark_str_test(lark, true, s, quiet);
@@ -134,6 +139,13 @@ pub fn lark_str_test_many_ext(quiet: bool, lark: &str, passing: &[&str], failing
     }
 }
 
+// ── JSON schema testing ─────────────────────────────────────────────────────
+
+/// Check that a JSON value is accepted or rejected by a JSON-schema grammar.
+///
+/// Unlike [`lark_str_test`], this function does not use the `FINAL_REJECT:`
+/// convention.  Instead it serialises `json_obj`, feeds the tokens, and
+/// compares the parser's final `is_accepting()` state to `expect_valid`.
 pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
     /*
        This is a modification of the lark_str_test function, which makes the
@@ -149,28 +161,21 @@ pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
     let lark_grammar = format!(r#"start: %json {}"#, serde_json::to_string(schema).unwrap());
     let json_string = serde_json::to_string(json_obj).unwrap();
 
-    // Tokenize the string representation of the JSON object
     let tokens = get_tok_env().tokenize(&json_string);
 
-    // Create the parser
     let mut p = make_parser(&lark_grammar, false).unwrap();
 
-    // Work through token by token
     for (i, tok) in tokens.iter().enumerate() {
-        // Compute the mask of allowed tokens
         let m = p.compute_mask().unwrap();
 
         if m.is_allowed(*tok) {
-            // Consume the token
             consume(&mut p, *tok);
         } else {
-            // Token isn't allowed, so check if we expect this
             let curr_tok_str = get_tok_env().tok_trie().token_dbg(*tok);
             assert!(
                 !expect_valid,
                 "Unexpected token: {curr_tok_str} at token index {i}",
             );
-            // We were expecting this to fail, so return early
             return;
         }
     }
@@ -184,7 +189,6 @@ pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
     assert_eq!(p.is_accepting(), expect_valid, "Final state mismatch");
 }
 
-#[allow(dead_code)]
 pub fn json_test_many(schema: &Value, passing: &[Value], failing: &[Value]) {
     for s in passing {
         json_schema_check(schema, s, true);
@@ -194,12 +198,10 @@ pub fn json_test_many(schema: &Value, passing: &[Value], failing: &[Value]) {
     }
 }
 
-#[allow(dead_code)]
 pub fn lark_str_test_many(lark: &str, passing: &[&str], failing: &[&str]) {
     lark_str_test_many_ext(false, lark, passing, failing);
 }
 
-#[allow(dead_code)]
 pub fn lark_str_test_many_quiet(lark: &str, passing: &[&str], failing: &[&str]) {
     lark_str_test_many_ext(true, lark, passing, failing);
 }

@@ -46,6 +46,12 @@ generate-header = ["dep:cbindgen"]
 [dev-dependencies]
 criterion = "0.8.1"
 regex = "1.11.1"
+toktrie_hf_downloader = { workspace = true }
+llg_test_utils = { workspace = true }
+rstest = "0.25.0"
+serde-json-fmt = "0.1.0"
+lazy_static = "1.5.0"
+serde_json = { version = "1.0.138", features = ["preserve_order"] }
 
 [[bench]]
 name = "compute_mask"

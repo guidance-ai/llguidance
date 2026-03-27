@@ -1,5 +1,4 @@
-mod common_lark_utils;
-use common_lark_utils::lark_str_test;
+use llg_test_utils::lark_str_test;
 use rstest::rstest;
 use serde_json::json;
 use serde_json_fmt::JsonFormat;

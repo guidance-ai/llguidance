@@ -5,6 +5,7 @@ members = [
     "sample_parser",
     "json_stats",
     "json_schema_test_suite",
+    "llg_test_utils",
     "toktrie",
     "toktrie_hf_tokenizers",
     "toktrie_hf_downloader",
@@ -43,6 +44,7 @@ opt-level = 3
 [workspace.dependencies]
 toktrie = { path = "toktrie" }
 llguidance = { path = "parser" }
+llg_test_utils = { path = "llg_test_utils" }
 toktrie_hf_tokenizers = { path = "toktrie_hf_tokenizers" }
 toktrie_hf_downloader = { path = "toktrie_hf_downloader" }
 toktrie_tiktoken = { path = "toktrie_tiktoken" }

@@ -1,23 +1,24 @@
-/// Test utilities for llguidance grammar testing.
+/// Trace-based grammar checking.
 ///
-/// This module is used by the integration tests in `tests/` — it is **not** intended
-/// as an example of how to use llguidance in production. For that, see `minimal.rs`
-/// and `sample_parser.rs`.
+/// This module implements the "trace replay" testing strategy: given a grammar
+/// and a recorded sequence of forced / generated tokens, step the parser
+/// forward one mask-compute + commit cycle at a time and verify every
+/// intermediate result.
 ///
-/// Key components:
-/// - [`PARSER_FACTORY`]: A shared [`ParserFactory`] with the Phi-3.5-mini-instruct
-///   tokenizer, configured for testing (ff_tokens + backtrack enabled, verbose logging).
-/// - [`check_lark_grammar`] and friends: Verify that a grammar produces the expected
-///   sequence of forced and generated tokens. Test traces are recorded by passing
-///   `"test_trace": true` in the llguidance request.
-/// - [`check_capture`]: Verify named captures in grammar output.
-use lazy_static::lazy_static;
+/// The main entry point is [`check_grammar`], which is private.  Public
+/// wrappers such as [`check_lark_grammar`] and [`check_lark_grammar_nested`]
+/// construct the appropriate [`TopLevelGrammar`] and delegate here.
 use llguidance::{
     api::{GrammarWithLexer, StopReason, TopLevelGrammar},
-    earley::{SlicedBiasComputer, XorShift},
-    toktrie::{InferenceCapabilities, TokEnv, TokenId},
+    earley::XorShift,
+    toktrie::{TokEnv, TokenId},
     Constraint, ParserFactory,
 };
+use serde_json::Value;
+
+use crate::PARSER_FACTORY;
+
+// ── Core trace engine ────────────────────────────────────────────────────────
 
 /// Check that the grammar generates the expected output.
 ///
@@ -352,33 +353,7 @@ fn tokenize_trace(tok_env: &TokEnv, s: &str) -> Vec<(bool, TokenId)> {
     result
 }
 
-lazy_static! {
-    static ref PARSER_FACTORY: ParserFactory = {
-        let env =
-            toktrie_hf_downloader::byte_tokenizer_from_name("microsoft/Phi-3.5-mini-instruct")
-            .unwrap()
-            .into_tok_env(Some(35000))
-            .unwrap();
-        let mut fact = ParserFactory::new(&env,
-            InferenceCapabilities {
-                ff_tokens: true, // can the engine append multiple tokens?
-                backtrack: true, // can the engine remove generated tokens?
-                conditional_ff_tokens: false, // not used
-                fork: false,                  // not used
-            }, &SlicedBiasComputer::general_slices()).unwrap();
-        fact.set_stderr_log_level(2);
-        fact.set_buffer_log_level(0);
-        fact
-    };
-}
-
-pub fn get_tok_env() -> &'static TokEnv {
-    PARSER_FACTORY.tok_env()
-}
-
-pub fn get_parser_factory() -> &'static ParserFactory {
-    &PARSER_FACTORY
-}
+// ── Public lark / JSON wrappers ──────────────────────────────────────────────
 
 pub fn check_lark_grammar_prompt(lark: &str, prompt_str: &str, output: &[&str]) -> Constraint {
     let grm = TopLevelGrammar::from_lark(lark.to_string());
@@ -430,7 +405,7 @@ pub fn check_lark_grammar_nested(lark: &str, sub_lark: &str, output: &[&str]) ->
     r
 }
 
-pub fn check_lark_json(lark: &str, json_schema: serde_json::Value, output: &[&str]) -> Constraint {
+pub fn check_lark_json(lark: &str, json_schema: Value, output: &[&str]) -> Constraint {
     let temp = find_temperature(lark);
     let schema_str = serde_json::to_string_pretty(&json_schema).unwrap();
     let mut top_grm = TopLevelGrammar::from_lark(lark.to_string());

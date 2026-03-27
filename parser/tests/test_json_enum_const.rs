@@ -1,8 +1,7 @@
 use rstest::*;
 use serde_json::{json, Value};
 
-mod common_lark_utils;
-use common_lark_utils::json_schema_check;
+use llg_test_utils::json_schema_check;
 
 #[rstest]
 fn const_null() {

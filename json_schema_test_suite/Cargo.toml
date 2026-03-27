@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 llguidance = { workspace = true }
-sample_parser = { path = "../sample_parser" }
+llg_test_utils = { workspace = true }
 toktrie_hf_tokenizers = { workspace = true }
 toktrie_hf_downloader = { workspace = true }
 anyhow = "1.0.95"

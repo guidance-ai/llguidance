@@ -1,8 +1,7 @@
 use rstest::*;
 use serde_json::{json, Value};
 
-mod common_lark_utils;
-use common_lark_utils::{json_err_test, json_schema_check, NumericBounds};
+use llg_test_utils::{json_err_test, json_schema_check, NumericBounds};
 
 #[test]
 fn null_schema() {

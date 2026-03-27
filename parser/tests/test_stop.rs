@@ -1,5 +1,5 @@
+use llg_test_utils::*;
 use llguidance::{toktrie::TokenId, StopController};
-use sample_parser::*;
 
 fn check_stop(s: &str, exp_ss: &[&str], stop_rx: &str) {
     check_stop_tok(s, exp_ss, stop_rx, vec![], vec![]);

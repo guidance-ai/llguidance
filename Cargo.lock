@@ -1289,8 +1289,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "llg_test_utils",
  "llguidance",
- "sample_parser",
  "serde",
  "serde_json",
  "toktrie_hf_downloader",
@@ -1376,6 +1376,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "241eaef5fd12c88705a01fc1066c48c4b36e0dd4377dcdc7ec3942cea7a69956"
 
 [[package]]
+name = "llg_test_utils"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "lazy_static",
+ "llguidance",
+ "serde_json",
+ "toktrie_hf_downloader",
+]
+
+[[package]]
 name = "llguidance"
 version = "1.7.0"
 dependencies = [
@@ -1387,13 +1398,17 @@ dependencies = [
  "instant",
  "jsonschema",
  "lazy_static",
+ "llg_test_utils",
  "rayon",
  "referencing",
  "regex",
  "regex-syntax",
+ "rstest",
  "serde",
+ "serde-json-fmt",
  "serde_json",
  "toktrie",
+ "toktrie_hf_downloader",
 ]
 
 [[package]]
@@ -2249,9 +2264,7 @@ dependencies = [
  "clap",
  "lazy_static",
  "llguidance",
- "rstest",
  "serde",
- "serde-json-fmt",
  "serde_json",
  "toktrie_hf_downloader",
  "toktrie_hf_tokenizers",
