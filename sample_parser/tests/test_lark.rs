@@ -967,7 +967,11 @@ fn test_json_pattern_properties() {
             ],
         }),
         &[json!({})],
-        &[json!({"foo": 42}), json!({"bar": 1}), json!({"foo": 42, "bar": 1})],
+        &[
+            json!({"foo": 42}),
+            json!({"bar": 1}),
+            json!({"foo": 42, "bar": 1}),
+        ],
     );
 
     // allOf: one schema allows only "foo" (additionalProperties: false), the other
@@ -1026,10 +1030,7 @@ fn test_json_pattern_properties() {
             json!({"bar": "hello"}),
             json!({"foo": 1, "bar": "x"}),
         ],
-        &[
-            json!({"foo": "nope"}),
-            json!({"bar": 42}),
-        ],
+        &[json!({"foo": "nope"}), json!({"bar": 42})],
     );
 }
 
