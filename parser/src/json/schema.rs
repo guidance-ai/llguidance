@@ -382,6 +382,11 @@ impl Schema {
                 required.extend(o2.required);
 
                 let mut pattern_properties = IndexMap::new();
+                // When a pattern exists only on one side, properties matching
+                // it are "additional" from the other side's perspective and
+                // must be intersected with that side's additionalProperties.
+                let o1_ap = o1.additional_properties.schema();
+                let o2_ap = o2.additional_properties.schema();
                 for (key, prop1) in o1.pattern_properties.into_iter() {
                     if let Some(prop2) = o2.pattern_properties.get_mut(&key) {
                         let prop2 = std::mem::replace(prop2, Schema::Null);
@@ -390,14 +395,20 @@ impl Schema {
                             prop1.intersect(prop2.clone(), ctx, stack_level + 1)?,
                         );
                     } else {
-                        pattern_properties.insert(key.clone(), prop1);
+                        pattern_properties.insert(
+                            key.clone(),
+                            prop1.intersect(o2_ap.clone(), ctx, stack_level + 1)?,
+                        );
                     }
                 }
                 for (key, prop2) in o2.pattern_properties.into_iter() {
                     if pattern_properties.contains_key(&key) {
                         continue;
                     }
-                    pattern_properties.insert(key.clone(), prop2);
+                    pattern_properties.insert(
+                        key.clone(),
+                        prop2.intersect(o1_ap.clone(), ctx, stack_level + 1)?,
+                    );
                 }
 
                 let keys = pattern_properties.keys().collect::<Vec<_>>();

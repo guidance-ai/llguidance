@@ -872,6 +872,40 @@ fn test_json_pattern_properties() {
         }),
         "required property 'foo' is unsatisfiable",
     );
+
+    // Cross-schema: patternProperties from one side must be intersected with
+    // additionalProperties from the other side. Here, the first schema says
+    // no additional properties allowed, so the pattern from the second schema
+    // becomes unsatisfiable for any matching property.
+    json_test_many(
+        &json!({
+            "allOf": [
+                { "additionalProperties": false },
+                { "patternProperties": { "^f": { "type": "integer" } } },
+            ],
+        }),
+        &[json!({})],
+        &[json!({"foo": 42}), json!({"bar": 1}), json!({"foo": 42, "bar": 1})],
+    );
+
+    // Cross-schema: one side has properties + additionalProperties: false,
+    // other side has patternProperties. The pattern must be intersected with
+    // additionalProperties: false from the first side.
+    json_test_many(
+        &json!({
+            "allOf": [
+                {
+                    "properties": { "foo": { "type": "string" } },
+                    "additionalProperties": false,
+                },
+                {
+                    "patternProperties": { "^f": { "type": "string" } },
+                },
+            ],
+        }),
+        &[json!({}), json!({"foo": "bar"})],
+        &[json!({"foo": 42}), json!({"fxx": "bar"})],
+    );
 }
 
 #[test]
