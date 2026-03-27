@@ -988,6 +988,49 @@ fn test_json_pattern_properties() {
         &[json!({}), json!({"foo": "bar"})],
         &[json!({"foo": 42}), json!({"fxx": "bar"})],
     );
+
+    // allOf: both schemas have the same pattern key "^f". The pattern schemas
+    // are intersected: integer ∩ multipleOf(3) = integers that are multiples of 3.
+    json_test_many(
+        &json!({
+            "allOf": [
+                { "patternProperties": { "^f": { "type": "integer", "minimum": 0 } } },
+                { "patternProperties": { "^f": { "type": "integer", "multipleOf": 3 } } },
+            ],
+        }),
+        &[
+            json!({}),
+            json!({"foo": 0}),
+            json!({"fox": 9}),
+            json!({"foo": 3, "fox": 6}),
+        ],
+        &[
+            json!({"foo": 1}),
+            json!({"foo": -3}),
+            json!({"foo": 3, "fox": 5}),
+        ],
+    );
+
+    // allOf: different pattern keys from each schema. Both patterns must
+    // coexist (and be disjoint).
+    json_test_many(
+        &json!({
+            "allOf": [
+                { "patternProperties": { "^f": { "type": "integer" } } },
+                { "patternProperties": { "^b": { "type": "string" } } },
+            ],
+        }),
+        &[
+            json!({}),
+            json!({"foo": 42}),
+            json!({"bar": "hello"}),
+            json!({"foo": 1, "bar": "x"}),
+        ],
+        &[
+            json!({"foo": "nope"}),
+            json!({"bar": 42}),
+        ],
+    );
 }
 
 #[test]
