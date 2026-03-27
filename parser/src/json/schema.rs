@@ -1092,6 +1092,10 @@ fn compile_object(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schem
     // properties schema AND any matching patternProperties schema. Since
     // gen_json_object excludes named properties from pattern property regexes,
     // we must pre-intersect here to preserve the pattern constraint.
+    //
+    // Note: the named property schema is the left operand, so when both are
+    // object or array types, the named property's sub-schema ordering takes
+    // precedence in the generated grammar.
     if !pattern_properties.is_empty() {
         for (name, prop_schema) in properties.iter_mut() {
             for (pattern, pat_schema) in pattern_properties.iter() {
