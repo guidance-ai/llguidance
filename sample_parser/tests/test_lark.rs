@@ -853,6 +853,32 @@ fn test_json_pattern_properties() {
         ],
     );
 
+    // Non-trivial intersection: "count" is declared as integer via properties,
+    // and matches "^c" pattern which requires multipleOf: 5. The intersection
+    // should produce integer ∩ multipleOf(5) = integers that are multiples of 5.
+    json_test_many(
+        &json!({
+            "type": "object",
+            "properties": {
+                "count": { "type": "integer", "minimum": 0 },
+            },
+            "patternProperties": {
+                "^c": { "type": "integer", "multipleOf": 5 },
+            },
+            "required": ["count"],
+        }),
+        &[
+            json!({"count": 0}),
+            json!({"count": 10}),
+            json!({"count": 25}),
+        ],
+        &[
+            json!({"count": 3}),
+            json!({"count": 7}),
+            json!({"count": -5}),
+        ],
+    );
+
     // Same schema but "foo" is required — since "foo" is unsatisfiable
     // (string ∩ integer), the entire schema is unsatisfiable.
     json_err_test(
