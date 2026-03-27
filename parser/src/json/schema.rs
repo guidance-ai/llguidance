@@ -1089,9 +1089,9 @@ fn compile_object(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schem
     ctx.check_disjoint_pattern_properties(&pattern_properties.keys().collect::<Vec<_>>())?;
 
     // Per JSON Schema spec, a named property must validate against BOTH its
-    // properties schema AND any matching patternProperties schema. Pre-intersect
-    // here so that stage 2 (which excludes named properties from pattern regexes)
-    // produces correct constraints.
+    // properties schema AND any matching patternProperties schema. Since
+    // gen_json_object excludes named properties from pattern property regexes,
+    // we must pre-intersect here to preserve the pattern constraint.
     if !pattern_properties.is_empty() {
         for (name, prop_schema) in properties.iter_mut() {
             for (pattern, pat_schema) in pattern_properties.iter() {

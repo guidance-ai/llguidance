@@ -853,9 +853,8 @@ fn test_json_pattern_properties() {
         ],
     );
 
-    // Non-trivial intersection: "count" is declared as integer via properties,
-    // and matches "^c" pattern which requires multipleOf: 5. The intersection
-    // should produce integer ∩ multipleOf(5) = integers that are multiples of 5.
+    // "count" matches both properties (integer, minimum: 0) and patternProperties
+    // "^c" (integer, multipleOf: 5). The intersection produces non-negative multiples of 5.
     json_test_many(
         &json!({
             "type": "object",
@@ -879,8 +878,8 @@ fn test_json_pattern_properties() {
         ],
     );
 
-    // Same schema but "foo" is required — since "foo" is unsatisfiable
-    // (string ∩ integer), the entire schema is unsatisfiable.
+    // "foo" is required but matches both properties (string) and patternProperties
+    // "^foo" (integer) — the intersection is unsatisfiable, so the schema errors.
     json_err_test(
         &json!({
             "type": "object",
@@ -899,9 +898,9 @@ fn test_json_pattern_properties() {
         "required property 'foo' is unsatisfiable",
     );
 
-    // Corrected version: use a named property ("name") that doesn't match
-    // any pattern, so the schema is satisfiable. Tests required properties,
-    // property ordering, and type enforcement via patternProperties + additionalProperties.
+    // "name" doesn't match any pattern, so properties + patternProperties +
+    // additionalProperties all coexist. Tests required property ordering and
+    // type enforcement across all three keyword types.
     json_test_many(
         &json!({
             "type": "object",
@@ -957,10 +956,9 @@ fn test_json_pattern_properties() {
         ],
     );
 
-    // Cross-schema: patternProperties from one side must be intersected with
-    // additionalProperties from the other side. Here, the first schema says
-    // no additional properties allowed, so the pattern from the second schema
-    // becomes unsatisfiable for any matching property.
+    // allOf: one schema has additionalProperties: false (no properties/patterns),
+    // the other has patternProperties. Since the first schema rejects all properties,
+    // the pattern becomes unsatisfiable for any matching property.
     json_test_many(
         &json!({
             "allOf": [
@@ -972,9 +970,9 @@ fn test_json_pattern_properties() {
         &[json!({"foo": 42}), json!({"bar": 1}), json!({"foo": 42, "bar": 1})],
     );
 
-    // Cross-schema: one side has properties + additionalProperties: false,
-    // other side has patternProperties. The pattern must be intersected with
-    // additionalProperties: false from the first side.
+    // allOf: one schema allows only "foo" (additionalProperties: false), the other
+    // has patternProperties "^f". Only "foo" survives (it's a named property in the
+    // first schema), while other "^f" matches like "fxx" are rejected.
     json_test_many(
         &json!({
             "allOf": [
