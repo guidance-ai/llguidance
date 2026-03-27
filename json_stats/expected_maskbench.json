@@ -11802,7 +11802,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/testenvironments.json#/definitions/config"
   },
   "JsonSchemaStore---theme.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "Schema intersection stack level exceeded"
   },
   "JsonSchemaStore---tikibase.schema.json": {},
   "JsonSchemaStore---tizen_workspace.json": {},
