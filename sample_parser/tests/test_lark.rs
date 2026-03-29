@@ -1730,3 +1730,51 @@ fn test_parametric_long() {
         &[&s2],
     );
 }
+
+#[test]
+fn test_hex_escape_sequences() {
+    // Basic \x00 null byte matching
+    lark_str_test_many(
+        r#"start: "\x00""#,
+        &["\x00"],
+        &["a", "FINAL_REJECT:"],
+    );
+
+    // \x41 is 'A'
+    lark_str_test_many(
+        r#"start: "\x41\x42\x43""#,
+        &["ABC"],
+        &["abc", "AB"],
+    );
+
+    // Mix of \x escapes and regular characters
+    lark_str_test_many(
+        r#"start: "hello\x20world""#,
+        &["hello world"],
+        &["helloworld"],
+    );
+
+    // \x escape in token definitions
+    lark_str_test_many(
+        r#"
+            start: GREETING
+            GREETING: "hi\x21"
+        "#,
+        &["hi!"],
+        &["hi"],
+    );
+
+    // Multiple \x escapes
+    lark_str_test_many(
+        r#"start: "\x48\x49""#,
+        &["HI"],
+        &["hi", "H"],
+    );
+
+    // High-byte value: \xC0 is U+00C0 (A with grave accent), multi-byte in UTF-8
+    lark_str_test_many(
+        r#"start: "\xC0""#,
+        &["\u{00C0}"],
+        &["A", "a"],
+    );
+}
