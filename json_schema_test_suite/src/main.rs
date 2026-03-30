@@ -18,11 +18,7 @@
 /// With --draft, only the specified draft(s) are run.
 use anyhow::{bail, Result};
 use clap::Parser;
-use llg_test_utils::{get_parser_factory, get_tok_env};
-use llguidance::{
-    api::{GrammarInit, TopLevelGrammar},
-    TokenParser,
-};
+use llg_test_utils::{json_schema_check, make_parser};
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -58,43 +54,6 @@ fn category_badness(cat: &str) -> usize {
         .iter()
         .position(|&c| c == cat)
         .unwrap_or_else(|| panic!("Unknown result category '{cat}'. Valid: {CATEGORIES:?}"))
-}
-
-fn make_parser(lark: &str) -> anyhow::Result<TokenParser> {
-    let grm = TopLevelGrammar::from_lark(lark.to_string());
-    let mut parser = get_parser_factory().create_parser_from_init(
-        GrammarInit::Serialized(grm),
-        0, // quiet
-        1, // quiet
-    )?;
-    parser.start_without_prompt();
-    Ok(parser)
-}
-
-fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
-    let lark_grammar = format!(r#"start: %json {}"#, serde_json::to_string(schema).unwrap());
-    let json_string = serde_json::to_string(json_obj).unwrap();
-    let trie = get_tok_env().tok_trie();
-    let tokens = get_tok_env().tokenize(&json_string);
-
-    let mut p = make_parser(&lark_grammar).unwrap();
-
-    for (i, tok) in tokens.iter().enumerate() {
-        let m = p.compute_mask().unwrap();
-        if m.is_allowed(*tok) {
-            let n = p.consume_token(*tok).unwrap();
-            assert_eq!(n, 0, "Backtracking not supported in json_schema_check");
-        } else {
-            let curr_tok_str = trie.token_dbg(*tok);
-            assert!(
-                !expect_valid,
-                "Unexpected token: {curr_tok_str} at token index {i}",
-            );
-            return;
-        }
-    }
-
-    assert_eq!(p.is_accepting(), expect_valid, "Final state mismatch");
 }
 
 fn ensure_test_suite(dir: Option<&str>) -> PathBuf {
@@ -151,7 +110,7 @@ fn run_test_file(path: &Path, prefix: &str, results: &mut Results) {
             r#"start: %json {}"#,
             serde_json::to_string(&group.schema).unwrap()
         );
-        let parser_result = make_parser(&lark_grammar);
+        let parser_result = make_parser(&lark_grammar, true);
 
         match parser_result {
             Err(e) => {
