@@ -1290,11 +1290,8 @@ dependencies = [
  "anyhow",
  "clap",
  "llg_test_utils",
- "llguidance",
  "serde",
  "serde_json",
- "toktrie_hf_downloader",
- "toktrie_hf_tokenizers",
 ]
 
 [[package]]
