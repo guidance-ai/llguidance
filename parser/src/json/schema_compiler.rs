@@ -54,9 +54,9 @@ pub(crate) struct SchemaCompiler {
     pending_intersections: Vec<PendingIntersection>,
     pending_counter: usize,
     /// Refs currently being intersected — used to detect intersection cycles.
-    /// Maps ref_uri → Option<synthetic_uri>. None = being intersected but no
-    /// cycle detected yet. Some(uri) = cycle detected, uri is the self-ref target.
-    intersecting_refs: HashMap<String, Option<String>>,
+    /// When a ref is encountered while already in this set, the cycle is broken
+    /// by returning Ref(ref_uri) directly (an over-approximation).
+    intersecting_refs: HashSet<String>,
 }
 
 impl SchemaCompiler {
@@ -89,7 +89,7 @@ impl SchemaCompiler {
             base_uri_stack: Vec::new(),
             pending_intersections: Vec::new(),
             pending_counter: 0,
-            intersecting_refs: HashMap::default(),
+            intersecting_refs: HashSet::default(),
         };
 
         let raw: RawSchema = serde_json::from_value(contents)
@@ -108,16 +108,23 @@ impl SchemaCompiler {
                         pending.ref_uri
                     )
                 })?;
-            // Mark the ref so any re-encounter produces Ref(synthetic_uri).
+            // Register both the original ref and synthetic URI so that:
+            // - define_ref won't try to JSON-pointer-resolve the synthetic URI
+            // - cycle detection catches self-references during intersection
+            compiler.seen_refs.insert(pending.synthetic_uri.clone());
             compiler
                 .intersecting_refs
-                .insert(pending.ref_uri.clone(), Some(pending.synthetic_uri.clone()));
+                .insert(pending.ref_uri.clone());
+            compiler
+                .intersecting_refs
+                .insert(pending.synthetic_uri.clone());
             let result = if pending.ref_first {
                 compiler.intersect(resolved, pending.sibling_schema, 0)?
             } else {
                 compiler.intersect(pending.sibling_schema, resolved, 0)?
             };
             compiler.intersecting_refs.remove(&pending.ref_uri);
+            compiler.intersecting_refs.remove(&pending.synthetic_uri);
             compiler.definitions.insert(pending.synthetic_uri, result);
         }
 
@@ -713,7 +720,7 @@ impl SchemaCompiler {
     }
 
     fn define_ref(&mut self, ref_uri: &str) -> Result<()> {
-        if !self.seen_refs.contains(ref_uri) {
+        if !self.seen_refs.contains(ref_uri) && !self.definitions.contains_key(ref_uri) {
             self.seen_refs.insert(ref_uri.to_string());
             let resolved = self.lookup_and_compile_ref(ref_uri)?;
             self.definitions.insert(ref_uri.to_string(), resolved);
@@ -731,33 +738,21 @@ impl SchemaCompiler {
         self.define_ref(ref_uri)?;
 
         // Cycle detection: if this ref is already being intersected up the
-        // call stack, return a self-reference to break the cycle.
-        if let Some(synthetic_uri) = self.intersecting_refs.get(ref_uri) {
-            return match synthetic_uri {
-                Some(uri) => Ok(Schema::Ref(uri.clone())),
-                None => {
-                    let uri = format!("#/circular_{}", self.pending_counter);
-                    self.pending_counter += 1;
-                    self.intersecting_refs
-                        .insert(ref_uri.to_string(), Some(uri.clone()));
-                    Ok(Schema::Ref(uri))
-                }
-            };
+        // call stack, return it directly to break the cycle. This is exact
+        // for A ∩ A and a safe over-approximation for A ∩ B.
+        if self.intersecting_refs.contains(ref_uri) {
+            return Ok(Schema::Ref(ref_uri.to_string()));
         }
 
         match self.definitions.get(ref_uri).cloned() {
             Some(resolved_schema) => {
-                self.intersecting_refs.insert(ref_uri.to_string(), None);
+                self.intersecting_refs.insert(ref_uri.to_string());
                 let result = if ref_first {
                     self.intersect(resolved_schema, schema, stack_level + 1)
                 } else {
                     self.intersect(schema, resolved_schema, stack_level + 1)
                 };
-                if let Some(Some(synthetic_uri)) = self.intersecting_refs.remove(ref_uri) {
-                    if let Ok(ref schema) = result {
-                        self.definitions.insert(synthetic_uri, schema.clone());
-                    }
-                }
+                self.intersecting_refs.remove(ref_uri);
                 result
             }
             None => {

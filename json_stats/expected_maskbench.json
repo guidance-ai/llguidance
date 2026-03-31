@@ -7980,7 +7980,7 @@
   },
   "Github_ultra---o48404.json": {},
   "Github_ultra---o48661.json": {
-    "json_error": "Pointer '/circular_101' does not exist"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o48781.json": {
     "json_error": "Unknown format: color"
@@ -8091,7 +8091,7 @@
   "Github_ultra---o68411.json": {},
   "Github_ultra---o68588.json": {},
   "Github_ultra---o69206.json": {
-    "json_error": "Pointer '/circular_3' does not exist"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#"
   },
   "Github_ultra---o69209.json": {
     "validation_error": "test #0: token not accepted at ⟦{\"‧inputs‧\":[{\"‧id‧\":\"‧input‧1‧\",\"‧type⟧ * ⟦\":\"⟧ * ⟦File‧\",\"‧s‧bg⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
@@ -10156,28 +10156,28 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---mod30.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---mod301.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---mod302.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---mod303.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---mod304.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---mod305.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---mod306.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---mod309.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Handwritten---notnames1.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -10971,7 +10971,7 @@
   },
   "JsonSchemaStore---jsone.json": {},
   "JsonSchemaStore---jsonld.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧@‧context⟧ * ⟦\":\"⟧ * ⟦https‧://‧schema‧.org⟧ mask: TokenSet: 123250/128256; ALL EXCEPT EOS ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ⟨\\u{5}⟩ ..."
+    "validation_error": "test #2: incorrect accept; expected 123 is not of types \"array\", \"null\", \"object\", \"string\""
   },
   "JsonSchemaStore---jx-requirements.json": {},
   "JsonSchemaStore---jx-schema.json": {},
