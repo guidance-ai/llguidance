@@ -1180,8 +1180,10 @@ mod tests {
     }
 
     fn compile_lenient(schema: Value) -> Result<BuiltSchema> {
-        let mut opts = JsonCompileOptions::default();
-        opts.lenient = true;
+        let opts = JsonCompileOptions {
+            lenient: true,
+            ..Default::default()
+        };
         SchemaCompiler::compile(schema, &opts)
     }
 
