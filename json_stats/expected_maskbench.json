@@ -1345,9 +1345,7 @@
   "Github_easy---o25194.json": {},
   "Github_easy---o25199.json": {},
   "Github_easy---o25406.json": {},
-  "Github_easy---o25419.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧json‧rpc‧\":\"‧2‧.‧0‧\",\"‧method‧\":\"‧subtract‧\",\"‧params‧\":[‧42‧,‧23⟧ * ⟦],\"⟧ * ⟦id‧\":‧1‧}⟧ mask: TokenSet: 1580/128256; ⟨,⟩ ⟨.⟩ ⟨0⟩ ⟨1⟩ ⟨2⟩ ⟨3⟩ ⟨4⟩ ⟨5⟩ ⟨6⟩ ⟨7⟩ ⟨8⟩ ⟨9⟩ ⟨E⟩ ⟨]⟩ ⟨e⟩ ⟨\\t⟩ ⟨\\n⟩ ⟨\\r⟩ ⟨ ⟩ ⟨  ⟩ ⟨    ⟩ ⟨        ⟩ ⟨   ⟩ ⟨\\n\\n⟩ ⟨       ⟩ ⟨\\t\\t⟩ ⟨           ⟩ ⟨\\r\\n⟩ ⟨                ⟩ ⟨,\\n⟩ ⟨               ⟩ ⟨00⟩ ⟨     ⟩ ⟨\\t\\t\\t\\t⟩ ⟨                   ⟩ ⟨20⟩ ⟨\\t\\t\\t⟩ ⟨10⟩ ⟨                       ⟩ ⟨201⟩ ⟨         ⟩ ⟨12⟩ ⟨ \\n⟩ ⟨19⟩ ⟨                                ⟩ ⟨11⟩ ⟨32⟩ ⟨16⟩ ⟨15⟩ ⟨\\r\\n\\r\\n⟩ ..."
-  },
+  "Github_easy---o25419.json": {},
   "Github_easy---o25701.json": {},
   "Github_easy---o25711.json": {},
   "Github_easy---o25733.json": {},
@@ -3584,9 +3582,7 @@
   "Github_hard---o28610.json": {},
   "Github_hard---o28618.json": {},
   "Github_hard---o29019.json": {},
-  "Github_hard---o29388.json": {
-    "validation_error": "test #1: token not accepted at ⟦liquid‧_level‧_follow‧\":‧false‧},\"‧dsp‧\":{\"‧height‧\":{\"‧reference‧\":\"‧well‧_bottom‧\",\"‧value‧\":‧10‧.‧0‧,\"‧unit‧\":\"‧mill‧imeters‧\"},\"‧flow‧_rate‧\":{\"‧value‧\":‧10‧.‧0‧,\"‧unit‧\":\"‧mic‧rol‧it‧ers‧/‧second‧\"},\"‧liquid‧_level‧_follow‧\":‧false‧,\"⟧ * ⟦bl⟧ * ⟦ow‧out‧\":{\"‧volume⟧ mask: TokenSet: 6/128256; ⟨m⟩ ⟨t⟩ ⟨to⟩ ⟨mi⟩ ⟨touch⟩ ⟨mix⟩"
-  },
+  "Github_hard---o29388.json": {},
   "Github_hard---o29389.json": {},
   "Github_hard---o29445.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -3646,9 +3642,7 @@
   "Github_hard---o32451.json": {
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
-  "Github_hard---o32807.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧\",\"⟧ * ⟦author⟧ * ⟦\":{\"‧name‧\":\"‧John⟧ mask: TokenSet: 19/128256; ⟨p⟩ ⟨r⟩ ⟨u⟩ ⟨re⟩ ⟨un⟩ ⟨res⟩ ⟨reg⟩ ⟨region⟩ ⟨po⟩ ⟨resource⟩ ⟨pol⟩ ⟨rep⟩ ⟨resources⟩ ⟨uni⟩ ⟨repository⟩ ⟨repo⟩ ⟨policy⟩ ⟨reso⟩ ⟨repos⟩"
-  },
+  "Github_hard---o32807.json": {},
   "Github_hard---o32921.json": {},
   "Github_hard---o32922.json": {},
   "Github_hard---o32934.json": {
@@ -3698,9 +3692,7 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o36779.json": {},
-  "Github_hard---o37075.json": {
-    "validation_error": "test #0: token not accepted at ⟦ystem‧Id‧\":\"‧my‧-‧ec‧os‧ystem‧\",\"‧environment‧Id‧\":\"‧my‧-en‧vironment‧\",\"‧plugins‧\":{\"‧plugin‧1‧\":{\"‧enabled‧\":‧true‧,\"‧local‧Services‧\":[\"‧service‧1‧\",\"‧service‧2‧\"]‧},\"‧plugin‧2‧\":{\"‧enabled‧\":‧false‧,\"‧local‧Services‧\":[\"‧service‧3‧\"]‧}}‧,\"⟧ * ⟦router⟧ * ⟦\":{\"‧aut‧od‧is⟧ forced tokens \"⟦transport⟧\" != \"⟦router⟧\""
-  },
+  "Github_hard---o37075.json": {},
   "Github_hard---o37102.json": {},
   "Github_hard---o37603.json": {},
   "Github_hard---o37609.json": {},
@@ -4158,13 +4150,9 @@
   "Github_hard---o60994.json": {},
   "Github_hard---o60995.json": {},
   "Github_hard---o60996.json": {},
-  "Github_hard---o61003.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦status⟧ * ⟦\":\"‧success‧\",\"‧summary⟧ mask: TokenSet: 10/128256; ⟨_⟩ ⟨d⟩ ⟨de⟩ ⟨_re⟩ ⟨_r⟩ ⟨_rel⟩ ⟨detail⟩ ⟨details⟩ ⟨det⟩ ⟨_release⟩"
-  },
+  "Github_hard---o61003.json": {},
   "Github_hard---o61006.json": {},
-  "Github_hard---o61026.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦name⟧ * ⟦\":\"‧example‧function‧\",\"⟧ forced tokens \"⟦description⟧\" != \"⟦name⟧\""
-  },
+  "Github_hard---o61026.json": {},
   "Github_hard---o61027.json": {
     "json_error": "Unknown format: regex"
   },
@@ -4214,9 +4202,7 @@
   },
   "Github_hard---o63156.json": {},
   "Github_hard---o63177.json": {},
-  "Github_hard---o63198.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦group⟧ * ⟦ing‧\":\"‧Group‧ ⟧ forced tokens \"⟦data‧_source⟧\" != \"⟦group‧ing⟧\""
-  },
+  "Github_hard---o63198.json": {},
   "Github_hard---o6322.json": {},
   "Github_hard---o63300.json": {},
   "Github_hard---o63309.json": {},
@@ -4461,9 +4447,7 @@
   "Github_hard---o7573.json": {},
   "Github_hard---o7607.json": {},
   "Github_hard---o76546.json": {},
-  "Github_hard---o76577.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧virtual‧Server‧\":{\"‧backend‧\":{\"‧serviceName‧\":\"‧example‧-service‧\",\"‧service‧Port‧\":‧80⟧ * ⟦,\"⟧ * ⟦health‧Mon‧itors‧\":[{\"⟧ mask: TokenSet: 569/128256; ⟨0⟩ ⟨1⟩ ⟨2⟩ ⟨3⟩ ⟨4⟩ ⟨5⟩ ⟨6⟩ ⟨7⟩ ⟨8⟩ ⟨9⟩ ⟨}⟩ ⟨\\t⟩ ⟨\\n⟩ ⟨\\r⟩ ⟨ ⟩ ⟨  ⟩ ⟨    ⟩ ⟨        ⟩ ⟨   ⟩ ⟨\\n\\n⟩ ⟨       ⟩ ⟨\\t\\t⟩ ⟨           ⟩ ⟨\\r\\n⟩ ⟨ }⟩ ⟨                ⟩ ⟨               ⟩ ⟨00⟩ ⟨     ⟩ ⟨ }\\n⟩ ⟨\\t\\t\\t\\t⟩ ⟨                   ⟩ ⟨20⟩ ⟨}\\n⟩ ⟨ }\\n\\n⟩ ⟨\\t\\t\\t⟩ ⟨10⟩ ⟨}\\n\\n⟩ ⟨                       ⟩ ⟨         ⟩ ⟨12⟩ ⟨ \\n⟩ ⟨19⟩ ⟨                                ⟩ ⟨11⟩ ⟨32⟩ ⟨16⟩ ⟨15⟩ ⟨\\r\\n\\r\\n⟩ ⟨25⟩ ..."
-  },
+  "Github_hard---o76577.json": {},
   "Github_hard---o76580.json": {
     "json_error": "Unknown format: bigipv4"
   },
@@ -4497,9 +4481,7 @@
   "Github_hard---o77367.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
-  "Github_hard---o77403.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧company‧\":{\"⟧ * ⟦id⟧ * ⟦\":‧1‧,\"‧name⟧ forced tokens \"⟦address⟧\" != \"⟦id⟧\""
-  },
+  "Github_hard---o77403.json": {},
   "Github_hard---o77405.json": {},
   "Github_hard---o77406.json": {},
   "Github_hard---o77732.json": {},
@@ -4512,9 +4494,7 @@
   "Github_hard---o78081.json": {},
   "Github_hard---o78082.json": {},
   "Github_hard---o78458.json": {},
-  "Github_hard---o78474.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧07‧/schema‧#‧\",\"‧title‧\":\"‧S‧try‧ker‧Options‧\",\"‧description‧\":\"‧JSON‧ schema‧ for‧ the‧ S‧try‧ker‧ Mut‧ator‧ configuration‧ file‧\",\"‧type‧\":\"‧object‧\",\"‧allow‧Console‧Colors⟧ * ⟦\":⟧ * ⟦true‧,\"‧command‧Runner⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]�.. (91 more)"
-  },
+  "Github_hard---o78474.json": {},
   "Github_hard---o78777.json": {},
   "Github_hard---o78891.json": {},
   "Github_hard---o78893.json": {},
@@ -4807,9 +4787,7 @@
   "Github_hard---o90972.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
-  "Github_hard---o91013.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧attributes‧\":[{\"‧name‧\":\"‧attribute‧1‧\",\"⟧ * ⟦label⟧ * ⟦\":\"‧Attribute‧ ‧1⟧ forced tokens \"⟦order⟧\" != \"⟦label⟧\""
-  },
+  "Github_hard---o91013.json": {},
   "Github_hard---o91019.json": {},
   "Github_hard---o91022.json": {},
   "Github_hard---o91033.json": {},
@@ -5799,9 +5777,7 @@
   "Github_medium---o47920.json": {},
   "Github_medium---o47921.json": {},
   "Github_medium---o47943.json": {},
-  "Github_medium---o47944.json": {
-    "validation_error": "test #0: token not accepted at ⟦T‧00‧:‧00‧:‧00‧Z‧\",\"‧email‧_field‧\":\"‧example‧@example‧.com‧\",\"‧string‧_field‧\":\"‧Sample‧ text‧.\",\"‧uuid‧_field‧\":\"‧447‧248‧31‧-b‧f‧66‧-‧4‧bc‧2‧-‧865‧f‧-e‧2‧c‧4‧c‧2‧b‧14‧c‧78‧\"},\"‧another‧-resource⟧ * ⟦\":⟧ * ⟦{}‧,\"‧underscore‧d⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
+  "Github_medium---o47944.json": {},
   "Github_medium---o47952.json": {
     "json_error": "Unknown format: url"
   },
@@ -6122,9 +6098,7 @@
   "Github_medium---o58917.json": {},
   "Github_medium---o58927.json": {},
   "Github_medium---o58928.json": {},
-  "Github_medium---o59186.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧allow‧\":{\"‧path‧\":\"/‧users‧/‧0‧/name‧\",\"‧op‧\":\"‧add‧\",\"‧value‧\":\"‧John‧ Doe‧\",\"‧next⟧ * ⟦\":⟧ * ⟦true‧},\"‧deny‧\":[{\"⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
+  "Github_medium---o59186.json": {},
   "Github_medium---o59293.json": {},
   "Github_medium---o59664.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/dependancyVersion"
@@ -6181,9 +6155,7 @@
   "Github_medium---o60999.json": {},
   "Github_medium---o61000.json": {},
   "Github_medium---o61001.json": {},
-  "Github_medium---o61004.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦status⟧ * ⟦\":\"‧success‧\",\"‧summary⟧ mask: TokenSet: 10/128256; ⟨_⟩ ⟨d⟩ ⟨de⟩ ⟨_re⟩ ⟨_r⟩ ⟨_rel⟩ ⟨detail⟩ ⟨details⟩ ⟨det⟩ ⟨_release⟩"
-  },
+  "Github_medium---o61004.json": {},
   "Github_medium---o61121.json": {},
   "Github_medium---o61348.json": {
     "validation_error": "test #3: token not accepted at ⟦{\"‧custom‧Types‧\":[{\"‧name‧\":\"‧Custom‧Type‧1‧\",\"‧params‧\":[{\"‧name‧\":\"‧param‧1‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧String‧\",\"‧nullable⟧ forced tokens \"⟦nullable⟧\" != \"⟦type⟧\""
@@ -6453,9 +6425,7 @@
   "Github_medium---o66158.json": {},
   "Github_medium---o66186.json": {},
   "Github_medium---o66330.json": {},
-  "Github_medium---o66606.json": {
-    "validation_error": "test #0: token not accepted at ⟦=true‧\"],\"‧working‧_dir‧\":\"/‧home‧/user‧/project‧\"},\"‧prepare‧\":{\"‧path‧\":\"‧npm‧\",\"‧args‧\":[\"‧install‧\"],\"‧env‧\":[\"‧NODE‧_ENV‧=‧development‧\"]‧},\"‧post‧_build‧\":{\"‧path‧\":\"‧make‧\",\"‧args‧\":[\"‧test‧\"],\"‧env‧\":[\"‧DEBUG‧=true‧\"],\"‧working‧_dir‧\":\"/‧home‧/user‧/project‧\"},\"⟧ * ⟦env⟧ * ⟦\":[\"‧CI‧=true‧\"],\"⟧ forced tokens \"⟦emails⟧\" != \"⟦env⟧\""
-  },
+  "Github_medium---o66606.json": {},
   "Github_medium---o66610.json": {},
   "Github_medium---o66639.json": {},
   "Github_medium---o66687.json": {},
@@ -7216,9 +7186,7 @@
   "Github_medium---o90905.json": {
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
-  "Github_medium---o90913.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧@‧context‧\":‧{}‧,\"‧@‧graph‧\":[{\"‧@⟧ * ⟦id⟧ * ⟦\":\"‧1‧\",\"‧@⟧ forced tokens \"⟦type⟧\" != \"⟦id⟧\""
-  },
+  "Github_medium---o90913.json": {},
   "Github_medium---o90938.json": {},
   "Github_medium---o90940.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -7968,16 +7936,12 @@
   "Github_ultra---o21416.json": {},
   "Github_ultra---o21437.json": {},
   "Github_ultra---o21764.json": {},
-  "Github_ultra---o21840.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧Short‧ package‧ description‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 102/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ..."
-  },
+  "Github_ultra---o21840.json": {},
   "Github_ultra---o2312.json": {},
   "Github_ultra---o25423.json": {},
   "Github_ultra---o26314.json": {},
   "Github_ultra---o32645.json": {},
-  "Github_ultra---o33032.json": {
-    "validation_error": "test #0: token not accepted at ⟦text‧\":\"‧Middle‧ message‧\"}‧],\"‧start‧\":[{\"‧character‧\":\"‧ELL‧IS‧\",\"‧text‧\":\"‧Start‧ message‧\"}‧]}‧,\"‧name‧\":\"‧Mission‧ ‧1‧\"}‧],\"‧name‧\":\"‧Level‧ ‧1‧\"}‧]}‧,\"‧ch‧allenges‧\":{\"‧challenge‧1‧\":{\"‧template‧\":\"‧E‧gg‧Game‧\",\"‧linked‧Gen‧es⟧ * ⟦\":{\"⟧ * ⟦dr‧akes‧\":[‧0⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ �.. (101 more)"
-  },
+  "Github_ultra---o33032.json": {},
   "Github_ultra---o34345.json": {},
   "Github_ultra---o358.json": {},
   "Github_ultra---o359.json": {
@@ -7999,13 +7963,9 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/repository"
   },
   "Github_ultra---o40388.json": {},
-  "Github_ultra---o41081.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧/package‧\",\"‧description‧\":\"‧This‧ is‧ an‧ example‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 106/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨f⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ..."
-  },
+  "Github_ultra---o41081.json": {},
   "Github_ultra---o41389.json": {},
-  "Github_ultra---o42127.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧my‧-package‧\",\"‧description‧\":\"‧A‧ short‧ description‧ of‧ my‧ package‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 102/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ..."
-  },
+  "Github_ultra---o42127.json": {},
   "Github_ultra---o43012.json": {},
   "Github_ultra---o44208.json": {},
   "Github_ultra---o44225.json": {},
@@ -8152,15 +8112,11 @@
   "Github_ultra---o7578.json": {},
   "Github_ultra---o76155.json": {},
   "Github_ultra---o76156.json": {},
-  "Github_ultra---o78057.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧my‧-package‧\",\"‧description‧\":\"‧This‧ is‧ a‧ sample‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 102/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ..."
-  },
+  "Github_ultra---o78057.json": {},
   "Github_ultra---o78463.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/inline-package"
   },
-  "Github_ultra---o79009.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦summary⟧ * ⟦\":{\"‧viol‧ations‧\":[⟧ forced tokens \"⟦modules⟧\" != \"⟦summary⟧\""
-  },
+  "Github_ultra---o79009.json": {},
   "Github_ultra---o80208.json": {},
   "Github_ultra---o80235.json": {},
   "Github_ultra---o81.json": {
@@ -8168,9 +8124,7 @@
   },
   "Github_ultra---o81125.json": {},
   "Github_ultra---o83390.json": {},
-  "Github_ultra---o83854.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧/package‧\",\"‧description‧\":\"‧This‧ is‧ an‧ example‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 102/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ..."
-  },
+  "Github_ultra---o83854.json": {},
   "Github_ultra---o83932.json": {
     "json_error": "Unknown format: color"
   },
@@ -10780,9 +10734,7 @@
   "JsonSchemaStore---compose-spec.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
-  "JsonSchemaStore---composer-schema.json": {
-    "validation_error": "test #0: token not accepted at ⟦src‧/autoload‧.php‧\"]‧},\"‧autoload‧-dev‧\":{\"‧ps‧r‧-‧0‧\":{\"‧Vendor‧\\\\\\‧Namespace‧\\\\\\‧Test‧\":\"‧tests‧/‧\"},\"‧ps‧r‧-‧4‧\":{\"‧Vendor‧\\\\\\‧Namespace‧\\\\\\‧Test‧\":\"‧tests‧/‧\"},\"‧class‧map‧\":[\"‧tests‧/‧\"],\"‧files‧\":[\"‧tests‧/autoload‧.php‧\"]‧},\"‧require⟧ * ⟦\":{\"⟧ * ⟦php‧\":\"‧^‧7⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[f.. (108 more)"
-  },
+  "JsonSchemaStore---composer-schema.json": {},
   "JsonSchemaStore---config-file.v1.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
@@ -11398,22 +11350,12 @@
   "JsonSchemaStore---staticwebapp.config.json": {},
   "JsonSchemaStore---strings.json": {},
   "JsonSchemaStore---stripe-app.schema.json": {},
-  "JsonSchemaStore---strmprivacy.api.entities.v1.BatchJob.json": {
-    "validation_error": "test #0: token not accepted at ⟦\":{\"‧billing‧Id‧\":\"‧billing‧-id‧-‧123‧\",\"‧name‧\":\"‧data‧-‧connector‧-name‧-‧123‧\",\"‧projectId‧\":\"‧project‧-id‧-‧123‧\"},\"‧dataType‧\":{\"‧csv‧\":{\"‧charset‧\":\"‧UTF‧-‧8‧\"}}‧,\"‧fileName‧\":\"‧data‧.csv‧\",\"‧path‧Prefix‧\":\"‧data‧/‧\"},\"‧event‧Contract‧Ref⟧ * ⟦\":{\"⟧ * ⟦handle‧\":\"‧event‧-con⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb.. (121 more)"
-  },
-  "JsonSchemaStore---strmprivacy.api.entities.v1.DataConnector.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧ref‧\":{\"‧billing‧Id‧\":\"‧billing‧-id‧-‧123‧\",\"‧id‧\":\"‧data‧-‧connector‧-id‧-‧123‧\",\"‧projectId⟧ * ⟦\":\"⟧ * ⟦project‧-id‧-‧123⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
-  "JsonSchemaStore---strmprivacy.api.entities.v1.DataContract.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧id‧\":\"‧dc‧-‧123‧45‧\",\"‧ref⟧ * ⟦\":{\"⟧ * ⟦handle‧\":\"‧my‧-handle⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
-  "JsonSchemaStore---strmprivacy.api.entities.v1.Schema.SimpleSchemaDefinition.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧\",\"‧namespace‧\":\"‧example‧.namespace‧\",\"‧doc⟧ * ⟦\":\"⟧ * ⟦This‧ is‧ an‧ example⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
+  "JsonSchemaStore---strmprivacy.api.entities.v1.BatchJob.json": {},
+  "JsonSchemaStore---strmprivacy.api.entities.v1.DataConnector.json": {},
+  "JsonSchemaStore---strmprivacy.api.entities.v1.DataContract.json": {},
+  "JsonSchemaStore---strmprivacy.api.entities.v1.Schema.SimpleSchemaDefinition.json": {},
   "JsonSchemaStore---strmprivacy.api.entities.v1.Stream.json": {},
-  "JsonSchemaStore---stryker-core.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧07‧/schema‧#‧\",\"‧title‧\":\"‧S‧try‧ker‧Options‧\",\"‧description‧\":\"‧JSON‧ schema‧ for‧ the‧ S‧try‧ker‧ Mut‧ator‧ configuration‧ file‧\",\"‧type‧\":\"‧object‧\",\"‧allow‧Console‧Colors⟧ * ⟦\":⟧ * ⟦true‧,\"‧build‧Command⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]�.. (90 more)"
-  },
+  "JsonSchemaStore---stryker-core.json": {},
   "JsonSchemaStore---stylecop.schema.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
