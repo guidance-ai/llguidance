@@ -23,12 +23,29 @@
 ///   tokenizer, configured for testing (ff_tokens + backtrack enabled, verbose
 ///   logging).
 /// - [`get_tok_env`] / [`get_parser_factory`]: Accessors for the above.
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use lazy_static::lazy_static;
 use llguidance::{
     earley::SlicedBiasComputer,
     toktrie::{InferenceCapabilities, TokEnv},
     ParserFactory,
 };
+
+// ── Global quiet-mode flag ───────────────────────────────────────────────────
+
+static QUIET_MODE: AtomicBool = AtomicBool::new(false);
+
+/// When true, functions like [`json_schema_check`] suppress per-token parser
+/// logging.  Defaults to `false` (verbose), preserving existing behaviour for
+/// `cargo test` callers where output is captured anyway.
+pub fn set_quiet_mode(quiet: bool) {
+    QUIET_MODE.store(quiet, Ordering::Relaxed);
+}
+
+pub fn is_quiet_mode() -> bool {
+    QUIET_MODE.load(Ordering::Relaxed)
+}
 
 mod acceptance;
 mod trace_check;

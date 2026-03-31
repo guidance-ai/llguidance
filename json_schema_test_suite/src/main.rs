@@ -339,6 +339,10 @@ struct Args {
     #[arg(long)]
     update: bool,
 
+    /// Enable verbose parser logging (off by default)
+    #[arg(long)]
+    verbose: bool,
+
     /// Path to JSON-Schema-Test-Suite checkout
     suite_dir: Option<String>,
 }
@@ -348,6 +352,7 @@ fn main() -> Result<()> {
     std::panic::set_hook(Box::new(|_| {}));
 
     let args = Args::parse();
+    llg_test_utils::set_quiet_mode(!args.verbose);
     let mut drafts_arg = args.draft;
     let update = args.update;
 
