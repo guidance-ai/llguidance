@@ -1,4 +1,5 @@
-use llguidance::{earley::XorShift, substring::chunk_into_words};
+use llguidance::substring::chunk_into_words;
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use serde_json::json;
 
 use llg_test_utils::*;
@@ -459,14 +460,14 @@ fn test_lexeme_substring_words_unicode() {
 
 fn gen_words(seed: u32, num_words: usize) -> String {
     let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.";
-    let mut rnd = XorShift::new(seed + 1);
+    let mut rnd = SmallRng::seed_from_u64((seed + 1) as u64);
     let mut words = vec![];
-    let num_words = rnd.from_range((num_words / 2)..num_words);
+    let num_words = rnd.random_range((num_words / 2)..num_words);
     for _ in 0..num_words {
         let mut word = String::new();
-        let len = rnd.from_range(1..15);
+        let len = rnd.random_range(1..15);
         for _ in 0..len {
-            let idx = rnd.from_range(0..letters.len());
+            let idx = rnd.random_range(0..letters.len());
             word.push(letters.as_bytes()[idx] as char);
         }
         words.push(word);

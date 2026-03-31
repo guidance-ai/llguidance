@@ -32,11 +32,13 @@ use llguidance::{
 
 mod acceptance;
 mod trace_check;
+pub mod rng_utils;
 
 #[allow(unused_imports)]
 pub use acceptance::*;
 #[allow(unused_imports)]
 pub use trace_check::*;
+pub use rng_utils::*;
 
 // ── Shared parser factory ────────────────────────────────────────────────────
 

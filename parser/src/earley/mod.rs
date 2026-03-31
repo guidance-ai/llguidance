@@ -15,6 +15,6 @@ pub use grammar::{
     SymbolProps,
 };
 pub use parser::{
-    BiasComputer, Parser, ParserError, ParserMetrics, ParserRecognizer, ParserStats, XorShift,
+    BiasComputer, Parser, ParserError, ParserMetrics, ParserRecognizer, ParserStats,
 };
 pub use slicer::SlicedBiasComputer;
