@@ -53,6 +53,10 @@ pub(crate) struct SchemaCompiler {
     /// Deferred intersections for circular refs with sibling keywords.
     pending_intersections: Vec<PendingIntersection>,
     pending_counter: usize,
+    /// Refs currently being intersected — used to detect intersection cycles.
+    /// Maps ref_uri → Option<synthetic_uri>. None = being intersected but no
+    /// cycle detected yet. Some(uri) = cycle detected, uri is the self-ref target.
+    intersecting_refs: HashMap<String, Option<String>>,
 }
 
 impl SchemaCompiler {
@@ -85,6 +89,7 @@ impl SchemaCompiler {
             base_uri_stack: Vec::new(),
             pending_intersections: Vec::new(),
             pending_counter: 0,
+            intersecting_refs: HashMap::default(),
         };
 
         let raw: RawSchema = serde_json::from_value(contents)
@@ -103,11 +108,16 @@ impl SchemaCompiler {
                         pending.ref_uri
                     )
                 })?;
+            // Mark the ref so any re-encounter produces Ref(synthetic_uri).
+            compiler
+                .intersecting_refs
+                .insert(pending.ref_uri.clone(), Some(pending.synthetic_uri.clone()));
             let result = if pending.ref_first {
                 compiler.intersect(resolved, pending.sibling_schema, 0)?
             } else {
                 compiler.intersect(pending.sibling_schema, resolved, 0)?
             };
+            compiler.intersecting_refs.remove(&pending.ref_uri);
             compiler.definitions.insert(pending.synthetic_uri, result);
         }
 
@@ -719,17 +729,39 @@ impl SchemaCompiler {
         stack_level: usize,
     ) -> Result<Schema> {
         self.define_ref(ref_uri)?;
+
+        // Cycle detection: if this ref is already being intersected up the
+        // call stack, return a self-reference to break the cycle.
+        if let Some(synthetic_uri) = self.intersecting_refs.get(ref_uri) {
+            return match synthetic_uri {
+                Some(uri) => Ok(Schema::Ref(uri.clone())),
+                None => {
+                    let uri = format!("#/circular_{}", self.pending_counter);
+                    self.pending_counter += 1;
+                    self.intersecting_refs
+                        .insert(ref_uri.to_string(), Some(uri.clone()));
+                    Ok(Schema::Ref(uri))
+                }
+            };
+        }
+
         match self.definitions.get(ref_uri).cloned() {
             Some(resolved_schema) => {
-                if ref_first {
+                self.intersecting_refs.insert(ref_uri.to_string(), None);
+                let result = if ref_first {
                     self.intersect(resolved_schema, schema, stack_level + 1)
                 } else {
                     self.intersect(schema, resolved_schema, stack_level + 1)
+                };
+                if let Some(Some(synthetic_uri)) = self.intersecting_refs.remove(ref_uri) {
+                    if let Ok(ref schema) = result {
+                        self.definitions.insert(synthetic_uri, schema.clone());
+                    }
                 }
+                result
             }
             None => {
-                // Circular ref: definition is being compiled right now.
-                // Defer the intersection until after compilation completes.
+                // Ref is currently being compiled (not yet in definitions).
                 let synthetic_uri = format!("#/circular_{}", self.pending_counter);
                 self.pending_counter += 1;
                 self.pending_intersections.push(PendingIntersection {
@@ -764,12 +796,28 @@ impl SchemaCompiler {
         }
         let next = stack_level + 1;
 
+        // Unwrap single-element unions early to enable fast paths (e.g., same-ref detection)
+        let a = match a {
+            Schema::AnyOf(mut opts) | Schema::OneOf(mut opts) if opts.len() == 1 => {
+                opts.swap_remove(0)
+            }
+            other => other,
+        };
+        let b = match b {
+            Schema::AnyOf(mut opts) | Schema::OneOf(mut opts) if opts.len() == 1 => {
+                opts.swap_remove(0)
+            }
+            other => other,
+        };
+
         let merged = match (a, b) {
             // Identity and annihilator
             (Schema::Any, s) | (s, Schema::Any) => s,
             (Schema::Unsatisfiable(r), _) | (_, Schema::Unsatisfiable(r)) => {
                 Schema::Unsatisfiable(r)
             }
+            // Same ref: intersection with itself is identity
+            (Schema::Ref(ref u1), Schema::Ref(ref u2)) if u1 == u2 => Schema::Ref(u1.clone()),
             // Refs: resolve and intersect
             (Schema::Ref(uri), s) => self.intersect_ref(&uri, s, true, next)?,
             (s, Schema::Ref(uri)) => self.intersect_ref(&uri, s, false, next)?,
@@ -1012,22 +1060,31 @@ impl SchemaCompiler {
     }
 
     fn is_verifiably_disjoint(&mut self, a: &Schema, b: &Schema) -> bool {
+        self.is_disjoint_inner(a, b, 0)
+    }
+
+    fn is_disjoint_inner(&mut self, a: &Schema, b: &Schema, depth: usize) -> bool {
+        if depth > 16 {
+            return false;
+        }
         match (a, b) {
             (Schema::Unsatisfiable(_), _) | (_, Schema::Unsatisfiable(_)) => true,
             (Schema::Any, _) | (_, Schema::Any) => false,
             (Schema::Ref(name), _) => match self.definitions.get(name).cloned() {
-                Some(resolved) => self.is_verifiably_disjoint(&resolved, b),
+                Some(resolved) => self.is_disjoint_inner(&resolved, b, depth + 1),
                 None => false,
             },
             (_, Schema::Ref(name)) => match self.definitions.get(name).cloned() {
-                Some(resolved) => self.is_verifiably_disjoint(a, &resolved),
+                Some(resolved) => self.is_disjoint_inner(a, &resolved, depth + 1),
                 None => false,
             },
             (Schema::AnyOf(opts), _) | (Schema::OneOf(opts), _) => {
-                opts.iter().all(|opt| self.is_verifiably_disjoint(opt, b))
+                opts.iter()
+                    .all(|opt| self.is_disjoint_inner(opt, b, depth + 1))
             }
             (_, Schema::AnyOf(opts)) | (_, Schema::OneOf(opts)) => {
-                opts.iter().all(|opt| self.is_verifiably_disjoint(a, opt))
+                opts.iter()
+                    .all(|opt| self.is_disjoint_inner(a, opt, depth + 1))
             }
             (Schema::Boolean(v1), Schema::Boolean(v2)) => v1.is_some() && v2.is_some() && v1 != v2,
             (
@@ -1050,7 +1107,7 @@ impl SchemaCompiler {
                         .pattern_cache
                         .property_schema(o2, key)
                         .unwrap_or(&Schema::Any);
-                    self.is_verifiably_disjoint(p1, p2)
+                    self.is_disjoint_inner(p1, p2, depth + 1)
                 })
             }
             _ => std::mem::discriminant(a) != std::mem::discriminant(b),
