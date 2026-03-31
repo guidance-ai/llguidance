@@ -1,20 +1,13 @@
 pub mod compiler;
+mod context;
 mod formats;
 mod numeric;
+mod raw_schema;
 mod schema;
+mod schema_compiler;
 mod shared_context;
 
-#[cfg(feature = "referencing")]
-mod context_ref;
-#[cfg(not(feature = "referencing"))]
-mod context_simple;
-
-pub mod context {
-    #[cfg(feature = "referencing")]
-    pub use super::context_ref::*;
-    #[cfg(not(feature = "referencing"))]
-    pub use super::context_simple::*;
-}
+pub use context::{Draft, RefResolver};
 
 use std::{any::type_name_of_val, sync::Arc};
 

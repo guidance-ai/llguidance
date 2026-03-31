@@ -1225,9 +1225,7 @@
   "Github_easy---o17665.json": {},
   "Github_easy---o17668.json": {},
   "Github_easy---o17678.json": {},
-  "Github_easy---o17683.json": {
-    "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/Foo"
-  },
+  "Github_easy---o17683.json": {},
   "Github_easy---o17687.json": {},
   "Github_easy---o17692.json": {},
   "Github_easy---o17940.json": {},
@@ -1348,7 +1346,7 @@
   "Github_easy---o25199.json": {},
   "Github_easy---o25406.json": {},
   "Github_easy---o25419.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧json‧rpc‧\":\"‧2‧.‧0‧\",\"‧method‧\":\"‧subtract‧\",\"‧params‧\":[‧42‧,‧23⟧ * ⟦],\"⟧ * ⟦id‧\":‧1‧}⟧ mask: TokenSet: 1580/128256; ⟨,⟩ ⟨.⟩ ⟨0⟩ ⟨1⟩ ⟨2⟩ ⟨3⟩ ⟨4⟩ ⟨5⟩ ⟨6⟩ ⟨7⟩ ⟨8⟩ ⟨9⟩ ⟨E⟩ ⟨]⟩ ⟨e⟩ ⟨\\t⟩ ⟨\\n⟩ ⟨\\r⟩ ⟨ ⟩ ⟨  ⟩ ⟨    ⟩ ⟨        ⟩ ⟨   ⟩ ⟨\\n\\n⟩ ⟨       ⟩ ⟨\\t\\t⟩ ⟨           ⟩ ⟨\\r\\n⟩ ⟨                ⟩ ⟨,\\n⟩ ⟨               ⟩ ⟨00⟩ ⟨     ⟩ ⟨\\t\\t\\t\\t⟩ ⟨                   ⟩ ⟨20⟩ ⟨\\t\\t\\t⟩ ⟨10⟩ ⟨                       ⟩ ⟨201⟩ ⟨         ⟩ ⟨12⟩ ⟨ \\n⟩ ⟨19⟩ ⟨                                ⟩ ⟨11⟩ ⟨32⟩ ⟨16⟩ ⟨15⟩ ⟨\\r\\n\\r\\n⟩ ..."
   },
   "Github_easy---o25701.json": {},
   "Github_easy---o25711.json": {},
@@ -2120,9 +2118,7 @@
   "Github_easy---o58632.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_easy---o58633.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_easy---o58633.json": {},
   "Github_easy---o58636.json": {},
   "Github_easy---o58637.json": {},
   "Github_easy---o58839.json": {},
@@ -2759,9 +2755,7 @@
   "Github_easy---o82149.json": {},
   "Github_easy---o82176.json": {},
   "Github_easy---o82179.json": {},
-  "Github_easy---o82223.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_easy---o82223.json": {},
   "Github_easy---o82234.json": {},
   "Github_easy---o82241.json": {},
   "Github_easy---o82256.json": {},
@@ -2782,7 +2776,7 @@
   "Github_easy---o83161.json": {},
   "Github_easy---o83170.json": {},
   "Github_easy---o83258.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/json_react_element"
   },
   "Github_easy---o83269.json": {},
   "Github_easy---o83279.json": {},
@@ -2840,9 +2834,7 @@
   "Github_easy---o84352.json": {},
   "Github_easy---o84353.json": {},
   "Github_easy---o84354.json": {},
-  "Github_easy---o84363.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/platforms"
-  },
+  "Github_easy---o84363.json": {},
   "Github_easy---o8438.json": {},
   "Github_easy---o8450.json": {},
   "Github_easy---o8462.json": {},
@@ -2910,9 +2902,7 @@
   "Github_easy---o88586.json": {},
   "Github_easy---o88587.json": {},
   "Github_easy---o88588.json": {},
-  "Github_easy---o88596.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_easy---o88596.json": {},
   "Github_easy---o88674.json": {},
   "Github_easy---o88675.json": {},
   "Github_easy---o88676.json": {},
@@ -3099,9 +3089,7 @@
   "Github_easy---o91396.json": {
     "json_error": "Unknown format: evenlength"
   },
-  "Github_easy---o91581.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/arraySingleStringUri"
-  },
+  "Github_easy---o91581.json": {},
   "Github_easy---o91584.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
@@ -3209,12 +3197,8 @@
   "Github_easy---o9976.json": {
     "json_error": "Unknown format: path"
   },
-  "Github_hard---o10293.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o10296.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o10293.json": {},
+  "Github_hard---o10296.json": {},
   "Github_hard---o10346.json": {
     "json_error": "Unsatisfiable schema: required property 'id' is unsatisfiable\n  while processing https://github.com/codedellemc/libstorage#/definitions/instance"
   },
@@ -3272,9 +3256,7 @@
   "Github_hard---o12499.json": {},
   "Github_hard---o12613.json": {},
   "Github_hard---o12958.json": {},
-  "Github_hard---o12972.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/points"
-  },
+  "Github_hard---o12972.json": {},
   "Github_hard---o12978.json": {},
   "Github_hard---o12985.json": {},
   "Github_hard---o13024.json": {
@@ -3289,9 +3271,7 @@
   },
   "Github_hard---o13152.json": {},
   "Github_hard---o13400.json": {},
-  "Github_hard---o13401.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o13401.json": {},
   "Github_hard---o13403.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -3332,9 +3312,7 @@
   "Github_hard---o16749.json": {
     "json_error": "Unknown format: regex"
   },
-  "Github_hard---o17383.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o17383.json": {},
   "Github_hard---o17394.json": {},
   "Github_hard---o17529.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
@@ -3367,9 +3345,7 @@
   "Github_hard---o20390.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
-  "Github_hard---o2045.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://schema.management.azure.com/schemas/common/definitions.json#/definitions/numberOrExpression"
-  },
+  "Github_hard---o2045.json": {},
   "Github_hard---o20452.json": {},
   "Github_hard---o20463.json": {},
   "Github_hard---o20477.json": {},
@@ -3383,403 +3359,187 @@
   "Github_hard---o21074.json": {},
   "Github_hard---o21075.json": {},
   "Github_hard---o21076.json": {},
-  "Github_hard---o21156.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21157.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21156.json": {},
+  "Github_hard---o21157.json": {},
   "Github_hard---o21159.json": {},
-  "Github_hard---o21160.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21160.json": {},
   "Github_hard---o21163.json": {},
-  "Github_hard---o21164.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21165.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21164.json": {},
+  "Github_hard---o21165.json": {},
   "Github_hard---o21167.json": {},
   "Github_hard---o21168.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details"
   },
   "Github_hard---o21169.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details"
   },
   "Github_hard---o21171.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details"
   },
-  "Github_hard---o21172.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21172.json": {},
   "Github_hard---o21175.json": {},
-  "Github_hard---o21176.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21184.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21176.json": {},
+  "Github_hard---o21184.json": {},
   "Github_hard---o21187.json": {},
-  "Github_hard---o21188.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21188.json": {},
   "Github_hard---o21191.json": {},
-  "Github_hard---o21192.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21192.json": {},
   "Github_hard---o21195.json": {},
   "Github_hard---o21196.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required\n  while processing json-schema:///#/definitions/details"
   },
   "Github_hard---o21197.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required\n  while processing json-schema:///#/definitions/details"
   },
   "Github_hard---o21199.json": {
     "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required\n  while processing json-schema:///#/definitions/details"
   },
-  "Github_hard---o21200.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
+  "Github_hard---o21200.json": {},
   "Github_hard---o21202.json": {},
-  "Github_hard---o21203.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21207.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
-  "Github_hard---o21211.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21215.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21216.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21203.json": {},
+  "Github_hard---o21207.json": {},
+  "Github_hard---o21211.json": {},
+  "Github_hard---o21215.json": {},
+  "Github_hard---o21216.json": {},
   "Github_hard---o21218.json": {},
   "Github_hard---o21222.json": {},
-  "Github_hard---o21223.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21224.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21223.json": {},
+  "Github_hard---o21224.json": {},
   "Github_hard---o21226.json": {},
-  "Github_hard---o21227.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21228.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21227.json": {},
+  "Github_hard---o21228.json": {},
   "Github_hard---o21230.json": {},
-  "Github_hard---o21231.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21232.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21231.json": {},
+  "Github_hard---o21232.json": {},
   "Github_hard---o21234.json": {},
-  "Github_hard---o21235.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
-  "Github_hard---o21239.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21240.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21235.json": {},
+  "Github_hard---o21239.json": {},
+  "Github_hard---o21240.json": {},
   "Github_hard---o21242.json": {},
-  "Github_hard---o21243.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21244.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21243.json": {},
+  "Github_hard---o21244.json": {},
   "Github_hard---o21246.json": {},
-  "Github_hard---o21247.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21248.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21247.json": {},
+  "Github_hard---o21248.json": {},
   "Github_hard---o21250.json": {},
-  "Github_hard---o21251.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21252.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21251.json": {},
+  "Github_hard---o21252.json": {},
   "Github_hard---o21254.json": {},
-  "Github_hard---o21255.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21256.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21255.json": {},
+  "Github_hard---o21256.json": {},
   "Github_hard---o21258.json": {},
-  "Github_hard---o21259.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21260.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21259.json": {},
+  "Github_hard---o21260.json": {},
   "Github_hard---o21262.json": {},
-  "Github_hard---o21263.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
-  "Github_hard---o21264.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
+  "Github_hard---o21263.json": {},
+  "Github_hard---o21264.json": {},
   "Github_hard---o21266.json": {},
-  "Github_hard---o21267.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21268.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21267.json": {},
+  "Github_hard---o21268.json": {},
   "Github_hard---o21270.json": {},
-  "Github_hard---o21271.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
-  "Github_hard---o21272.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
+  "Github_hard---o21271.json": {},
+  "Github_hard---o21272.json": {},
   "Github_hard---o21274.json": {},
-  "Github_hard---o21275.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21276.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21275.json": {},
+  "Github_hard---o21276.json": {},
   "Github_hard---o21278.json": {},
-  "Github_hard---o21279.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21280.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21279.json": {},
+  "Github_hard---o21280.json": {},
   "Github_hard---o21282.json": {},
-  "Github_hard---o21283.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21284.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21283.json": {},
+  "Github_hard---o21284.json": {},
   "Github_hard---o21286.json": {},
-  "Github_hard---o21287.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21288.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21287.json": {},
+  "Github_hard---o21288.json": {},
   "Github_hard---o21290.json": {},
-  "Github_hard---o21291.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21292.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21291.json": {},
+  "Github_hard---o21292.json": {},
   "Github_hard---o21294.json": {},
-  "Github_hard---o21299.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21300.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21299.json": {},
+  "Github_hard---o21300.json": {},
   "Github_hard---o21302.json": {},
-  "Github_hard---o21303.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21303.json": {},
   "Github_hard---o21306.json": {},
   "Github_hard---o21310.json": {},
-  "Github_hard---o21311.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21311.json": {},
   "Github_hard---o21314.json": {},
-  "Github_hard---o21315.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21316.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21315.json": {},
+  "Github_hard---o21316.json": {},
   "Github_hard---o21318.json": {},
-  "Github_hard---o21319.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21320.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21319.json": {},
+  "Github_hard---o21320.json": {},
   "Github_hard---o21322.json": {},
-  "Github_hard---o21323.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21324.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21323.json": {},
+  "Github_hard---o21324.json": {},
   "Github_hard---o21326.json": {},
-  "Github_hard---o21327.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21327.json": {},
   "Github_hard---o21330.json": {},
-  "Github_hard---o21331.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
-  "Github_hard---o21332.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
+  "Github_hard---o21331.json": {},
+  "Github_hard---o21332.json": {},
   "Github_hard---o21334.json": {},
-  "Github_hard---o21335.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21339.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21343.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21344.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21335.json": {},
+  "Github_hard---o21339.json": {},
+  "Github_hard---o21343.json": {},
+  "Github_hard---o21344.json": {},
   "Github_hard---o21346.json": {},
-  "Github_hard---o21351.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21352.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21351.json": {},
+  "Github_hard---o21352.json": {},
   "Github_hard---o21354.json": {},
-  "Github_hard---o21355.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21356.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21355.json": {},
+  "Github_hard---o21356.json": {},
   "Github_hard---o21358.json": {},
-  "Github_hard---o21359.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21360.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21359.json": {},
+  "Github_hard---o21360.json": {},
   "Github_hard---o21362.json": {},
-  "Github_hard---o21363.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21364.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21363.json": {},
+  "Github_hard---o21364.json": {},
   "Github_hard---o21366.json": {},
-  "Github_hard---o21367.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21368.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21367.json": {},
+  "Github_hard---o21368.json": {},
   "Github_hard---o21370.json": {},
-  "Github_hard---o21371.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21372.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21371.json": {},
+  "Github_hard---o21372.json": {},
   "Github_hard---o21374.json": {},
-  "Github_hard---o21379.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21379.json": {},
   "Github_hard---o21382.json": {},
-  "Github_hard---o21383.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21384.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21383.json": {},
+  "Github_hard---o21384.json": {},
   "Github_hard---o21386.json": {},
-  "Github_hard---o21387.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21388.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21387.json": {},
+  "Github_hard---o21388.json": {},
   "Github_hard---o21390.json": {},
-  "Github_hard---o21391.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
-  "Github_hard---o21392.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
-  "Github_hard---o21394.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/individual_step"
-  },
-  "Github_hard---o21395.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21396.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21391.json": {},
+  "Github_hard---o21392.json": {},
+  "Github_hard---o21394.json": {},
+  "Github_hard---o21395.json": {},
+  "Github_hard---o21396.json": {},
   "Github_hard---o21398.json": {},
-  "Github_hard---o21399.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21400.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21399.json": {},
+  "Github_hard---o21400.json": {},
   "Github_hard---o21402.json": {},
-  "Github_hard---o21403.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21404.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21403.json": {},
+  "Github_hard---o21404.json": {},
   "Github_hard---o21406.json": {},
-  "Github_hard---o21407.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21408.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21407.json": {},
+  "Github_hard---o21408.json": {},
   "Github_hard---o21410.json": {},
-  "Github_hard---o21411.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21412.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21411.json": {},
+  "Github_hard---o21412.json": {},
   "Github_hard---o21414.json": {},
-  "Github_hard---o21415.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21415.json": {},
   "Github_hard---o21418.json": {},
-  "Github_hard---o21419.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21420.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21419.json": {},
+  "Github_hard---o21420.json": {},
   "Github_hard---o21422.json": {},
-  "Github_hard---o21423.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21424.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21423.json": {},
+  "Github_hard---o21424.json": {},
   "Github_hard---o21426.json": {},
-  "Github_hard---o21427.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/frontend_links"
-  },
-  "Github_hard---o21428.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21429.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21427.json": {},
+  "Github_hard---o21428.json": {},
+  "Github_hard---o21429.json": {},
   "Github_hard---o21431.json": {},
-  "Github_hard---o21432.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o21436.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o21432.json": {},
+  "Github_hard---o21436.json": {},
   "Github_hard---o21439.json": {},
   "Github_hard---o21442.json": {},
   "Github_hard---o21480.json": {},
@@ -3811,9 +3571,7 @@
   "Github_hard---o26690.json": {},
   "Github_hard---o27019.json": {},
   "Github_hard---o27023.json": {},
-  "Github_hard---o27039.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/hasActivityAssignment"
-  },
+  "Github_hard---o27039.json": {},
   "Github_hard---o27217.json": {},
   "Github_hard---o27224.json": {},
   "Github_hard---o27348.json": {
@@ -3827,7 +3585,7 @@
   "Github_hard---o28618.json": {},
   "Github_hard---o29019.json": {},
   "Github_hard---o29388.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #1: token not accepted at ⟦liquid‧_level‧_follow‧\":‧false‧},\"‧dsp‧\":{\"‧height‧\":{\"‧reference‧\":\"‧well‧_bottom‧\",\"‧value‧\":‧10‧.‧0‧,\"‧unit‧\":\"‧mill‧imeters‧\"},\"‧flow‧_rate‧\":{\"‧value‧\":‧10‧.‧0‧,\"‧unit‧\":\"‧mic‧rol‧it‧ers‧/‧second‧\"},\"‧liquid‧_level‧_follow‧\":‧false‧,\"⟧ * ⟦bl⟧ * ⟦ow‧out‧\":{\"‧volume⟧ mask: TokenSet: 6/128256; ⟨m⟩ ⟨t⟩ ⟨to⟩ ⟨mi⟩ ⟨touch⟩ ⟨mix⟩"
   },
   "Github_hard---o29389.json": {},
   "Github_hard---o29445.json": {
@@ -3889,7 +3647,7 @@
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
   "Github_hard---o32807.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧\",\"⟧ * ⟦author⟧ * ⟦\":{\"‧name‧\":\"‧John⟧ mask: TokenSet: 19/128256; ⟨p⟩ ⟨r⟩ ⟨u⟩ ⟨re⟩ ⟨un⟩ ⟨res⟩ ⟨reg⟩ ⟨region⟩ ⟨po⟩ ⟨resource⟩ ⟨pol⟩ ⟨rep⟩ ⟨resources⟩ ⟨uni⟩ ⟨repository⟩ ⟨repo⟩ ⟨policy⟩ ⟨reso⟩ ⟨repos⟩"
   },
   "Github_hard---o32921.json": {},
   "Github_hard---o32922.json": {},
@@ -3919,7 +3677,7 @@
   "Github_hard---o34897.json": {},
   "Github_hard---o34899.json": {},
   "Github_hard---o35186.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/actionObject"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/statesObject"
   },
   "Github_hard---o35767.json": {},
   "Github_hard---o35867.json": {
@@ -3939,11 +3697,9 @@
   "Github_hard---o366.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
-  "Github_hard---o36779.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/annotations"
-  },
+  "Github_hard---o36779.json": {},
   "Github_hard---o37075.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦ystem‧Id‧\":\"‧my‧-‧ec‧os‧ystem‧\",\"‧environment‧Id‧\":\"‧my‧-en‧vironment‧\",\"‧plugins‧\":{\"‧plugin‧1‧\":{\"‧enabled‧\":‧true‧,\"‧local‧Services‧\":[\"‧service‧1‧\",\"‧service‧2‧\"]‧},\"‧plugin‧2‧\":{\"‧enabled‧\":‧false‧,\"‧local‧Services‧\":[\"‧service‧3‧\"]‧}}‧,\"⟧ * ⟦router⟧ * ⟦\":{\"‧aut‧od‧is⟧ forced tokens \"⟦transport⟧\" != \"⟦router⟧\""
   },
   "Github_hard---o37102.json": {},
   "Github_hard---o37603.json": {},
@@ -3976,7 +3732,7 @@
   "Github_hard---o39113.json": {},
   "Github_hard---o39197.json": {},
   "Github_hard---o39210.json": {
-    "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/logicalConditionDefinition"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/conditionDescriptorDefinition"
   },
   "Github_hard---o39233.json": {
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
@@ -3985,9 +3741,7 @@
   "Github_hard---o39535.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/identifiable"
   },
-  "Github_hard---o39794.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
-  },
+  "Github_hard---o39794.json": {},
   "Github_hard---o40360.json": {},
   "Github_hard---o40394.json": {},
   "Github_hard---o40454.json": {
@@ -4142,7 +3896,7 @@
   "Github_hard---o46265.json": {},
   "Github_hard---o46283.json": {},
   "Github_hard---o46658.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/Type"
   },
   "Github_hard---o47090.json": {},
   "Github_hard---o47095.json": {},
@@ -4158,9 +3912,7 @@
   "Github_hard---o47208.json": {},
   "Github_hard---o47247.json": {},
   "Github_hard---o47262.json": {},
-  "Github_hard---o47658.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/acl"
-  },
+  "Github_hard---o47658.json": {},
   "Github_hard---o47670.json": {},
   "Github_hard---o47674.json": {},
   "Github_hard---o47675.json": {},
@@ -4242,9 +3994,7 @@
   "Github_hard---o5368.json": {},
   "Github_hard---o53697.json": {},
   "Github_hard---o5370.json": {},
-  "Github_hard---o53701.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o53701.json": {},
   "Github_hard---o5374.json": {},
   "Github_hard---o5377.json": {},
   "Github_hard---o5379.json": {},
@@ -4328,7 +4078,7 @@
   "Github_hard---o5790.json": {},
   "Github_hard---o57978.json": {},
   "Github_hard---o58218.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦atches‧?‧limit‧=‧10‧&‧offset‧=‧0‧\",\"‧last‧\":\"‧https‧://‧api‧.example‧.com‧/m‧atches‧?‧limit‧=‧10‧&‧offset‧=‧90‧\",\"‧prev‧\":‧null‧,\"‧next‧\":\"‧https‧://‧api‧.example‧.com‧/m‧atches‧?‧limit‧=‧10‧&‧offset‧=‧10‧\"},\"⟧ * ⟦meta⟧ * ⟦\":{\"‧count‧\":‧100⟧ forced tokens \"⟦json‧api⟧\" != \"⟦meta‧\\\":{\\\"⟧\""
   },
   "Github_hard---o58281.json": {
     "json_error": "Unknown format: url"
@@ -4352,9 +4102,7 @@
   "Github_hard---o58762.json": {},
   "Github_hard---o58764.json": {},
   "Github_hard---o58770.json": {},
-  "Github_hard---o58837.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/Annotation"
-  },
+  "Github_hard---o58837.json": {},
   "Github_hard---o58843.json": {},
   "Github_hard---o59215.json": {},
   "Github_hard---o59668.json": {},
@@ -4399,39 +4147,23 @@
   "Github_hard---o6090.json": {},
   "Github_hard---o60979.json": {},
   "Github_hard---o60980.json": {},
-  "Github_hard---o60986.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o60986.json": {},
   "Github_hard---o60988.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_hard---o60989.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
-  },
-  "Github_hard---o60990.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
-  },
-  "Github_hard---o60991.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
-  },
-  "Github_hard---o60993.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
-  },
-  "Github_hard---o60994.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
-  },
-  "Github_hard---o60995.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
-  },
-  "Github_hard---o60996.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/details_metadata"
-  },
+  "Github_hard---o60989.json": {},
+  "Github_hard---o60990.json": {},
+  "Github_hard---o60991.json": {},
+  "Github_hard---o60993.json": {},
+  "Github_hard---o60994.json": {},
+  "Github_hard---o60995.json": {},
+  "Github_hard---o60996.json": {},
   "Github_hard---o61003.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦status⟧ * ⟦\":\"‧success‧\",\"‧summary⟧ mask: TokenSet: 10/128256; ⟨_⟩ ⟨d⟩ ⟨de⟩ ⟨_re⟩ ⟨_r⟩ ⟨_rel⟩ ⟨detail⟩ ⟨details⟩ ⟨det⟩ ⟨_release⟩"
   },
   "Github_hard---o61006.json": {},
   "Github_hard---o61026.json": {
-    "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/params"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦name⟧ * ⟦\":\"‧example‧function‧\",\"⟧ forced tokens \"⟦description⟧\" != \"⟦name⟧\""
   },
   "Github_hard---o61027.json": {
     "json_error": "Unknown format: regex"
@@ -4476,16 +4208,14 @@
   "Github_hard---o62943.json": {},
   "Github_hard---o62947.json": {},
   "Github_hard---o62961.json": {},
-  "Github_hard---o63004.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o63004.json": {},
   "Github_hard---o63152.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_hard---o63156.json": {},
   "Github_hard---o63177.json": {},
   "Github_hard---o63198.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦group⟧ * ⟦ing‧\":\"‧Group‧ ⟧ forced tokens \"⟦data‧_source⟧\" != \"⟦group‧ing⟧\""
   },
   "Github_hard---o6322.json": {},
   "Github_hard---o63300.json": {},
@@ -4548,19 +4278,15 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o65730.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/array_of_numbers_or_arrays"
   },
   "Github_hard---o65753.json": {},
   "Github_hard---o65826.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o65883.json": {},
-  "Github_hard---o65890.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_hard---o65892.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o65890.json": {},
+  "Github_hard---o65892.json": {},
   "Github_hard---o65957.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/onvif/ptz/SpaceSelector"
   },
@@ -4736,7 +4462,7 @@
   "Github_hard---o7607.json": {},
   "Github_hard---o76546.json": {},
   "Github_hard---o76577.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧virtual‧Server‧\":{\"‧backend‧\":{\"‧serviceName‧\":\"‧example‧-service‧\",\"‧service‧Port‧\":‧80⟧ * ⟦,\"⟧ * ⟦health‧Mon‧itors‧\":[{\"⟧ mask: TokenSet: 569/128256; ⟨0⟩ ⟨1⟩ ⟨2⟩ ⟨3⟩ ⟨4⟩ ⟨5⟩ ⟨6⟩ ⟨7⟩ ⟨8⟩ ⟨9⟩ ⟨}⟩ ⟨\\t⟩ ⟨\\n⟩ ⟨\\r⟩ ⟨ ⟩ ⟨  ⟩ ⟨    ⟩ ⟨        ⟩ ⟨   ⟩ ⟨\\n\\n⟩ ⟨       ⟩ ⟨\\t\\t⟩ ⟨           ⟩ ⟨\\r\\n⟩ ⟨ }⟩ ⟨                ⟩ ⟨               ⟩ ⟨00⟩ ⟨     ⟩ ⟨ }\\n⟩ ⟨\\t\\t\\t\\t⟩ ⟨                   ⟩ ⟨20⟩ ⟨}\\n⟩ ⟨ }\\n\\n⟩ ⟨\\t\\t\\t⟩ ⟨10⟩ ⟨}\\n\\n⟩ ⟨                       ⟩ ⟨         ⟩ ⟨12⟩ ⟨ \\n⟩ ⟨19⟩ ⟨                                ⟩ ⟨11⟩ ⟨32⟩ ⟨16⟩ ⟨15⟩ ⟨\\r\\n\\r\\n⟩ ⟨25⟩ ..."
   },
   "Github_hard---o76580.json": {
     "json_error": "Unknown format: bigipv4"
@@ -4780,21 +4506,19 @@
   "Github_hard---o78015.json": {},
   "Github_hard---o78037.json": {},
   "Github_hard---o78043.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/repo-object"
   },
   "Github_hard---o78059.json": {},
   "Github_hard---o78081.json": {},
   "Github_hard---o78082.json": {},
   "Github_hard---o78458.json": {},
   "Github_hard---o78474.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧07‧/schema‧#‧\",\"‧title‧\":\"‧S‧try‧ker‧Options‧\",\"‧description‧\":\"‧JSON‧ schema‧ for‧ the‧ S‧try‧ker‧ Mut‧ator‧ configuration‧ file‧\",\"‧type‧\":\"‧object‧\",\"‧allow‧Console‧Colors⟧ * ⟦\":⟧ * ⟦true‧,\"‧command‧Runner⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]�.. (91 more)"
   },
   "Github_hard---o78777.json": {},
   "Github_hard---o78891.json": {},
   "Github_hard---o78893.json": {},
-  "Github_hard---o79008.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://dependency-cruiser.js.org/schema/configuration.schema.json#/definitions/OptionsType"
-  },
+  "Github_hard---o79008.json": {},
   "Github_hard---o79015.json": {
     "json_error": "Unknown format: uri-reference"
   },
@@ -4844,9 +4568,7 @@
   },
   "Github_hard---o81164.json": {},
   "Github_hard---o81498.json": {},
-  "Github_hard---o81650.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_hard---o81650.json": {},
   "Github_hard---o81652.json": {},
   "Github_hard---o82144.json": {
     "json_error": "patternProperty regexes /.*/ and /github/ are not disjoint"
@@ -5064,7 +4786,7 @@
   "Github_hard---o90832.json": {},
   "Github_hard---o90895.json": {},
   "Github_hard---o90912.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/Value"
+    "json_error": "Failed to generate regex for integer range: min=Some(-9223372036854775808), max=Some(9223372036854775807)\n  while processing json-schema:///#/definitions/IntegerValue"
   },
   "Github_hard---o90924.json": {
     "json_error": "Unknown format: uri-reference"
@@ -5086,7 +4808,7 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_hard---o91013.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧attributes‧\":[{\"‧name‧\":\"‧attribute‧1‧\",\"⟧ * ⟦label⟧ * ⟦\":\"‧Attribute‧ ‧1⟧ forced tokens \"⟦order⟧\" != \"⟦label⟧\""
   },
   "Github_hard---o91019.json": {},
   "Github_hard---o91022.json": {},
@@ -5337,7 +5059,7 @@
   "Github_medium---o17121.json": {},
   "Github_medium---o17122.json": {},
   "Github_medium---o17127.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#"
   },
   "Github_medium---o17131.json": {},
   "Github_medium---o17132.json": {},
@@ -5525,9 +5247,7 @@
   "Github_medium---o27789.json": {},
   "Github_medium---o27827.json": {},
   "Github_medium---o27839.json": {},
-  "Github_medium---o27840.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_medium---o27840.json": {},
   "Github_medium---o28130.json": {},
   "Github_medium---o28131.json": {},
   "Github_medium---o28176.json": {
@@ -5744,9 +5464,7 @@
   "Github_medium---o36469.json": {
     "json_error": "Unknown format: ^\\d{4}-\\d{2}-\\d{2}$"
   },
-  "Github_medium---o36591.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/metric"
-  },
+  "Github_medium---o36591.json": {},
   "Github_medium---o36600.json": {},
   "Github_medium---o36797.json": {
     "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
@@ -5891,9 +5609,7 @@
   },
   "Github_medium---o42027.json": {},
   "Github_medium---o42029.json": {},
-  "Github_medium---o42041.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/linguist_details"
-  },
+  "Github_medium---o42041.json": {},
   "Github_medium---o42140.json": {},
   "Github_medium---o42148.json": {},
   "Github_medium---o42179.json": {},
@@ -5969,14 +5685,10 @@
   "Github_medium---o43991.json": {},
   "Github_medium---o43994.json": {},
   "Github_medium---o44008.json": {},
-  "Github_medium---o44063.json": {
-    "json_error": "Resource 'json-schema:///schema/lemon' is not present in a registry and retrieving it failed: Retrieving external resources is not supported once the registry is populated"
-  },
+  "Github_medium---o44063.json": {},
   "Github_medium---o44135.json": {},
   "Github_medium---o44194.json": {},
-  "Github_medium---o44203.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_medium---o44203.json": {},
   "Github_medium---o44205.json": {},
   "Github_medium---o44206.json": {},
   "Github_medium---o44253.json": {},
@@ -6088,7 +5800,7 @@
   "Github_medium---o47921.json": {},
   "Github_medium---o47943.json": {},
   "Github_medium---o47944.json": {
-    "json_error": "Resource 'json-schema:///schema/resource' is not present in a registry and retrieving it failed: Retrieving external resources is not supported once the registry is populated"
+    "validation_error": "test #0: token not accepted at ⟦T‧00‧:‧00‧:‧00‧Z‧\",\"‧email‧_field‧\":\"‧example‧@example‧.com‧\",\"‧string‧_field‧\":\"‧Sample‧ text‧.\",\"‧uuid‧_field‧\":\"‧447‧248‧31‧-b‧f‧66‧-‧4‧bc‧2‧-‧865‧f‧-e‧2‧c‧4‧c‧2‧b‧14‧c‧78‧\"},\"‧another‧-resource⟧ * ⟦\":⟧ * ⟦{}‧,\"‧underscore‧d⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "Github_medium---o47952.json": {
     "json_error": "Unknown format: url"
@@ -6163,9 +5875,7 @@
   "Github_medium---o51177.json": {
     "json_error": "patternProperty regexes /^[a-zA-Z0-9_-]{1,}$/ and /^MD5$/ are not disjoint"
   },
-  "Github_medium---o51260.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/target"
-  },
+  "Github_medium---o51260.json": {},
   "Github_medium---o5147.json": {},
   "Github_medium---o5158.json": {},
   "Github_medium---o5161.json": {},
@@ -6208,9 +5918,7 @@
     "json_error": "Unknown format: topic"
   },
   "Github_medium---o53025.json": {},
-  "Github_medium---o53033.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/bolts"
-  },
+  "Github_medium---o53033.json": {},
   "Github_medium---o53044.json": {},
   "Github_medium---o53085.json": {},
   "Github_medium---o53100.json": {},
@@ -6353,9 +6061,7 @@
   "Github_medium---o58211.json": {},
   "Github_medium---o58212.json": {},
   "Github_medium---o58317.json": {},
-  "Github_medium---o5837.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_medium---o5837.json": {},
   "Github_medium---o58372.json": {},
   "Github_medium---o5844.json": {},
   "Github_medium---o58445.json": {},
@@ -6417,7 +6123,7 @@
   "Github_medium---o58927.json": {},
   "Github_medium---o58928.json": {},
   "Github_medium---o59186.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧allow‧\":{\"‧path‧\":\"/‧users‧/‧0‧/name‧\",\"‧op‧\":\"‧add‧\",\"‧value‧\":\"‧John‧ Doe‧\",\"‧next⟧ * ⟦\":⟧ * ⟦true‧},\"‧deny‧\":[{\"⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "Github_medium---o59293.json": {},
   "Github_medium---o59664.json": {
@@ -6469,18 +6175,14 @@
   "Github_medium---o60982.json": {},
   "Github_medium---o60983.json": {},
   "Github_medium---o60984.json": {},
-  "Github_medium---o60985.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_medium---o60987.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_medium---o60985.json": {},
+  "Github_medium---o60987.json": {},
   "Github_medium---o60997.json": {},
   "Github_medium---o60999.json": {},
   "Github_medium---o61000.json": {},
   "Github_medium---o61001.json": {},
   "Github_medium---o61004.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦status⟧ * ⟦\":\"‧success‧\",\"‧summary⟧ mask: TokenSet: 10/128256; ⟨_⟩ ⟨d⟩ ⟨de⟩ ⟨_re⟩ ⟨_r⟩ ⟨_rel⟩ ⟨detail⟩ ⟨details⟩ ⟨det⟩ ⟨_release⟩"
   },
   "Github_medium---o61121.json": {},
   "Github_medium---o61348.json": {
@@ -6564,9 +6266,7 @@
   "Github_medium---o6213.json": {},
   "Github_medium---o6214.json": {},
   "Github_medium---o6222.json": {},
-  "Github_medium---o6226.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_medium---o6226.json": {},
   "Github_medium---o6230.json": {},
   "Github_medium---o6231.json": {},
   "Github_medium---o6232.json": {},
@@ -6577,9 +6277,7 @@
   "Github_medium---o6249.json": {},
   "Github_medium---o6256.json": {},
   "Github_medium---o6257.json": {},
-  "Github_medium---o62651.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing http://n7space.com/asn1-lib-module-schema.json#/definitions/referenceList"
-  },
+  "Github_medium---o62651.json": {},
   "Github_medium---o6266.json": {},
   "Github_medium---o6271.json": {},
   "Github_medium---o62756.json": {},
@@ -6655,9 +6353,7 @@
   "Github_medium---o63945.json": {},
   "Github_medium---o63998.json": {},
   "Github_medium---o64020.json": {},
-  "Github_medium---o64027.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_medium---o64027.json": {},
   "Github_medium---o64557.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
   },
@@ -6758,7 +6454,7 @@
   "Github_medium---o66186.json": {},
   "Github_medium---o66330.json": {},
   "Github_medium---o66606.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦=true‧\"],\"‧working‧_dir‧\":\"/‧home‧/user‧/project‧\"},\"‧prepare‧\":{\"‧path‧\":\"‧npm‧\",\"‧args‧\":[\"‧install‧\"],\"‧env‧\":[\"‧NODE‧_ENV‧=‧development‧\"]‧},\"‧post‧_build‧\":{\"‧path‧\":\"‧make‧\",\"‧args‧\":[\"‧test‧\"],\"‧env‧\":[\"‧DEBUG‧=true‧\"],\"‧working‧_dir‧\":\"/‧home‧/user‧/project‧\"},\"⟧ * ⟦env⟧ * ⟦\":[\"‧CI‧=true‧\"],\"⟧ forced tokens \"⟦emails⟧\" != \"⟦env⟧\""
   },
   "Github_medium---o66610.json": {},
   "Github_medium---o66639.json": {},
@@ -6823,13 +6519,11 @@
   "Github_medium---o68603.json": {},
   "Github_medium---o68630.json": {},
   "Github_medium---o68694.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/singleReference"
   },
   "Github_medium---o68724.json": {},
   "Github_medium---o68725.json": {},
-  "Github_medium---o68806.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_medium---o68806.json": {},
   "Github_medium---o68822.json": {},
   "Github_medium---o69074.json": {},
   "Github_medium---o69099.json": {},
@@ -6837,9 +6531,7 @@
   "Github_medium---o69138.json": {},
   "Github_medium---o69158.json": {},
   "Github_medium---o69161.json": {},
-  "Github_medium---o69202.json": {
-    "json_error": "Resource 'json-schema:///schemata/app' is not present in a registry and retrieving it failed: Retrieving external resources is not supported once the registry is populated"
-  },
+  "Github_medium---o69202.json": {},
   "Github_medium---o69204.json": {},
   "Github_medium---o69248.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -6939,7 +6631,7 @@
   "Github_medium---o71847.json": {},
   "Github_medium---o7200.json": {},
   "Github_medium---o72177.json": {
-    "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/interpolatedTransformSpec"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧type‧\":\"‧inter‧pol‧ated‧\",\"‧id‧\":\"‧transform‧-‧1‧\",\"‧meta‧Data‧\":{\"‧labels‧\":[\"‧label‧-‧1‧\",\"‧label‧-‧2‧\"]‧},\"‧a‧\":{\"‧type‧\":\"⟧ * ⟦leaf⟧ * ⟦\",\"‧id‧\":\"‧transform⟧ mask: TokenSet: 13/128256; ⟨i⟩ ⟨l⟩ ⟨r⟩ ⟨in⟩ ⟨re⟩ ⟨int⟩ ⟨li⟩ ⟨ref⟩ ⟨list⟩ ⟨inter⟩ ⟨inte⟩ ⟨lis⟩ ⟨interp⟩"
   },
   "Github_medium---o72180.json": {},
   "Github_medium---o72181.json": {},
@@ -7026,9 +6718,7 @@
   },
   "Github_medium---o74464.json": {},
   "Github_medium---o74549.json": {},
-  "Github_medium---o74551.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_medium---o74551.json": {},
   "Github_medium---o74553.json": {},
   "Github_medium---o74554.json": {},
   "Github_medium---o74556.json": {},
@@ -7050,7 +6740,7 @@
   "Github_medium---o7495.json": {},
   "Github_medium---o74957.json": {},
   "Github_medium---o75099.json": {
-    "json_error": "circular references with sibling keys are not supported: http://www.52north.org/schema/json/Geometry#/definitions/GeometryCollection"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing http://www.52north.org/schema/json/Geometry#"
   },
   "Github_medium---o7516.json": {},
   "Github_medium---o7517.json": {},
@@ -7082,7 +6772,7 @@
   "Github_medium---o76475.json": {},
   "Github_medium---o76552.json": {},
   "Github_medium---o76576.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧virtual‧Server‧\":{\"‧backend‧\":{\"‧serviceName‧\":\"‧my‧-service‧\",\"‧service‧Port‧\":‧808‧0‧},\"‧frontend‧\":{\"‧partition‧\":\"‧Common‧\",\"⟧ * ⟦i⟧ * ⟦app‧\":\"‧my‧-i⟧ mask: TokenSet: 8/128256; ⟨s⟩ ⟨v⟩ ⟨ss⟩ ⟨vi⟩ ⟨ssl⟩ ⟨virtual⟩ ⟨vir⟩ ⟨virt⟩"
   },
   "Github_medium---o76740.json": {},
   "Github_medium---o76743.json": {},
@@ -7145,9 +6835,7 @@
   "Github_medium---o79474.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "Github_medium---o79482.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/orderedEvent"
-  },
+  "Github_medium---o79482.json": {},
   "Github_medium---o79492.json": {},
   "Github_medium---o79503.json": {},
   "Github_medium---o79504.json": {},
@@ -7173,7 +6861,7 @@
   "Github_medium---o80829.json": {},
   "Github_medium---o80830.json": {},
   "Github_medium---o81108.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/component"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/function"
   },
   "Github_medium---o81167.json": {},
   "Github_medium---o81186.json": {},
@@ -7529,7 +7217,7 @@
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "Github_medium---o90913.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧@‧context‧\":‧{}‧,\"‧@‧graph‧\":[{\"‧@⟧ * ⟦id⟧ * ⟦\":\"‧1‧\",\"‧@⟧ forced tokens \"⟦type⟧\" != \"⟦id⟧\""
   },
   "Github_medium---o90938.json": {},
   "Github_medium---o90940.json": {
@@ -7968,9 +7656,7 @@
   "Github_trivial---o56137.json": {},
   "Github_trivial---o57211.json": {},
   "Github_trivial---o57711.json": {},
-  "Github_trivial---o58615.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_trivial---o58615.json": {},
   "Github_trivial---o58627.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
@@ -8256,77 +7942,41 @@
     "json_error": "Unimplemented keys: [\"not\"]"
   },
   "Github_ultra---o18949.json": {},
-  "Github_ultra---o19184.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_ultra---o19184.json": {},
   "Github_ultra---o19343.json": {
     "json_error": "Unknown format: color"
   },
   "Github_ultra---o21135.json": {},
   "Github_ultra---o21136.json": {},
   "Github_ultra---o21137.json": {},
-  "Github_ultra---o21161.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21173.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21185.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21189.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21193.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21219.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21220.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21304.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21307.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21308.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21312.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21328.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21375.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21376.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_ultra---o21161.json": {},
+  "Github_ultra---o21173.json": {},
+  "Github_ultra---o21185.json": {},
+  "Github_ultra---o21189.json": {},
+  "Github_ultra---o21193.json": {},
+  "Github_ultra---o21219.json": {},
+  "Github_ultra---o21220.json": {},
+  "Github_ultra---o21304.json": {},
+  "Github_ultra---o21307.json": {},
+  "Github_ultra---o21308.json": {},
+  "Github_ultra---o21312.json": {},
+  "Github_ultra---o21328.json": {},
+  "Github_ultra---o21375.json": {},
+  "Github_ultra---o21376.json": {},
   "Github_ultra---o21378.json": {},
-  "Github_ultra---o21380.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21416.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
-  "Github_ultra---o21437.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "Github_ultra---o21380.json": {},
+  "Github_ultra---o21416.json": {},
+  "Github_ultra---o21437.json": {},
   "Github_ultra---o21764.json": {},
   "Github_ultra---o21840.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧vendor‧-name‧/package‧-name‧\",\"‧description‧\":\"‧Short‧ package‧ description‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 102/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ..."
   },
   "Github_ultra---o2312.json": {},
   "Github_ultra---o25423.json": {},
   "Github_ultra---o26314.json": {},
   "Github_ultra---o32645.json": {},
   "Github_ultra---o33032.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦text‧\":\"‧Middle‧ message‧\"}‧],\"‧start‧\":[{\"‧character‧\":\"‧ELL‧IS‧\",\"‧text‧\":\"‧Start‧ message‧\"}‧]}‧,\"‧name‧\":\"‧Mission‧ ‧1‧\"}‧],\"‧name‧\":\"‧Level‧ ‧1‧\"}‧]}‧,\"‧ch‧allenges‧\":{\"‧challenge‧1‧\":{\"‧template‧\":\"‧E‧gg‧Game‧\",\"‧linked‧Gen‧es⟧ * ⟦\":{\"⟧ * ⟦dr‧akes‧\":[‧0⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ �.. (101 more)"
   },
   "Github_ultra---o34345.json": {},
   "Github_ultra---o358.json": {},
@@ -8339,22 +7989,22 @@
     "json_error": "Unknown format: color"
   },
   "Github_ultra---o39230.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/repository"
   },
   "Github_ultra---o39449.json": {
-    "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/CableServiceArea"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/OrderProduct"
   },
   "Github_ultra---o39532.json": {},
   "Github_ultra---o39751.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/repository"
   },
   "Github_ultra---o40388.json": {},
   "Github_ultra---o41081.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧/package‧\",\"‧description‧\":\"‧This‧ is‧ an‧ example‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 106/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨f⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ..."
   },
   "Github_ultra---o41389.json": {},
   "Github_ultra---o42127.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧my‧-package‧\",\"‧description‧\":\"‧A‧ short‧ description‧ of‧ my‧ package‧\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 102/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ..."
   },
   "Github_ultra---o43012.json": {},
   "Github_ultra---o44208.json": {},
@@ -8379,7 +8029,7 @@
   "Github_ultra---o50639.json": {},
   "Github_ultra---o53885.json": {},
   "Github_ultra---o54621.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/repository"
   },
   "Github_ultra---o56134.json": {
     "json_error": "Unknown format: url"
@@ -8481,21 +8131,19 @@
   "Github_ultra---o68411.json": {},
   "Github_ultra---o68588.json": {},
   "Github_ultra---o69206.json": {
-    "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/CommandInputType"
+    "json_error": "Schema intersection stack level exceeded"
   },
   "Github_ultra---o69209.json": {
     "validation_error": "test #0: token not accepted at ⟦{\"‧inputs‧\":[{\"‧id‧\":\"‧input‧1‧\",\"‧type⟧ * ⟦\":\"⟧ * ⟦File‧\",\"‧s‧bg⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "Github_ultra---o69900.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/repository"
   },
   "Github_ultra---o69966.json": {},
   "Github_ultra---o69992.json": {
     "json_error": "Unknown format: idn-email"
   },
-  "Github_ultra---o70036.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/string_or_input"
-  },
+  "Github_ultra---o70036.json": {},
   "Github_ultra---o71471.json": {},
   "Github_ultra---o73947.json": {},
   "Github_ultra---o73960.json": {},
@@ -8505,23 +8153,23 @@
   "Github_ultra---o76155.json": {},
   "Github_ultra---o76156.json": {},
   "Github_ultra---o78057.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧my‧-package‧\",\"‧description‧\":\"‧This‧ is‧ a‧ sample‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 102/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ..."
   },
   "Github_ultra---o78463.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/inline-package"
   },
   "Github_ultra---o79009.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://dependency-cruiser.js.org/schema/cruise-result.schema.json#/definitions/OptionsUsedType"
+    "validation_error": "test #0: token not accepted at ⟦{\"⟧ * ⟦summary⟧ * ⟦\":{\"‧viol‧ations‧\":[⟧ forced tokens \"⟦modules⟧\" != \"⟦summary⟧\""
   },
   "Github_ultra---o80208.json": {},
   "Github_ultra---o80235.json": {},
   "Github_ultra---o81.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/CompositeSurface"
   },
   "Github_ultra---o81125.json": {},
   "Github_ultra---o83390.json": {},
   "Github_ultra---o83854.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧/package‧\",\"‧description‧\":\"‧This‧ is‧ an‧ example‧ package‧.\",\"⟧ * ⟦type⟧ * ⟦\":\"‧library‧\",\"‧keywords⟧ mask: TokenSet: 102/128256; ⟨_⟩ ⟨a⟩ ⟨b⟩ ⟨c⟩ ⟨e⟩ ⟨h⟩ ⟨i⟩ ⟨k⟩ ⟨l⟩ ⟨m⟩ ⟨n⟩ ⟨p⟩ ⟨r⟩ ⟨s⟩ ⟨t⟩ ⟨v⟩ ⟨in⟩ ⟨re⟩ ⟨ar⟩ ⟨ex⟩ ⟨ab⟩ ⟨lic⟩ ⟨ver⟩ ⟨ext⟩ ⟨ke⟩ ⟨con⟩ ⟨ve⟩ ⟨pr⟩ ⟨_c⟩ ⟨li⟩ ⟨pro⟩ ⟨key⟩ ⟨read⟩ ⟨include⟩ ⟨co⟩ ⟨min⟩ ⟨arch⟩ ⟨config⟩ ⟨time⟩ ⟨pre⟩ ⟨no⟩ ⟨script⟩ ⟨sc⟩ ⟨aut⟩ ⟨inc⟩ ⟨au⟩ ⟨req⟩ ⟨_com⟩ ⟨vers⟩ ⟨author⟩ ..."
   },
   "Github_ultra---o83932.json": {
     "json_error": "Unknown format: color"
@@ -8533,7 +8181,7 @@
   "Github_ultra---o8640.json": {},
   "Github_ultra---o90698.json": {},
   "Github_ultra---o91126.json": {
-    "json_error": "Resource 'json-schema:///schemata/account' is not present in a registry and retrieving it failed: Retrieving external resources is not supported once the registry is populated"
+    "json_error": "Unsatisfiable schema: Regex is empty:  (And (SearchRegex /^git@heroku\\.com:[a-z][a-z0-9-]{3,30}\\.git$/) (Regex /(?P<scheme>[a-zA-Z][a-zA-Z0-9+\\-.]*):(?:\\/\\/(?:(?P<userinfo>(?:[a-zA-Z0-9\\-._~!$&'()*+,;=:]|%[0-9a-fA-F]{2})*)@)?(?P<host>\\[(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?::[0-9a-fA-F]{1,4}){1,7}|::|v[0-9a-fA-F]+\\.[a-zA-Z0-9\\-._~!$&'()*+,;=:]+)\\]|(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(?:[a-zA-Z0-9\\-._~!$&'()*+,;=]|%[0-9a-fA-F]{2})*)(?::(?P<port>[0-9]*))?(?P<path_abempty>(?:\\/(?:[a-zA-Z0-9\\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})*)*)|(?P<path_absolute>\\/(?:(?:[a-zA-Z0-9\\-._~!$&'()*+,;=:@]|%[0-9a-fA-F]{2})+(?:\\/(?:[a-zA-Z0-.. (409 more)"
   },
   "Github_ultra---o9354.json": {
     "json_error": "Unknown format: topic"
@@ -11003,10 +10651,10 @@
   "JsonSchemaStore---bamboo-spec.json": {},
   "JsonSchemaStore---band-manifest.json": {},
   "JsonSchemaStore---base-04.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/nullable-timezone"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/editor"
   },
   "JsonSchemaStore---base.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/nullable-timezone"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/editor"
   },
   "JsonSchemaStore---bashly.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11054,7 +10702,7 @@
   },
   "JsonSchemaStore---buildinfo-schema.json": {},
   "JsonSchemaStore---bukkit-plugin.json": {
-    "json_error": "circular references with sibling keys are not supported: https://json.schemastore.org/bukkit-plugin#/definitions/permission"
+    "json_error": "regex parse error:\n    ^(?!org\\.bukkit\\.)([a-zA-Z_$][a-zA-Z[0-9]_$]*\\.)*[a-zA-Z_$][a-zA-Z[0-9]_$]*$\n     ^^^\nerror: look-around, including look-ahead and look-behind, is not supported"
   },
   "JsonSchemaStore---bundleconfig.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/bundleconfig.json#/definitions/bundle"
@@ -11127,13 +10775,13 @@
   "JsonSchemaStore---component-detection-manifest.json": {},
   "JsonSchemaStore---component.json": {},
   "JsonSchemaStore---component_spec.json_schema.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://github.com/Cloud-Pipelines/component_spec_schema/components.json_schema.json#/definitions/ImplementationType"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://github.com/Cloud-Pipelines/component_spec_schema/components.json_schema.json#/definitions/PredicateType"
   },
   "JsonSchemaStore---compose-spec.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---composer-schema.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/repository"
+    "validation_error": "test #0: token not accepted at ⟦src‧/autoload‧.php‧\"]‧},\"‧autoload‧-dev‧\":{\"‧ps‧r‧-‧0‧\":{\"‧Vendor‧\\\\\\‧Namespace‧\\\\\\‧Test‧\":\"‧tests‧/‧\"},\"‧ps‧r‧-‧4‧\":{\"‧Vendor‧\\\\\\‧Namespace‧\\\\\\‧Test‧\":\"‧tests‧/‧\"},\"‧class‧map‧\":[\"‧tests‧/‧\"],\"‧files‧\":[\"‧tests‧/autoload‧.php‧\"]‧},\"‧require⟧ * ⟦\":{\"⟧ * ⟦php‧\":\"‧^‧7⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[f.. (108 more)"
   },
   "JsonSchemaStore---config-file.v1.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11187,7 +10835,7 @@
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
   "JsonSchemaStore---dart-test.json": {
-    "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/testConfiguration"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/foldStackFrameOptions"
   },
   "JsonSchemaStore---database.beef-5.json": {},
   "JsonSchemaStore---database.beef.json": {},
@@ -11213,9 +10861,7 @@
   "JsonSchemaStore---djlint.json": {},
   "JsonSchemaStore---docker-seq.schema.json": {},
   "JsonSchemaStore---dockerd.json": {},
-  "JsonSchemaStore---dotnet-releases-index.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/dotnet-releases-index.json#/definitions/product"
-  },
+  "JsonSchemaStore---dotnet-releases-index.json": {},
   "JsonSchemaStore---dotnetcli.host.json": {},
   "JsonSchemaStore---drupal-breakpoints.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11316,9 +10962,7 @@
   "JsonSchemaStore---grunt-watch-task.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/grunt-watch-task.json#/definitions/options"
   },
-  "JsonSchemaStore---hayson-json-schema.json": {
-    "json_error": "circular references with sibling keys are not supported: https://raw.githubusercontent.com/j2inn/hayson/master/hayson-json-schema.json#/definitions/hval"
-  },
+  "JsonSchemaStore---hayson-json-schema.json": {},
   "JsonSchemaStore---hazelcast-config-5.3.json": {
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
@@ -11373,9 +11017,7 @@
   "JsonSchemaStore---json-patch.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "JsonSchemaStore---jsone.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://www.sourcemeta.com/schemas/vendor/json-e@1.json#/$defs/jsone-value"
-  },
+  "JsonSchemaStore---jsone.json": {},
   "JsonSchemaStore---jsonld.json": {
     "json_error": "Schema intersection stack level exceeded"
   },
@@ -11397,9 +11039,7 @@
   "JsonSchemaStore---lefthook.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
-  "JsonSchemaStore---lego.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/lego.json#/$defs/file"
-  },
+  "JsonSchemaStore---lego.json": {},
   "JsonSchemaStore---lerna.json": {},
   "JsonSchemaStore---lgtm.json": {},
   "JsonSchemaStore---libman.json": {
@@ -11430,9 +11070,7 @@
   "JsonSchemaStore---meltano.schema.json": {
     "json_error": "Unimplemented keys: [\"propertyNames\"]"
   },
-  "JsonSchemaStore---meta-runtime.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/meta-runtime.json#/$defs/ActionGroup"
-  },
+  "JsonSchemaStore---meta-runtime.json": {},
   "JsonSchemaStore---meta.json": {
     "json_error": "Unimplemented keys: [\"else\"]"
   },
@@ -11593,9 +11231,7 @@
   "JsonSchemaStore---prometheus.json": {
     "json_error": "Unknown format: uri-reference"
   },
-  "JsonSchemaStore---prometheus.rules.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "JsonSchemaStore---prometheus.rules.json": {},
   "JsonSchemaStore---prometheus.rules.test.json": {},
   "JsonSchemaStore---proxies.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11603,7 +11239,7 @@
   "JsonSchemaStore---pterodactyl.json": {},
   "JsonSchemaStore---publiccode.json": {},
   "JsonSchemaStore---pubspec.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/pubspec#/definitions/dependency"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/pubspec#/definitions/versionConstraint"
   },
   "JsonSchemaStore---pull-request-labeler.json": {},
   "JsonSchemaStore---pulumi.json": {
@@ -11620,21 +11256,19 @@
   },
   "JsonSchemaStore---red_cog_repo.schema.json": {},
   "JsonSchemaStore---renovate-schema.json": {
-    "json_error": "circular references with sibling keys are not supported: json-schema:///#"
+    "json_error": "Pointer '/circular_24' does not exist"
   },
   "JsonSchemaStore---replit.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---requirements.json": {},
   "JsonSchemaStore---resjson.json": {
-    "json_error": "circular references with sibling keys are not supported: https://json.schemastore.org/resjson.json#/definitions/resource"
+    "json_error": "Unsatisfiable schema: incompatible types\n  while processing #/circular_4"
   },
   "JsonSchemaStore---resolutions-schema.json": {},
   "JsonSchemaStore---resources.json": {},
   "JsonSchemaStore---role-arg-spec.json": {},
-  "JsonSchemaStore---rtx.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
-  },
+  "JsonSchemaStore---rtx.json": {},
   "JsonSchemaStore---ruff.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
@@ -11765,22 +11399,20 @@
   "JsonSchemaStore---strings.json": {},
   "JsonSchemaStore---stripe-app.schema.json": {},
   "JsonSchemaStore---strmprivacy.api.entities.v1.BatchJob.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/strmprivacy.api.entities.v1.BatchJobState/definitions/state_time"
+    "validation_error": "test #0: token not accepted at ⟦\":{\"‧billing‧Id‧\":\"‧billing‧-id‧-‧123‧\",\"‧name‧\":\"‧data‧-‧connector‧-name‧-‧123‧\",\"‧projectId‧\":\"‧project‧-id‧-‧123‧\"},\"‧dataType‧\":{\"‧csv‧\":{\"‧charset‧\":\"‧UTF‧-‧8‧\"}}‧,\"‧fileName‧\":\"‧data‧.csv‧\",\"‧path‧Prefix‧\":\"‧data‧/‧\"},\"‧event‧Contract‧Ref⟧ * ⟦\":{\"⟧ * ⟦handle‧\":\"‧event‧-con⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb.. (121 more)"
   },
   "JsonSchemaStore---strmprivacy.api.entities.v1.DataConnector.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/strmprivacy.api.entities.v1.DataConnector/definitions/s3_bucket"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧ref‧\":{\"‧billing‧Id‧\":\"‧billing‧-id‧-‧123‧\",\"‧id‧\":\"‧data‧-‧connector‧-id‧-‧123‧\",\"‧projectId⟧ * ⟦\":\"⟧ * ⟦project‧-id‧-‧123⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "JsonSchemaStore---strmprivacy.api.entities.v1.DataContract.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/strmprivacy.api.entities.v1.FieldMetadata/definitions/statistical_data_type"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧id‧\":\"‧dc‧-‧123‧45‧\",\"‧ref⟧ * ⟦\":{\"⟧ * ⟦handle‧\":\"‧my‧-handle⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "JsonSchemaStore---strmprivacy.api.entities.v1.Schema.SimpleSchemaDefinition.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/strmprivacy.api.entities.v1.SimpleSchemaNode/definitions/type"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧name‧\":\"‧example‧\",\"‧namespace‧\":\"‧example‧.namespace‧\",\"‧doc⟧ * ⟦\":\"⟧ * ⟦This‧ is‧ an‧ example⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
-  "JsonSchemaStore---strmprivacy.api.entities.v1.Stream.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/strmprivacy.api.entities.v1.Stream/definitions/consent_level_type"
-  },
+  "JsonSchemaStore---strmprivacy.api.entities.v1.Stream.json": {},
   "JsonSchemaStore---stryker-core.json": {
-    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧$‧schema‧\":\"‧http‧://‧json‧-schema‧.org‧/d‧raft‧-‧07‧/schema‧#‧\",\"‧title‧\":\"‧S‧try‧ker‧Options‧\",\"‧description‧\":\"‧JSON‧ schema‧ for‧ the‧ S‧try‧ker‧ Mut‧ator‧ configuration‧ file‧\",\"‧type‧\":\"‧object‧\",\"‧allow‧Console‧Colors⟧ * ⟦\":⟧ * ⟦true‧,\"‧build‧Command⟧ mask: TokenSet: 123231/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]�.. (90 more)"
   },
   "JsonSchemaStore---stylecop.schema.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11893,7 +11525,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/d6e3/full"
   },
   "JsonSchemaStore---web-types.json": {
-    "json_error": "circular references with sibling keys are not supported: https://json.schemastore.org/web-types.json#/definitions/base-contribution"
+    "json_error": "Pointer '/circular_0' does not exist"
   },
   "JsonSchemaStore---webextension.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -14837,7 +14469,7 @@
   },
   "WashingtonPost---wp_28_Normalized.json": {},
   "WashingtonPost---wp_29_Normalized.json": {
-    "json_error": "circular references with sibling keys are not supported: json-schema:///#/definitions/list_json"
+    "json_error": "Pointer '/circular_0' does not exist"
   },
   "WashingtonPost---wp_2_Normalized.json": {},
   "WashingtonPost---wp_30_Normalized.json": {},
