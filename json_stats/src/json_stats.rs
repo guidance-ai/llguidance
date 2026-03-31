@@ -3,13 +3,13 @@ use clap::Parser;
 use indexmap::IndexMap;
 use json_stats::SchemaStats;
 use jsonschema::Validator;
+use llg_test_utils::rng_utils;
 use llguidance::{
     api::{GrammarInit, StopReason, TopLevelGrammar},
     earley::{perf::num_with_commas, regexvec::LexerStats},
     toktrie::{InferenceCapabilities, SimpleVob, TokEnv},
     Constraint, HashMap, JsonCompileOptions, ParserFactory, TokenParser,
 };
-use llg_test_utils::rng_utils;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
