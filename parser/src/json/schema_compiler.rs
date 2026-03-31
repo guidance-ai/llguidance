@@ -139,7 +139,10 @@ impl SchemaCompiler {
     fn increment(&mut self) -> Result<()> {
         self.n_compiled += 1;
         if self.n_compiled > self.options.max_size {
-            bail!("schema too large");
+            bail!(
+                "schema too large (exceeded {} compiled nodes)",
+                self.options.max_size
+            );
         }
         Ok(())
     }
@@ -720,6 +723,10 @@ impl SchemaCompiler {
     }
 
     fn define_ref(&mut self, ref_uri: &str) -> Result<()> {
+        // Synthetic URIs from pending intersections are resolved by the pending loop.
+        if ref_uri.starts_with("#/circular_") {
+            return Ok(());
+        }
         if !self.seen_refs.contains(ref_uri) && !self.definitions.contains_key(ref_uri) {
             self.seen_refs.insert(ref_uri.to_string());
             let resolved = self.lookup_and_compile_ref(ref_uri)?;
@@ -756,7 +763,12 @@ impl SchemaCompiler {
                 result
             }
             None => {
+                // Synthetic refs that haven't been processed yet — return as-is.
+                if ref_uri.starts_with("#/circular_") {
+                    return Ok(Schema::Ref(ref_uri.to_string()));
+                }
                 // Ref is currently being compiled (not yet in definitions).
+                // Defer intersection until after compilation completes.
                 let synthetic_uri = format!("#/circular_{}", self.pending_counter);
                 self.pending_counter += 1;
                 self.pending_intersections.push(PendingIntersection {
@@ -787,7 +799,11 @@ impl SchemaCompiler {
     fn intersect(&mut self, a: Schema, b: Schema, stack_level: usize) -> Result<Schema> {
         self.increment()?;
         if stack_level > self.options.max_stack_level {
-            bail!("Schema intersection stack level exceeded");
+            bail!(
+                "Schema intersection stack level exceeded (depth {}, limit {})",
+                stack_level,
+                self.options.max_stack_level
+            );
         }
         let next = stack_level + 1;
 

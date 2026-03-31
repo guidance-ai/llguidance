@@ -10704,7 +10704,7 @@
   "JsonSchemaStore---clib.json": {},
   "JsonSchemaStore---cloud-sdk-pipeline-config-schema.json": {},
   "JsonSchemaStore---cloudformation.schema.json": {
-    "json_error": "schema too large"
+    "json_error": "schema too large (exceeded 50000 compiled nodes)"
   },
   "JsonSchemaStore---cloudify.json": {
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
@@ -11208,7 +11208,7 @@
   },
   "JsonSchemaStore---red_cog_repo.schema.json": {},
   "JsonSchemaStore---renovate-schema.json": {
-    "json_error": "Pointer '/circular_24' does not exist"
+    "json_error": "Unknown format: regex"
   },
   "JsonSchemaStore---replit.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11297,7 +11297,7 @@
   },
   "JsonSchemaStore---server.schema.json": {},
   "JsonSchemaStore---service-schema.json": {
-    "json_error": "schema too large"
+    "json_error": "schema too large (exceeded 50000 compiled nodes)"
   },
   "JsonSchemaStore---servicehub.config.schema.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -11467,7 +11467,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/d6e3/full"
   },
   "JsonSchemaStore---web-types.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "json_error": "regex parse error:\n    ^(?!pattern$).*$\n     ^^^\nerror: look-around, including look-ahead and look-behind, is not supported"
   },
   "JsonSchemaStore---webextension.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
@@ -14411,7 +14411,7 @@
   },
   "WashingtonPost---wp_28_Normalized.json": {},
   "WashingtonPost---wp_29_Normalized.json": {
-    "json_error": "Pointer '/circular_0' does not exist"
+    "validation_error": "test #0: token not accepted at ⟦{\"‧type‧\":\"‧list⟧ * ⟦\",\"⟧ * ⟦list‧_type‧\":\"‧unordered⟧ mask: TokenSet: 9/128256; ⟨\"⟩ ⟨\"\\n⟩ ⟨\"\\n\\n⟩ ⟨\"\\r\\n⟩ ⟨\"}⟩ ⟨\"\\n\\n\\n⟩ ⟨\"\\r\\n\\r\\n⟩ ⟨\"\\n\\n\\n\\n⟩ ⟨\"\\r\\n\\r\\n\\r\\n⟩"
   },
   "WashingtonPost---wp_2_Normalized.json": {},
   "WashingtonPost---wp_30_Normalized.json": {},
