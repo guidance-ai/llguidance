@@ -3,12 +3,14 @@ use clap::Parser;
 use indexmap::IndexMap;
 use json_stats::SchemaStats;
 use jsonschema::Validator;
+use llg_test_utils::rng_utils;
 use llguidance::{
     api::{GrammarInit, StopReason, TopLevelGrammar},
-    earley::{perf::num_with_commas, regexvec::LexerStats, XorShift},
+    earley::{perf::num_with_commas, regexvec::LexerStats},
     toktrie::{InferenceCapabilities, SimpleVob, TokEnv},
     Constraint, HashMap, JsonCompileOptions, ParserFactory, TokenParser,
 };
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -502,12 +504,12 @@ impl TestEnv {
     fn try_rollback(
         &self,
         stats: &mut LlgResult,
-        rnd: &mut XorShift,
+        rnd: &mut SmallRng,
         parser: &mut TokenParser,
     ) -> Result<RefResult> {
         let mut n_tokens = 0;
         loop {
-            if rnd.one_in(10) {
+            if rnd.random_range(0u32..10) == 0 {
                 break;
             }
             let m = parser.compute_mask();
@@ -515,7 +517,7 @@ impl TestEnv {
                 break;
             }
             let m = m?;
-            let tok = rnd.sample_from_vob(&m);
+            let tok = rng_utils::sample_from_vob(rnd, &m);
             let bt = parser.consume_token(tok)?;
             assert!(bt == 0);
             n_tokens += 1;
@@ -542,7 +544,7 @@ impl TestEnv {
         t: &JsonTestSequence,
     ) -> Result<()> {
         let dstr = serde_json::to_string(&t.data).unwrap();
-        let mut rnd = XorShift::new_str(&dstr);
+        let mut rnd = rng_utils::rng_from_str(&dstr);
         let tokens = self.tok_env.tokenize(&dstr);
         let trie = self.tok_env.tok_trie();
         let masks = self.cli.llg_masks;
@@ -1265,7 +1267,7 @@ fn mask_cache_stats(results: &[SchemaRes]) -> Value {
     let batch_size = 100;
     let hash_size = 1000;
 
-    let mut rng = XorShift::new(1234);
+    let mut rng = SmallRng::seed_from_u64(1234);
     let mut results = results
         .iter()
         .filter_map(|r| r.llg_result.as_ref())
@@ -1277,7 +1279,7 @@ fn mask_cache_stats(results: &[SchemaRes]) -> Value {
         .filter(|v| !v.is_empty())
         .collect::<Vec<_>>();
     for idx in 0..results.len() {
-        let idx2 = rng.from_range(0..results.len());
+        let idx2 = rng.random_range(0..results.len());
         results.swap(idx, idx2);
     }
 

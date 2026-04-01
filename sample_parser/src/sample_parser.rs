@@ -17,8 +17,29 @@
 use clap::Parser;
 use std::{fs::File, io::Read, sync::Arc, vec};
 
-use llguidance::{api::TopLevelGrammar, earley::XorShift, toktrie::TokEnv, Matcher, ParserFactory};
+use llguidance::{api::TopLevelGrammar, toktrie::TokEnv, Matcher, ParserFactory};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use serde_json::json;
+
+/// Sample a random set-bit index from a `SimpleVob`.
+///
+/// This is an inline copy of `llg_test_utils::sample_from_vob` to keep
+/// sample_parser self-contained as a standalone demo crate.
+fn sample_from_vob(rng: &mut impl Rng, vob: &llguidance::toktrie::SimpleVob) -> u32 {
+    let nset = vob.num_set();
+    assert!(nset > 0);
+    if nset > vob.len() / 10 {
+        loop {
+            let idx = rng.random_range(0..vob.len());
+            if vob[idx] {
+                return idx as u32;
+            }
+        }
+    } else {
+        let choices = vob.to_list();
+        choices[rng.random_range(0..choices.len())]
+    }
+}
 
 fn dump_tokenizer(name: &str) {
     let btok = toktrie_hf_downloader::byte_tokenizer_from_name(name).unwrap();
@@ -189,7 +210,7 @@ fn main() {
     if let Some(max_tokens) = opts.rnd {
         let mut ttfm = vec![];
         for rep in 0..opts.repeat {
-            let mut rng = XorShift::new(opts.seed);
+            let mut rng = SmallRng::seed_from_u64(opts.seed as u64);
             let mut tokens = vec![];
             let mut lens = vec![];
             let trie = tok_env.tok_trie();
@@ -209,12 +230,12 @@ fn main() {
                 let mut v = mask.clone();
                 // Suppress EOS 80% of the time to make generation run longer.
                 // In real usage, the LLM decides when to stop via temperature/logits.
-                if !rng.one_in(5) {
+                if rng.random_range(0u32..5) != 0 {
                     v.disallow_token(trie.eos_token());
                 }
                 // Sample a random token from the allowed set.
                 // In production: token = sample(softmax(logits * mask))
-                let t = rng.sample_from_vob(&v);
+                let t = sample_from_vob(&mut rng, &v);
                 // Tell the parser which token was sampled.
                 constraint.consume_token(t).unwrap();
                 tokens.push(t);

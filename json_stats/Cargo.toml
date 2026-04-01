@@ -8,6 +8,7 @@ default-run = "json_stats"
 llguidance = { workspace = true }
 toktrie_hf_tokenizers = { workspace = true }
 toktrie_hf_downloader = { workspace = true }
+llg_test_utils = { workspace = true }
 anyhow = "1.0.95"
 lazy_static = "1.5.0"
 serde_json = { version = "1.0.138", features = ["preserve_order"] }
@@ -18,6 +19,7 @@ clap = { version = "4.5.28", features = ["derive"] }
 regex = "1.11.1"
 ahash = "0.8.11"
 indexmap = { version = "2.7.1", features = ["serde"] }
+rand = { workspace = true }
 # ring = "0.17.8"
 # bytemuck = "1.21.0"
 # sha2 = { version = "0.10.8", features = ["asm", "asm-aarch64"] }

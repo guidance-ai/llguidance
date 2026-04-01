@@ -10,13 +10,13 @@
 /// construct the appropriate [`TopLevelGrammar`] and delegate here.
 use llguidance::{
     api::{GrammarWithLexer, StopReason, TopLevelGrammar},
-    earley::XorShift,
     toktrie::{TokEnv, TokenId},
     Constraint, ParserFactory,
 };
+use rand::Rng;
 use serde_json::Value;
 
-use crate::PARSER_FACTORY;
+use crate::{rng_utils, PARSER_FACTORY};
 
 // ── Core trace engine ────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ fn check_grammar(
     output: &[&str],
     temp: f32,
 ) -> Constraint {
-    let mut rnd = XorShift::new_str(&serde_json::to_string(&grammar).unwrap());
+    let mut rnd = rng_utils::rng_from_str(&serde_json::to_string(&grammar).unwrap());
 
     let parser = factory.create_parser(grammar).unwrap();
     let can_rollback = parser.parser.grammar().lexer_spec().can_rollback();
@@ -77,15 +77,15 @@ fn check_grammar(
                     break;
                 }
                 let m = m.unwrap();
-                let tok = rnd.sample_from_vob(&m);
+                let tok = rng_utils::sample_from_vob(&mut rnd, &m);
                 let bt = parser2.consume_token(tok).unwrap();
                 assert!(bt == 0);
                 n_tok += 1;
                 if tok == tok_env.tok_trie().eos_token() {
                     break;
                 }
-                if rnd.one_in(10) {
-                    if rnd.one_in(2) {
+                if rnd.random_range(0u32..10) == 0 {
+                    if rnd.random_range(0u32..2) == 0 {
                         let _ = parser2.compute_ff_tokens();
                     }
                     break;

@@ -48,3 +48,4 @@ llg_test_utils = { path = "llg_test_utils" }
 toktrie_hf_tokenizers = { path = "toktrie_hf_tokenizers" }
 toktrie_hf_downloader = { path = "toktrie_hf_downloader" }
 toktrie_tiktoken = { path = "toktrie_tiktoken" }
+rand = "0.9"
