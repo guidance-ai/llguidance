@@ -138,6 +138,8 @@ impl ByteTokenizer {
                     for decoder in decoders {
                         if decoder["type"].as_str() == Some("ByteFallback") {
                             is_byte_fallback = true;
+                        } else if decoder["type"].as_str() == Some("ByteLevel") {
+                            is_byte_level = true;
                         } else if decoder["type"].as_str() == Some("Replace")
                             && decoder["content"].as_str() == Some(" ")
                         {
