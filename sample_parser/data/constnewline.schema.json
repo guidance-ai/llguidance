@@ -1,0 +1,16 @@
+{
+    "x-guidance": {
+        "whitespace_flexible": false
+    },
+    "type": "object",
+    "properties": {
+        "claudius": {
+            "type": "string",
+            "const": "Welcome, dear Rosencrantz and Guildenstern!\nMoreover that we much did long to "
+        }
+    },
+    "required": [
+        "claudius"
+    ],
+    "additionalProperties": false
+}
