@@ -5751,9 +5751,7 @@
   "Github_medium---o36797.json": {
     "json_error": "min/maxProperties only supported when all keys listed in \"properties\" are required"
   },
-  "Github_medium---o36798.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧kn‧x‧\":{\"‧direction‧\":{\"‧read‧\":\"‧\\\\\\⟧ * ⟦d⟧ * ⟦/‧\\\\\\‧d‧/⟧ mask: TokenSet: 13/128256; ⟨\"⟩ ⟨\",⟩ ⟨\"\\n⟩ ⟨\",\\n⟩ ⟨\"\\n\\n⟩ ⟨\",\"⟩ ⟨\",\\r\\n⟩ ⟨\"\\r\\n⟩ ⟨\"\\n\\n\\n⟩ ⟨\"\\r\\n\\r\\n⟩ ⟨\",\\n\\n⟩ ⟨\"\\n\\n\\n\\n⟩ ⟨\"\\r\\n\\r\\n\\r\\n⟩"
-  },
+  "Github_medium---o36798.json": {},
   "Github_medium---o37060.json": {},
   "Github_medium---o37086.json": {},
   "Github_medium---o37090.json": {},
@@ -10931,9 +10929,7 @@
   "JsonSchemaStore---3.0.schema.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
-  "JsonSchemaStore---BizTalkServerApplicationSchema.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧Biz‧Talk‧As‧semblies‧\":[{\"‧Name‧\":\"‧b‧ts‧1‧.dll‧\",\"‧Path‧\":\"‧bins‧\\\\\\‧b‧ts‧1‧.dll⟧ * ⟦\"},{\"⟧ * ⟦Name‧\":\"‧b‧ts⟧ mask: TokenSet: 123009/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
-  },
+  "JsonSchemaStore---BizTalkServerApplicationSchema.json": {},
   "JsonSchemaStore---KSP-AVC.schema.json": {
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
