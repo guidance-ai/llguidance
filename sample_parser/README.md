@@ -142,6 +142,7 @@ Lark grammars allow arbitrary context-free grammars.
 | `rfc.xml` | An XML document conforming to the Lark grammar |
 | `lark.lark` | A Lark grammar that parses the Lark grammar format itself |
 | `from-llama.cpp/` | Grammar files ported from llama.cpp's GBNF format |
+| `constnewline.schema.json` | JSON schema which exposed [Issue 326](https://github.com/guidance-ai/llguidance/issues/326) |
 
 ## Key API types
 
