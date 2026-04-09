@@ -9,7 +9,7 @@ rust-version.workspace = true
 
 [dependencies]
 toktrie = { workspace = true }
-derivre = { version = "=0.3.8", default-features = false, features = ["compress"] }
+derivre = { version = "=0.3.9", default-features = false, features = ["compress"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = { version = "1.0.138", features = ["preserve_order"] }
 anyhow = "1.0.95"
