@@ -50,9 +50,9 @@ def main():
     for line in stdout.decode("utf-8").split("\n"):
         match = re.match(r"\[\s*(\d+)\] .*/([^/]+/[^-\.]+)", line) or re.match(r"\[\s*(\d+)\] ([^/]+)$", line)
         if match:
-            id = int(match.group(1))
+            lib_id = int(match.group(1))
             lib = match.group(2)
-            lib_by_id[id] = lib
+            lib_by_id[lib_id] = lib
             continue
         # 0x1001BEE8C	0x00007F58	__TEXT	__unwind_info
         match = re.match(r"(0x[0-9a-f]+)\s+(0x[0-9a-f]+)\s+\S+\s+__(\S+)", line, re.IGNORECASE)
@@ -64,19 +64,19 @@ def main():
 
         # 0x100019778	0x00000180	[ 10] _core::ptr::drop_in_place<llguidance::api::GrammarWithLexer>
         match = re.match(r"(0x[0-9a-f]+)\s+(0x[0-9a-f]+)\s+\[\s*(\d+)\] (.+)", line, re.IGNORECASE)
-        sys_modules = set(["core", "std", "alloc", "collections", "panic_unwind", "rustc_demangle"])
+        sys_modules = {"core", "std", "alloc", "collections", "panic_unwind", "rustc_demangle"}
         if match:
             addr = int(match.group(1), 16)
             if min_addr is None or addr < min_addr:
                 min_addr = addr
             max_addr = max(max_addr, addr)
             size = int(match.group(2), 16)
-            id = int(match.group(3))
+            lib_id = int(match.group(3))
             name = match.group(4)
-            if id not in lib_by_id:
-                print(f"Error: lib not found for id {id}")
+            if lib_id not in lib_by_id:
+                print(f"Error: lib not found for id {lib_id}")
                 continue
-            lib = lib_by_id[id]
+            lib = lib_by_id[lib_id]
             section = "unk"
             for start, end, sec in sections:
                 if start <= addr < end:
@@ -96,7 +96,7 @@ def main():
 
             module = None
             for word in re.split(r"[<>&{}\s,\[\]\(\)\.]+", name):
-                parts = list(w for w in word.split("::") if w)
+                parts = [w for w in word.split("::") if w]
                 if len(parts) > 1:
                     parts[0] = re.sub(r"^_*", "", parts[0])
                     if parts[0] not in sys_modules or module is None or module[0] in sys_modules:
