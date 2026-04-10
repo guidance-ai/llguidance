@@ -51,8 +51,8 @@ def check_in_and_tag(version):
 def ensure_clean_working_tree():
     status_output = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout
     num_changes = 0
-    for l in status_output.splitlines():
-        if l[3:] in auto_commit:
+    for status_line in status_output.splitlines():
+        if status_line[3:] in auto_commit:
             # Ignore changes to CHANGELOG.md etc
             continue
         num_changes += 1
