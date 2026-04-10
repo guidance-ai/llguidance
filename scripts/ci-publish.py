@@ -18,14 +18,36 @@ def get_toktrie_version():
     return match.group(1)
 
 
+PUBLISHABLE_CRATES = {
+    "toktrie", "toktrie_hf_tokenizers", "toktrie_hf_downloader",
+    "toktrie_tiktoken", "llguidance",
+}
+
+
 def update_dependency(crate, version):
-    """Replaces `workspace = true` dependency in Cargo.toml with actual version."""
+    """Replaces workspace refs for publishable deps in Cargo.toml.
+
+    Only dependencies whose name is in PUBLISHABLE_CRATES are rewritten.
+    Other workspace references (e.g. llg_test_utils, rand) are left
+    untouched so that cargo publish correctly strips path-only
+    dev-dependencies.
+    """
     cargo_toml_path = os.path.join(crate, "Cargo.toml")
     with open(cargo_toml_path, "r") as f:
         content = f.read()
 
-    updated_content = re.sub(r'\{ workspace = true \}',
-                             f'{{ version = "{version}" }}', content)
+    def replace_if_publishable(m):
+        dep_name = m.group(1)
+        if dep_name in PUBLISHABLE_CRATES:
+            return f'{dep_name} = {{ version = "{version}" }}'
+        return m.group(0)
+
+    updated_content = re.sub(
+        r'^(\S+)\s*=\s*\{ workspace = true \}',
+        replace_if_publishable,
+        content,
+        flags=re.MULTILINE,
+    )
 
     with open(cargo_toml_path, "w") as f:
         f.write(updated_content)

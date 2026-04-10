@@ -85,6 +85,7 @@ jobs:
             arch: riscv64
             zig: false
             manylinux: 2_39
+            container: 'off'
             before-script: 'sudo apt-get install -y gcc-riscv64-linux-gnu && mkdir -p ~/.cargo && printf "[target.riscv64gc-unknown-linux-gnu]\nlinker = \"riscv64-linux-gnu-gcc\"\n" >> ~/.cargo/config.toml'
         python:
           - version: '3.12'
@@ -106,6 +107,7 @@ jobs:
           args: --release --out dist --compatibility pypi -i python${{ matrix.python.version }} ${{ matrix.python.zig && matrix.platform.zig && '--zig' || '' }}
           sccache: 'true'
           manylinux: ${{ matrix.platform.manylinux }}
+          container: ${{ matrix.platform.container || '' }}
           before-script-linux: ${{ matrix.platform.before-script || '' }}
       - name: Upload wheels
         uses: actions/upload-artifact@v6
