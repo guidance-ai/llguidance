@@ -18,40 +18,39 @@ def get_toktrie_version():
     return match.group(1)
 
 
-PUBLISHABLE_CRATES = {
-    "toktrie", "toktrie_hf_tokenizers", "toktrie_hf_downloader",
-    "toktrie_tiktoken", "llguidance",
-}
-
-
 def update_dependency(crate, version):
-    """Replaces workspace refs for publishable deps in Cargo.toml.
+    """Replaces workspace refs in [dependencies] with a version for publishing.
 
-    Only dependencies whose name is in PUBLISHABLE_CRATES are rewritten.
-    Other workspace references (e.g. llg_test_utils) are left untouched
-    so that cargo publish correctly strips path-only dev-dependencies.
+    Only rewrites ``{ workspace = true }`` lines within the [dependencies]
+    section.  Lines in [dev-dependencies] (and other sections) are left
+    untouched so that ``cargo publish`` correctly strips path-only
+    dev-dependencies.
+
+    We use simple line-by-line section tracking rather than a TOML library
+    because tomllib (stdlib) is read-only, and we want to avoid adding a
+    third-party dependency just for this script.
     """
     cargo_toml_path = os.path.join(crate, "Cargo.toml")
     with open(cargo_toml_path, "r") as f:
-        content = f.read()
+        lines = f.readlines()
 
-    def replace_if_publishable(m):
-        dep_name = m.group(1)
-        if dep_name in PUBLISHABLE_CRATES:
-            return f'{dep_name} = {{ version = "{version}" }}'
-        return m.group(0)
-
-    updated_content = re.sub(
-        r'^(\S+)\s*=\s*\{ workspace = true \}',
-        replace_if_publishable,
-        content,
-        flags=re.MULTILINE,
-    )
+    in_dependencies = False
+    workspace_re = re.compile(r'^(\S+)\s*=\s*\{ workspace = true \}')
+    updated_lines = []
+    for line in lines:
+        if line.strip().startswith("["):
+            in_dependencies = line.strip() == "[dependencies]"
+        if in_dependencies:
+            m = workspace_re.match(line)
+            if m:
+                dep_name = m.group(1)
+                line = f'{dep_name} = {{ version = "{version}" }}\n'
+        updated_lines.append(line)
 
     with open(cargo_toml_path, "w") as f:
-        f.write(updated_content)
+        f.writelines(updated_lines)
 
-    return content  # Return original content for restoration
+    return "".join(lines)  # Return original content for restoration
 
 
 def restore_dependency(crate, original_content):
