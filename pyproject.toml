@@ -25,3 +25,36 @@ module-name = "llguidance._lib"
 manifest-path = "python_ext/Cargo.toml"
 sdist-generator = "git"
 # features = ["llguidance/logging"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+preview = true
+fixable = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "I",
+    "N",
+    "Q",
+    "S",
+    "T",
+    "W",
+]
+select = [
+    "A",  # https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+    "B",  # https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "C4",  # https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+    "E",  # https://docs.astral.sh/ruff/rules/#pycodestyle-e
+    "F401",  # unused-import
+    "I",  # isort
+    "N",  # https://docs.astral.sh/ruff/rules/#pep8-naming-n
+    "Q",  # https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+    "W",  # https://docs.astral.sh/ruff/rules/#pycodestyle-w
+]
