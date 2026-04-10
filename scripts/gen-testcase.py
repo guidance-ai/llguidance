@@ -8,6 +8,7 @@ To use this, run Guidance with LLGUIDANCE_TEST_TRACE=1 LLGUIDANCE_LOG_LEVEL=2 an
 then pass the output here.
 """
 
+
 def testcase_from_logs(logs: str):
     sep = "‧"
     pairs = []
@@ -55,5 +56,6 @@ def main():
     with open(sys.argv[1], "r") as f:
         logs = f.read()
     testcase_from_logs(logs)
+
 
 main()

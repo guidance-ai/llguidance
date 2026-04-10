@@ -2,23 +2,21 @@
 
 # This script reads the output.map file and prints the sizes of the sections and modules.
 # It works on macOS only.
-# 
+#
 # Usage:
 # RUSTFLAGS="-C link-arg=-Wl,-map,output.map" cargo build --release
 # python3 rust_size.py output.map
 # fx output.json
 
-import sys
-import subprocess
+import json
 import os
 import re
-import random
-import json
+import subprocess
+import sys
+
 
 def run_command(command, input_data):
-    process = subprocess.Popen(
-        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate(input=input_data)
     return stdout, stderr
 
@@ -50,18 +48,14 @@ def main():
     sections = []
 
     for line in stdout.decode("utf-8").split("\n"):
-        match = re.match(r"\[\s*(\d+)\] .*/([^/]+/[^-\.]+)", line) or re.match(
-            r"\[\s*(\d+)\] ([^/]+)$", line
-        )
+        match = re.match(r"\[\s*(\d+)\] .*/([^/]+/[^-\.]+)", line) or re.match(r"\[\s*(\d+)\] ([^/]+)$", line)
         if match:
             id = int(match.group(1))
             lib = match.group(2)
             lib_by_id[id] = lib
             continue
         # 0x1001BEE8C	0x00007F58	__TEXT	__unwind_info
-        match = re.match(
-            r"(0x[0-9a-f]+)\s+(0x[0-9a-f]+)\s+\S+\s+__(\S+)", line, re.IGNORECASE
-        )
+        match = re.match(r"(0x[0-9a-f]+)\s+(0x[0-9a-f]+)\s+\S+\s+__(\S+)", line, re.IGNORECASE)
         if match:
             start = int(match.group(1), 16)
             end = start + int(match.group(2), 16)
@@ -69,12 +63,8 @@ def main():
             continue
 
         # 0x100019778	0x00000180	[ 10] _core::ptr::drop_in_place<llguidance::api::GrammarWithLexer>
-        match = re.match(
-            r"(0x[0-9a-f]+)\s+(0x[0-9a-f]+)\s+\[\s*(\d+)\] (.+)", line, re.IGNORECASE
-        )
-        sys_modules = set(
-            ["core", "std", "alloc", "collections", "panic_unwind", "rustc_demangle"]
-        )
+        match = re.match(r"(0x[0-9a-f]+)\s+(0x[0-9a-f]+)\s+\[\s*(\d+)\] (.+)", line, re.IGNORECASE)
+        sys_modules = set(["core", "std", "alloc", "collections", "panic_unwind", "rustc_demangle"])
         if match:
             addr = int(match.group(1), 16)
             if min_addr is None or addr < min_addr:
@@ -109,11 +99,7 @@ def main():
                 parts = list(w for w in word.split("::") if w)
                 if len(parts) > 1:
                     parts[0] = re.sub(r"^_*", "", parts[0])
-                    if (
-                        parts[0] not in sys_modules
-                        or module is None
-                        or module[0] in sys_modules
-                    ):
+                    if parts[0] not in sys_modules or module is None or module[0] in sys_modules:
                         module = parts
             if module:
                 d = sizes_by_module
@@ -136,9 +122,7 @@ def main():
 
     entries = sorted(sizes_by_lib.values(), key=lambda x: x["total"], reverse=True)
     for e in entries:
-        e["sections"] = dict(
-            sorted(e["sections"].items(), key=lambda x: x[1], reverse=True)
-        )
+        e["sections"] = dict(sorted(e["sections"].items(), key=lambda x: x[1], reverse=True))
 
     cutoff_perc = 0.01
     cutoff = total_size / 100 * cutoff_perc
@@ -161,12 +145,8 @@ def main():
 
     accounted_size = sum(e["total"] for e in sizes_by_lib.values())
     accounted_perc = accounted_size / total_size * 100
-    module_accounted_perc = (
-        sum(d["_"] for d in sizes_by_module.values()) / total_size * 100
-    )
-    print(
-        f"Total size: {total_size} ({accounted_perc:.0f}% accounted; {module_accounted_perc:.0f}% by module)"
-    )
+    module_accounted_perc = sum(d["_"] for d in sizes_by_module.values()) / total_size * 100
+    print(f"Total size: {total_size} ({accounted_perc:.0f}% accounted; {module_accounted_perc:.0f}% by module)")
 
     bymodule = {}
 
@@ -198,6 +178,7 @@ def main():
                 indent=2,
             )
         )
+
 
 if __name__ == "__main__":
     main()
