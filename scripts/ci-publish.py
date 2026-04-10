@@ -28,9 +28,8 @@ def update_dependency(crate, version):
     """Replaces workspace refs for publishable deps in Cargo.toml.
 
     Only dependencies whose name is in PUBLISHABLE_CRATES are rewritten.
-    Other workspace references (e.g. llg_test_utils, rand) are left
-    untouched so that cargo publish correctly strips path-only
-    dev-dependencies.
+    Other workspace references (e.g. llg_test_utils) are left untouched
+    so that cargo publish correctly strips path-only dev-dependencies.
     """
     cargo_toml_path = os.path.join(crate, "Cargo.toml")
     with open(cargo_toml_path, "r") as f:
