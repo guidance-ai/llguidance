@@ -35,7 +35,7 @@ def update_dependency(crate, version):
         lines = f.readlines()
 
     in_dependencies = False
-    workspace_re = re.compile(r'^(\S+)\s*=\s*\{ workspace = true \}')
+    workspace_re = re.compile(r"^(\S+)\s*=\s*\{ workspace = true \}")
     updated_lines = []
     for line in lines:
         if line.strip().startswith("["):
@@ -62,9 +62,7 @@ def restore_dependency(crate, original_content):
 
 def publish_crate(crate):
     """Runs `cargo publish` in the specified crate directory."""
-    subprocess.run(["cargo", "publish", "--allow-dirty"],
-                   cwd=crate,
-                   check=True)
+    subprocess.run(["cargo", "publish", "--allow-dirty"], cwd=crate, check=True)
 
 
 def main():
@@ -75,10 +73,7 @@ def main():
     publish_crate("toktrie")
 
     # Publish dependent crates
-    for crate in [
-            "toktrie_hf_tokenizers", "toktrie_hf_downloader",
-            "toktrie_tiktoken", "parser"
-    ]:
+    for crate in ["toktrie_hf_tokenizers", "toktrie_hf_downloader", "toktrie_tiktoken", "parser"]:
         print(f"Updating {crate} to use toktrie v{toktrie_version}...")
         original_content = update_dependency(crate, toktrie_version)
 
