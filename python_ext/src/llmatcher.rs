@@ -515,7 +515,10 @@ impl LLMatcher {
     fn compute_bitmask(&mut self, py: Python<'_>) -> Cow<'_, [u8]> {
         py.detach(|| {
             let m = self.compute_mask_or_eos();
-            Cow::Owned(bytemuck::cast_slice(m.as_slice()).to_vec())
+            let words = m.as_slice();
+            let mut bytes = vec![0u8; words.len() * 4];
+            llguidance::toktrie::bytes::write_u32s_as_le_bytes(words, &mut bytes);
+            Cow::Owned(bytes)
         })
     }
 

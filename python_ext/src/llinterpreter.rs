@@ -135,12 +135,7 @@ impl LLInterpreter {
         let r = self.inner.compute_mask().map_err(val_error)?;
         let trg_slice = unsafe { trg.as_bytes_mut() };
         if let Some(m) = r.sample_mask.as_ref() {
-            let src = bytemuck::cast_slice::<u32, u8>(m.as_slice());
-            if trg_slice.len() > src.len() {
-                trg_slice[..src.len()].copy_from_slice(src);
-            } else {
-                trg_slice.copy_from_slice(&src[..trg_slice.len()]);
-            }
+            llguidance::toktrie::bytes::write_u32s_as_le_bytes(m.as_slice(), trg_slice);
         } else {
             trg_slice.fill(0);
         };
