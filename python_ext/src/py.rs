@@ -484,12 +484,23 @@ fn regex_to_lark(regex: &str, use_ascii: Option<&str>) -> String {
     llguidance::regex_to_lark(regex, use_ascii.unwrap_or(""))
 }
 
+/// Returns the version string of llguidance and its key dependencies.
+#[pyfunction]
+fn get_version() -> String {
+    format!(
+        "llguidance@{} {}",
+        env!("CARGO_PKG_VERSION"),
+        llguidance::derivre::VERSION
+    )
+}
+
 pub(crate) fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<LLTokenizer>()?;
     m.add_class::<JsonCompiler>()?;
     m.add_class::<LarkCompiler>()?;
     m.add_class::<RegexCompiler>()?;
     m.add_function(wrap_pyfunction!(regex_to_lark, m)?)?;
+    m.add_function(wrap_pyfunction!(get_version, m)?)?;
     Ok(())
 }
 
