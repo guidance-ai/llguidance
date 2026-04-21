@@ -715,3 +715,6 @@ def regex_to_lark(regex: str, use_ascii: str = "d") -> str:
     For Python2 or byte patters in Python3 semantics `use_ascii = "dws"`
     More flags may be added in future.
     """
+
+def get_version() -> str:
+    """Returns the version string of llguidance and its key dependencies."""
