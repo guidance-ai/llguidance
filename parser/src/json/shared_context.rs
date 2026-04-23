@@ -1,19 +1,8 @@
-use crate::{json::schema::OptSchemaExt, regex_to_lark, HashMap, HashSet};
-use anyhow::{anyhow, bail, Result};
+use crate::{regex_to_lark, HashMap};
+use anyhow::{anyhow, Result};
 use derivre::{Regex, RegexAst, RegexBuilder};
 
-use super::{
-    context::Context,
-    schema::{ObjectSchema, Schema, IMPLEMENTED, META_AND_ANNOTATIONS},
-};
-
-pub struct SharedContext {
-    defs: HashMap<String, Schema>,
-    seen: HashSet<String>,
-    n_compiled: usize,
-    pending_warnings: Vec<String>,
-    pattern_cache: PatternPropertyCache,
-}
+use super::schema::{ObjectSchema, OptSchemaExt, Schema};
 
 #[derive(Default)]
 pub struct PatternPropertyCache {
@@ -38,7 +27,6 @@ impl PatternPropertyCache {
     }
 
     pub fn check_disjoint(&mut self, regexes: &[&String]) -> Result<()> {
-        // TODO cache something?
         let mut builder = RegexBuilder::new();
         let erefs = regexes
             .iter()
@@ -90,93 +78,6 @@ impl PatternPropertyCache {
         }
 
         Ok(obj.additional_properties.schema_ref())
-    }
-}
-
-impl SharedContext {
-    pub fn new() -> Self {
-        SharedContext {
-            defs: HashMap::default(),
-            seen: HashSet::default(),
-            n_compiled: 0,
-            pending_warnings: Vec::new(),
-            pattern_cache: PatternPropertyCache::default(),
-        }
-    }
-}
-
-impl Context<'_> {
-    pub fn insert_ref(&self, uri: &str, schema: Schema) {
-        self.shared
-            .borrow_mut()
-            .defs
-            .insert(uri.to_string(), schema);
-    }
-
-    pub fn get_ref_cloned(&self, uri: &str) -> Option<Schema> {
-        self.shared.borrow().defs.get(uri).cloned()
-    }
-
-    pub fn mark_seen(&self, uri: &str) {
-        self.shared.borrow_mut().seen.insert(uri.to_string());
-    }
-
-    pub fn been_seen(&self, uri: &str) -> bool {
-        self.shared.borrow().seen.contains(uri)
-    }
-
-    pub fn is_valid_keyword(&self, keyword: &str) -> bool {
-        if !self.draft.is_known_keyword(keyword)
-            || IMPLEMENTED.contains(&keyword)
-            || META_AND_ANNOTATIONS.contains(&keyword)
-        {
-            return true;
-        }
-        false
-    }
-
-    pub fn increment(&self) -> Result<()> {
-        let mut shared = self.shared.borrow_mut();
-        shared.n_compiled += 1;
-        if shared.n_compiled > self.options.max_size {
-            bail!("schema too large");
-        }
-        Ok(())
-    }
-
-    pub fn record_warning(&self, msg: String) {
-        self.shared.borrow_mut().pending_warnings.push(msg);
-    }
-
-    pub fn property_schema<'a>(&self, obj: &'a ObjectSchema, prop: &str) -> Result<&'a Schema> {
-        self.shared
-            .borrow_mut()
-            .pattern_cache
-            .property_schema(obj, prop)
-    }
-
-    pub fn property_schema_matches(&self, pattern: &str, name: &str) -> Result<bool> {
-        self.shared
-            .borrow_mut()
-            .pattern_cache
-            .is_match(pattern, name)
-    }
-
-    pub fn check_disjoint_pattern_properties(&self, regexes: &[&String]) -> Result<()> {
-        self.shared
-            .borrow_mut()
-            .pattern_cache
-            .check_disjoint(regexes)
-    }
-
-    pub fn into_result(self, schema: Schema) -> BuiltSchema {
-        let mut shared = self.shared.borrow_mut();
-        BuiltSchema {
-            schema,
-            definitions: std::mem::take(&mut shared.defs),
-            warnings: std::mem::take(&mut shared.pending_warnings),
-            pattern_cache: std::mem::take(&mut shared.pattern_cache),
-        }
     }
 }
 
