@@ -162,10 +162,8 @@ impl SchemaStats {
 
     fn incr_feature(&mut self, kw: &str, val: &Value, obj: &Value) {
         match kw {
-            "additionalItems" | "additionalProperties" => {
-                if val.is_object() {
-                    self.incr(&format!("{kw}:object"));
-                }
+            "additionalItems" | "additionalProperties" if val.is_object() => {
+                self.incr(&format!("{kw}:object"));
             }
             "type" => {
                 if let Some(types) = val.as_array() {

@@ -784,6 +784,7 @@ impl TestEnv {
             }
 
             let n_masks = res.all_mask_us.len();
+            #[allow(clippy::manual_checked_ops)]
             if n_masks > 0 {
                 res.avg_parser_items = res.sum_parser_items / n_masks;
                 res.max_avg_parser_items = res.sum_parser_items / n_masks;
@@ -1029,7 +1030,7 @@ fn main() {
 
     total.mask_cache = mask_cache_stats(&results);
 
-    for (file, s) in files.iter().zip(results.into_iter()) {
+    for (file, s) in files.iter().zip(results) {
         all_stats.insert(file.clone(), s.clone());
 
         all_file_info.push(s.file_info.clone());
@@ -1119,12 +1120,14 @@ fn main() {
         }
     }
 
+    #[allow(clippy::manual_checked_ops)]
     if total.llg.num_ff_token_seqs > 0 {
         total.llg.ff_tokens_us /= total.llg.num_ff_token_seqs;
     }
 
     total.llg.ttfm_ms_total = total.llg.ttfm_us / 1000;
 
+    #[allow(clippy::manual_checked_ops)]
     if total.llg.num_parsers > 0 {
         total.llg.ttfm_us /= total.llg.num_parsers;
         total.llg.parser_create_us /= total.llg.num_parsers;
@@ -1133,12 +1136,14 @@ fn main() {
         total.llg.num_threads = num_threads;
     }
 
+    #[allow(clippy::manual_checked_ops)]
     if total.llg.num_masks > 0 {
         total.llg.mask_us = total.llg.mask_ms_total / total.llg.num_masks;
         total.llg.num_masks_a_frac = total.llg.num_masks_a * 1000 / total.llg.num_masks;
         total.llg.mask_ms_total_a_frac = total.llg.mask_ms_total_a * 1000 / total.llg.mask_ms_total;
     }
 
+    #[allow(clippy::manual_checked_ops)]
     if total.llg.num_tokens > 0 {
         total.llg.num_ff_tokens = total.llg.num_tokens - total.llg.num_masks;
         total.llg.ff_fraction =
@@ -1306,7 +1311,7 @@ fn mask_cache_stats(results: &[SchemaRes]) -> Value {
         }
         if on_gpu.len() > hash_size {
             let mut to_delete = on_gpu.iter().map(|(k, v)| (*k, *v)).collect::<Vec<_>>();
-            to_delete.sort_by(|a, b| a.1.cmp(&b.1));
+            to_delete.sort_by_key(|a| a.1);
             for (k, _) in to_delete.drain(0..on_gpu.len() - hash_size) {
                 on_gpu.remove(&k);
             }
