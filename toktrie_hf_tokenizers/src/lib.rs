@@ -9,7 +9,9 @@ use std::{
     path::Path,
     sync::Arc,
 };
-use tokenizers::{normalizers, pre_tokenizers, NormalizerWrapper, PreTokenizerWrapper, Tokenizer};
+use tokenizers::{
+    normalizers, pre_tokenizers, DecoderWrapper, NormalizerWrapper, PreTokenizerWrapper, Tokenizer,
+};
 use toktrie::{TokEnv, TokRxInfo, TokTrie, TokenId, TokenizerEnv};
 
 /// A HuggingFace tokenizer adapted for byte-level token processing.
@@ -127,32 +129,37 @@ impl ByteTokenizer {
             hft.with_pre_tokenizer(Some(fix_metaspace(pt)));
         }
 
-        if let Some(d) = hft.get_decoder() {
-            // DecoderWrapper::Sequence() doesn't let one access the decoders
-            // so we resort to json munching
-            let v = serde_json::to_value(d).unwrap();
-            if v["type"].as_str() == Some("ByteLevel") {
-                is_byte_level = true;
-            } else if v["type"].as_str() == Some("Sequence") {
-                if let Some(decoders) = v["decoders"].as_array() {
-                    for decoder in decoders {
-                        if decoder["type"].as_str() == Some("ByteFallback") {
-                            is_byte_fallback = true;
-                        } else if decoder["type"].as_str() == Some("ByteLevel") {
-                            is_byte_level = true;
-                        } else if decoder["type"].as_str() == Some("Replace")
-                            && decoder["content"].as_str() == Some(" ")
-                        {
-                            if let Some(s) = decoder["pattern"]["String"].as_str() {
-                                let s: Vec<char> = s.chars().collect();
-                                if s.len() == 1 {
-                                    space_ch = s[0];
-                                }
-                            }
+        fn check_decoder(
+            d: &DecoderWrapper,
+            is_byte_fallback: &mut bool,
+            is_byte_level: &mut bool,
+            space_ch: &mut char,
+        ) -> Result<()> {
+            match d {
+                DecoderWrapper::ByteFallback(_) => *is_byte_fallback = true,
+                DecoderWrapper::ByteLevel(_) => *is_byte_level = true,
+                DecoderWrapper::Replace(r) if r.content == " " => {
+                    // Replace.pattern is private with no accessor, so serialize to extract it
+                    let v = serde_json::to_value(r)?;
+                    if let Some(s) = v["pattern"]["String"].as_str() {
+                        let mut chars = s.chars();
+                        if let (Some(ch), None) = (chars.next(), chars.next()) {
+                            *space_ch = ch;
                         }
                     }
                 }
+                DecoderWrapper::Sequence(seq) => {
+                    for d in seq.get_decoders() {
+                        check_decoder(d, is_byte_fallback, is_byte_level, space_ch)?;
+                    }
+                }
+                _ => {}
             }
+            Ok(())
+        }
+
+        if let Some(d) = hft.get_decoder() {
+            check_decoder(d, &mut is_byte_fallback, &mut is_byte_level, &mut space_ch)?;
         }
 
         if !is_byte_fallback && !is_byte_level {
@@ -555,5 +562,148 @@ mod tests {
         let after_encoded = tokenizer.hf_tokenizer.encode("a>", false).unwrap();
         let after_ids = after_encoded.get_ids();
         assert_eq!(after_ids, vec![2, 3], "After fix: expected [a, >]");
+    }
+
+    #[rstest]
+    #[case::byte_level_top_level(
+        r#"{
+        "type": "ByteLevel",
+        "add_prefix_space": false,
+        "trim_offsets": true,
+        "use_regex": true
+    }"#
+    )]
+    #[case::byte_level_in_sequence(
+        r#"{
+        "type": "Sequence",
+        "decoders": [{
+            "type": "ByteLevel",
+            "add_prefix_space": false,
+            "trim_offsets": true,
+            "use_regex": true
+        }]
+    }"#
+    )]
+    #[case::byte_fallback_top_level(
+        r#"{
+        "type": "ByteFallback"
+    }"#
+    )]
+    #[case::byte_fallback_in_sequence(
+        r#"{
+        "type": "Sequence",
+        "decoders": [
+            { "type": "ByteFallback" },
+            { "type": "Fuse" }
+        ]
+    }"#
+    )]
+    #[case::byte_fallback_in_nested_sequence(
+        r#"{
+        "type": "Sequence",
+        "decoders": [{
+            "type": "Sequence",
+            "decoders": [
+                { "type": "ByteFallback" },
+                { "type": "Fuse" }
+            ]
+        }]
+    }"#
+    )]
+    fn test_decoder_detection(#[case] decoder: &str) {
+        let tokenizer_json = format!(
+            r#"{{
+            "version": "1.0",
+            "truncation": null,
+            "padding": null,
+            "added_tokens": [],
+            "normalizer": null,
+            "pre_tokenizer": {{
+                "type": "ByteLevel",
+                "add_prefix_space": false,
+                "trim_offsets": true
+            }},
+            "post_processor": null,
+            "decoder": {decoder},
+            "model": {{
+                "type": "BPE",
+                "dropout": null,
+                "unk_token": null,
+                "continuing_subword_prefix": "",
+                "end_of_word_suffix": "",
+                "fuse_unk": false,
+                "vocab": {{
+                    "a": 0
+                }},
+                "merges": []
+            }}
+        }}"#
+        );
+
+        let hf_tokenizer = Tokenizer::from_str(&tokenizer_json).unwrap();
+        ByteTokenizer::from_tokenizer(hf_tokenizer).expect("decoder type should be detected");
+    }
+
+    #[rstest]
+    #[case::replace_space_top_level(
+        r#"{
+        "type": "Sequence",
+        "decoders": [
+            { "type": "ByteFallback" },
+            { "type": "Replace", "pattern": { "String": "▁" }, "content": " " },
+            { "type": "Fuse" }
+        ]
+    }"#
+    )]
+    #[case::replace_space_in_nested_sequence(
+        r#"{
+        "type": "Sequence",
+        "decoders": [{
+            "type": "Sequence",
+            "decoders": [
+                { "type": "ByteFallback" },
+                { "type": "Replace", "pattern": { "String": "▁" }, "content": " " },
+                { "type": "Fuse" }
+            ]
+        }]
+    }"#
+    )]
+    fn test_decoder_space_char(#[case] decoder: &str) {
+        let tokenizer_json = format!(
+            r#"{{
+            "version": "1.0",
+            "truncation": null,
+            "padding": null,
+            "added_tokens": [],
+            "normalizer": null,
+            "pre_tokenizer": {{
+                "type": "ByteLevel",
+                "add_prefix_space": false,
+                "trim_offsets": true
+            }},
+            "post_processor": null,
+            "decoder": {decoder},
+            "model": {{
+                "type": "BPE",
+                "dropout": null,
+                "unk_token": null,
+                "continuing_subword_prefix": "",
+                "end_of_word_suffix": "",
+                "fuse_unk": false,
+                "vocab": {{
+                    "▁hello": 0
+                }},
+                "merges": []
+            }}
+        }}"#
+        );
+
+        let hf_tokenizer = Tokenizer::from_str(&tokenizer_json).unwrap();
+        let bt =
+            ByteTokenizer::from_tokenizer(hf_tokenizer).expect("decoder type should be detected");
+        assert_eq!(
+            bt.token_bytes[0], b" hello",
+            "space_ch replacement should convert ▁ to space"
+        );
     }
 }
