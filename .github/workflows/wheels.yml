@@ -1,4 +1,4 @@
-name: Wheels
+name: Release Crate & Wheels
 
 on:
   push:
