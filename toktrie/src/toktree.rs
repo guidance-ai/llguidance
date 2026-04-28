@@ -280,7 +280,7 @@ impl TokTrie {
         let mut nodes = Vec::new();
         trie.serialize(&mut nodes, 0);
 
-        let mut r = TokTrie {
+        let r = TokTrie {
             info: self.info,
             token_offsets,
             token_data,
@@ -1366,7 +1366,7 @@ impl Recognizer for FixedRecognizer {
     fn trie_finished(&mut self) {}
 
     fn pop_bytes(&mut self, num: usize) {
-        self.bytes_ptr = self.bytes_ptr.saturating_sub(num);
+        self.bytes_ptr -= num;
     }
 
     fn try_push_byte(&mut self, byte: u8) -> bool {
