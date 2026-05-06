@@ -398,3 +398,42 @@ fn test_multi_eos_mask_when_stopped() {
     );
     assert!(matcher.is_stopped());
 }
+
+#[test]
+fn test_multi_eos_validate_tokens() {
+    let base = ApproximateTokEnv::single_byte();
+    let base_trie = base.tok_trie();
+    let primary_eos = base_trie.eos_token();
+    let extra_eos = primary_eos - 1;
+    let multi_trie = base_trie.clone().with_eos_tokens(&[primary_eos, extra_eos]);
+    let tok_env: TokEnv = Arc::new(ApproximateTokEnv::new(multi_trie));
+
+    let factory = ParserFactory::new(
+        &tok_env,
+        InferenceCapabilities::default(),
+        &SlicedBiasComputer::general_slices(),
+    )
+    .unwrap();
+
+    let grm = TopLevelGrammar::from_lark(r#"start: /[a-z]*/"#.to_string());
+    let mut parser = factory.create_parser(grm).unwrap();
+    parser.start_without_prompt();
+    let mut matcher = Matcher::new(Ok(parser));
+
+    matcher.consume_token(b'a' as u32).unwrap();
+    assert!(
+        !matcher.is_stopped(),
+        "parser should still be running while lexeme bytes are pending"
+    );
+
+    assert_eq!(
+        matcher.validate_tokens(&[primary_eos]).unwrap(),
+        1,
+        "primary EOS must be accepted by validate_tokens"
+    );
+    assert_eq!(
+        matcher.validate_tokens(&[extra_eos]).unwrap(),
+        1,
+        "extra EOS must also be accepted by validate_tokens"
+    );
+}

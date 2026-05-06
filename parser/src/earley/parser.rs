@@ -1043,11 +1043,10 @@ impl ParserState {
             let mut applied_idx = state.byte_to_token_idx.len();
             let tok_env = state.tok_env.clone();
             let trie = tok_env.tok_trie();
-            let eos = trie.eos_token();
             let mut recog = ParserRecognizer { state };
             for (tidx, &tok) in tokens.iter().enumerate() {
                 let state = &mut recog.state;
-                if tok == eos {
+                if trie.eos_tokens().contains(&tok) {
                     if applied_idx == state.bytes.len() && state.is_accepting_inner() {
                         return tidx + 1;
                     } else {
