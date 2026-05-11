@@ -483,7 +483,7 @@ impl TokTrie {
 
     pub fn token_len(&self, idx: u32) -> usize {
         let t = self.token(idx);
-        if t.is_empty() || t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
+        if t.is_empty() || (t.len() > 1 && t[0] == TokTrie::SPECIAL_TOKEN_MARKER) {
             let mut idx = idx;
             let mut len = 1;
             while idx >= 10 {
@@ -519,7 +519,7 @@ impl TokTrie {
                 if include_special {
                     res.extend_from_slice(format!("<[{tok}]>").as_bytes());
                 }
-            } else if t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
+            } else if t.len() > 1 && t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
                 if include_special {
                     res.extend_from_slice(&t[1..]);
                 }
@@ -541,7 +541,7 @@ impl TokTrie {
         let mut res = Vec::with_capacity(tokens.len() * 6 + 32); // approximately
         for &tok in tokens {
             let t = self.token(tok);
-            if t.is_empty() || t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
+            if t.is_empty() || (t.len() > 1 && t[0] == TokTrie::SPECIAL_TOKEN_MARKER) {
                 res.push(TokTrie::SPECIAL_TOKEN_MARKER);
                 res.extend_from_slice(format!("[{tok}]").as_bytes());
             } else {
@@ -577,7 +577,7 @@ impl TokTrie {
 
     pub fn is_special_token(&self, tok: TokenId) -> bool {
         let bytes = self.token(tok);
-        !bytes.is_empty() && bytes[0] == TokTrie::SPECIAL_TOKEN_MARKER
+        bytes.len() > 1 && bytes[0] == TokTrie::SPECIAL_TOKEN_MARKER
     }
 
     pub fn get_special_token(&self, name: &str) -> Option<TokenId> {
