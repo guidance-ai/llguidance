@@ -62,7 +62,7 @@ The library is currently integrated in:
   available via `-DLLAMA_LLGUIDANCE=ON` option for `cmake`;
   llama.cpp can be also used Guidance Python package
 - **Chromium** - [merged](https://github.com/chromium/chromium/commit/07ca6337c2f714ba0477202414bd2b1692e70594),
-  to be used for [JSON Schema enforcement](https://github.com/webmachinelearning/prompt-api?tab=readme-ov-file#structured-output-or-json-output) for `window.ai` in Chromium-based browsers
+  to be used for [structured output](https://github.com/webmachinelearning/prompt-api?tab=readme-ov-file#structured-output-with-json-schema-or-regexp-constraints) in the [Prompt API](https://github.com/webmachinelearning/prompt-api) for Chromium-based browsers
 - [SGLang](https://github.com/sgl-project/sglang/pull/3298) -
   use `--grammar-backend llguidance`; when passing Lark grammar make
   sure to prefix them with `%llguidance {}`, just as in llama.cpp
