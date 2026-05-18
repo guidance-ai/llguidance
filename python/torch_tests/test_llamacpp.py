@@ -1,7 +1,7 @@
 import llguidance.llamacpp
 import llama_cpp
 import os
-import requests # type: ignore
+import requests
 from typing import Any
 
 def get_llama_vocab_file(pytestconfig: Any) -> str:
