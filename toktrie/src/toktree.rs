@@ -1400,6 +1400,23 @@ mod tests {
         TokTrie::from(&info, &words)
     }
 
+    // A token whose bytes are exactly the single byte 0xFF is an ordinary byte
+    // token (the byte value 255), not a special token. Special tokens are
+    // encoded as the marker byte *followed by* a payload (e.g. `\xff[123]`), so
+    // only tokens longer than one byte that start with the marker are special.
+    // Regression coverage for decoding of single 0xFF byte tokens.
+    fn trie_with_0xff_token() -> TokTrie {
+        let mut special = vec![TokTrie::SPECIAL_TOKEN_MARKER];
+        special.extend_from_slice(b"[7]");
+        let words: Vec<Vec<u8>> = vec![
+            b"a".to_vec(),                       // 0: ordinary token
+            vec![TokTrie::SPECIAL_TOKEN_MARKER], // 1: single 0xFF byte (byte 255)
+            special,                             // 2: genuine special token (marker + payload)
+        ];
+        let info = TokRxInfo::new(words.len() as u32, 0);
+        TokTrie::from(&info, &words)
+    }
+
     #[test]
     fn test_default_single_eos() {
         let trie = make_test_trie(2);
@@ -1466,5 +1483,36 @@ mod tests {
         assert!(!set.is_allowed(0));
         assert!(!set.is_allowed(2));
         assert_eq!(set.num_set(), 2);
+    }
+
+    #[test]
+    fn single_0xff_byte_is_not_special() {
+        let trie = trie_with_0xff_token();
+        assert!(
+            !trie.is_special_token(1),
+            "a single 0xFF byte must be treated as a regular byte token"
+        );
+        assert!(
+            trie.is_special_token(2),
+            "the marker followed by a payload is a special token"
+        );
+        assert!(!trie.is_special_token(0));
+    }
+
+    #[test]
+    fn single_0xff_byte_has_byte_length() {
+        let trie = trie_with_0xff_token();
+        // Before the fix this token was treated as special and reported the
+        // synthetic `\xff[1]` length (4) instead of its real length of 1.
+        assert_eq!(trie.token(1), &[0xff]);
+        assert_eq!(trie.token_len(1), 1);
+    }
+
+    #[test]
+    fn single_0xff_byte_decodes_to_itself() {
+        let trie = trie_with_0xff_token();
+        // Before the fix `decode_raw` emitted the special-token reference
+        // `\xff[1]` instead of the literal 0xFF byte.
+        assert_eq!(trie.decode_raw(&[1]), vec![0xff]);
     }
 }
