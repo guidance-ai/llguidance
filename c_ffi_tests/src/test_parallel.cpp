@@ -47,7 +47,7 @@ ConstraintPtr new_regex_constraint(const LlgTokenizer *tokenizer,
 
   ConstraintPtr constraint(llg_new_constraint_regex(&init, regex));
   BOOST_REQUIRE(constraint.get() != nullptr);
-  BOOST_REQUIRE_MESSAGE(llg_get_error(constraint.get()) == nullptr,
+  BOOST_REQUIRE_MESSAGE((llg_get_error(constraint.get()) == nullptr),
                         llg_get_error(constraint.get()));
   return constraint;
 }
