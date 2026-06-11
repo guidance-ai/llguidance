@@ -1,0 +1,45 @@
+name: C FFI Tests
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+        description: 'Git ref to checkout'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  c-ffi-tests:
+    name: C FFI Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Install Boost
+      run: sudo apt-get update && sudo apt-get install -y libboost-test-dev
+
+    - name: Build llguidance (release)
+      run: cargo build --release
+      working-directory: parser
+
+    - name: Remove shared libs to force static linking
+      run: rm -f target/release/libllguidance.so target/release/libllguidance.dylib
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      working-directory: c_ffi_tests
+
+    - name: Build tests
+      run: cmake --build build
+      working-directory: c_ffi_tests
+
+    - name: Run tests
+      run: ctest --test-dir build --output-on-failure
+      working-directory: c_ffi_tests

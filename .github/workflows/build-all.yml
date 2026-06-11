@@ -57,6 +57,12 @@ jobs:
     with:
       ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
 
+  c-ffi-tests:
+    name: C FFI Tests
+    uses: ./.github/workflows/c-ffi-tests.yml
+    with:
+      ref: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_id || github.sha }}
+
   lark-tests:
     name: Lark Tests
     uses: ./.github/workflows/lark-tests.yml
