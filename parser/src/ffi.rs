@@ -26,6 +26,7 @@
 use std::{
     ffi::{c_char, c_void, CStr},
     fmt::Display,
+    panic::AssertUnwindSafe,
     sync::Arc,
 };
 
@@ -37,8 +38,54 @@ use toktrie::{
 use crate::{
     api::{GrammarInit, ParserLimits, TopLevelGrammar},
     earley::{SlicedBiasComputer, ValidationResult},
-    CommitResult, Constraint, Logger, Matcher, ParserFactory, StopController, TokenParser,
+    panic_utils, CommitResult, Constraint, Logger, Matcher, ParserFactory, StopController,
+    TokenParser,
 };
+
+// ---------------------------------------------------------------------------
+// FFI panic-safety helpers
+// ---------------------------------------------------------------------------
+
+/// Wraps an FFI function body that returns a pointer (non-null on success, null
+/// on error). If `f` panics, writes the panic message into `error_string` and
+/// returns null.
+///
+/// Use for functions like `llg_new_tokenizer` that report errors via a
+/// caller-provided buffer.
+fn ffi_guard_ptr<T>(
+    f: impl FnOnce() -> *mut T + std::panic::UnwindSafe,
+    error_string: *mut c_char,
+    error_string_len: usize,
+) -> *mut T {
+    match std::panic::catch_unwind(f) {
+        Ok(ptr) => ptr,
+        Err(e) => {
+            let msg = panic_utils::mk_panic_error(&e);
+            // SAFETY: save_error_string handles null/zero-len gracefully
+            unsafe { save_error_string(msg, error_string, error_string_len) };
+            std::ptr::null_mut()
+        }
+    }
+}
+
+/// Wraps an FFI function body that returns `*mut LlgConstraint`.
+/// On panic, returns a constraint handle in an error state (consistent with
+/// the "always returns non-null" contract of `llg_new_constraint*`).
+fn ffi_guard_constraint(
+    f: impl FnOnce() -> *mut LlgConstraint + std::panic::UnwindSafe,
+) -> *mut LlgConstraint {
+    match std::panic::catch_unwind(f) {
+        Ok(ptr) => ptr,
+        Err(e) => {
+            let msg = panic_utils::mk_panic_error(&e);
+            let mut res = LlgConstraint::default();
+            res.set_error(&msg);
+            Box::into_raw(Box::new(res))
+        }
+    }
+}
+
+
 
 struct CTokenizerInner {
     trie: TokTrie,
@@ -46,8 +93,22 @@ struct CTokenizerInner {
     tokenize_user_data: *const c_void,
     tokenize_assumes_string: bool,
 }
-// SAFETY: tokenize_fn is required to be thread-safe
+
+// SAFETY: `CTokenizerInner` is `Send` because:
+// - `trie` (TokTrie) is a plain data structure with no interior mutability.
+// - `tokenize_fn` is `Option<extern "C" fn(...)>` — function pointers are
+//   inherently `Send`.
+// - `tokenize_user_data` is a raw `*const c_void`. The C API documentation
+//   requires that `tokenize_fn` (and any data it accesses via `user_data`) be
+//   thread-safe. This is the caller's contractual obligation.
 unsafe impl Send for CTokenizerInner {}
+
+// SAFETY: `CTokenizerInner` is `Sync` because:
+// - `trie` is `Sync` (immutable after construction).
+// - `tokenize_fn` is a function pointer (trivially `Sync`).
+// - `tokenize_user_data` is never mutated through `&self`; the C caller
+//   guarantees that concurrent calls to `tokenize_fn` with the same
+//   `user_data` are safe (documented requirement).
 unsafe impl Sync for CTokenizerInner {}
 
 impl CTokenizerInner {
@@ -110,6 +171,18 @@ pub struct LlgTokenizer {
     factory: Arc<ParserFactory>,
 }
 
+/// Create a slice from a raw pointer and length.
+///
+/// Returns `Ok(&[])` when `len` is 0, and `Err` when `data` is null but
+/// `len > 0`.
+///
+/// # Safety
+/// - If `len > 0`, `data` must point to `len` consecutive properly-initialized
+///   elements of type `T`, and the resulting slice must not be used beyond
+///   lifetime `'a`.
+/// - `data` must be properly aligned for `T`.
+/// - The memory referenced must not be mutated during lifetime `'a` (standard
+///   shared-reference rules).
 unsafe fn slice_from_ptr<'a, T>(data: *const T, len: usize) -> Result<&'a [T]> {
     if len == 0 {
         return Ok(&[]);
@@ -120,6 +193,14 @@ unsafe fn slice_from_ptr<'a, T>(data: *const T, len: usize) -> Result<&'a [T]> {
     Ok(std::slice::from_raw_parts(data, len))
 }
 
+/// Create a slice from a raw pointer and length, returning an empty slice for
+/// null or zero-length inputs (never fails).
+///
+/// # Safety
+/// - If `len > 0` and `data` is non-null, `data` must point to `len`
+///   consecutive properly-initialized elements of type `T`.
+/// - `data` must be properly aligned for `T`.
+/// - The memory referenced must not be mutated during lifetime `'a`.
 unsafe fn slice_from_ptr_or_empty<'a, T>(data: *const T, len: usize) -> &'a [T] {
     if len == 0 || data.is_null() {
         &[]
@@ -491,7 +572,11 @@ pub struct LlgConstraintStep {
     /// The length of the `mask_dest` array in bytes (not elements).
     pub mask_byte_len: usize,
 }
-// SAFETY: the caller of llg_par_compute_mask() needs to ensure the pointers remain valid
+// SAFETY: `LlgConstraintStep` contains raw pointers (`constraint`, `mask_dest`)
+// that are not inherently `Send`. We implement `Send` because:
+// - The caller of `llg_par_compute_mask()` guarantees that each step's pointers
+//   remain valid and unaliased for the duration of the parallel computation.
+// - Each step is processed by exactly one rayon worker (no sharing).
 #[cfg(feature = "rayon")]
 unsafe impl Send for LlgConstraintStep {}
 
@@ -581,7 +666,14 @@ impl LlgCommitResult {
     }
 }
 
-// SAFETY: caller needs to ensure c_str points to a valid C string or is null
+/// Convert a C string pointer to a Rust `&str`.
+///
+/// Returns `Err` if `c_str` is null or if the string is not valid UTF-8.
+///
+/// # Safety
+/// - `c_str` must either be null or point to a valid NUL-terminated C string.
+/// - The returned reference borrows from the pointee; the caller must ensure
+///   the pointee outlives lifetime `'a`.
 unsafe fn c_str_to_str<'a>(c_str: *const c_char, info: &str) -> Result<&'a str> {
     ensure!(!c_str.is_null(), "{info} is null");
     CStr::from_ptr(c_str)
@@ -615,7 +707,9 @@ fn new_constraint_tagged(
     constraint_type: &str,
     data: *const c_char,
 ) -> *mut LlgConstraint {
-    constraint_to_llg(new_constraint_str_cstr(init, constraint_type, data))
+    ffi_guard_constraint(AssertUnwindSafe(|| {
+        constraint_to_llg(new_constraint_str_cstr(init, constraint_type, data))
+    }))
 }
 
 impl LlgConstraint {
@@ -737,7 +831,9 @@ pub extern "C" fn llg_new_constraint_any(
     constraint_type: *const c_char,
     data: *const c_char,
 ) -> *mut LlgConstraint {
-    constraint_to_llg(new_constraint_cstr_cstr(init, constraint_type, data))
+    ffi_guard_constraint(AssertUnwindSafe(|| {
+        constraint_to_llg(new_constraint_cstr_cstr(init, constraint_type, data))
+    }))
 }
 
 /// Get the error message from the constraint, or null if there is no error.
@@ -829,8 +925,19 @@ pub extern "C" fn llg_commit_token(
 
 /// Compute masks for several constraints in parallel.
 ///
+/// If `steps` is null or `n_steps` is 0, the callback (if any) is invoked
+/// immediately and the function returns. If the `rayon` feature is not enabled,
+/// the callback is invoked immediately and no work is done.
+///
 /// # Safety
-/// This function should only be called from C code.
+/// - `steps` must point to an array of `n_steps` valid [`LlgConstraintStep`]
+///   elements (or be null, in which case this is a no-op).
+/// - Each step's `constraint` pointer must remain valid and unaliased for the
+///   duration of the parallel computation.
+/// - Each step's `mask_dest` must point to a buffer of at least
+///   `mask_byte_len` bytes.
+/// - `user_data` is passed opaquely to `done_cb`; the caller must ensure it
+///   remains valid until `done_cb` is invoked.
 #[no_mangle]
 pub unsafe extern "C" fn llg_par_compute_mask(
     steps: *const LlgConstraintStep,
@@ -838,20 +945,42 @@ pub unsafe extern "C" fn llg_par_compute_mask(
     user_data: *const c_void,
     done_cb: LlgCallback,
 ) {
-    if steps.is_null() {
-        panic!("llg_par_compute_mask: steps is null");
+    // Gracefully handle null/empty — invoke callback and return.
+    if steps.is_null() || n_steps == 0 {
+        if let Some(cb) = done_cb {
+            cb(user_data);
+        }
+        return;
     }
 
     #[cfg(feature = "rayon")]
     {
-        let steps = unsafe { slice_from_ptr(steps, n_steps).unwrap().to_vec() };
+        // SAFETY: caller guarantees `steps` points to `n_steps` valid elements.
+        let steps = unsafe { std::slice::from_raw_parts(steps, n_steps).to_vec() };
         crate::ffi_par::par_compute_mask(steps, user_data, done_cb);
     }
 
     #[cfg(not(feature = "rayon"))]
     {
-        let _ = (steps, n_steps, user_data, done_cb);
-        panic!("llg_par_compute_mask: rayon feature is not enabled");
+        // Without rayon, we cannot perform parallel computation.
+        // Mark each constraint as errored so the caller can detect failure.
+        let steps_slice = unsafe { std::slice::from_raw_parts(steps, n_steps) };
+        for step in steps_slice {
+            if !step.constraint.is_null() {
+                let cc = unsafe { &mut *step.constraint };
+                cc.set_error("llg_par_compute_mask: rayon feature is not enabled");
+            }
+            // Zero the mask buffer so callers don't use uninitialized data.
+            if !step.mask_dest.is_null() && step.mask_byte_len > 0 {
+                unsafe {
+                    std::ptr::write_bytes(step.mask_dest as *mut u8, 0, step.mask_byte_len);
+                }
+            }
+        }
+        // Invoke callback to avoid deadlocking the caller.
+        if let Some(cb) = done_cb {
+            cb(user_data);
+        }
     }
 }
 
@@ -864,20 +993,28 @@ pub extern "C" fn llg_clone_constraint(cc: &LlgConstraint) -> *mut LlgConstraint
 /// Construct a new tokenizer from a [`LlgTokenizerInit`].
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - `tok_init` must point to a valid, fully initialized [`LlgTokenizerInit`].
+/// - Pointer fields within the struct (`token_lens`, `token_bytes`, etc.) must
+///   satisfy the documented requirements (see struct docs).
+/// - `error_string` must point to a buffer of at least `error_string_len` bytes
+///   (or be null).
 #[no_mangle]
 pub unsafe extern "C" fn llg_new_tokenizer(
     tok_init: &LlgTokenizerInit,
     error_string: *mut c_char,
     error_string_len: usize,
 ) -> *mut LlgTokenizer {
-    match LlgTokenizer::from_init(tok_init) {
-        Ok(tok) => Box::into_raw(Box::new(tok)),
-        Err(e) => {
-            save_error_string(e, error_string, error_string_len);
-            std::ptr::null_mut()
-        }
-    }
+    ffi_guard_ptr(
+        AssertUnwindSafe(|| match LlgTokenizer::from_init(tok_init) {
+            Ok(tok) => Box::into_raw(Box::new(tok)),
+            Err(e) => {
+                save_error_string(e, error_string, error_string_len);
+                std::ptr::null_mut()
+            }
+        }),
+        error_string,
+        error_string_len,
+    )
 }
 
 /// Create a new tokenizer from a [`LlgTokenizerInitV2`] struct.
@@ -901,49 +1038,56 @@ pub unsafe extern "C" fn llg_new_tokenizer_v2(
     error_string: *mut c_char,
     error_string_len: usize,
 ) -> *mut LlgTokenizer {
-    if tok_init.is_null() {
-        save_error_string(
-            anyhow::anyhow!("tok_init is NULL"),
-            error_string,
-            error_string_len,
-        );
-        return std::ptr::null_mut();
-    }
+    ffi_guard_ptr(
+        AssertUnwindSafe(|| {
+            if tok_init.is_null() {
+                save_error_string(
+                    anyhow::anyhow!("tok_init is NULL"),
+                    error_string,
+                    error_string_len,
+                );
+                return std::ptr::null_mut();
+            }
 
-    // Read struct_size from the first field (always safe if pointer is valid)
-    let struct_size = unsafe { std::ptr::read(tok_init as *const usize) };
-    let min_size = std::mem::offset_of!(LlgTokenizerInitV2, token_lens);
-    if struct_size < min_size {
-        save_error_string(
-            anyhow::anyhow!(
-                "LlgTokenizerInitV2.struct_size is {struct_size} but expected at least {min_size}. \
-                 Set struct_size = sizeof(LlgTokenizerInitV2)."
-            ),
-            error_string,
-            error_string_len,
-        );
-        return std::ptr::null_mut();
-    }
+            // Read struct_size from the first field (always safe if pointer is valid)
+            let struct_size = unsafe { std::ptr::read(tok_init as *const usize) };
+            let min_size = std::mem::offset_of!(LlgTokenizerInitV2, token_lens);
+            if struct_size < min_size {
+                save_error_string(
+                    anyhow::anyhow!(
+                        "LlgTokenizerInitV2.struct_size is {struct_size} but expected at least {min_size}. \
+                         Set struct_size = sizeof(LlgTokenizerInitV2)."
+                    ),
+                    error_string,
+                    error_string_len,
+                );
+                return std::ptr::null_mut();
+            }
 
-    // Copy the caller's data into a zero-initialized local struct.
-    // Fields beyond what the caller provides default to zero.
-    let mut local: LlgTokenizerInitV2 = unsafe { std::mem::zeroed() };
-    let copy_size = std::cmp::min(struct_size, std::mem::size_of::<LlgTokenizerInitV2>());
-    unsafe {
-        std::ptr::copy_nonoverlapping(
-            tok_init as *const u8,
-            &mut local as *mut LlgTokenizerInitV2 as *mut u8,
-            copy_size,
-        );
-    }
+            // Copy the caller's data into a zero-initialized local struct.
+            // Fields beyond what the caller provides default to zero.
+            let mut local: LlgTokenizerInitV2 = unsafe { std::mem::zeroed() };
+            let copy_size =
+                std::cmp::min(struct_size, std::mem::size_of::<LlgTokenizerInitV2>());
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    tok_init as *const u8,
+                    &mut local as *mut LlgTokenizerInitV2 as *mut u8,
+                    copy_size,
+                );
+            }
 
-    match LlgTokenizer::from_init_v2(&local) {
-        Ok(tok) => Box::into_raw(Box::new(tok)),
-        Err(e) => {
-            save_error_string(e, error_string, error_string_len);
-            std::ptr::null_mut()
-        }
-    }
+            match LlgTokenizer::from_init_v2(&local) {
+                Ok(tok) => Box::into_raw(Box::new(tok)),
+                Err(e) => {
+                    save_error_string(e, error_string, error_string_len);
+                    std::ptr::null_mut()
+                }
+            }
+        }),
+        error_string,
+        error_string_len,
+    )
 }
 
 /// Clone a tokenizer.
@@ -960,7 +1104,9 @@ pub extern "C" fn llg_clone_tokenizer(tok: &LlgTokenizer) -> *mut LlgTokenizer {
 /// `output_tokens` if `output_tokens_len` were large enough.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - If `bytes_len > 0`, `bytes` must point to `bytes_len` valid bytes.
+/// - If `output_tokens` is non-null, it must point to a buffer of at least
+///   `output_tokens_len` elements.
 #[no_mangle]
 pub unsafe extern "C" fn llg_tokenize_bytes(
     tok: &LlgTokenizer,
@@ -991,7 +1137,9 @@ pub unsafe extern "C" fn llg_tokenize_bytes(
 /// `output_tokens` if `output_tokens_len` were large enough.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - If `bytes_len > 0`, `bytes` must point to `bytes_len` valid bytes.
+/// - If `output_tokens` is non-null, it must point to a buffer of at least
+///   `output_tokens_len` elements.
 #[no_mangle]
 pub unsafe extern "C" fn llg_tokenize_bytes_marker(
     tok: &LlgTokenizer,
@@ -1022,7 +1170,9 @@ pub unsafe extern "C" fn llg_tokenize_bytes_marker(
 /// written to `output` if `output_len` were large enough.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
+/// - If `output` is non-null, it must point to a buffer of at least
+///   `output_len` bytes.
 #[no_mangle]
 pub unsafe extern "C" fn llg_stringify_tokens(
     tok: &LlgTokenizer,
@@ -1065,7 +1215,9 @@ pub const LLG_DECODE_VALID_UTF8: u32 = 2;
 /// and [`LLG_DECODE_VALID_UTF8`].
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
+/// - If `output` is non-null, it must point to a buffer of at least
+///   `output_len` bytes.
 #[no_mangle]
 pub unsafe extern "C" fn llg_decode_tokens(
     tok: &LlgTokenizer,
@@ -1100,7 +1252,10 @@ pub unsafe extern "C" fn llg_decode_tokens(
 /// Must **not** be called while there are still constraints using it.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - `tok` must be a pointer previously returned by [`llg_new_tokenizer()`] or
+///   [`llg_new_tokenizer_v2()`] (or [`llg_clone_tokenizer()`]).
+/// - `tok` must not have been freed already (double-free is UB).
+/// - No other thread may access `tok` concurrently with this call.
 #[no_mangle]
 pub unsafe extern "C" fn llg_free_tokenizer(tok: *mut LlgTokenizer) {
     unsafe {
@@ -1111,7 +1266,10 @@ pub unsafe extern "C" fn llg_free_tokenizer(tok: *mut LlgTokenizer) {
 /// Free the constraint.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - `cc` must be a pointer previously returned by one of the
+///   `llg_new_constraint*` functions (or [`llg_clone_constraint()`]).
+/// - `cc` must not have been freed already (double-free is UB).
+/// - No other thread may access `cc` concurrently with this call.
 #[no_mangle]
 pub unsafe extern "C" fn llg_free_constraint(cc: *mut LlgConstraint) {
     unsafe {
@@ -1178,7 +1336,11 @@ pub unsafe fn save_error_string(
 /// Create a new stop-sequence controller.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - If `stop_tokens_len > 0`, `stop_tokens` must point to `stop_tokens_len`
+///   valid `u32` values.
+/// - `stop_rx`, if non-null, must be a valid NUL-terminated UTF-8 C string.
+/// - `error_string`, if non-null, must point to a buffer of at least
+///   `error_string_len` bytes.
 #[no_mangle]
 pub unsafe extern "C" fn llg_new_stop_controller(
     tokenizer: &LlgTokenizer,
@@ -1188,17 +1350,23 @@ pub unsafe extern "C" fn llg_new_stop_controller(
     error_string: *mut c_char,
     error_string_len: usize,
 ) -> *mut LlgStopController {
-    let stop_tokens = unsafe { slice_from_ptr_or_empty(stop_tokens, stop_tokens_len) };
-    match build_stop_controller(tokenizer, stop_tokens, stop_rx) {
-        Ok(stop_controller) => Box::into_raw(Box::new(LlgStopController {
-            stop_controller,
-            last_result: String::new(),
-        })),
-        Err(e) => {
-            save_error_string(e, error_string, error_string_len);
-            std::ptr::null_mut()
-        }
-    }
+    ffi_guard_ptr(
+        AssertUnwindSafe(|| {
+            let stop_tokens = unsafe { slice_from_ptr_or_empty(stop_tokens, stop_tokens_len) };
+            match build_stop_controller(tokenizer, stop_tokens, stop_rx) {
+                Ok(stop_controller) => Box::into_raw(Box::new(LlgStopController {
+                    stop_controller,
+                    last_result: String::new(),
+                })),
+                Err(e) => {
+                    save_error_string(e, error_string, error_string_len);
+                    std::ptr::null_mut()
+                }
+            }
+        }),
+        error_string,
+        error_string_len,
+    )
 }
 
 /// Commit a token to the stop-sequence controller.
@@ -1235,7 +1403,10 @@ pub extern "C" fn llg_clone_stop_controller(
 /// Free the stop-sequence controller.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - `stop_ctrl` must be a pointer previously returned by
+///   [`llg_new_stop_controller()`] (or [`llg_clone_stop_controller()`]).
+/// - `stop_ctrl` must not have been freed already.
+/// - No other thread may access `stop_ctrl` concurrently with this call.
 #[no_mangle]
 pub unsafe extern "C" fn llg_free_stop_controller(stop_ctrl: *mut LlgStopController) {
     unsafe {
@@ -1293,30 +1464,49 @@ impl LlgMatcher {
 ///   in JSON format
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - `constraint_type` and `data` must be valid NUL-terminated UTF-8 C strings.
 #[no_mangle]
 pub unsafe extern "C" fn llg_new_matcher(
     init: &LlgConstraintInit,
     constraint_type: *const c_char,
     data: *const c_char,
 ) -> *mut LlgMatcher {
-    let tok_env = init.factory().map_or_else(
-        |_| ApproximateTokEnv::single_byte_env(),
-        |f| f.tok_env().clone(),
-    );
-    let parser = || {
-        let tp = unsafe { c_str_to_str(constraint_type, "constraint_type") }?;
-        let data = unsafe { c_str_to_str(data, "data") }?;
-        let grammar = TopLevelGrammar::from_tagged_str(tp, data)?;
-        init.build_parser(grammar)
-    };
-    let matcher = Matcher::new(parser());
-    Box::into_raw(Box::new(LlgMatcher {
-        matcher,
-        last_error: None,
-        saved_mask: None,
-        tok_env,
-    }))
+    // catch_unwind ensures panics in grammar compilation don't unwind into C.
+    let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        let tok_env = init.factory().map_or_else(
+            |_| ApproximateTokEnv::single_byte_env(),
+            |f| f.tok_env().clone(),
+        );
+        let parser = || {
+            let tp = unsafe { c_str_to_str(constraint_type, "constraint_type") }?;
+            let data = unsafe { c_str_to_str(data, "data") }?;
+            let grammar = TopLevelGrammar::from_tagged_str(tp, data)?;
+            init.build_parser(grammar)
+        };
+        let matcher = Matcher::new(parser());
+        Box::into_raw(Box::new(LlgMatcher {
+            matcher,
+            last_error: None,
+            saved_mask: None,
+            tok_env,
+        }))
+    }));
+    match result {
+        Ok(ptr) => ptr,
+        Err(e) => {
+            // Return a matcher in error state. Use the approximate tokenizer
+            // unconditionally to avoid a potential second panic from init.factory().
+            let tok_env = ApproximateTokEnv::single_byte_env();
+            let msg = panic_utils::mk_panic_error(&e);
+            let matcher = Matcher::new(Err(anyhow::anyhow!(msg)));
+            Box::into_raw(Box::new(LlgMatcher {
+                matcher,
+                last_error: None,
+                saved_mask: None,
+                tok_env,
+            }))
+        }
+    }
 }
 
 fn validate_grammar(
@@ -1343,7 +1533,8 @@ fn validate_grammar(
 /// `message`, which is `message_len` bytes long. It is always NUL-terminated.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - `constraint_type` and `data` must be valid NUL-terminated UTF-8 C strings.
+/// - `message` must point to a buffer of at least `message_len` bytes.
 #[no_mangle]
 pub unsafe extern "C" fn llg_validate_grammar(
     init: &LlgConstraintInit,
@@ -1352,19 +1543,29 @@ pub unsafe extern "C" fn llg_validate_grammar(
     message: *mut c_char,
     message_len: usize,
 ) -> i32 {
-    match validate_grammar(init, constraint_type, data) {
-        Err(e) => {
-            save_error_string(e, message, message_len);
-            -1
-        }
-        Ok(s) => {
-            if !s.is_empty() {
-                save_error_string(s, message, message_len);
-                1
-            } else {
-                save_error_string("", message, message_len);
-                0
+    let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        match validate_grammar(init, constraint_type, data) {
+            Err(e) => {
+                save_error_string(e, message, message_len);
+                -1
             }
+            Ok(s) => {
+                if !s.is_empty() {
+                    save_error_string(s, message, message_len);
+                    1
+                } else {
+                    save_error_string("", message, message_len);
+                    0
+                }
+            }
+        }
+    }));
+    match result {
+        Ok(code) => code,
+        Err(e) => {
+            let msg = panic_utils::mk_panic_error(&e);
+            unsafe { save_error_string(msg, message, message_len) };
+            -1
         }
     }
 }
@@ -1376,7 +1577,8 @@ pub unsafe extern "C" fn llg_validate_grammar(
 /// [`llg_matcher_get_mask_byte_size()`]. Returns 0 on success and −1 on error.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - `mask_dest` must point to a buffer of at least `mask_byte_len` bytes,
+///   where `mask_byte_len` equals [`llg_matcher_get_mask_byte_size()`].
 #[no_mangle]
 pub unsafe extern "C" fn llg_matcher_compute_mask_into(
     matcher: &mut LlgMatcher,
@@ -1455,7 +1657,7 @@ pub extern "C" fn llg_matcher_consume_token(matcher: &mut LlgMatcher, token: u32
 /// Returns 0 on success and −1 on error.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
 #[no_mangle]
 pub unsafe extern "C" fn llg_matcher_consume_tokens(
     matcher: &mut LlgMatcher,
@@ -1475,20 +1677,24 @@ pub unsafe extern "C" fn llg_matcher_consume_tokens(
 /// After it returns a non-null value, it will always return that same pointer
 /// until the matcher is freed with [`llg_free_matcher()`] (at which point the
 /// pointer becomes invalid).
-///
-/// # Safety
-/// This function should only be called from C code.
 #[no_mangle]
 pub extern "C" fn llg_matcher_get_error(matcher: &mut LlgMatcher) -> *const c_char {
     if !matcher.matcher.is_error() {
         return std::ptr::null();
     }
     if matcher.last_error.is_none() {
-        let mut err = matcher.matcher.get_error().unwrap();
+        let mut err = matcher
+            .matcher
+            .get_error()
+            .unwrap_or_else(|| "unknown error".to_string());
         err.push('\0');
         matcher.last_error = Some(err);
     }
-    matcher.last_error.as_ref().unwrap().as_ptr() as *const c_char
+    // SAFETY: we just ensured `last_error` is `Some` above.
+    match matcher.last_error.as_ref() {
+        Some(s) => s.as_ptr() as *const c_char,
+        None => std::ptr::null(),
+    }
 }
 
 /// Check whether the matcher is in an error state.
@@ -1500,7 +1706,10 @@ pub extern "C" fn llg_matcher_is_error(matcher: &mut LlgMatcher) -> bool {
 /// Free the matcher.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - `matcher` must be a pointer previously returned by [`llg_new_matcher()`]
+///   (or [`llg_clone_matcher()`]).
+/// - `matcher` must not have been freed already.
+/// - No other thread may access `matcher` concurrently with this call.
 #[no_mangle]
 pub unsafe extern "C" fn llg_free_matcher(matcher: *mut LlgMatcher) {
     unsafe {
@@ -1552,7 +1761,7 @@ pub extern "C" fn llg_matcher_is_stopped(matcher: &LlgMatcher) -> bool {
 /// Returns the number of tokens that can be consumed, or −1 on error.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
 #[no_mangle]
 pub unsafe extern "C" fn llg_matcher_validate_tokens(
     matcher: &mut LlgMatcher,
@@ -1560,7 +1769,7 @@ pub unsafe extern "C" fn llg_matcher_validate_tokens(
     n_tokens: usize,
 ) -> i32 {
     let tokens = unsafe { slice_from_ptr_or_empty(tokens, n_tokens) };
-    matcher.wrap(|m| m.validate_tokens(tokens).map(|v| v.try_into().unwrap()))
+    matcher.wrap(|m| m.validate_tokens(tokens).map(|v| i32::try_from(v).unwrap_or(i32::MAX)))
 }
 
 /// Compute the fast-forward (forced) tokens for the current state.
@@ -1569,7 +1778,7 @@ pub unsafe extern "C" fn llg_matcher_validate_tokens(
 /// (which can be 0) or −1 on error.
 ///
 /// # Safety
-/// This function should only be called from C code.
+/// - `output` must point to a buffer of at least `output_len` elements.
 #[no_mangle]
 pub unsafe extern "C" fn llg_matcher_compute_ff_tokens(
     matcher: &mut LlgMatcher,
@@ -1584,9 +1793,9 @@ pub unsafe extern "C" fn llg_matcher_compute_ff_tokens(
         let v = v.as_slice();
         let len = std::cmp::min(v.len(), output_len);
         unsafe {
-            std::ptr::copy_nonoverlapping(v.as_ptr(), output, v.len());
+            std::ptr::copy_nonoverlapping(v.as_ptr(), output, len);
         }
-        Ok(len as i32)
+        Ok(i32::try_from(len).unwrap_or(i32::MAX))
     })
 }
 
@@ -1614,7 +1823,10 @@ pub extern "C" fn llg_get_version() -> *const c_char {
     static VERSION: std::sync::OnceLock<std::ffi::CString> = std::sync::OnceLock::new();
     VERSION
         .get_or_init(|| {
-            std::ffi::CString::new(format!("{} {}", LLG_VERSION, derivre::VERSION)).unwrap()
+            // Version strings are compile-time constants and cannot contain NUL,
+            // but we use expect() with an explanatory message for robustness.
+            std::ffi::CString::new(format!("{} {}", LLG_VERSION, derivre::VERSION))
+                .expect("version strings must not contain NUL bytes")
         })
         .as_ptr()
 }
