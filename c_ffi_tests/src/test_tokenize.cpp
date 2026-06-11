@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(decode_tokens_none_flag) {
 
 BOOST_AUTO_TEST_CASE(decode_tokens_valid_utf8_flag) {
   ByteTokenizer tok;
-  const uint32_t token = 255;
+  const uint32_t token = 128;
   char buffer[16] = {};
 
   size_t n = llg_decode_tokens(tok.tok, &token, 1, buffer, sizeof(buffer),
