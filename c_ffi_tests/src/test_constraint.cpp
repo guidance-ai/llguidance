@@ -35,7 +35,7 @@ ConstraintPtr make_constraint(LlgConstraint *constraint) {
 
 void require_no_error(const LlgConstraint *constraint) {
   const char *error = llg_get_error(constraint);
-  BOOST_REQUIRE_MESSAGE((error == nullptr), error ? error : "unexpected error");
+  BOOST_REQUIRE_MESSAGE((error == nullptr), (error ? error : "unexpected error"));
 }
 
 bool mask_allows(const LlgMaskResult &mask_res, uint32_t token) {
@@ -47,8 +47,8 @@ LlgMaskResult compute_mask_ok(LlgConstraint *constraint) {
   LlgMaskResult mask_res{};
   const int32_t rc = llg_compute_mask(constraint, &mask_res);
   const char *error = llg_get_error(constraint);
-  BOOST_REQUIRE_MESSAGE((rc == 0), error ? error : "llg_compute_mask failed");
-  BOOST_REQUIRE_MESSAGE((error == nullptr), error ? error : "unexpected error");
+  BOOST_REQUIRE_MESSAGE((rc == 0), (error ? error : "llg_compute_mask failed"));
+  BOOST_REQUIRE_MESSAGE((error == nullptr), (error ? error : "unexpected error"));
   return mask_res;
 }
 
@@ -56,8 +56,8 @@ LlgCommitResult commit_token_ok(LlgConstraint *constraint, uint32_t token) {
   LlgCommitResult commit_res{};
   const int32_t rc = llg_commit_token(constraint, token, &commit_res);
   const char *error = llg_get_error(constraint);
-  BOOST_REQUIRE_MESSAGE((rc == 0), error ? error : "llg_commit_token failed");
-  BOOST_REQUIRE_MESSAGE((error == nullptr), error ? error : "unexpected error");
+  BOOST_REQUIRE_MESSAGE((rc == 0), (error ? error : "llg_commit_token failed"));
+  BOOST_REQUIRE_MESSAGE((error == nullptr), (error ? error : "unexpected error"));
   return commit_res;
 }
 
