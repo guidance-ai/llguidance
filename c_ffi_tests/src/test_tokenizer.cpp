@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(tokenizer_with_greedy_approx) {
   char error_buf[256] = {};
   LlgTokenizer *tok = llg_new_tokenizer(&tok_init, error_buf, sizeof(error_buf));
 
-  BOOST_REQUIRE_MESSAGE(tok,
+  BOOST_REQUIRE_MESSAGE(tok != nullptr,
                         "Expected tokenizer creation to succeed: " << error_buf);
   llg_free_tokenizer(tok);
 }
