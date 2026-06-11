@@ -218,7 +218,7 @@ impl Token {
         // use JSON string syntax
         (
             Token::String,
-            r#""(\\([\"\\\/bfnrt]|u[a-fA-F0-9]{4})|[^\"\\\x00-\x1F\x7F])*"(i|)"#,
+            r#""(\\([\"\\\/bfnrt]|u[a-fA-F0-9]{4}|x[a-fA-F0-9]{2})|[^\"\\\x00-\x1F\x7F])*"(i|)"#,
         ),
         (Token::Regexp, r#"/(\\.|[^/\\])+/[imslux]*"#),
         (Token::Number, r#"[+-]?[0-9]+(\.[0-9]*)?([eE][+-]?[0-9]+)?"#),
