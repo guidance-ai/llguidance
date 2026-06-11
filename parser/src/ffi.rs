@@ -85,8 +85,6 @@ fn ffi_guard_constraint(
     }
 }
 
-
-
 struct CTokenizerInner {
     trie: TokTrie,
     tokenize_fn: LlgTokenizeFn,
@@ -1067,8 +1065,7 @@ pub unsafe extern "C" fn llg_new_tokenizer_v2(
             // Copy the caller's data into a zero-initialized local struct.
             // Fields beyond what the caller provides default to zero.
             let mut local: LlgTokenizerInitV2 = unsafe { std::mem::zeroed() };
-            let copy_size =
-                std::cmp::min(struct_size, std::mem::size_of::<LlgTokenizerInitV2>());
+            let copy_size = std::cmp::min(struct_size, std::mem::size_of::<LlgTokenizerInitV2>());
             unsafe {
                 std::ptr::copy_nonoverlapping(
                     tok_init as *const u8,
@@ -1769,7 +1766,10 @@ pub unsafe extern "C" fn llg_matcher_validate_tokens(
     n_tokens: usize,
 ) -> i32 {
     let tokens = unsafe { slice_from_ptr_or_empty(tokens, n_tokens) };
-    matcher.wrap(|m| m.validate_tokens(tokens).map(|v| i32::try_from(v).unwrap_or(i32::MAX)))
+    matcher.wrap(|m| {
+        m.validate_tokens(tokens)
+            .map(|v| i32::try_from(v).unwrap_or(i32::MAX))
+    })
 }
 
 /// Compute the fast-forward (forced) tokens for the current state.
