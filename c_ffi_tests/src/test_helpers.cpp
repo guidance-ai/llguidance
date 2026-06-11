@@ -49,7 +49,7 @@ LlgTokenizer *create_byte_tokenizer() {
 
   char error_buf[256];
   auto tok = llg_new_tokenizer(&tok_init, error_buf, sizeof(error_buf));
-  BOOST_REQUIRE_MESSAGE(tok != nullptr,
+  BOOST_REQUIRE_MESSAGE(tok,
                         "Failed to create byte tokenizer: " << error_buf);
   return tok;
 }
@@ -94,7 +94,7 @@ LlgTokenizer *create_byte_tokenizer_v2() {
 
   char error_buf[256];
   auto tok = llg_new_tokenizer_v2(&tok_init, error_buf, sizeof(error_buf));
-  BOOST_REQUIRE_MESSAGE(tok != nullptr,
+  BOOST_REQUIRE_MESSAGE(tok,
                         "Failed to create byte tokenizer v2: " << error_buf);
   return tok;
 }

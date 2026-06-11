@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(commit_token_no_stop) {
   char error[256] = {};
   StopControllerPtr stop_ctrl(llg_new_stop_controller(
       tokenizer.get(), stop_tokens, 1, nullptr, error, sizeof(error)));
-  BOOST_REQUIRE_MESSAGE(stop_ctrl.get() != nullptr, error);
+  BOOST_REQUIRE_MESSAGE(stop_ctrl.get(), error);
 
   const std::array<uint32_t, 5> tokens = {104, 101, 108, 108, 111};
   const std::array<std::string, 5> expected = {"h", "e", "l", "l", "o"};
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(commit_token_stop_detected) {
   char error[256] = {};
   StopControllerPtr stop_ctrl(llg_new_stop_controller(
       tokenizer.get(), stop_tokens, 1, nullptr, error, sizeof(error)));
-  BOOST_REQUIRE_MESSAGE(stop_ctrl.get() != nullptr, error);
+  BOOST_REQUIRE_MESSAGE(stop_ctrl.get(), error);
 
   for (uint32_t token : {104u, 101u, 108u}) {
     size_t output_len = 0;
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(clone_stop_controller) {
   char error[256] = {};
   StopControllerPtr stop_ctrl(llg_new_stop_controller(
       tokenizer.get(), stop_tokens, 1, nullptr, error, sizeof(error)));
-  BOOST_REQUIRE_MESSAGE(stop_ctrl.get() != nullptr, error);
+  BOOST_REQUIRE_MESSAGE(stop_ctrl.get(), error);
 
   size_t output_len = 0;
   bool is_stopped = true;
