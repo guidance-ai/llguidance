@@ -40,11 +40,7 @@ jobs:
       run: cmake --build build
       working-directory: c_ffi_tests
 
-    - name: Run tests
-      run: ctest --test-dir build --output-on-failure
-      working-directory: c_ffi_tests
-
-    - name: Generate JUnit XML
+    - name: Run tests & generate JUnit XML
       if: always()
       run: ./build/llg_ffi_tests --log_format=JUNIT --log_sink=junit.xml --log_level=all --report_level=no
       working-directory: c_ffi_tests
