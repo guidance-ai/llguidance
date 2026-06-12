@@ -32,7 +32,7 @@ LlgConstraintInit make_constraint_init(const LlgTokenizer *tokenizer) {
   return init;
 }
 
-ValidationResult validate_grammar(const LlgConstraintInit &init,
+ValidationResult do_validate(const LlgConstraintInit &init,
                                   const char *constraint_type,
                                   const char *data) {
   ValidationResult result{};
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(validate_regex_valid) {
   BOOST_REQUIRE(tokenizer != nullptr);
 
   const auto init = make_constraint_init(tokenizer.get());
-  const auto result = validate_grammar(init, "regex", "[a-z]+");
+  const auto result = do_validate(init, "regex", "[a-z]+");
 
   BOOST_TEST(result.rc == 0);
   BOOST_TEST(result.message[0] == '\0');
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(validate_regex_invalid) {
   BOOST_REQUIRE(tokenizer != nullptr);
 
   const auto init = make_constraint_init(tokenizer.get());
-  const auto result = validate_grammar(init, "regex", "[z-a");
+  const auto result = do_validate(init, "regex", "[z-a");
 
   BOOST_TEST(result.rc == -1);
   BOOST_TEST(result.message[0] != '\0');
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(validate_json_schema_valid) {
 
   const auto init = make_constraint_init(tokenizer.get());
   const auto result =
-      validate_grammar(init, "json_schema", R"({"type":"string"})");
+      do_validate(init, "json_schema", R"({"type":"string"})");
 
   BOOST_TEST(result.rc == 0);
   BOOST_TEST(result.message[0] == '\0');
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(validate_lark_valid) {
   BOOST_REQUIRE(tokenizer != nullptr);
 
   const auto init = make_constraint_init(tokenizer.get());
-  const auto result = validate_grammar(init, "lark", R"(start: "hello")");
+  const auto result = do_validate(init, "lark", R"(start: "hello")");
 
   BOOST_TEST(result.rc == 0);
   BOOST_TEST(result.message[0] == '\0');
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(validate_lark_invalid) {
   BOOST_REQUIRE(tokenizer != nullptr);
 
   const auto init = make_constraint_init(tokenizer.get());
-  const auto result = validate_grammar(init, "lark", "start: (");
+  const auto result = do_validate(init, "lark", "start: (");
 
   BOOST_TEST(result.rc == -1);
   BOOST_TEST(result.message[0] != '\0');
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(validate_llguidance_type) {
   BOOST_REQUIRE(tokenizer != nullptr);
 
   const auto init = make_constraint_init(tokenizer.get());
-  const auto result = validate_grammar(
+  const auto result = do_validate(
       init, "llguidance",
       R"({"grammars":[{"json_schema":{"type":"string"}}]})");
 
@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(validate_unknown_type) {
 
   const auto init = make_constraint_init(tokenizer.get());
   const auto result =
-      validate_grammar(init, "not-a-type", R"({"type":"string"})");
+      do_validate(init, "not-a-type", R"({"type":"string"})");
 
   BOOST_TEST(result.rc == -1);
   BOOST_TEST(result.message[0] != '\0');
