@@ -284,4 +284,60 @@ BOOST_AUTO_TEST_CASE(free_constraint_with_error) {
   BOOST_REQUIRE(llg_get_error(constraint.get()) != nullptr);
 }
 
+BOOST_AUTO_TEST_CASE(compute_mask_on_error_constraint) {
+  auto tokenizer = make_byte_tokenizer();
+  auto init = make_constraint_init(tokenizer.get());
+  auto constraint = make_constraint(llg_new_constraint_json(&init, "{"));
+
+  BOOST_REQUIRE(llg_get_error(constraint.get()) != nullptr);
+
+  LlgMaskResult mask_res{};
+  BOOST_CHECK_EQUAL(llg_compute_mask(constraint.get(), &mask_res), -1);
+}
+
+BOOST_AUTO_TEST_CASE(commit_token_on_error_constraint) {
+  auto tokenizer = make_byte_tokenizer();
+  auto init = make_constraint_init(tokenizer.get());
+  auto constraint =
+      make_constraint(llg_new_constraint_lark(&init, R"(start: [)"));
+
+  BOOST_REQUIRE(llg_get_error(constraint.get()) != nullptr);
+
+  LlgCommitResult commit_res{};
+  BOOST_CHECK_EQUAL(llg_commit_token(constraint.get(), 'a', &commit_res), -1);
+}
+
+BOOST_AUTO_TEST_CASE(commit_disallowed_token) {
+  auto tokenizer = make_byte_tokenizer();
+  auto init = make_constraint_init(tokenizer.get());
+  auto constraint = make_constraint(llg_new_constraint_regex(&init, "a"));
+
+  require_no_error(constraint.get());
+
+  const auto mask_res = compute_mask_ok(constraint.get());
+  BOOST_REQUIRE(mask_res.sample_mask != nullptr);
+  BOOST_CHECK(mask_allows(mask_res, 'a'));
+  BOOST_CHECK(!mask_allows(mask_res, 'z'));
+
+  LlgCommitResult commit_res{};
+  BOOST_CHECK_EQUAL(llg_commit_token(constraint.get(), 'z', &commit_res), -1);
+}
+
+BOOST_AUTO_TEST_CASE(double_compute_mask) {
+  auto tokenizer = make_byte_tokenizer();
+  auto init = make_constraint_init(tokenizer.get());
+  auto constraint =
+      make_constraint(llg_new_constraint_regex(&init, "[a-z]+"));
+
+  require_no_error(constraint.get());
+
+  auto first_mask = compute_mask_ok(constraint.get());
+  BOOST_CHECK(first_mask.sample_mask != nullptr);
+
+  LlgMaskResult second_mask{};
+  BOOST_CHECK_EQUAL(llg_compute_mask(constraint.get(), &second_mask), 0);
+  BOOST_CHECK(llg_get_error(constraint.get()) == nullptr);
+  BOOST_CHECK(second_mask.sample_mask != nullptr);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -149,4 +149,94 @@ BOOST_AUTO_TEST_CASE(roundtrip_tokenize_stringify) {
   BOOST_TEST(out.find("o") != std::string::npos);
 }
 
+BOOST_AUTO_TEST_CASE(tokenize_marker_at_start) {
+  ByteTokenizer tok;
+  const uint8_t input[] = {0xff, '[', '2', '5', '6', ']', 'h', 'i'};
+  std::vector<uint32_t> tokens(3);
+
+  size_t n =
+      llg_tokenize_bytes_marker(tok.tok, input, sizeof(input), tokens.data(),
+                                tokens.size());
+
+  BOOST_REQUIRE_EQUAL(n, 3u);
+  check_tokens(tokens, {BYTE_TOK_EOS, 104, 105});
+}
+
+BOOST_AUTO_TEST_CASE(tokenize_marker_multiple) {
+  ByteTokenizer tok;
+  const uint8_t input[] = {'a', 0xff, '[', '2', '5', '6', ']', 0xff,
+                           '[', '1', '0', '0', ']', 'b'};
+  std::vector<uint32_t> tokens(4);
+
+  size_t n =
+      llg_tokenize_bytes_marker(tok.tok, input, sizeof(input), tokens.data(),
+                                tokens.size());
+
+  BOOST_REQUIRE_EQUAL(n, 4u);
+  check_tokens(tokens, {97, BYTE_TOK_EOS, 100, 98});
+}
+
+BOOST_AUTO_TEST_CASE(tokenize_marker_count_only) {
+  ByteTokenizer tok;
+  const uint8_t input[] = {0xff, '[', '2', '5', '6', ']'};
+
+  size_t n = llg_tokenize_bytes_marker(tok.tok, input, sizeof(input), nullptr, 0);
+
+  BOOST_CHECK_EQUAL(n, 1u);
+}
+
+// NOTE: bare \xff handling (not followed by '[' or '<') is currently undefined
+// behavior in llg_tokenize_bytes_marker — the byte may be silently dropped.
+// A future fix should tokenize it literally as token 255.
+
+BOOST_AUTO_TEST_CASE(decode_tokens_include_special) {
+  ByteTokenizer tok;
+  const uint32_t token = BYTE_TOK_EOS;
+  char buffer[16] = {};
+
+  size_t n = llg_decode_tokens(tok.tok, &token, 1, buffer, sizeof(buffer),
+                               LLG_DECODE_INCLUDE_SPECIAL);
+
+  BOOST_CHECK_GT(n, 1u);
+  BOOST_CHECK(!std::string(buffer).empty());
+}
+
+BOOST_AUTO_TEST_CASE(decode_tokens_combined_flags) {
+  ByteTokenizer tok;
+  const uint32_t tokens[] = {128, BYTE_TOK_EOS};
+  char buffer[32] = {};
+
+  size_t n = llg_decode_tokens(tok.tok, tokens, 2, buffer, sizeof(buffer),
+                               LLG_DECODE_INCLUDE_SPECIAL |
+                                   LLG_DECODE_VALID_UTF8);
+
+  BOOST_CHECK_EQUAL(n, 9u);
+  BOOST_CHECK_EQUAL(std::string(buffer), "\xEF\xBF\xBD<EOS>");
+}
+
+BOOST_AUTO_TEST_CASE(decode_tokens_empty) {
+  ByteTokenizer tok;
+  char buffer[4] = {'x', '\0', '\0', '\0'};
+
+  size_t n = llg_decode_tokens(tok.tok, nullptr, 0, buffer, sizeof(buffer),
+                               LLG_DECODE_NONE);
+
+  BOOST_CHECK_EQUAL(n, 1u);
+  BOOST_CHECK_EQUAL(std::string(buffer), "");
+}
+
+BOOST_AUTO_TEST_CASE(decode_tokens_buffer_too_small) {
+  ByteTokenizer tok;
+  const uint32_t tokens[] = {104, 101, 108, 108, 111};
+  char buffer[3] = {};
+
+  size_t n = llg_decode_tokens(tok.tok, tokens, 5, buffer, sizeof(buffer),
+                               LLG_DECODE_NONE);
+
+  BOOST_CHECK_EQUAL(n, 6u);
+  BOOST_CHECK_EQUAL(buffer[0], 'h');
+  BOOST_CHECK_EQUAL(buffer[1], 'e');
+  BOOST_CHECK_EQUAL(buffer[2], '\0');
+}
+
 BOOST_AUTO_TEST_SUITE_END()

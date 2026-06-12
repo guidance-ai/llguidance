@@ -35,6 +35,7 @@ set(TEST_SOURCES
     src/test_matcher.cpp
     src/test_stop_controller.cpp
     src/test_parallel.cpp
+    src/test_validate_grammar.cpp
     src/test_version.cpp
 )
 

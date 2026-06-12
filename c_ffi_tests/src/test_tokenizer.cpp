@@ -174,4 +174,60 @@ BOOST_AUTO_TEST_CASE(tokenizer_with_greedy_approx) {
   llg_free_tokenizer(tok);
 }
 
+BOOST_AUTO_TEST_CASE(tokenizer_v1_vocab_size_zero) {
+  LlgTokenizerInit tok_init = {};
+  tok_init.vocab_size = 0;
+  tok_init.tok_eos = 0;
+  tok_init.token_lens = nullptr;
+  tok_init.token_bytes = nullptr;
+  tok_init.tokenize_fn = byte_tokenize_callback;
+
+  char error_buf[256] = {};
+  LlgTokenizer *tok = llg_new_tokenizer(&tok_init, error_buf, sizeof(error_buf));
+
+  // vocab_size=0 with tok_eos=0 is out of range (no valid token IDs)
+  BOOST_TEST(tok == nullptr);
+  BOOST_TEST(std::strlen(error_buf) > 0U);
+}
+
+BOOST_AUTO_TEST_CASE(tokenizer_v1_both_fn_and_greedy) {
+  SmallVocab vocab;
+  LlgTokenizerInit tok_init = {};
+  tok_init.vocab_size = 3;
+  tok_init.tok_eos = 2;
+  tok_init.token_lens = vocab.token_lens.data();
+  tok_init.token_bytes = vocab.token_bytes.data();
+  tok_init.tokenize_fn = byte_tokenize_callback;
+  tok_init.use_approximate_greedy_tokenize_fn = true;
+
+  char error_buf[256] = {};
+  LlgTokenizer *tok = llg_new_tokenizer(&tok_init, error_buf, sizeof(error_buf));
+
+  // When both are set, tokenize_fn takes precedence — should succeed
+  BOOST_REQUIRE_MESSAGE((tok != nullptr),
+                        "Expected tokenizer creation to succeed: " << error_buf);
+  llg_free_tokenizer(tok);
+}
+
+BOOST_AUTO_TEST_CASE(tokenizer_v2_eos_extra_null_with_count) {
+  SmallVocab vocab;
+  LlgTokenizerInitV2 tok_init = {};
+  tok_init.struct_size = sizeof(tok_init);
+  tok_init.vocab_size = 3;
+  tok_init.tok_eos = 2;
+  tok_init.token_lens = vocab.token_lens.data();
+  tok_init.token_bytes = vocab.token_bytes.data();
+  tok_init.tokenize_fn = byte_tokenize_callback;
+  tok_init.tok_eos_extra = nullptr;
+  tok_init.tok_eos_extra_count = 2; // count > 0 but pointer is null
+
+  char error_buf[256] = {};
+  LlgTokenizer *tok =
+      llg_new_tokenizer_v2(&tok_init, error_buf, sizeof(error_buf));
+
+  // Should fail gracefully (null pointer with non-zero count)
+  BOOST_TEST(tok == nullptr);
+  BOOST_TEST(std::strlen(error_buf) > 0U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

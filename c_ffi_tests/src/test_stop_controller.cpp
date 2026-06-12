@@ -158,4 +158,61 @@ BOOST_AUTO_TEST_CASE(clone_stop_controller) {
   BOOST_TEST(is_stopped == true);
 }
 
+BOOST_AUTO_TEST_CASE(create_with_multiple_stop_tokens) {
+  TokenizerPtr tokenizer(create_byte_tokenizer());
+  const uint32_t stop_tokens[] = {BYTE_TOK_EOS, 200};
+  char error[256] = {};
+
+  StopControllerPtr stop_ctrl(llg_new_stop_controller(
+      tokenizer.get(), stop_tokens, 2, nullptr, error, sizeof(error)));
+  BOOST_REQUIRE_MESSAGE((stop_ctrl.get() != nullptr), error);
+
+  size_t output_len = 0;
+  bool is_stopped = false;
+  const auto output =
+      committed_text(stop_ctrl.get(), 200, output_len, is_stopped);
+
+  BOOST_TEST(is_stopped == true);
+  BOOST_TEST(output_len == 0u);
+  BOOST_TEST(output.empty());
+}
+
+BOOST_AUTO_TEST_CASE(commit_after_stop) {
+  TokenizerPtr tokenizer(create_byte_tokenizer());
+  const uint32_t stop_tokens[] = {BYTE_TOK_EOS};
+  char error[256] = {};
+  StopControllerPtr stop_ctrl(llg_new_stop_controller(
+      tokenizer.get(), stop_tokens, 1, nullptr, error, sizeof(error)));
+  BOOST_REQUIRE_MESSAGE((stop_ctrl.get() != nullptr), error);
+
+  size_t output_len = 0;
+  bool is_stopped = false;
+  committed_text(stop_ctrl.get(), BYTE_TOK_EOS, output_len, is_stopped);
+  BOOST_TEST(is_stopped == true);
+
+  const char *output =
+      llg_stop_commit_token(stop_ctrl.get(), static_cast<uint32_t>('a'),
+                            &output_len, &is_stopped);
+  BOOST_REQUIRE(output != nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(create_with_both_token_and_regex) {
+  TokenizerPtr tokenizer(create_byte_tokenizer());
+  const uint32_t stop_tokens[] = {BYTE_TOK_EOS};
+  char error[256] = {};
+
+  StopControllerPtr stop_ctrl(llg_new_stop_controller(
+      tokenizer.get(), stop_tokens, 1, "xy", error, sizeof(error)));
+  BOOST_REQUIRE_MESSAGE((stop_ctrl.get() != nullptr), error);
+
+  size_t output_len = 0;
+  bool is_stopped = false;
+  const auto output =
+      committed_text(stop_ctrl.get(), BYTE_TOK_EOS, output_len, is_stopped);
+
+  BOOST_TEST(is_stopped == true);
+  BOOST_TEST(output_len == 0u);
+  BOOST_TEST(output.empty());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

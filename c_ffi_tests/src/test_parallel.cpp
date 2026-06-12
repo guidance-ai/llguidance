@@ -134,4 +134,30 @@ BOOST_AUTO_TEST_CASE(par_compute_mask_matches_sequential) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(par_compute_mask_single_step) {
+  TokenizerPtr tokenizer(create_byte_tokenizer());
+  auto constraint = new_regex_constraint(tokenizer.get(), "[a-z]+");
+
+  std::vector<uint32_t> mask(kMaskU32Count, 0);
+  std::atomic<bool> done{false};
+  LlgConstraintStep step = {constraint.get(), mask.data(), kMaskByteLen};
+
+  llg_par_compute_mask(&step, 1, &done, mark_done_callback);
+  wait_for_done(done);
+
+  BOOST_TEST(mask_allows(mask, static_cast<uint32_t>('a')));
+  BOOST_TEST(mask_allows(mask, static_cast<uint32_t>('z')));
+  BOOST_TEST(!mask_allows(mask, static_cast<uint32_t>('0')));
+}
+
+BOOST_AUTO_TEST_CASE(par_compute_mask_zero_steps) {
+  std::array<LlgConstraintStep, 1> steps = {{
+      {nullptr, nullptr, 0},
+  }};
+  std::atomic<bool> done{false};
+
+  llg_par_compute_mask(steps.data(), 0, &done, mark_done_callback);
+  wait_for_done(done);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

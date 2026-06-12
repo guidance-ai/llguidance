@@ -241,6 +241,105 @@ BOOST_AUTO_TEST_CASE(compute_ff_tokens_short_buffer) {
   BOOST_CHECK_EQUAL(output[3], kCanary);
 }
 
+BOOST_AUTO_TEST_CASE(consume_invalid_token) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "ab");
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_CHECK_EQUAL(llg_matcher_consume_token(matcher.get(), 120), -1); // 'x'
+  BOOST_CHECK(llg_matcher_is_error(matcher.get()));
+}
+
+BOOST_AUTO_TEST_CASE(rollback_zero) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_REQUIRE_EQUAL(llg_matcher_consume_token(matcher.get(), 97), 0); // 'a'
+  BOOST_REQUIRE_EQUAL(llg_matcher_rollback(matcher.get(), 0), 0);
+  BOOST_REQUIRE_EQUAL(llg_matcher_compute_mask(matcher.get()), 0);
+
+  const uint32_t *mask = llg_matcher_get_mask(matcher.get());
+  BOOST_REQUIRE(mask != nullptr);
+  for (uint32_t token = 97; token <= 122; ++token) {
+    BOOST_CHECK(mask_has_token(mask, token));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(rollback_too_many) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_REQUIRE_EQUAL(llg_matcher_consume_token(matcher.get(), 97), 0); // 'a'
+  BOOST_CHECK_EQUAL(llg_matcher_rollback(matcher.get(), 5), -1);
+}
+
+BOOST_AUTO_TEST_CASE(reset_error_state) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("lark", "start: (");
+
+  BOOST_REQUIRE(matcher != nullptr);
+  BOOST_REQUIRE(llg_matcher_is_error(matcher.get()));
+  BOOST_CHECK_EQUAL(llg_matcher_reset(matcher.get()), -1);
+}
+
+BOOST_AUTO_TEST_CASE(ff_tokens_zero_buffer) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "hello");
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_CHECK_GE(llg_matcher_compute_ff_tokens(matcher.get(), nullptr, 0), 0);
+}
+
+BOOST_AUTO_TEST_CASE(compute_mask_into_wrong_size) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+
+  check_matcher_has_no_error(matcher.get());
+
+  const size_t mask_byte_size = llg_matcher_get_mask_byte_size(matcher.get());
+  std::vector<uint32_t> mask(mask_byte_size / sizeof(uint32_t));
+
+  BOOST_CHECK_EQUAL(
+      llg_matcher_compute_mask_into(matcher.get(), mask.data(), mask_byte_size / 2),
+      -1);
+}
+
+BOOST_AUTO_TEST_CASE(is_accepting_initial_plus) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_CHECK(!llg_matcher_is_accepting(matcher.get()));
+}
+
+BOOST_AUTO_TEST_CASE(is_accepting_initial_star) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]*");
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_CHECK(llg_matcher_is_accepting(matcher.get()));
+}
+
+BOOST_AUTO_TEST_CASE(validate_tokens_empty) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_CHECK_EQUAL(llg_matcher_validate_tokens(matcher.get(), nullptr, 0), 0);
+}
+
+BOOST_AUTO_TEST_CASE(validate_tokens_all_invalid) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+  const uint32_t tokens[] = {48, 49};
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_CHECK_EQUAL(
+      llg_matcher_validate_tokens(matcher.get(), tokens, std::size(tokens)), 0);
+}
+
 BOOST_AUTO_TEST_CASE(clone_matcher) {
   MatcherContext ctx;
   auto matcher = ctx.make_matcher("regex", "[a-z]+");
