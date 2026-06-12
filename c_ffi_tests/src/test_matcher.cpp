@@ -284,12 +284,25 @@ BOOST_AUTO_TEST_CASE(reset_error_state) {
   BOOST_CHECK_EQUAL(llg_matcher_reset(matcher.get()), -1);
 }
 
-BOOST_AUTO_TEST_CASE(ff_tokens_zero_buffer) {
+BOOST_AUTO_TEST_CASE(ff_tokens_null_output_returns_error) {
   MatcherContext ctx;
   auto matcher = ctx.make_matcher("regex", "hello");
 
   check_matcher_has_no_error(matcher.get());
-  BOOST_CHECK_GE(llg_matcher_compute_ff_tokens(matcher.get(), nullptr, 0), 0);
+  // Passing nullptr is explicitly rejected even with output_len=0
+  BOOST_CHECK_EQUAL(llg_matcher_compute_ff_tokens(matcher.get(), nullptr, 0), -1);
+}
+
+BOOST_AUTO_TEST_CASE(ff_tokens_zero_length_buffer) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "hello");
+
+  check_matcher_has_no_error(matcher.get());
+  uint32_t dummy = 0xDEADBEEF;
+  // Zero-length buffer: returns 0 tokens written, does not touch buffer
+  int32_t n = llg_matcher_compute_ff_tokens(matcher.get(), &dummy, 0);
+  BOOST_CHECK_EQUAL(n, 0);
+  BOOST_CHECK_EQUAL(dummy, 0xDEADBEEF);
 }
 
 BOOST_AUTO_TEST_CASE(compute_mask_into_wrong_size) {
