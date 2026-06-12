@@ -73,15 +73,17 @@ BOOST_AUTO_TEST_CASE(tokenize_bytes_short_buffer) {
 
 BOOST_AUTO_TEST_CASE(tokenize_bytes_marker) {
   ByteTokenizer tok;
-  const std::string input = "hello";
-  std::vector<uint32_t> tokens(input.size());
+  // Include a \xff[256] marker sequence which should produce token 256 (EOS)
+  const uint8_t input[] = {'h', 'i', 0xff, '[', '2', '5', '6', ']'};
+  std::vector<uint32_t> tokens(3);
 
   size_t n = llg_tokenize_bytes_marker(
-      tok.tok, reinterpret_cast<const uint8_t *>(input.data()), input.size(),
+      tok.tok, input, sizeof(input),
       tokens.data(), tokens.size());
 
-  BOOST_REQUIRE_EQUAL(n, 5u);
-  check_tokens(tokens, {104, 101, 108, 108, 111});
+  // Should produce 3 tokens: 'h'=104, 'i'=105, and marker token 256 (EOS)
+  BOOST_REQUIRE_EQUAL(n, 3u);
+  check_tokens(tokens, {104, 105, BYTE_TOK_EOS});
 }
 
 BOOST_AUTO_TEST_CASE(stringify_tokens_basic) {

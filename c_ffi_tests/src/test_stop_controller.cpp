@@ -128,38 +128,34 @@ BOOST_AUTO_TEST_CASE(commit_token_stop_detected) {
 
 BOOST_AUTO_TEST_CASE(clone_stop_controller) {
   TokenizerPtr tokenizer(create_byte_tokenizer());
-  const uint32_t stop_tokens[] = {BYTE_TOK_EOS};
   char error[256] = {};
+  // Use regex stop pattern "ab" so the controller accumulates match state.
   StopControllerPtr stop_ctrl(llg_new_stop_controller(
-      tokenizer.get(), stop_tokens, 1, nullptr, error, sizeof(error)));
+      tokenizer.get(), nullptr, 0, "ab", error, sizeof(error)));
   BOOST_REQUIRE_MESSAGE((stop_ctrl.get() != nullptr), error);
 
+  // Commit 'x' (120) - no match progress, text is emitted
   size_t output_len = 0;
-  bool is_stopped = true;
-  BOOST_TEST(committed_text(stop_ctrl.get(), 104, output_len, is_stopped) ==
-             "h");
-  BOOST_TEST(is_stopped == false);
-  BOOST_TEST(committed_text(stop_ctrl.get(), 101, output_len, is_stopped) ==
-             "e");
+  bool is_stopped = false;
+  BOOST_TEST(committed_text(stop_ctrl.get(), 120, output_len, is_stopped) ==
+             "x");
   BOOST_TEST(is_stopped == false);
 
+  // Commit 'a' (97) - starts matching "ab"; text may be held back
+  committed_text(stop_ctrl.get(), 97, output_len, is_stopped);
+  BOOST_TEST(is_stopped == false);
+
+  // Clone midway through the regex match sequence
   StopControllerPtr clone(llg_clone_stop_controller(stop_ctrl.get()));
   BOOST_REQUIRE(clone.get() != nullptr);
 
-  BOOST_TEST(committed_text(stop_ctrl.get(), 108, output_len, is_stopped) ==
-             "l");
-  BOOST_TEST(is_stopped == false);
-
-  BOOST_TEST(committed_text(clone.get(), 108, output_len, is_stopped) == "l");
-  BOOST_TEST(is_stopped == false);
-  BOOST_TEST(committed_text(clone.get(), BYTE_TOK_EOS, output_len, is_stopped)
-                 .empty());
-  BOOST_TEST(output_len == 0u);
+  // On the original: commit 'b' (98) - completes "ab", should stop
+  committed_text(stop_ctrl.get(), 98, output_len, is_stopped);
   BOOST_TEST(is_stopped == true);
 
-  BOOST_TEST(committed_text(stop_ctrl.get(), 111, output_len, is_stopped) ==
-             "o");
-  BOOST_TEST(is_stopped == false);
+  // On the clone: commit 'b' (98) - should also stop (cloned state had 'a')
+  committed_text(clone.get(), 98, output_len, is_stopped);
+  BOOST_TEST(is_stopped == true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

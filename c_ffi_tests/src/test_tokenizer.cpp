@@ -118,6 +118,44 @@ BOOST_AUTO_TEST_CASE(tokenizer_v2_eos_out_of_range) {
              std::string_view::npos);
 }
 
+BOOST_AUTO_TEST_CASE(tokenizer_v1_primary_eos_out_of_range) {
+  SmallVocab vocab;
+  LlgTokenizerInit tok_init = {};
+  tok_init.vocab_size = 3;
+  tok_init.tok_eos = 99; // out of range (vocab_size=3)
+  tok_init.token_lens = vocab.token_lens.data();
+  tok_init.token_bytes = vocab.token_bytes.data();
+  tok_init.tokenize_fn = byte_tokenize_callback;
+
+  char error_buf[256] = {};
+  LlgTokenizer *tok = llg_new_tokenizer(&tok_init, error_buf, sizeof(error_buf));
+
+  BOOST_TEST(tok == nullptr);
+  BOOST_TEST(std::strlen(error_buf) > 0U);
+  BOOST_TEST(std::string_view(error_buf).find("out of range") !=
+             std::string_view::npos);
+}
+
+BOOST_AUTO_TEST_CASE(tokenizer_v2_primary_eos_out_of_range) {
+  SmallVocab vocab;
+  LlgTokenizerInitV2 tok_init = {};
+  tok_init.struct_size = sizeof(tok_init);
+  tok_init.vocab_size = 3;
+  tok_init.tok_eos = 99; // out of range, no extra EOS
+  tok_init.token_lens = vocab.token_lens.data();
+  tok_init.token_bytes = vocab.token_bytes.data();
+  tok_init.tokenize_fn = byte_tokenize_callback;
+
+  char error_buf[256] = {};
+  LlgTokenizer *tok =
+      llg_new_tokenizer_v2(&tok_init, error_buf, sizeof(error_buf));
+
+  BOOST_TEST(tok == nullptr);
+  BOOST_TEST(std::strlen(error_buf) > 0U);
+  BOOST_TEST(std::string_view(error_buf).find("out of range") !=
+             std::string_view::npos);
+}
+
 BOOST_AUTO_TEST_CASE(tokenizer_with_greedy_approx) {
   SmallVocab vocab;
   LlgTokenizerInit tok_init = {};

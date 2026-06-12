@@ -152,30 +152,40 @@ BOOST_AUTO_TEST_CASE(is_stopped_when_forced_eos) {
 
 BOOST_AUTO_TEST_CASE(rollback) {
   MatcherContext ctx;
-  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+  // "ab|ac" distinguishes states: after 'a', both 'b' and 'c' are valid.
+  // Consuming 'a','b' commits to the "ab" branch; rolling back 1 restores
+  // the post-'a' state where 'c' is also reachable.
+  auto matcher = ctx.make_matcher("regex", "ab|ac");
 
   check_matcher_has_no_error(matcher.get());
-  BOOST_REQUIRE_EQUAL(llg_matcher_consume_token(matcher.get(), 97), 0);
-  BOOST_REQUIRE_EQUAL(llg_matcher_consume_token(matcher.get(), 98), 0);
+  BOOST_REQUIRE_EQUAL(llg_matcher_consume_token(matcher.get(), 97), 0); // 'a'
+  BOOST_REQUIRE_EQUAL(llg_matcher_consume_token(matcher.get(), 98), 0); // 'b'
   BOOST_REQUIRE_EQUAL(llg_matcher_rollback(matcher.get(), 1), 0);
-  BOOST_REQUIRE_EQUAL(llg_matcher_consume_token(matcher.get(), 99), 0);
-  BOOST_CHECK(!llg_matcher_is_error(matcher.get()));
+
+  // After rollback we should be back in the post-'a' state
+  BOOST_REQUIRE_EQUAL(llg_matcher_compute_mask(matcher.get()), 0);
+  const uint32_t *mask = llg_matcher_get_mask(matcher.get());
+  BOOST_REQUIRE(mask != nullptr);
+  BOOST_CHECK(mask_has_token(mask, 99));  // 'c' should be allowed
+  BOOST_CHECK(mask_has_token(mask, 98));  // 'b' should be allowed
+  BOOST_CHECK(!mask_has_token(mask, 48)); // '0' should be rejected
 }
 
 BOOST_AUTO_TEST_CASE(reset) {
   MatcherContext ctx;
-  auto matcher = ctx.make_matcher("regex", "[a-z]+");
-  const uint32_t tokens[] = {97, 98, 99};
+  // "ab" requires exactly 'a' then 'b'. After consuming 'a', only 'b' is valid.
+  // After reset, only 'a' (the start) should be valid, not 'b'.
+  auto matcher = ctx.make_matcher("regex", "ab");
 
   check_matcher_has_no_error(matcher.get());
-  BOOST_REQUIRE_EQUAL(
-      llg_matcher_consume_tokens(matcher.get(), tokens, std::size(tokens)), 0);
+  BOOST_REQUIRE_EQUAL(llg_matcher_consume_token(matcher.get(), 97), 0); // 'a'
   BOOST_REQUIRE_EQUAL(llg_matcher_reset(matcher.get()), 0);
   BOOST_REQUIRE_EQUAL(llg_matcher_compute_mask(matcher.get()), 0);
 
   const uint32_t *mask = llg_matcher_get_mask(matcher.get());
   BOOST_REQUIRE(mask != nullptr);
-  BOOST_CHECK(mask_has_token(mask, 97));
+  BOOST_CHECK(mask_has_token(mask, 97));  // 'a' allowed (start position)
+  BOOST_CHECK(!mask_has_token(mask, 98)); // 'b' not allowed (would require 'a' first)
 }
 
 BOOST_AUTO_TEST_CASE(validate_tokens) {
@@ -210,6 +220,25 @@ BOOST_AUTO_TEST_CASE(compute_ff_tokens) {
       static_cast<int32_t>(output.size()));
   BOOST_CHECK_EQUAL_COLLECTIONS(output.begin(), output.end(), std::begin(expected),
                                 std::end(expected));
+}
+
+BOOST_AUTO_TEST_CASE(compute_ff_tokens_short_buffer) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "hello");
+  // Buffer of 3 + 1 canary element that must not be overwritten
+  constexpr uint32_t kCanary = 0xDEADBEEF;
+  std::vector<uint32_t> output(4, kCanary);
+  const uint32_t expected[] = {104, 101, 108};
+
+  check_matcher_has_no_error(matcher.get());
+  // Request only 3 slots; return value should still be 3 (the clamped length)
+  BOOST_REQUIRE_EQUAL(
+      llg_matcher_compute_ff_tokens(matcher.get(), output.data(), 3),
+      3);
+  BOOST_CHECK_EQUAL_COLLECTIONS(output.begin(), output.begin() + 3,
+                                std::begin(expected), std::end(expected));
+  // Canary must be untouched
+  BOOST_CHECK_EQUAL(output[3], kCanary);
 }
 
 BOOST_AUTO_TEST_CASE(clone_matcher) {

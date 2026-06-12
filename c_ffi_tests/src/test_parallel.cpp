@@ -59,13 +59,17 @@ extern "C" void mark_done_callback(const void *user_data) {
 }
 
 void wait_for_done(const std::atomic<bool> &done) {
+  // Use a generous deadline so the Rayon callback has time to complete.
+  // We must not unwind (via BOOST_REQUIRE) while the callback may still
+  // access stack-owned data through the pointer descriptors.
   const auto deadline =
-      std::chrono::steady_clock::now() + std::chrono::seconds(2);
+      std::chrono::steady_clock::now() + std::chrono::seconds(30);
   while (!done.load(std::memory_order_acquire) &&
          std::chrono::steady_clock::now() < deadline) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
-  BOOST_REQUIRE(done.load(std::memory_order_acquire));
+  BOOST_REQUIRE_MESSAGE(done.load(std::memory_order_acquire),
+                        "Timed out waiting for parallel compute_mask callback");
 }
 
 std::vector<uint32_t> compute_mask_sequential(LlgConstraint *constraint) {
