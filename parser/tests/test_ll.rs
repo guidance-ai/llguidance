@@ -681,6 +681,31 @@ fn test_ll_max_tokens() {
 }
 
 #[test]
+fn test_ll_max_tokens_zero() {
+    // max_tokens=0 forces zero emitted tokens, i.e. the rule matches only the
+    // empty string -- so `name` contributes nothing and we go straight to "xy".
+    // See https://github.com/guidance-ai/llguidance/issues/236
+
+    // baseline: an explicitly empty rule works
+    check_lark_grammar(
+        r#"start: "Foo " num " x" name "y"
+           num: /[0-9]+/
+           name: ""
+        "#,
+        &["Foo‧ ", "5‧6‧ ", "xy"],
+    );
+
+    // the bug: max_tokens=0 should behave identically to name: ""
+    check_lark_grammar(
+        r#"start: "Foo " num " x" name "y"
+           num: /[0-9]+/
+           name[max_tokens=0]: /.*/
+        "#,
+        &["Foo‧ ", "5‧6‧ ", "xy"],
+    );
+}
+
+#[test]
 fn test_ll_special_token() {
     check_lark_grammar(
         r#"start: <|system|> /.*/
