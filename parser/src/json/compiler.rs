@@ -302,7 +302,15 @@ impl Compiler {
         })?;
         let mut ast = RegexAst::Regex(rx);
         if let Some(d) = num.multiple_of.as_ref() {
-            ast = RegexAst::And(vec![ast, RegexAst::MultipleOf(d.coef, d.exp)]);
+            // RegexAst::MultipleOf only matches the unsigned digit sequence, so
+            // allow an optional leading '-' to accept negative multiples (e.g.
+            // -6 for multipleOf 3); divisibility is independent of sign.
+            // https://github.com/guidance-ai/llguidance/issues/222
+            let multiple_of = RegexAst::Concat(vec![
+                RegexAst::Regex("-?".to_string()),
+                RegexAst::MultipleOf(d.coef, d.exp),
+            ]);
+            ast = RegexAst::And(vec![ast, multiple_of]);
         }
         Ok(ast)
     }
@@ -323,7 +331,15 @@ impl Compiler {
             })?;
         let mut ast = RegexAst::Regex(rx);
         if let Some(d) = num.multiple_of.as_ref() {
-            ast = RegexAst::And(vec![ast, RegexAst::MultipleOf(d.coef, d.exp)]);
+            // RegexAst::MultipleOf only matches the unsigned digit sequence, so
+            // allow an optional leading '-' to accept negative multiples (e.g.
+            // -6 for multipleOf 3); divisibility is independent of sign.
+            // https://github.com/guidance-ai/llguidance/issues/222
+            let multiple_of = RegexAst::Concat(vec![
+                RegexAst::Regex("-?".to_string()),
+                RegexAst::MultipleOf(d.coef, d.exp),
+            ]);
+            ast = RegexAst::And(vec![ast, multiple_of]);
         }
         Ok(ast)
     }
