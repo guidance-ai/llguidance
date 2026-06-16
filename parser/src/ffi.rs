@@ -32,6 +32,7 @@ use std::{
 use anyhow::{bail, ensure, Result};
 use toktrie::{
     ApproximateTokEnv, InferenceCapabilities, SimpleVob, TokEnv, TokRxInfo, TokTrie, TokenizerEnv,
+    INVALID_TOKEN,
 };
 
 use crate::{
@@ -173,7 +174,7 @@ impl LlgTokenizer {
 
         let vocab_size = tokens.len() as u32;
         ensure!(
-            init.tok_eos < vocab_size,
+            init.tok_eos == INVALID_TOKEN || init.tok_eos < vocab_size,
             "EOS token ID {} is out of range (vocab_size={vocab_size})",
             init.tok_eos
         );

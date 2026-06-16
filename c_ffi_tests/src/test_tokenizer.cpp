@@ -175,11 +175,16 @@ BOOST_AUTO_TEST_CASE(tokenizer_with_greedy_approx) {
 }
 
 BOOST_AUTO_TEST_CASE(tokenizer_v1_vocab_size_zero) {
+  // Supply non-null dummy pointers so construction doesn't fail at the
+  // "token_lens and token_bytes must be set" check — we want to reach the
+  // EOS out-of-range validation.
+  uint32_t dummy_lens = 0;
+  uint8_t dummy_bytes = 0;
   LlgTokenizerInit tok_init = {};
   tok_init.vocab_size = 0;
   tok_init.tok_eos = 0;
-  tok_init.token_lens = nullptr;
-  tok_init.token_bytes = nullptr;
+  tok_init.token_lens = &dummy_lens;
+  tok_init.token_bytes = &dummy_bytes;
   tok_init.tokenize_fn = byte_tokenize_callback;
 
   char error_buf[256] = {};
@@ -188,6 +193,8 @@ BOOST_AUTO_TEST_CASE(tokenizer_v1_vocab_size_zero) {
   // vocab_size=0 with tok_eos=0 is out of range (no valid token IDs)
   BOOST_TEST(tok == nullptr);
   BOOST_TEST(std::strlen(error_buf) > 0U);
+  BOOST_TEST(std::string_view(error_buf).find("out of range") !=
+             std::string_view::npos);
 }
 
 BOOST_AUTO_TEST_CASE(tokenizer_v1_both_fn_and_greedy) {

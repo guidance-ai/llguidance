@@ -201,6 +201,73 @@ BOOST_AUTO_TEST_CASE(decode_tokens_include_special) {
   BOOST_CHECK(!std::string(buffer).empty());
 }
 
+BOOST_AUTO_TEST_CASE(decode_tokens_special_marker_prefix) {
+  // Build a tokenizer where token 256 has the 0xff special-token prefix.
+  // This exercises the decode_ext path for genuinely marker-prefixed tokens.
+  std::vector<std::vector<uint8_t>> tokens;
+  tokens.reserve(BYTE_VOCAB_SIZE);
+  for (uint32_t i = 0; i < 256; i++) {
+    tokens.push_back({(uint8_t)i});
+  }
+  // Token 256 = special token with 0xff prefix followed by "<EOS>"
+  const uint8_t special_eos[] = {0xff, '<', 'E', 'O', 'S', '>'};
+  tokens.push_back(
+      std::vector<uint8_t>(special_eos, special_eos + sizeof(special_eos)));
+
+  std::vector<uint32_t> token_lens(tokens.size());
+  size_t total_size = 0;
+  for (size_t i = 0; i < tokens.size(); i++) {
+    token_lens[i] = (uint32_t)tokens[i].size();
+    total_size += token_lens[i];
+  }
+  std::vector<uint8_t> token_bytes_buf(total_size);
+  size_t offset = 0;
+  for (size_t i = 0; i < tokens.size(); i++) {
+    std::copy(tokens[i].begin(), tokens[i].end(),
+              token_bytes_buf.data() + offset);
+    offset += token_lens[i];
+  }
+
+  LlgTokenizerInit tok_init = {};
+  tok_init.vocab_size = (uint32_t)tokens.size();
+  tok_init.tok_eos = BYTE_TOK_EOS;
+  tok_init.token_lens = token_lens.data();
+  tok_init.token_bytes = token_bytes_buf.data();
+  tok_init.tokenize_assumes_string = false;
+  tok_init.tokenize_user_data = nullptr;
+  tok_init.tokenize_fn = byte_tokenize_callback;
+
+  char error_buf[256] = {};
+  LlgTokenizer *special_tok =
+      llg_new_tokenizer(&tok_init, error_buf, sizeof(error_buf));
+  BOOST_REQUIRE_MESSAGE((special_tok != nullptr),
+                        "Failed to create tokenizer: " << error_buf);
+
+  const uint32_t special_token_id = BYTE_TOK_EOS; // token 256 with 0xff prefix
+  char buf_with[32] = {};
+  char buf_without[32] = {};
+
+  // With LLG_DECODE_INCLUDE_SPECIAL: should include the special token text
+  size_t n_with = llg_decode_tokens(special_tok, &special_token_id, 1,
+                                    buf_with, sizeof(buf_with),
+                                    LLG_DECODE_INCLUDE_SPECIAL);
+
+  // Without flag: special token should be suppressed (empty output)
+  size_t n_without = llg_decode_tokens(special_tok, &special_token_id, 1,
+                                       buf_without, sizeof(buf_without),
+                                       LLG_DECODE_NONE);
+
+  // With flag: should produce "<EOS>" (the marker-stripped content)
+  BOOST_CHECK_GT(n_with, 1u);
+  BOOST_CHECK(std::string(buf_with).find("<EOS>") != std::string::npos);
+
+  // Without flag: should produce empty string (only null terminator)
+  BOOST_CHECK_EQUAL(n_without, 1u);
+  BOOST_CHECK_EQUAL(std::string(buf_without), "");
+
+  llg_free_tokenizer(special_tok);
+}
+
 BOOST_AUTO_TEST_CASE(decode_tokens_combined_flags) {
   ByteTokenizer tok;
   const uint32_t tokens[] = {128, BYTE_TOK_EOS};
