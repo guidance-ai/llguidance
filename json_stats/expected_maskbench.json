@@ -6054,9 +6054,7 @@
   "Github_medium---o46359.json": {},
   "Github_medium---o46365.json": {},
   "Github_medium---o46394.json": {},
-  "Github_medium---o46411.json": {
-    "validation_error": "test #0: token not accepted at ⟦{\"‧included‧Non‧Tax‧able‧Prof‧its‧\":‧100‧0‧.‧0‧,\"‧basis‧Adjust‧ment⟧ * ⟦\":-⟧ * ⟦500‧.‧25‧,\"⟧ mask: TokenSet: 12/128256; ⟨\"⟩ ⟨\"\\n⟩ ⟨\":⟩ ⟨\"\\n\\n⟩ ⟨\":\\n⟩ ⟨\"\\r\\n⟩ ⟨\"\\n\\n\\n⟩ ⟨\"\\r\\n\\r\\n⟩ ⟨\":\\r\\n⟩ ⟨\"\\n\\n\\n\\n⟩ ⟨\":\\n\\n⟩ ⟨\"\\r\\n\\r\\n\\r\\n⟩"
-  },
+  "Github_medium---o46411.json": {},
   "Github_medium---o46412.json": {},
   "Github_medium---o46413.json": {},
   "Github_medium---o46423.json": {},
@@ -11447,9 +11445,7 @@
     "json_error": "Unimplemented keys: [\"uniqueItems\"]"
   },
   "JsonSchemaStore---minecraft-damage-type.json": {},
-  "JsonSchemaStore---minecraft-dimension-type.json": {
-    "validation_error": "test #0: token not accepted at ⟦iling‧\":‧true‧,\"‧ambient‧_light‧\":‧0‧.‧2‧,\"‧fixed‧_time‧\":‧600‧0‧,\"‧pig‧lin‧_safe‧\":‧false‧,\"‧bed‧_work‧s‧\":‧false‧,\"‧resp‧awn‧_anchor‧_work‧s‧\":‧true‧,\"‧has‧_ra‧ids‧\":‧false‧,\"‧logical‧_height‧\":‧128‧,\"‧min‧_y⟧ * ⟦\":-⟧ * ⟦64‧,\"‧height‧\":⟧ mask: TokenSet: 123243/128256; ALL EXCEPT EOS ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ �.. (84 more)"
-  },
+  "JsonSchemaStore---minecraft-dimension-type.json": {},
   "JsonSchemaStore---minecraft-dimension.json": {
     "json_error": "Unimplemented keys: [\"if\", \"then\"]"
   },
