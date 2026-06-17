@@ -509,8 +509,13 @@ impl LlgTokenizerInitV2 {
 
 /// Configuration for creating a new constraint or matcher.
 ///
-/// Use [`llg_constraint_init_set_defaults()`] to populate sane defaults, then
-/// override individual fields as needed.
+/// This struct does not include a `struct_size` field for forward
+/// compatibility (unlike [`LlgTokenizerInitV2`]). Callers **must**
+/// zero-initialize the struct before populating fields — for example,
+/// with `= {}` in C/C++ or `memset` — so that any fields added in
+/// future versions default to zero. The recommended pattern is to call
+/// [`llg_constraint_init_set_defaults()`] to populate sane defaults,
+/// then override individual fields as needed.
 #[derive(Clone)]
 #[repr(C)]
 pub struct LlgConstraintInit {
