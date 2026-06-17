@@ -340,4 +340,9 @@ BOOST_AUTO_TEST_CASE(double_compute_mask) {
   BOOST_CHECK(second_mask.sample_mask != nullptr);
 }
 
+BOOST_AUTO_TEST_CASE(free_constraint_null) {
+  llg_free_constraint(nullptr);
+  BOOST_TEST(true);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

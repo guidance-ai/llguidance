@@ -215,4 +215,9 @@ BOOST_AUTO_TEST_CASE(create_with_both_token_and_regex) {
   BOOST_TEST(output.empty());
 }
 
+BOOST_AUTO_TEST_CASE(free_stop_controller_null) {
+  llg_free_stop_controller(nullptr);
+  BOOST_TEST(true);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
