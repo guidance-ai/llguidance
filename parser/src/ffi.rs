@@ -58,12 +58,11 @@ fn ffi_guard_ptr<T>(
     error_string: *mut c_char,
     error_string_len: usize,
 ) -> *mut T {
-    match std::panic::catch_unwind(f) {
+    match panic_utils::catch_unwind(|| Ok(f())) {
         Ok(ptr) => ptr,
         Err(e) => {
-            let msg = panic_utils::mk_panic_error(&e);
             // SAFETY: save_error_string handles null/zero-len gracefully
-            unsafe { save_error_string(msg, error_string, error_string_len) };
+            unsafe { save_error_string(e, error_string, error_string_len) };
             std::ptr::null_mut()
         }
     }
@@ -75,12 +74,11 @@ fn ffi_guard_ptr<T>(
 fn ffi_guard_constraint(
     f: impl FnOnce() -> *mut LlgConstraint + std::panic::UnwindSafe,
 ) -> *mut LlgConstraint {
-    match std::panic::catch_unwind(f) {
+    match panic_utils::catch_unwind(|| Ok(f())) {
         Ok(ptr) => ptr,
         Err(e) => {
-            let msg = panic_utils::mk_panic_error(&e);
             let mut res = LlgConstraint::default();
-            res.set_error(&msg);
+            res.set_error(&e.to_string());
             Box::into_raw(Box::new(res))
         }
     }
@@ -931,19 +929,29 @@ pub extern "C" fn llg_commit_token(
 
 /// Compute masks for several constraints in parallel.
 ///
-/// If `steps` is null or `n_steps` is 0, the callback (if any) is invoked
-/// immediately and the function returns. If the `rayon` feature is not enabled,
-/// the callback is invoked immediately and no work is done.
+/// If `n_steps` is 0, the callback (if any) is invoked immediately and the
+/// function returns. If `steps` is null but `n_steps > 0`, the function
+/// returns immediately without invoking `done_cb` (this is a caller bug).
+/// If the `rayon` feature is not enabled, each constraint is set to an error
+/// state and the callback is invoked immediately.
 ///
 /// # Safety
 /// - `steps` must point to an array of `n_steps` valid [`LlgConstraintStep`]
-///   elements (or be null, in which case this is a no-op).
+///   elements. The `steps` array itself is copied immediately and need not
+///   remain valid after this function returns.
 /// - Each step's `constraint` pointer must remain valid and unaliased for the
-///   duration of the parallel computation.
+///   duration of the parallel computation (until `done_cb` is invoked, or
+///   until this function returns if `done_cb` is null).
 /// - Each step's `mask_dest` must point to a buffer of at least
 ///   `mask_byte_len` bytes.
+/// - All `mask_dest[..mask_byte_len]` regions across steps must be pairwise
+///   non-overlapping until the computation completes, since steps are
+///   processed concurrently by rayon workers.
 /// - `user_data` is passed opaquely to `done_cb`; the caller must ensure it
 ///   remains valid until `done_cb` is invoked.
+/// - When `done_cb` is non-null, it will be invoked on a Rayon worker thread
+///   (not the calling thread). The callback and any state it accesses through
+///   `user_data` must be safe for cross-thread invocation.
 #[no_mangle]
 pub unsafe extern "C" fn llg_par_compute_mask(
     steps: *const LlgConstraintStep,
@@ -951,11 +959,17 @@ pub unsafe extern "C" fn llg_par_compute_mask(
     user_data: *const c_void,
     done_cb: LlgCallback,
 ) {
-    // Gracefully handle null/empty — invoke callback and return.
-    if steps.is_null() || n_steps == 0 {
+    // Empty batch is a valid no-op — invoke callback and return.
+    if n_steps == 0 {
         if let Some(cb) = done_cb {
             cb(user_data);
         }
+        return;
+    }
+
+    // Null steps with non-zero n_steps is a caller bug — do not invoke done_cb
+    // (invoking it would make the invalid call indistinguishable from success).
+    if steps.is_null() {
         return;
     }
 
@@ -1233,7 +1247,7 @@ pub unsafe extern "C" fn llg_decode_tokens(
     flags: u32,
 ) -> usize {
     let trie = tok.tok_trie();
-    let tokens = { slice_from_ptr_or_empty(tokens, n_tokens) };
+    let tokens = unsafe { slice_from_ptr_or_empty(tokens, n_tokens) };
     let s = trie.decode_ext(tokens, flags & LLG_DECODE_INCLUDE_SPECIAL != 0);
     let s = if flags & LLG_DECODE_VALID_UTF8 != 0 {
         String::from_utf8_lossy(&s).to_string().into()
@@ -1263,8 +1277,10 @@ pub unsafe extern "C" fn llg_decode_tokens(
 /// - No other thread may access `tok` concurrently with this call.
 #[no_mangle]
 pub unsafe extern "C" fn llg_free_tokenizer(tok: *mut LlgTokenizer) {
-    unsafe {
-        drop(Box::from_raw(tok));
+    if !tok.is_null() {
+        unsafe {
+            drop(Box::from_raw(tok));
+        }
     }
 }
 
@@ -1277,8 +1293,10 @@ pub unsafe extern "C" fn llg_free_tokenizer(tok: *mut LlgTokenizer) {
 /// - No other thread may access `cc` concurrently with this call.
 #[no_mangle]
 pub unsafe extern "C" fn llg_free_constraint(cc: *mut LlgConstraint) {
-    unsafe {
-        drop(Box::from_raw(cc));
+    if !cc.is_null() {
+        unsafe {
+            drop(Box::from_raw(cc));
+        }
     }
 }
 
@@ -1414,8 +1432,10 @@ pub extern "C" fn llg_clone_stop_controller(
 /// - No other thread may access `stop_ctrl` concurrently with this call.
 #[no_mangle]
 pub unsafe extern "C" fn llg_free_stop_controller(stop_ctrl: *mut LlgStopController) {
-    unsafe {
-        drop(Box::from_raw(stop_ctrl));
+    if !stop_ctrl.is_null() {
+        unsafe {
+            drop(Box::from_raw(stop_ctrl));
+        }
     }
 }
 
@@ -1435,7 +1455,15 @@ impl LlgMatcher {
         if self.matcher.is_error() {
             return -1;
         }
-        f(&mut self.matcher).unwrap_or(-1)
+        match f(&mut self.matcher) {
+            Ok(v) => v,
+            Err(e) => {
+                let mut err = e.to_string();
+                err.push('\0');
+                self.last_error = Some(err);
+                -1
+            }
+        }
     }
 
     fn clear_mask(&mut self) {
@@ -1476,8 +1504,7 @@ pub unsafe extern "C" fn llg_new_matcher(
     constraint_type: *const c_char,
     data: *const c_char,
 ) -> *mut LlgMatcher {
-    // catch_unwind ensures panics in grammar compilation don't unwind into C.
-    let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+    match panic_utils::catch_unwind(AssertUnwindSafe(|| {
         let tok_env = init.factory().map_or_else(
             |_| ApproximateTokEnv::single_byte_env(),
             |f| f.tok_env().clone(),
@@ -1489,21 +1516,19 @@ pub unsafe extern "C" fn llg_new_matcher(
             init.build_parser(grammar)
         };
         let matcher = Matcher::new(parser());
-        Box::into_raw(Box::new(LlgMatcher {
+        Ok(Box::into_raw(Box::new(LlgMatcher {
             matcher,
             last_error: None,
             saved_mask: None,
             tok_env,
-        }))
-    }));
-    match result {
+        })))
+    })) {
         Ok(ptr) => ptr,
         Err(e) => {
             // Return a matcher in error state. Use the approximate tokenizer
             // unconditionally to avoid a potential second panic from init.factory().
             let tok_env = ApproximateTokEnv::single_byte_env();
-            let msg = panic_utils::mk_panic_error(&e);
-            let matcher = Matcher::new(Err(anyhow::anyhow!(msg)));
+            let matcher = Matcher::new(Err(e));
             Box::into_raw(Box::new(LlgMatcher {
                 matcher,
                 last_error: None,
@@ -1548,28 +1573,26 @@ pub unsafe extern "C" fn llg_validate_grammar(
     message: *mut c_char,
     message_len: usize,
 ) -> i32 {
-    let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+    match panic_utils::catch_unwind(AssertUnwindSafe(|| {
         match validate_grammar(init, constraint_type, data) {
             Err(e) => {
                 save_error_string(e, message, message_len);
-                -1
+                Ok(-1)
             }
             Ok(s) => {
                 if !s.is_empty() {
                     save_error_string(s, message, message_len);
-                    1
+                    Ok(1)
                 } else {
                     save_error_string("", message, message_len);
-                    0
+                    Ok(0)
                 }
             }
         }
-    }));
-    match result {
+    })) {
         Ok(code) => code,
         Err(e) => {
-            let msg = panic_utils::mk_panic_error(&e);
-            unsafe { save_error_string(msg, message, message_len) };
+            unsafe { save_error_string(e, message, message_len) };
             -1
         }
     }
@@ -1717,8 +1740,10 @@ pub extern "C" fn llg_matcher_is_error(matcher: &mut LlgMatcher) -> bool {
 /// - No other thread may access `matcher` concurrently with this call.
 #[no_mangle]
 pub unsafe extern "C" fn llg_free_matcher(matcher: *mut LlgMatcher) {
-    unsafe {
-        drop(Box::from_raw(matcher));
+    if !matcher.is_null() {
+        unsafe {
+            drop(Box::from_raw(matcher));
+        }
     }
 }
 
