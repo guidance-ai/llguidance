@@ -4,12 +4,40 @@ use std::panic::AssertUnwindSafe;
 use crate::ffi::{LlgCallback, LlgConstraintStep};
 use crate::panic_utils;
 
+/// A `*const c_void` wrapper that is `Send`.
+///
+/// The C caller guarantees that the pointee remains valid and is safe for
+/// cross-thread access until the callback is invoked.
+#[derive(Clone, Copy)]
+struct SendPtr(*const c_void);
+
+// SAFETY: The C API contract for `llg_par_compute_mask` requires that
+// `user_data` remains valid and is safe for cross-thread access until
+// `done_cb` is invoked. The caller upholds this invariant.
+unsafe impl Send for SendPtr {}
+
+impl SendPtr {
+    fn as_ptr(self) -> *const c_void {
+        self.0
+    }
+}
+
 fn par_compute_mask_inner(constraints: Vec<LlgConstraintStep>) {
     use rayon::prelude::*;
     constraints.into_par_iter().for_each(|step| {
+        // A null constraint pointer is a caller bug — skip silently since
+        // there is no constraint handle to record an error on.
+        if step.constraint.is_null() {
+            return;
+        }
+
         // Wrap each step in catch_unwind to prevent panics from aborting the
         // process via rayon's spawn (which has no scope to propagate to).
         let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+            // SAFETY: `step.constraint` is non-null (checked above). The caller
+            // of `llg_par_compute_mask` guarantees that each step's constraint
+            // pointer is valid and unaliased for the duration of the parallel
+            // computation (documented in the `# Safety` section of that function).
             let cc = unsafe { &mut *step.constraint };
 
             // Validate step parameters — set per-constraint error instead of panicking.
@@ -65,6 +93,8 @@ fn par_compute_mask_inner(constraints: Vec<LlgConstraintStep>) {
         if let Err(e) = result {
             // A panic escaped from compute_mask despite inner catch_unwind —
             // record it on the constraint handle so the caller can observe it.
+            // SAFETY: `step.constraint` is non-null (checked at the top of this
+            // closure, before catch_unwind). The aliasing guarantee still holds.
             let cc = unsafe { &mut *step.constraint };
             cc.set_error(&panic_utils::mk_panic_error(&e));
         }
@@ -76,21 +106,14 @@ pub(crate) fn par_compute_mask(
     user_data: *const c_void,
     done_cb: LlgCallback,
 ) {
-    struct CbData {
-        user_data: *const c_void,
-    }
-    // SAFETY: `CbData` wraps a raw pointer that the C caller guarantees
-    // remains valid until `done_cb` is invoked. The caller also guarantees
-    // `done_cb` is thread-safe (it's an `extern "C" fn`).
-    unsafe impl Send for CbData {}
+    // Wrap `user_data` in a `Send`-capable newtype immediately so the raw
+    // `*const c_void` is never captured by the closure sent to rayon.
+    let user_data = SendPtr(user_data);
 
     if let Some(cb) = done_cb {
-        let ptr = CbData { user_data };
         rayon::spawn(move || {
             par_compute_mask_inner(constraints);
-            cb(ptr.user_data);
-            #[allow(clippy::drop_non_drop)]
-            drop(ptr);
+            cb(user_data.as_ptr());
         });
     } else {
         par_compute_mask_inner(constraints);

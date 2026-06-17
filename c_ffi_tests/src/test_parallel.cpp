@@ -171,4 +171,48 @@ BOOST_AUTO_TEST_CASE(par_compute_mask_null_steps_nonzero_count) {
   BOOST_CHECK(!done.load(std::memory_order_acquire));
 }
 
+BOOST_AUTO_TEST_CASE(par_compute_mask_null_constraint) {
+  // A step with a null constraint pointer should be silently skipped
+  // (no crash, callback still invoked).
+  std::vector<uint32_t> mask(kMaskU32Count, 0xDEADBEEF);
+  LlgConstraintStep step = {nullptr, mask.data(), kMaskByteLen};
+  std::atomic<bool> done{false};
+
+  llg_par_compute_mask(&step, 1, &done, mark_done_callback);
+  wait_for_done(done);
+
+  // Mask buffer should be untouched since the step was skipped.
+  for (size_t i = 0; i < kMaskU32Count; ++i) {
+    BOOST_TEST(mask[i] == 0xDEADBEEF);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(par_compute_mask_mixed_null_and_valid) {
+  // One null-constraint step and one valid step in the same batch.
+  // The valid step should still get its mask computed correctly.
+  TokenizerPtr tokenizer(create_byte_tokenizer());
+  auto constraint = new_regex_constraint(tokenizer.get(), "[a-z]+");
+
+  std::vector<uint32_t> null_mask(kMaskU32Count, 0xDEADBEEF);
+  std::vector<uint32_t> valid_mask(kMaskU32Count, 0);
+  std::array<LlgConstraintStep, 2> steps = {{
+      {nullptr, null_mask.data(), kMaskByteLen},
+      {constraint.get(), valid_mask.data(), kMaskByteLen},
+  }};
+  std::atomic<bool> done{false};
+
+  llg_par_compute_mask(steps.data(), steps.size(), &done, mark_done_callback);
+  wait_for_done(done);
+
+  // Null-constraint step: mask untouched.
+  for (size_t i = 0; i < kMaskU32Count; ++i) {
+    BOOST_TEST(null_mask[i] == 0xDEADBEEF);
+  }
+
+  // Valid step: should allow lowercase letters.
+  BOOST_TEST(mask_allows(valid_mask, static_cast<uint32_t>('a')));
+  BOOST_TEST(mask_allows(valid_mask, static_cast<uint32_t>('z')));
+  BOOST_TEST(!mask_allows(valid_mask, static_cast<uint32_t>('0')));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
