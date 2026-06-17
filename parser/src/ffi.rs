@@ -47,6 +47,21 @@ use crate::{
 // FFI panic-safety helpers
 // ---------------------------------------------------------------------------
 
+/// Convert a string into a NUL-terminated `String` suitable for returning
+/// as `*const c_char` via `.as_ptr()`.
+///
+/// Any interior NUL bytes are replaced with `\0` (the two-character escape)
+/// to maintain the C string invariant.
+fn make_c_string(s: impl Into<String>) -> String {
+    let mut s = s.into();
+    // Replace interior NULs so the C string isn't accidentally truncated.
+    if s.contains('\0') {
+        s = s.replace('\0', "\\0");
+    }
+    s.push('\0');
+    s
+}
+
 /// Wraps an FFI function body that returns a pointer (non-null on success, null
 /// on error). If `f` panics, writes the panic message into `error_string` and
 /// returns null.
@@ -734,7 +749,7 @@ impl LlgConstraint {
 
     pub(crate) fn set_error(&mut self, e: &str) {
         self.constraint = None;
-        self.local_error = Some(format!("{e}\0"));
+        self.local_error = Some(make_c_string(e));
     }
 }
 
@@ -876,6 +891,7 @@ pub extern "C" fn llg_is_stopped(cc: &LlgConstraint) -> bool {
 /// (use [`llg_get_error()`] to get the exact error). When 0 is returned, the
 /// result is written to `*res_p`.
 #[no_mangle]
+#[must_use]
 pub extern "C" fn llg_compute_mask(cc: &mut LlgConstraint, res_p: &mut LlgMaskResult) -> i32 {
     if let Some(constraint) = &mut cc.constraint {
         match constraint.compute_mask() {
@@ -902,6 +918,7 @@ pub extern "C" fn llg_compute_mask(cc: &mut LlgConstraint, res_p: &mut LlgMaskRe
 /// success and −1 on error (use [`llg_get_error()`] to get the exact error).
 /// When 0 is returned, the result is written to `*res_p`.
 #[no_mangle]
+#[must_use]
 pub extern "C" fn llg_commit_token(
     cc: &mut LlgConstraint,
     token: LlgToken,
@@ -1011,6 +1028,9 @@ pub extern "C" fn llg_clone_constraint(cc: &LlgConstraint) -> *mut LlgConstraint
 }
 
 /// Construct a new tokenizer from a [`LlgTokenizerInit`].
+///
+/// Returns a pointer to a new tokenizer on success, or null on error.
+/// On error, the error message is written to `error_string` (NUL-terminated).
 ///
 /// # Safety
 /// - `tok_init` must point to a valid, fully initialized [`LlgTokenizerInit`].
@@ -1269,10 +1289,11 @@ pub unsafe extern "C" fn llg_decode_tokens(
 /// Free the tokenizer.
 ///
 /// Must **not** be called while there are still constraints using it.
+/// Passing null is a safe no-op.
 ///
 /// # Safety
 /// - `tok` must be a pointer previously returned by [`llg_new_tokenizer()`] or
-///   [`llg_new_tokenizer_v2()`] (or [`llg_clone_tokenizer()`]).
+///   [`llg_new_tokenizer_v2()`] (or [`llg_clone_tokenizer()`]), or null.
 /// - `tok` must not have been freed already (double-free is UB).
 /// - No other thread may access `tok` concurrently with this call.
 #[no_mangle]
@@ -1286,9 +1307,12 @@ pub unsafe extern "C" fn llg_free_tokenizer(tok: *mut LlgTokenizer) {
 
 /// Free the constraint.
 ///
+/// Passing null is a safe no-op.
+///
 /// # Safety
 /// - `cc` must be a pointer previously returned by one of the
-///   `llg_new_constraint*` functions (or [`llg_clone_constraint()`]).
+///   `llg_new_constraint*` functions (or [`llg_clone_constraint()`]),
+///   or null.
 /// - `cc` must not have been freed already (double-free is UB).
 /// - No other thread may access `cc` concurrently with this call.
 #[no_mangle]
@@ -1307,13 +1331,7 @@ pub unsafe extern "C" fn llg_free_constraint(cc: *mut LlgConstraint) {
 #[no_mangle]
 pub extern "C" fn llg_flush_logs(cc: &mut LlgConstraint) -> *const c_char {
     if let Some(constraint) = &mut cc.constraint {
-        let s = constraint.flush_logs();
-        if s.contains('\0') {
-            cc.last_logs = s.replace('\0', "\\0");
-        } else {
-            cc.last_logs = s;
-        }
-        cc.last_logs.push('\0');
+        cc.last_logs = make_c_string(constraint.flush_logs());
     }
     cc.last_logs.as_ptr() as *const c_char
 }
@@ -1408,7 +1426,7 @@ pub extern "C" fn llg_stop_commit_token(
     let r = stop_ctrl.stop_controller.commit_token(token);
     *output_len_p = r.len();
     *is_stopped_p = stop_ctrl.stop_controller.is_stopped();
-    stop_ctrl.last_result = format!("{r}\0");
+    stop_ctrl.last_result = make_c_string(r);
     stop_ctrl.last_result.as_ptr() as *const c_char
 }
 
@@ -1425,9 +1443,12 @@ pub extern "C" fn llg_clone_stop_controller(
 
 /// Free the stop-sequence controller.
 ///
+/// Passing null is a safe no-op.
+///
 /// # Safety
 /// - `stop_ctrl` must be a pointer previously returned by
-///   [`llg_new_stop_controller()`] (or [`llg_clone_stop_controller()`]).
+///   [`llg_new_stop_controller()`] (or [`llg_clone_stop_controller()`]),
+///   or null.
 /// - `stop_ctrl` must not have been freed already.
 /// - No other thread may access `stop_ctrl` concurrently with this call.
 #[no_mangle]
@@ -1458,9 +1479,7 @@ impl LlgMatcher {
         match f(&mut self.matcher) {
             Ok(v) => v,
             Err(e) => {
-                let mut err = e.to_string();
-                err.push('\0');
-                self.last_error = Some(err);
+                self.last_error = Some(make_c_string(e.to_string()));
                 -1
             }
         }
@@ -1566,6 +1585,7 @@ fn validate_grammar(
 /// - `constraint_type` and `data` must be valid NUL-terminated UTF-8 C strings.
 /// - `message` must point to a buffer of at least `message_len` bytes.
 #[no_mangle]
+#[must_use]
 pub unsafe extern "C" fn llg_validate_grammar(
     init: &LlgConstraintInit,
     constraint_type: *const c_char,
@@ -1608,6 +1628,7 @@ pub unsafe extern "C" fn llg_validate_grammar(
 /// - `mask_dest` must point to a buffer of at least `mask_byte_len` bytes,
 ///   where `mask_byte_len` equals [`llg_matcher_get_mask_byte_size()`].
 #[no_mangle]
+#[must_use]
 pub unsafe extern "C" fn llg_matcher_compute_mask_into(
     matcher: &mut LlgMatcher,
     mask_dest: *mut u32,
@@ -1638,6 +1659,7 @@ pub unsafe extern "C" fn llg_matcher_compute_mask_into(
 /// Use [`llg_matcher_get_mask()`] to retrieve the result.
 /// Returns 0 on success and −1 on error.
 #[no_mangle]
+#[must_use]
 pub extern "C" fn llg_matcher_compute_mask(matcher: &mut LlgMatcher) -> i32 {
     matcher.clear_mask();
     if matcher.matcher.is_error() {
@@ -1664,7 +1686,7 @@ pub extern "C" fn llg_matcher_get_mask(matcher: &mut LlgMatcher) -> *const u32 {
 
 /// Return the size of the mask in bytes.
 #[no_mangle]
-pub extern "C" fn llg_matcher_get_mask_byte_size(matcher: &mut LlgMatcher) -> usize {
+pub extern "C" fn llg_matcher_get_mask_byte_size(matcher: &LlgMatcher) -> usize {
     matcher.mask_elts() * 4
 }
 
@@ -1672,6 +1694,7 @@ pub extern "C" fn llg_matcher_get_mask_byte_size(matcher: &mut LlgMatcher) -> us
 ///
 /// Returns 0 on success and −1 on error.
 #[no_mangle]
+#[must_use]
 pub extern "C" fn llg_matcher_consume_token(matcher: &mut LlgMatcher, token: u32) -> i32 {
     matcher.clear_mask();
     matcher.wrap(|m| {
@@ -1687,6 +1710,7 @@ pub extern "C" fn llg_matcher_consume_token(matcher: &mut LlgMatcher, token: u32
 /// # Safety
 /// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
 #[no_mangle]
+#[must_use]
 pub unsafe extern "C" fn llg_matcher_consume_tokens(
     matcher: &mut LlgMatcher,
     tokens: *const u32,
@@ -1711,12 +1735,11 @@ pub extern "C" fn llg_matcher_get_error(matcher: &mut LlgMatcher) -> *const c_ch
         return std::ptr::null();
     }
     if matcher.last_error.is_none() {
-        let mut err = matcher
+        let err = matcher
             .matcher
             .get_error()
             .unwrap_or_else(|| "unknown error".to_string());
-        err.push('\0');
-        matcher.last_error = Some(err);
+        matcher.last_error = Some(make_c_string(err));
     }
     // SAFETY: we just ensured `last_error` is `Some` above.
     match matcher.last_error.as_ref() {
@@ -1727,15 +1750,17 @@ pub extern "C" fn llg_matcher_get_error(matcher: &mut LlgMatcher) -> *const c_ch
 
 /// Check whether the matcher is in an error state.
 #[no_mangle]
-pub extern "C" fn llg_matcher_is_error(matcher: &mut LlgMatcher) -> bool {
+pub extern "C" fn llg_matcher_is_error(matcher: &LlgMatcher) -> bool {
     matcher.matcher.is_error()
 }
 
 /// Free the matcher.
 ///
+/// Passing null is a safe no-op.
+///
 /// # Safety
 /// - `matcher` must be a pointer previously returned by [`llg_new_matcher()`]
-///   (or [`llg_clone_matcher()`]).
+///   (or [`llg_clone_matcher()`]), or null.
 /// - `matcher` must not have been freed already.
 /// - No other thread may access `matcher` concurrently with this call.
 #[no_mangle]
@@ -1751,6 +1776,7 @@ pub unsafe extern "C" fn llg_free_matcher(matcher: *mut LlgMatcher) {
 ///
 /// Returns 0 on success and −1 on error.
 #[no_mangle]
+#[must_use]
 pub extern "C" fn llg_matcher_rollback(matcher: &mut LlgMatcher, num_tokens: usize) -> i32 {
     matcher.clear_mask();
     matcher.wrap(|m| {
@@ -1764,6 +1790,7 @@ pub extern "C" fn llg_matcher_rollback(matcher: &mut LlgMatcher, num_tokens: usi
 /// A matcher in an error state cannot be reset.
 /// Returns 0 on success and −1 on error.
 #[no_mangle]
+#[must_use]
 pub extern "C" fn llg_matcher_reset(matcher: &mut LlgMatcher) -> i32 {
     matcher.clear_mask();
     matcher.wrap(|m| {
@@ -1793,6 +1820,7 @@ pub extern "C" fn llg_matcher_is_stopped(matcher: &LlgMatcher) -> bool {
 /// # Safety
 /// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
 #[no_mangle]
+#[must_use]
 pub unsafe extern "C" fn llg_matcher_validate_tokens(
     matcher: &mut LlgMatcher,
     tokens: *const u32,
@@ -1813,6 +1841,7 @@ pub unsafe extern "C" fn llg_matcher_validate_tokens(
 /// # Safety
 /// - `output` must point to a buffer of at least `output_len` elements.
 #[no_mangle]
+#[must_use]
 pub unsafe extern "C" fn llg_matcher_compute_ff_tokens(
     matcher: &mut LlgMatcher,
     output: *mut u32,
