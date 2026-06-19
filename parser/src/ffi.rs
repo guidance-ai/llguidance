@@ -951,11 +951,15 @@ pub extern "C" fn llg_commit_token(
 
 /// Compute masks for several constraints in parallel.
 ///
-/// If `n_steps` is 0, the callback (if any) is invoked immediately and the
-/// function returns. If `steps` is null but `n_steps > 0`, the function
-/// returns immediately without invoking `done_cb` (this is a caller bug).
-/// If the `rayon` feature is not enabled, each constraint is set to an error
-/// state and the callback is invoked immediately.
+/// When `done_cb` is non-null, this function returns immediately and the work
+/// proceeds asynchronously on Rayon worker threads. The caller **must not**
+/// read step results (masks, constraint state) until `done_cb` has been
+/// invoked. Use a synchronization primitive (e.g., semaphore, condition
+/// variable) in the callback to signal completion to the calling thread.
+///
+/// If `steps` is null but `n_steps > 0`, the function panics (this is a
+/// caller bug). If the `rayon` feature is not enabled, each constraint is set
+/// to an error state and the callback is invoked immediately.
 ///
 /// # Safety
 /// - `steps` must point to an array of `n_steps` valid [`LlgConstraintStep`]
@@ -981,49 +985,54 @@ pub unsafe extern "C" fn llg_par_compute_mask(
     user_data: *const c_void,
     done_cb: LlgCallback,
 ) {
-    // Empty batch is a valid no-op — invoke callback and return.
-    if n_steps == 0 {
-        if let Some(cb) = done_cb {
-            cb(user_data);
+    // Wrap the entire body in catch_unwind so that panics (e.g. from the
+    // assert below) don't abort the host process across the FFI boundary.
+    let _ = panic_utils::catch_unwind(AssertUnwindSafe(|| {
+        assert!(
+            !steps.is_null() || n_steps == 0,
+            "llg_par_compute_mask: steps is null but n_steps > 0"
+        );
+
+        #[cfg(feature = "rayon")]
+        {
+            // SAFETY: the assert above guarantees steps is non-null when n_steps > 0.
+            // When n_steps == 0, we pass an empty Vec to avoid calling from_raw_parts
+            // with a potentially-null pointer.
+            let steps = if n_steps == 0 {
+                Vec::new()
+            } else {
+                unsafe { std::slice::from_raw_parts(steps, n_steps).to_vec() }
+            };
+            crate::ffi_par::par_compute_mask(steps, user_data, done_cb);
         }
-        return;
-    }
 
-    // Null steps with non-zero n_steps is a caller bug — do not invoke done_cb
-    // (invoking it would make the invalid call indistinguishable from success).
-    if steps.is_null() {
-        return;
-    }
-
-    #[cfg(feature = "rayon")]
-    {
-        // SAFETY: caller guarantees `steps` points to `n_steps` valid elements.
-        let steps = unsafe { std::slice::from_raw_parts(steps, n_steps).to_vec() };
-        crate::ffi_par::par_compute_mask(steps, user_data, done_cb);
-    }
-
-    #[cfg(not(feature = "rayon"))]
-    {
-        // Without rayon, we cannot perform parallel computation.
-        // Mark each constraint as errored so the caller can detect failure.
-        let steps_slice = unsafe { std::slice::from_raw_parts(steps, n_steps) };
-        for step in steps_slice {
-            if !step.constraint.is_null() {
-                let cc = unsafe { &mut *step.constraint };
-                cc.set_error("llg_par_compute_mask: rayon feature is not enabled");
-            }
-            // Zero the mask buffer so callers don't use uninitialized data.
-            if !step.mask_dest.is_null() && step.mask_byte_len > 0 {
-                unsafe {
-                    std::ptr::write_bytes(step.mask_dest as *mut u8, 0, step.mask_byte_len);
+        #[cfg(not(feature = "rayon"))]
+        {
+            // Without rayon, we cannot perform parallel computation.
+            // Mark each constraint as errored so the caller can detect failure.
+            if n_steps > 0 {
+                let steps_slice = unsafe { std::slice::from_raw_parts(steps, n_steps) };
+                for step in steps_slice {
+                    if !step.constraint.is_null() {
+                        let cc = unsafe { &mut *step.constraint };
+                        cc.set_error("llg_par_compute_mask: rayon feature is not enabled");
+                    }
+                    // Zero the mask buffer so callers don't use uninitialized data.
+                    if !step.mask_dest.is_null() && step.mask_byte_len > 0 {
+                        unsafe {
+                            std::ptr::write_bytes(step.mask_dest as *mut u8, 0, step.mask_byte_len);
+                        }
+                    }
                 }
             }
+            // Invoke callback to avoid deadlocking the caller.
+            if let Some(cb) = done_cb {
+                cb(user_data);
+            }
         }
-        // Invoke callback to avoid deadlocking the caller.
-        if let Some(cb) = done_cb {
-            cb(user_data);
-        }
-    }
+
+        Ok(())
+    }));
 }
 
 /// Clone the constraint.

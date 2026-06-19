@@ -511,11 +511,15 @@ int32_t llg_commit_token(struct LlgConstraint *cc,
 /**
  * Compute masks for several constraints in parallel.
  *
- * If `n_steps` is 0, the callback (if any) is invoked immediately and the
- * function returns. If `steps` is null but `n_steps > 0`, the function
- * returns immediately without invoking `done_cb` (this is a caller bug).
- * If the `rayon` feature is not enabled, each constraint is set to an error
- * state and the callback is invoked immediately.
+ * When `done_cb` is non-null, this function returns immediately and the work
+ * proceeds asynchronously on Rayon worker threads. The caller **must not**
+ * read step results (masks, constraint state) until `done_cb` has been
+ * invoked. Use a synchronization primitive (e.g., semaphore, condition
+ * variable) in the callback to signal completion to the calling thread.
+ *
+ * If `steps` is null but `n_steps > 0`, the function panics (this is a
+ * caller bug). If the `rayon` feature is not enabled, each constraint is set
+ * to an error state and the callback is invoked immediately.
  *
  * - `steps` must point to an array of `n_steps` valid [`LlgConstraintStep`]
  *   elements. The `steps` array itself is copied immediately and need not

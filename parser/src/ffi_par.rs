@@ -33,7 +33,7 @@ fn par_compute_mask_inner(constraints: Vec<LlgConstraintStep>) {
 
         // Wrap each step in catch_unwind to prevent panics from aborting the
         // process via rayon's spawn (which has no scope to propagate to).
-        let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        let result = panic_utils::catch_unwind(AssertUnwindSafe(|| {
             // SAFETY: `step.constraint` is non-null (checked above). The caller
             // of `llg_par_compute_mask` guarantees that each step's constraint
             // pointer is valid and unaliased for the duration of the parallel
@@ -43,11 +43,11 @@ fn par_compute_mask_inner(constraints: Vec<LlgConstraintStep>) {
             // Validate step parameters — set per-constraint error instead of panicking.
             if step.mask_byte_len % 4 != 0 {
                 cc.set_error("llg_par_compute_mask: mask_byte_len is not a multiple of 4");
-                return;
+                return Ok(());
             }
             if step.mask_dest.is_null() {
                 cc.set_error("llg_par_compute_mask: mask_dest is null");
-                return;
+                return Ok(());
             }
             let mask_elts = step.mask_byte_len / 4;
 
@@ -88,6 +88,7 @@ fn par_compute_mask_inner(constraints: Vec<LlgConstraintStep>) {
                     }
                 }
             }
+            Ok(())
         }));
 
         if let Err(e) = result {
@@ -96,7 +97,7 @@ fn par_compute_mask_inner(constraints: Vec<LlgConstraintStep>) {
             // SAFETY: `step.constraint` is non-null (checked at the top of this
             // closure, before catch_unwind). The aliasing guarantee still holds.
             let cc = unsafe { &mut *step.constraint };
-            cc.set_error(&panic_utils::mk_panic_error(&e));
+            cc.set_error(&e.to_string());
         }
     });
 }
