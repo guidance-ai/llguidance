@@ -519,7 +519,11 @@ impl TokTrie {
                 if include_special {
                     res.extend_from_slice(format!("<[{tok}]>").as_bytes());
                 }
-            } else if t[0] == TokTrie::SPECIAL_TOKEN_MARKER {
+            } else if t[0] == TokTrie::SPECIAL_TOKEN_MARKER && t.len() > 1 {
+                // A bare 0xFF (len == 1) is a real byte token, not a special
+                // token: special tokens are the marker followed by a name, so
+                // they always have len > 1 (matching `token_dbg_ext`). Without
+                // this guard a single-0xFF token would decode to "". See #248.
                 if include_special {
                     res.extend_from_slice(&t[1..]);
                 }
