@@ -957,8 +957,9 @@ pub extern "C" fn llg_commit_token(
 /// invoked. Use a synchronization primitive (e.g., semaphore, condition
 /// variable) in the callback to signal completion to the calling thread.
 ///
-/// If `steps` is null but `n_steps > 0`, the function panics (this is a
-/// caller bug). If the `rayon` feature is not enabled, each constraint is set
+/// If `steps` is null but `n_steps > 0` (a caller bug), no work is performed
+/// and `done_cb` is invoked immediately so async callers do not deadlock.
+/// If the `rayon` feature is not enabled, each constraint is set
 /// to an error state and the callback is invoked immediately.
 ///
 /// # Safety
@@ -985,54 +986,78 @@ pub unsafe extern "C" fn llg_par_compute_mask(
     user_data: *const c_void,
     done_cb: LlgCallback,
 ) {
-    // Wrap the entire body in catch_unwind so that panics (e.g. from the
-    // assert below) don't abort the host process across the FFI boundary.
-    let _ = panic_utils::catch_unwind(AssertUnwindSafe(|| {
-        assert!(
-            !steps.is_null() || n_steps == 0,
-            "llg_par_compute_mask: steps is null but n_steps > 0"
-        );
-
-        #[cfg(feature = "rayon")]
-        {
-            // SAFETY: the assert above guarantees steps is non-null when n_steps > 0.
-            // When n_steps == 0, we pass an empty Vec to avoid calling from_raw_parts
-            // with a potentially-null pointer.
-            let steps = if n_steps == 0 {
-                Vec::new()
-            } else {
-                unsafe { std::slice::from_raw_parts(steps, n_steps).to_vec() }
-            };
-            crate::ffi_par::par_compute_mask(steps, user_data, done_cb);
+    // Perform all panic-prone preparation (null-check and copying the steps
+    // array) inside catch_unwind. At this point we have NOT yet handed
+    // `done_cb` off to anyone, so we remain solely responsible for invoking it
+    // exactly once. If preparation fails, we invoke it below so that async
+    // callers waiting on the callback do not deadlock.
+    let prepared = panic_utils::catch_unwind(AssertUnwindSafe(|| {
+        if steps.is_null() && n_steps != 0 {
+            bail!("llg_par_compute_mask: steps is null but n_steps > 0");
         }
+        // SAFETY: when n_steps > 0, steps is non-null (checked above). When
+        // n_steps == 0 we avoid calling from_raw_parts with a possibly-null
+        // pointer. The array is copied here so it need not outlive this call.
+        let steps = if n_steps == 0 {
+            Vec::new()
+        } else {
+            unsafe { std::slice::from_raw_parts(steps, n_steps).to_vec() }
+        };
+        Ok(steps)
+    }));
 
-        #[cfg(not(feature = "rayon"))]
-        {
-            // Without rayon, we cannot perform parallel computation.
-            // Mark each constraint as errored so the caller can detect failure.
-            if n_steps > 0 {
-                let steps_slice = unsafe { std::slice::from_raw_parts(steps, n_steps) };
-                for step in steps_slice {
-                    if !step.constraint.is_null() {
-                        let cc = unsafe { &mut *step.constraint };
-                        cc.set_error("llg_par_compute_mask: rayon feature is not enabled");
-                    }
-                    // Zero the mask buffer so callers don't use uninitialized data.
-                    if !step.mask_dest.is_null() && step.mask_byte_len > 0 {
-                        unsafe {
-                            std::ptr::write_bytes(step.mask_dest as *mut u8, 0, step.mask_byte_len);
-                        }
-                    }
-                }
-            }
-            // Invoke callback to avoid deadlocking the caller.
+    let steps = match prepared {
+        Ok(steps) => steps,
+        Err(_e) => {
+            // Preparation failed (null mismatch or allocation panic) before we
+            // handed `done_cb` off, so we still own it: invoke it exactly once
+            // so the caller can unblock and observe that no masks were written.
             if let Some(cb) = done_cb {
                 cb(user_data);
             }
+            return;
         }
+    };
 
-        Ok(())
-    }));
+    #[cfg(feature = "rayon")]
+    {
+        // `par_compute_mask` takes ownership of `done_cb` and guarantees it is
+        // invoked exactly once, even if the rayon spawn itself fails.
+        crate::ffi_par::par_compute_mask(steps, user_data, done_cb);
+    }
+
+    #[cfg(not(feature = "rayon"))]
+    {
+        // Without rayon, we cannot perform parallel computation.
+        // Mark each constraint as errored so the caller can detect failure.
+        // Wrap in catch_unwind so a panic here can't unwind across the FFI
+        // boundary and still lets us invoke `done_cb` below.
+        let _ = panic_utils::catch_unwind(AssertUnwindSafe(|| {
+            for step in &steps {
+                if !step.constraint.is_null() {
+                    // SAFETY: the caller guarantees each non-null constraint
+                    // pointer is valid and unaliased for the duration of this
+                    // call (documented in the `# Safety` section above).
+                    let cc = unsafe { &mut *step.constraint };
+                    cc.set_error("llg_par_compute_mask: rayon feature is not enabled");
+                }
+                // Zero the mask buffer so callers don't use uninitialized data.
+                if !step.mask_dest.is_null() && step.mask_byte_len > 0 {
+                    // SAFETY: mask_dest points to at least mask_byte_len bytes
+                    // (documented caller requirement).
+                    unsafe {
+                        std::ptr::write_bytes(step.mask_dest as *mut u8, 0, step.mask_byte_len);
+                    }
+                }
+            }
+            Ok(())
+        }));
+        // Invoke callback to avoid deadlocking the caller. This runs whether or
+        // not the loop above panicked.
+        if let Some(cb) = done_cb {
+            cb(user_data);
+        }
+    }
 }
 
 /// Clone the constraint.

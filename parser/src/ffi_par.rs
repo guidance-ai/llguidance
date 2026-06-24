@@ -112,10 +112,22 @@ pub(crate) fn par_compute_mask(
     let user_data = SendPtr(user_data);
 
     if let Some(cb) = done_cb {
-        rayon::spawn(move || {
-            par_compute_mask_inner(constraints);
+        // `cb` is a plain function pointer (Copy), so moving it into the
+        // spawned task still leaves a usable copy here for the failure path.
+        // Guard the spawn itself: if `rayon::spawn` panics (e.g. the global
+        // thread pool fails to build), the task never runs and would never
+        // invoke `cb`, deadlocking the caller. Catch that and invoke `cb`
+        // synchronously instead — guaranteeing it fires exactly once.
+        let spawned = panic_utils::catch_unwind(AssertUnwindSafe(|| {
+            rayon::spawn(move || {
+                par_compute_mask_inner(constraints);
+                cb(user_data.as_ptr());
+            });
+            Ok(())
+        }));
+        if spawned.is_err() {
             cb(user_data.as_ptr());
-        });
+        }
     } else {
         par_compute_mask_inner(constraints);
     }
