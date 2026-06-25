@@ -517,8 +517,9 @@ int32_t llg_commit_token(struct LlgConstraint *cc,
  * invoked. Use a synchronization primitive (e.g., semaphore, condition
  * variable) in the callback to signal completion to the calling thread.
  *
- * If `steps` is null but `n_steps > 0`, the function panics (this is a
- * caller bug). If the `rayon` feature is not enabled, each constraint is set
+ * If `steps` is null but `n_steps > 0` (a caller bug), no work is performed
+ * and `done_cb` is invoked immediately so async callers do not deadlock.
+ * If the `rayon` feature is not enabled, each constraint is set
  * to an error state and the callback is invoked immediately.
  *
  * - `steps` must point to an array of `n_steps` valid [`LlgConstraintStep`]
