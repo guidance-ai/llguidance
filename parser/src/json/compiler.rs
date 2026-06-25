@@ -302,7 +302,7 @@ impl Compiler {
         })?;
         let mut ast = RegexAst::Regex(rx);
         if let Some(d) = num.multiple_of.as_ref() {
-            ast = RegexAst::And(vec![ast, RegexAst::MultipleOf(d.coef, d.exp)]);
+            ast = RegexAst::And(vec![ast, signed_multiple_of_ast(d.coef, d.exp)]);
         }
         Ok(ast)
     }
@@ -323,7 +323,7 @@ impl Compiler {
             })?;
         let mut ast = RegexAst::Regex(rx);
         if let Some(d) = num.multiple_of.as_ref() {
-            ast = RegexAst::And(vec![ast, RegexAst::MultipleOf(d.coef, d.exp)]);
+            ast = RegexAst::And(vec![ast, signed_multiple_of_ast(d.coef, d.exp)]);
         }
         Ok(ast)
     }
@@ -937,6 +937,21 @@ impl Compiler {
         grammars.push(self.builder.string("]"));
         Ok(self.builder.join(&grammars))
     }
+}
+
+/// Build the `multipleOf` regex constraint with sign handling.
+///
+/// derivre's `RegexAst::MultipleOf` matches only the unsigned numeric literal
+/// (the digits, plus a decimal point for non-integer `multipleOf`); it has no
+/// transition for a leading `-`. Allow an optional sign here, otherwise
+/// negative multiples (e.g. `-6` for `multipleOf 3`) would be rejected.
+/// Divisibility is independent of sign.
+/// https://github.com/guidance-ai/llguidance/issues/222
+fn signed_multiple_of_ast(coef: u32, exp: u32) -> RegexAst {
+    RegexAst::Concat(vec![
+        RegexAst::Regex("-?".to_string()),
+        RegexAst::MultipleOf(coef, exp),
+    ])
 }
 
 fn always_non_empty(ast: &RegexAst) -> bool {

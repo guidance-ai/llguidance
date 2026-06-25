@@ -32,6 +32,7 @@ use std::{
 use anyhow::{bail, ensure, Result};
 use toktrie::{
     ApproximateTokEnv, InferenceCapabilities, SimpleVob, TokEnv, TokRxInfo, TokTrie, TokenizerEnv,
+    INVALID_TOKEN,
 };
 
 use crate::{
@@ -171,7 +172,14 @@ impl LlgTokenizer {
             token_bytes
         };
 
-        let mut trie = TokTrie::from(&TokRxInfo::new(tokens.len() as u32, init.tok_eos), &tokens);
+        let vocab_size = tokens.len() as u32;
+        ensure!(
+            init.tok_eos == INVALID_TOKEN || init.tok_eos < vocab_size,
+            "EOS token ID {} is out of range (vocab_size={vocab_size})",
+            init.tok_eos
+        );
+
+        let mut trie = TokTrie::from(&TokRxInfo::new(vocab_size, init.tok_eos), &tokens);
 
         // Apply additional EOS tokens if provided
         if !init.tok_eos_extra.is_null() && init.tok_eos_extra_count > 0 {
@@ -1584,7 +1592,7 @@ pub unsafe extern "C" fn llg_matcher_compute_ff_tokens(
         let v = v.as_slice();
         let len = std::cmp::min(v.len(), output_len);
         unsafe {
-            std::ptr::copy_nonoverlapping(v.as_ptr(), output, v.len());
+            std::ptr::copy_nonoverlapping(v.as_ptr(), output, len);
         }
         Ok(len as i32)
     })
