@@ -163,13 +163,14 @@ BOOST_AUTO_TEST_CASE(par_compute_mask_zero_steps) {
 BOOST_AUTO_TEST_CASE(par_compute_mask_null_steps_nonzero_count) {
   std::atomic<bool> done{false};
 
-  // Null steps with n_steps > 0 is a caller bug — triggers an internal panic
-  // that is caught by catch_unwind. The callback must NOT be invoked.
+  // Null steps with n_steps > 0 is a caller bug. The detected error is handled
+  // internally (no work is performed and no masks are written), but the
+  // callback is still invoked exactly once so that an async caller blocked on
+  // it does not deadlock.
   llg_par_compute_mask(nullptr, 2, &done, mark_done_callback);
 
-  // Give a brief window to confirm the callback was not invoked.
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
-  BOOST_CHECK(!done.load(std::memory_order_acquire));
+  wait_for_done(done);
+  BOOST_CHECK(done.load(std::memory_order_acquire));
 }
 
 BOOST_AUTO_TEST_CASE(par_compute_mask_null_constraint) {
