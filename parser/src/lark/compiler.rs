@@ -524,6 +524,17 @@ impl Compiler {
             bail!("max_tokens= is not supported for parametric rules");
         }
 
+        if rule.max_tokens == Some(0) {
+            // max_tokens=N caps a rule at N emitted tokens, so max_tokens=0
+            // forces zero emitted tokens: the rule can only match the empty
+            // string (epsilon). Compiling it as a token-limited lexeme (or
+            // subgrammar) instead produces broken runtime output -- the matcher
+            // emits an opening token and then never terminates. Treat it the
+            // same as an empty-string body `""`.
+            // See https://github.com/guidance-ai/llguidance/issues/236
+            return Ok(self.builder.string(""));
+        }
+
         let id = if let Some(stop) = rule.stop_like() {
             let is_suffix = rule.suffix.is_some();
             let is_empty = matches!(stop, Value::LiteralString(s, _) if s.is_empty());
