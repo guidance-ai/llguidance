@@ -1860,3 +1860,20 @@ fn test_parametric_long() {
         &[&s2],
     );
 }
+
+#[test]
+fn test_lark_hex_escape() {
+    // \xHH escapes in string literals should be supported (issue #54).
+    lark_str_test_many(r#"start: "a\x00b""#, &["a\x00b"], &["ab", "a\x01b"]);
+    lark_str_test_many(r#"start: "\x41\x42""#, &["AB"], &["ab", "A", "ABC"]);
+    // \\x41 is an escaped backslash + literal x41, NOT the hex escape for "A".
+    lark_str_test_many(r#"start: "\\x41""#, &[r"\x41"], &["A", "x41"]);
+    // upper/lowercase hex digits and the 0x7F-0xFF range decode correctly.
+    lark_str_test_many(
+        r#"start: "\x7f\xFf""#,
+        &["\x7f\u{00ff}"],
+        &["\u{00ff}\x7f", "ab"],
+    );
+    // a malformed \xZZ (non-hex digits) must be rejected at grammar-compile time.
+    lark_err_test(r#"start: "\xZZ""#, "lexer error");
+}
