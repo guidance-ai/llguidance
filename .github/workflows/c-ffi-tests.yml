@@ -42,7 +42,7 @@ jobs:
 
     - name: Run tests & generate JUnit XML
       if: always()
-      run: ./build/llg_ffi_tests --log_format=JUNIT --log_sink=junit.xml --log_level=all --report_level=no
+      run: ./build/llg_ffi_tests --logger=HRF,all,stdout:JUNIT,all,junit.xml --report_level=detailed --catch_system_errors=yes --color_output=no
       working-directory: c_ffi_tests
 
     - name: Publish Test Report

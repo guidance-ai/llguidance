@@ -80,7 +80,9 @@ BOOST_AUTO_TEST_CASE(new_matcher_invalid_grammar) {
 
   BOOST_REQUIRE(matcher != nullptr);
   BOOST_CHECK(llg_matcher_is_error(matcher.get()));
-  BOOST_CHECK(llg_matcher_get_error(matcher.get()) != nullptr);
+  const char *error = llg_matcher_get_error(matcher.get());
+  BOOST_REQUIRE(error != nullptr);
+  BOOST_CHECK(std::strlen(error) > 0);
 }
 
 BOOST_AUTO_TEST_CASE(compute_mask_basic) {
@@ -384,6 +386,50 @@ BOOST_AUTO_TEST_CASE(free_matcher_no_crash) {
 
   BOOST_REQUIRE(matcher != nullptr);
   llg_free_matcher(matcher);
+  BOOST_TEST(true);
+}
+
+BOOST_AUTO_TEST_CASE(consume_invalid_token_has_error_message) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "ab");
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_CHECK_EQUAL(llg_matcher_consume_token(matcher.get(), 120), -1); // 'x'
+  BOOST_CHECK(llg_matcher_is_error(matcher.get()));
+
+  const char *error = llg_matcher_get_error(matcher.get());
+  BOOST_REQUIRE(error != nullptr);
+  BOOST_CHECK(std::strlen(error) > 0);
+}
+
+BOOST_AUTO_TEST_CASE(rollback_too_many_has_error_message) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_REQUIRE_EQUAL(llg_matcher_consume_token(matcher.get(), 97), 0); // 'a'
+  BOOST_CHECK_EQUAL(llg_matcher_rollback(matcher.get(), 5), -1);
+
+  const char *error = llg_matcher_get_error(matcher.get());
+  BOOST_REQUIRE(error != nullptr);
+  BOOST_CHECK(std::strlen(error) > 0);
+}
+
+BOOST_AUTO_TEST_CASE(matcher_get_mask_byte_size_before_compute) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+
+  check_matcher_has_no_error(matcher.get());
+
+  // llg_matcher_get_mask_byte_size is a pure query that should work
+  // before any mask computation.
+  const size_t byte_size = llg_matcher_get_mask_byte_size(matcher.get());
+  BOOST_CHECK(byte_size > 0);
+  BOOST_CHECK(byte_size % sizeof(uint32_t) == 0);
+}
+
+BOOST_AUTO_TEST_CASE(free_matcher_null) {
+  llg_free_matcher(nullptr);
   BOOST_TEST(true);
 }
 

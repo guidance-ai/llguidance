@@ -88,12 +88,17 @@ BOOST_AUTO_TEST_CASE(commit_token_no_stop) {
   for (size_t i = 0; i < tokens.size(); ++i) {
     size_t output_len = 0;
     bool is_stopped = true;
-    const auto output =
-        committed_text(stop_ctrl.get(), tokens[i], output_len, is_stopped);
+    // Get the raw pointer to check NUL-termination
+    const char *raw_output =
+        llg_stop_commit_token(stop_ctrl.get(), tokens[i], &output_len, &is_stopped);
+    BOOST_REQUIRE(raw_output != nullptr);
+    const auto output = std::string(raw_output, output_len);
 
     BOOST_TEST(is_stopped == false);
     BOOST_TEST(output_len == expected[i].size());
     BOOST_TEST(output == expected[i]);
+    // Verify NUL-termination (make_c_string guarantees trailing NUL)
+    BOOST_CHECK_EQUAL(raw_output[output_len], '\0');
   }
 }
 
@@ -213,6 +218,11 @@ BOOST_AUTO_TEST_CASE(create_with_both_token_and_regex) {
   BOOST_TEST(is_stopped == true);
   BOOST_TEST(output_len == 0u);
   BOOST_TEST(output.empty());
+}
+
+BOOST_AUTO_TEST_CASE(free_stop_controller_null) {
+  llg_free_stop_controller(nullptr);
+  BOOST_TEST(true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

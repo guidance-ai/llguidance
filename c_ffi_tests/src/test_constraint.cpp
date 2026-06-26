@@ -92,7 +92,9 @@ BOOST_AUTO_TEST_CASE(new_constraint_regex_invalid) {
   auto constraint =
       make_constraint(llg_new_constraint_regex(&init, "[z-a"));
 
-  BOOST_REQUIRE(llg_get_error(constraint.get()) != nullptr);
+  const char *error = llg_get_error(constraint.get());
+  BOOST_REQUIRE(error != nullptr);
+  BOOST_CHECK(std::strlen(error) > 0);
 }
 
 BOOST_AUTO_TEST_CASE(new_constraint_json_schema) {
@@ -242,6 +244,7 @@ BOOST_AUTO_TEST_CASE(flush_logs) {
 
   const char *logs = llg_flush_logs(constraint.get());
   BOOST_REQUIRE(logs != nullptr);
+  BOOST_CHECK(std::strlen(logs) > 0);
 }
 
 BOOST_AUTO_TEST_CASE(clone_constraint) {
@@ -338,6 +341,27 @@ BOOST_AUTO_TEST_CASE(double_compute_mask) {
   BOOST_CHECK_EQUAL(llg_compute_mask(constraint.get(), &second_mask), 0);
   BOOST_CHECK(llg_get_error(constraint.get()) == nullptr);
   BOOST_CHECK(second_mask.sample_mask != nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(flush_logs_returns_valid_c_string_after_no_activity) {
+  auto tokenizer = make_byte_tokenizer();
+  auto init = make_constraint_init(tokenizer.get(), 2, 0);
+  auto constraint =
+      make_constraint(llg_new_constraint_regex(&init, "[a-z]+"));
+
+  require_no_error(constraint.get());
+
+  // Flush logs on a fresh constraint with no compute/commit activity.
+  const char *logs = llg_flush_logs(constraint.get());
+  BOOST_REQUIRE(logs != nullptr);
+  // The returned string must be a valid C string (NUL-terminated).
+  // It may be empty if no log output was generated.
+  BOOST_CHECK(std::strlen(logs) >= 0);
+}
+
+BOOST_AUTO_TEST_CASE(free_constraint_null) {
+  llg_free_constraint(nullptr);
+  BOOST_TEST(true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

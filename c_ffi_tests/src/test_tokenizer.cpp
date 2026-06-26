@@ -238,4 +238,9 @@ BOOST_AUTO_TEST_CASE(tokenizer_v2_eos_extra_null_with_count) {
   llg_free_tokenizer(tok);
 }
 
+BOOST_AUTO_TEST_CASE(free_tokenizer_null) {
+  llg_free_tokenizer(nullptr);
+  BOOST_TEST(true);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
