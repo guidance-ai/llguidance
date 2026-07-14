@@ -184,8 +184,12 @@ impl ByteTokenizer {
         let mut specials = HashSet::new();
 
         for (id, info) in added.iter() {
-            // we treat all added tokens of the form <...> as special tokens
-            if info.special || (info.content.starts_with("<") && info.content.ends_with(">")) {
+            // Honor the tokenizer's explicit per-token `special` flag. The `<...>`
+            // shape heuristic from #202 only applies on paths that lack a reliable
+            // flag (e.g. GGUF/llamacpp); an explicit `special = false` from the
+            // `tokenizers` crate must win so content-carrying markup tokens are not
+            // dropped on decode. See #361.
+            if info.special {
                 match info.content.as_str() {
                     "</s>"
                     | "<|endoftext|>"
@@ -704,6 +708,99 @@ mod tests {
         assert_eq!(
             bt.token_bytes[0], b" hello",
             "space_ch replacement should convert ▁ to space"
+        );
+    }
+
+    // Like MINIMAL_TOKENIZER_JSON, but with two `<...>`-shaped added tokens: a
+    // content token flagged `special = false` and a genuine control token flagged
+    // `special = true`. Used to check that `from_tokenizer` honors the explicit
+    // per-token flag rather than the name shape (see issue #361).
+    const ADDED_TOKENS_TOKENIZER_JSON: &str = r#"{
+        "version": "1.0",
+        "truncation": null,
+        "padding": null,
+        "added_tokens": [
+            {
+                "id": 1,
+                "content": "<fcel>",
+                "single_word": false,
+                "lstrip": false,
+                "rstrip": false,
+                "normalized": false,
+                "special": false
+            },
+            {
+                "id": 2,
+                "content": "<|im_end|>",
+                "single_word": false,
+                "lstrip": false,
+                "rstrip": false,
+                "normalized": false,
+                "special": true
+            }
+        ],
+        "normalizer": null,
+        "pre_tokenizer": {
+            "type": "ByteLevel",
+            "add_prefix_space": false,
+            "trim_offsets": true
+        },
+        "post_processor": null,
+        "decoder": {
+            "type": "ByteLevel",
+            "add_prefix_space": false,
+            "trim_offsets": true
+        },
+        "model": {
+            "type": "BPE",
+            "dropout": null,
+            "unk_token": null,
+            "continuing_subword_prefix": "",
+            "end_of_word_suffix": "",
+            "fuse_unk": false,
+            "vocab": {
+                "a": 0
+            },
+            "merges": []
+        }
+    }"#;
+
+    #[test]
+    fn from_tokenizer_honors_explicit_special_false() {
+        let bt = ByteTokenizer::from_tokenizer(
+            Tokenizer::from_str(ADDED_TOKENS_TOKENIZER_JSON).unwrap(),
+        )
+        .unwrap();
+
+        // A `<...>`-shaped token with special=false must NOT get the special marker;
+        // it is content and its literal bytes are stored as-is.
+        assert_eq!(
+            bt.token_bytes[1],
+            b"<fcel>".to_vec(),
+            "special=false angle-bracket token must not be marked special"
+        );
+
+        // Its special=true companion is still marked with the 0xff prefix.
+        assert_eq!(bt.token_bytes[2][0], TokTrie::SPECIAL_TOKEN_MARKER);
+        assert_eq!(&bt.token_bytes[2][1..], b"<|im_end|>");
+
+        // Name-based end-of-turn detection still fires for the genuine special token.
+        assert_eq!(bt.tokrx_info().tok_end_of_turn, Some(2));
+
+        let env = ByteTokenizerEnv::new(bt, None).unwrap();
+        let trie = env.tok_trie();
+
+        // The content token survives a skip-special decode (this is the regression
+        // from #361 — the buggy heuristic dropped it, yielding b"a").
+        assert_eq!(trie.decode_ext(&[1, 0], false), b"<fcel>a".to_vec());
+
+        // The genuine special token is still stripped on skip-special decode.
+        assert_eq!(trie.decode_ext(&[2, 0], false), b"a".to_vec());
+
+        // With include_special=true, both are kept.
+        assert_eq!(
+            trie.decode_ext(&[1, 2, 0], true),
+            b"<fcel><|im_end|>a".to_vec()
         );
     }
 }
