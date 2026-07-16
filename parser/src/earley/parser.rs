@@ -349,6 +349,15 @@ impl Captures {
     }
 }
 
+/// Opaque parser restore point. Constructed only by [`Parser::checkpoint`] and
+/// consumed only by [`Parser::rollback_to`], so callers cannot fabricate an
+/// inconsistent `(byte_len, token_idx)` pair.
+#[derive(Clone, Copy)]
+pub(crate) struct ParserCheckpoint {
+    byte_len: usize,
+    token_idx: usize,
+}
+
 #[derive(Clone)]
 struct ParserState {
     grammar: Arc<CGrammar>,
@@ -1008,25 +1017,34 @@ impl ParserState {
         }
     }
 
-    pub fn rollback(&mut self, n_bytes: usize) -> Result<()> {
-        debug!("rollback: {} bytes", n_bytes);
+    fn checkpoint(&self) -> ParserCheckpoint {
+        ParserCheckpoint {
+            byte_len: self.byte_to_token_idx.len(),
+            token_idx: self.token_idx,
+        }
+    }
+
+    /// Restore parser position to `cp`. Does not restore captures/stats/metrics.
+    fn rollback_to(&mut self, cp: ParserCheckpoint) -> Result<()> {
+        debug!(
+            "rollback_to: {} bytes, token_idx {}",
+            cp.byte_len, cp.token_idx
+        );
         ensure!(self.parser_error.is_none(), "rollback: parser error");
         self.assert_definitive();
         ensure!(
-            n_bytes <= self.byte_to_token_idx.len(),
-            "rollback: too many bytes {} > {}",
-            n_bytes,
+            cp.byte_len <= self.byte_to_token_idx.len(),
+            "rollback: target byte length {} > current {}",
+            cp.byte_len,
             self.byte_to_token_idx.len()
         );
 
-        let new_len = self.byte_to_token_idx.len() - n_bytes;
-
-        self.byte_to_token_idx.truncate(new_len);
-        self.bytes.truncate(new_len);
-        self.lexer_stack.truncate(new_len + 1);
+        self.byte_to_token_idx.truncate(cp.byte_len);
+        self.bytes.truncate(cp.byte_len);
+        self.lexer_stack.truncate(cp.byte_len + 1);
 
         self.row_infos.truncate(self.num_rows());
-        self.token_idx = *self.byte_to_token_idx.last().unwrap_or(&0) as usize;
+        self.token_idx = cp.token_idx;
         self.last_force_bytes_len = usize::MAX;
         self.lexer_stack_top_eos = false;
         self.rows_valid_end = self.num_rows();
@@ -1034,6 +1052,27 @@ impl ParserState {
         self.assert_definitive();
 
         Ok(())
+    }
+
+    /// Byte-count rollback backing the deprecated public [`Parser::rollback`].
+    /// Restores `token_idx` to the last kept byte's index (or 0).
+    fn rollback_n_bytes(&mut self, n_bytes: usize) -> Result<()> {
+        ensure!(
+            n_bytes <= self.byte_to_token_idx.len(),
+            "rollback: too many bytes {} > {}",
+            n_bytes,
+            self.byte_to_token_idx.len()
+        );
+        let new_len = self.byte_to_token_idx.len() - n_bytes;
+        let token_idx = if new_len == 0 {
+            0
+        } else {
+            self.byte_to_token_idx[new_len - 1] as usize
+        };
+        self.rollback_to(ParserCheckpoint {
+            byte_len: new_len,
+            token_idx,
+        })
     }
 
     pub fn validate_tokens(&mut self, tokens: &[TokenId]) -> usize {
@@ -2843,9 +2882,32 @@ impl Parser {
         r
     }
 
+    pub(crate) fn checkpoint(&self) -> ParserCheckpoint {
+        self.state.checkpoint()
+    }
+
+    pub(crate) fn rollback_to(&mut self, cp: ParserCheckpoint) -> Result<()> {
+        self.state.lexer_spec().check_rollback()?;
+        self.with_shared(|state| state.rollback_to(cp))
+    }
+
+    /// Restore to the initial (pre-generation) state; used by [`crate::TokenParser::reset`].
+    pub(crate) fn rollback_to_start(&mut self) -> Result<()> {
+        self.state.lexer_spec().check_rollback()?;
+        self.with_shared(|state| {
+            state.rollback_to(ParserCheckpoint {
+                byte_len: 0,
+                token_idx: 0,
+            })
+        })
+    }
+
+    #[deprecated(
+        note = "byte counts do not identify a complete token checkpoint; use TokenParser::rollback"
+    )]
     pub fn rollback(&mut self, n_bytes: usize) -> Result<()> {
         self.state.lexer_spec().check_rollback()?;
-        self.with_shared(|state| state.rollback(n_bytes))
+        self.with_shared(|state| state.rollback_n_bytes(n_bytes))
     }
 
     /// Returns how many tokens can be applied.

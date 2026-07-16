@@ -287,6 +287,152 @@ fn test_lexer_inv_crash() {
 }
 
 #[test]
+fn test_rollback_forced_numeric_tokens() {
+    let trie = get_tok_env().tok_trie();
+    let token_ids = numeric_usable_token_ids(4);
+    let grammar = format!(
+        "start: sequence\nsequence[capture]: {}",
+        token_ids
+            .iter()
+            .map(|token_id| format!("<[{token_id}]>"))
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+    let mut parser = make_parser(&grammar);
+    let mut expected_after_one_token = make_parser(&grammar);
+    let expected_initial_mask = expected_after_one_token.compute_mask().unwrap();
+    consume(&mut expected_after_one_token, token_ids[0]);
+    let expected_after_one_token_mask = expected_after_one_token.compute_mask().unwrap();
+
+    for token_id in &token_ids[..2] {
+        let mask = parser.compute_mask().unwrap();
+        assert!(mask.is_allowed(*token_id));
+        consume(&mut parser, *token_id);
+    }
+
+    parser.rollback(1).unwrap();
+
+    let mask = parser.compute_mask().unwrap();
+    assert_eq!(mask, expected_after_one_token_mask);
+
+    parser.rollback(1).unwrap();
+
+    let mask = parser.compute_mask().unwrap();
+    assert_eq!(mask, expected_initial_mask);
+
+    for token_id in &token_ids {
+        consume(&mut parser, *token_id);
+    }
+    assert!(parser.is_accepting());
+    assert_eq!(parser.get_capture("sequence"), Some(trie.decode(&token_ids).as_slice()));
+}
+
+// Pick `count` ordinary (non-special) token ids whose natural byte length is
+// shorter than their `\xff[N]` numeric encoding, so `<[N]>` exercises the
+// byte-length mismatch that rollback accounting must handle.
+fn numeric_usable_token_ids(count: usize) -> Vec<u32> {
+    let trie = get_tok_env().tok_trie();
+    let ids = (0..trie.vocab_size() as u32)
+        .filter(|&id| {
+            let numeric_encoding_len = id.to_string().len() + 3;
+            !trie.is_special_token(id) && trie.token(id).len() < numeric_encoding_len
+        })
+        .take(count)
+        .collect::<Vec<_>>();
+    assert_eq!(ids.len(), count);
+    ids
+}
+
+// Build a parser and run process_prompt with no prompt, so a leading forced
+// literal becomes the immutable prompt prefix.
+fn prompted(grammar: &str) -> TokenParser {
+    let mut p = PARSER_FACTORY
+        .create_parser(TopLevelGrammar::from_lark(grammar.to_string()))
+        .unwrap();
+    p.process_prompt(vec![]);
+    p
+}
+
+// rollback may not cross into the immutable prompt prefix. This is a policy
+// test, so the generated token is an ordinary letter (not a numeric `<[N]>`).
+#[test]
+fn test_rollback_into_forced_prefix_is_rejected() {
+    let mut parser = prompted(r#"start: "hello world foo bar baz" /[a-z]/"#);
+    let floor = parser.num_tokens();
+    assert!(floor >= 2, "expected a multi-token forced prefix, got {floor}");
+
+    let prefix_mask = parser.compute_mask().unwrap();
+    let trie = get_tok_env().tok_trie();
+    let letter = (0..trie.vocab_size() as u32)
+        .find(|&t| prefix_mask.is_allowed(t) && !trie.is_special_token(t))
+        .expect("a letter token must be allowed after the prefix");
+
+    consume(&mut parser, letter);
+    let snap = (
+        parser.num_tokens(),
+        parser.bytes_since(0).to_vec(),
+        parser.is_accepting(),
+        parser.compute_mask().unwrap(),
+    );
+
+    // Rolling back into the prefix hits the floor guard specifically and leaves
+    // observable state untouched (failure atomicity).
+    let err = parser.rollback(2).unwrap_err().to_string();
+    assert!(err.contains("immutable prompt prefix"), "unexpected error: {err}");
+    assert_eq!(parser.num_tokens(), snap.0);
+    assert_eq!(parser.bytes_since(0), snap.1.as_slice());
+    assert_eq!(parser.is_accepting(), snap.2);
+    assert_eq!(parser.compute_mask().unwrap(), snap.3);
+
+    // Target == floor is the valid boundary: back to the post-prefix state.
+    parser.rollback(1).unwrap();
+    assert_eq!(parser.num_tokens(), floor);
+    assert_eq!(parser.compute_mask().unwrap(), prefix_mask);
+}
+
+// reset crosses the prompt prefix (unlike rollback) and returns to grammar start.
+#[test]
+fn test_reset_after_prompt_returns_to_start() {
+    let grammar = r#"start: "hello world" /[a-z]/"#;
+
+    let mut fresh = make_parser(grammar); // make_parser calls start_without_prompt
+    let start_mask = fresh.compute_mask().unwrap();
+
+    let mut parser = prompted(grammar);
+    assert!(parser.num_tokens() >= 1);
+    let trie = get_tok_env().tok_trie();
+    let letter = (0..trie.vocab_size() as u32)
+        .find(|&t| parser.compute_mask().unwrap().is_allowed(t) && !trie.is_special_token(t))
+        .unwrap();
+    consume(&mut parser, letter);
+
+    parser.reset().unwrap();
+    assert_eq!(parser.num_tokens(), 0);
+    assert_eq!(parser.compute_mask().unwrap(), start_mask);
+}
+
+// An EOS id used as a numeric token `<[EOS]>` has real bytes, so rollback must
+// not treat it as a zero-byte EOS sentinel.
+#[test]
+fn test_rollback_eos_id_used_as_numeric_token() {
+    let eos = get_tok_env().tok_trie().eos_token();
+    let next = numeric_usable_token_ids(1)[0];
+    let grammar = format!("start: <[{eos}]> <[{next}]>");
+
+    let expected_mask = make_parser(&grammar).compute_mask().unwrap();
+
+    let mut parser = make_parser(&grammar);
+    assert!(parser.compute_mask().unwrap().is_allowed(eos));
+    consume(&mut parser, eos);
+    parser.rollback(1).unwrap();
+    assert_eq!(parser.compute_mask().unwrap(), expected_mask);
+
+    consume(&mut parser, eos);
+    consume(&mut parser, next);
+    assert!(parser.is_accepting());
+}
+
+#[test]
 fn test_stop_when_try_consume_fails() {
     let lark = r#"
         start: "blah"* "stop"
