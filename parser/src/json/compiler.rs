@@ -26,6 +26,7 @@ pub struct JsonCompileOptions {
     pub key_separator: String,
     pub whitespace_flexible: bool,
     pub whitespace_pattern: Option<String>,
+    pub container_whitespace: Option<String>,
     pub coerce_one_of: bool,
     pub lenient: bool,
     /// Allowed escape letters after '\' when quoting JSON strings.
@@ -64,6 +65,7 @@ struct Compiler {
     string_cache: Option<NodeRef>,
     item_separator_cache: Option<NodeRef>,
     key_separator_cache: Option<NodeRef>,
+    container_whitespace_cache: Option<NodeRef>,
 }
 
 macro_rules! cache {
@@ -82,6 +84,7 @@ impl Default for JsonCompileOptions {
             key_separator: ":".to_string(),
             whitespace_pattern: None,
             whitespace_flexible: true,
+            container_whitespace: None,
             coerce_one_of: false,
             lenient: false,
             json_allowed_escapes: None,
@@ -145,6 +148,7 @@ impl Compiler {
             string_cache: None,
             item_separator_cache: None,
             key_separator_cache: None,
+            container_whitespace_cache: None,
             pattern_cache: PatternPropertyCache::default(),
         }
     }
@@ -357,6 +361,21 @@ impl Compiler {
         let rx = self.builder.regex.regex(&self.options.key_separator)?;
         let node = self.builder.lexeme(rx);
         self.key_separator_cache = Some(node);
+        Ok(node)
+    }
+
+    fn container_whitespace(&mut self) -> Result<NodeRef> {
+        if let Some(node) = self.container_whitespace_cache {
+            return Ok(node);
+        }
+        let node = match &self.options.container_whitespace {
+            Some(pattern) => {
+                let rx = self.builder.regex.regex(pattern)?;
+                self.builder.lexeme(rx)
+            }
+            None => self.builder.string(""),
+        };
+        self.container_whitespace_cache = Some(node);
         Ok(node)
     }
 
@@ -612,9 +631,13 @@ impl Compiler {
 
     fn object_fields(&mut self, items: &[(NodeRef, bool)]) -> Result<NodeRef> {
         let opener = self.builder.string("{");
+        let ws_open = self.container_whitespace()?;
         let inner = self.ordered_sequence(items, false, &mut HashMap::default())?;
+        let ws_close = self.container_whitespace()?;
         let closer = self.builder.string("}");
-        Ok(self.builder.join(&[opener, inner, closer]))
+        Ok(self
+            .builder
+            .join(&[opener, ws_open, inner, ws_close, closer]))
     }
 
     #[allow(clippy::type_complexity)]
@@ -902,8 +925,12 @@ impl Compiler {
             }
         }
 
-        let mut grammars: Vec<NodeRef> = vec![self.builder.string("[")];
+        let opener = self.builder.string("[");
+        let closer = self.builder.string("]");
         let comma = self.item_separator()?;
+
+        let ws_open = self.container_whitespace()?;
+        let mut grammars: Vec<NodeRef> = vec![opener, ws_open];
 
         if !required_items.is_empty() {
             grammars.push(required_items[0]);
@@ -934,7 +961,9 @@ impl Compiler {
             }
         }
 
-        grammars.push(self.builder.string("]"));
+        let ws_close = self.container_whitespace()?;
+        grammars.push(ws_close);
+        grammars.push(closer);
         Ok(self.builder.join(&grammars))
     }
 }
