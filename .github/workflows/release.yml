@@ -144,8 +144,13 @@ jobs:
         platform:
           - runner: windows-latest
             target: x64
+            python-architecture: x64
           - runner: windows-latest
             target: x86
+            python-architecture: x86
+          - runner: windows-11-arm
+            target: aarch64
+            python-architecture: arm64
         python-version: ['3.12', '3.14t']
     steps:
       - uses: actions/checkout@v6
@@ -153,7 +158,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: ${{ matrix.platform.target }}
+          architecture: ${{ matrix.platform.python-architecture }}
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
