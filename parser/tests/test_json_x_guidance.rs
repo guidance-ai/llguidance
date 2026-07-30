@@ -502,3 +502,36 @@ fn test_no_container_whitespace_with_object_schema(
     let lark = format!("start: %json {object_schema}");
     lark_str_test(&lark, should_succeed, input, true);
 }
+
+#[rstest]
+// Ok
+#[case::after_open_max(8, false, true)]
+#[case::after_open_over(9, false, true)] // Note over the bound, allowed by whitespace_flexible
+#[case::before_close_max(8, true, true)]
+#[case::before_close_over(9, true, true)] // Note over the bound, allowed by whitespace_flexible
+fn test_container_whitespace_with_flexible_whitespace(
+    #[case] spaces: usize,
+    #[case] before_close: bool,
+    #[case] should_succeed: bool,
+) {
+    let object_schema = json!({
+        "type": "object",
+        "properties": { "a": { "type": "integer" }, "b": { "type": "integer" } },
+        "required": ["a", "b"],
+        "additionalProperties": false,
+        "x-guidance": {
+            "whitespace_flexible": true,
+            "container_whitespace": r"\s{0,8}",
+            "key_separator": r"\s{0,8}:\s{0,8}",
+            "item_separator": r"\s{0,8},\s{0,8}",
+        }
+    });
+    let pad = " ".repeat(spaces);
+    let input = if before_close {
+        format!("{{\"a\": 1, \"b\": 2{pad}}}")
+    } else {
+        format!("{{{pad}\"a\": 1, \"b\": 2}}")
+    };
+    let lark = format!("start: %json {object_schema}");
+    lark_str_test(&lark, should_succeed, &input, true);
+}
