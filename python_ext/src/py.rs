@@ -382,6 +382,7 @@ struct JsonCompiler {
     key_separator: String,
     whitespace_flexible: bool,
     whitespace_pattern: Option<String>,
+    container_whitespace: Option<String>,
     coerce_one_of: bool,
     json_allowed_escapes: Option<String>,
 }
@@ -389,12 +390,13 @@ struct JsonCompiler {
 #[pymethods]
 impl JsonCompiler {
     #[new]
-    #[pyo3(signature = (separators = None, whitespace_flexible = false, coerce_one_of = false, whitespace_pattern = None, json_allowed_escapes = None))]
+    #[pyo3(signature = (separators = None, whitespace_flexible = false, coerce_one_of = false, whitespace_pattern = None, container_whitespace = None, json_allowed_escapes = None))]
     fn py_new(
         separators: Option<(String, String)>,
         whitespace_flexible: bool,
         coerce_one_of: bool,
         whitespace_pattern: Option<String>,
+        container_whitespace: Option<String>,
         json_allowed_escapes: Option<String>,
     ) -> Self {
         let (item_separator, key_separator) = separators.unwrap_or_else(|| {
@@ -410,6 +412,7 @@ impl JsonCompiler {
             whitespace_flexible,
             coerce_one_of,
             whitespace_pattern,
+            container_whitespace,
             json_allowed_escapes,
         }
     }
@@ -422,6 +425,7 @@ impl JsonCompiler {
             whitespace_flexible: self.whitespace_flexible,
             coerce_one_of: self.coerce_one_of,
             whitespace_pattern: self.whitespace_pattern.clone(),
+            container_whitespace: self.container_whitespace.clone(),
             lenient: false,
             json_allowed_escapes: self.json_allowed_escapes.clone(),
             retriever: None,

@@ -453,6 +453,7 @@ class JsonCompiler:
         whitespace_flexible: bool = False,
         coerce_one_of: bool = False,
         whitespace_pattern: Optional[str] = None,
+        container_whitespace: Optional[str] = None,
     ) -> "JsonCompiler":
         """
         Create a new JSON compiler.
