@@ -36,6 +36,8 @@ use super::{
     regexvec::{LexemeSet, LexerStats},
 };
 
+mod lexer_backtracking;
+
 const TRACE: bool = false;
 const DEBUG: bool = true;
 pub(crate) const ITEM_TRACE: bool = false;
@@ -408,6 +410,10 @@ struct BiasCache {
 #[derive(Clone, Default)]
 struct SharedState {
     lexer_opt: Option<Lexer>,
+    // Keep backtracking metadata behind the existing box so feature-off hot paths
+    // stay small. with_shared() keeps this field with ParserState while moving
+    // only the lexer through the mutex.
+    lexer_backtracking: Option<Box<lexer_backtracking::LexerBacktracking>>,
 }
 
 impl SharedState {
@@ -631,6 +637,10 @@ impl ParserState {
         } else {
             INVALID_TOKEN
         };
+        let lexer_backtracking = grammar
+            .lexer_spec()
+            .lexer_backtracking
+            .then(Default::default);
         let mut r = ParserState {
             grammar,
             tok_env,
@@ -665,6 +675,7 @@ impl ParserState {
             bias_cache: None,
             shared_box: Box::new(SharedState {
                 lexer_opt: Some(lexer),
+                lexer_backtracking: None,
             }),
             perf_counters,
         };
@@ -716,6 +727,7 @@ impl ParserState {
         r.assert_definitive();
 
         let lexer = std::mem::take(&mut r.shared_box).lexer_opt.unwrap();
+        r.shared_box.lexer_backtracking = lexer_backtracking;
 
         r.stats.lexer_cost = lexer.dfa.total_fuel_spent();
 
@@ -756,8 +768,9 @@ impl ParserState {
     fn compute_bias(&mut self, computer: &dyn BiasComputer, start: &[u8]) -> SimpleVob {
         let t0 = Instant::now();
 
-        // Check cache - only valid when start is empty (common case)
-        if start.is_empty() {
+        // Check cache - only valid when start is empty (common case), and backtracking
+        // state changes the effective parser state.
+        if start.is_empty() && self.shared_box.lexer_backtracking.is_none() {
             let curr_state = self.lexer_state();
             let has_pending = self.has_pending_lexeme_bytes();
             if let Some(ref cache) = self.bias_cache {
@@ -780,8 +793,12 @@ impl ParserState {
         dfa.set_max_states(limits.max_lexer_states);
 
         let mut set = self.with_items_limit(limits.step_max_items, "mask", |state| {
-            let mut r = ParserRecognizer { state };
-            computer.compute_bias(&mut r, start)
+            if state.shared_box.lexer_backtracking.is_none() {
+                let mut r = ParserRecognizer { state };
+                computer.compute_bias(&mut r, start)
+            } else {
+                lexer_backtracking::compute_bias(state, computer, start)
+            }
         });
 
         self.stats.lexer_cost = self.lexer().dfa.total_fuel_spent();
@@ -792,15 +809,12 @@ impl ParserState {
         }
 
         if start.is_empty() {
-            self.run_speculative("token_ranges", |state| {
-                if state.flush_lexer() {
-                    for spec in state.token_range_lexemes() {
-                        for range in &spec.token_ranges {
-                            set.allow_range(range.clone());
-                        }
-                    }
-                }
-            });
+            self.allow_token_ranges(&mut set);
+            if self.shared_box.lexer_backtracking.is_some() {
+                lexer_backtracking::visit_fallbacks(self, |branch| {
+                    branch.allow_token_ranges(&mut set)
+                });
+            }
         }
 
         let eos = computer.trie().eos_token();
@@ -808,8 +822,8 @@ impl ParserState {
             set.allow_token(eos);
         }
 
-        // Update cache when start is empty
-        if start.is_empty() {
+        // Update cache when start is empty and there is only one parser state.
+        if start.is_empty() && self.shared_box.lexer_backtracking.is_none() {
             let curr_state = self.lexer_state();
             self.bias_cache = Some(BiasCache {
                 lexer_state: curr_state.lexer_state,
@@ -885,6 +899,7 @@ impl ParserState {
         if self.has_pending_lexeme_bytes() {
             let lexer_state = self.lexer_state().lexer_state;
             self.lexer_mut().allows_eos(lexer_state)
+                || lexer_backtracking::accepting_allows_eos(self)
         } else {
             // empty lexemes are not allowed
             false
@@ -1020,6 +1035,7 @@ impl ParserState {
         );
 
         let new_len = self.byte_to_token_idx.len() - n_bytes;
+        lexer_backtracking::prepare_rollback(self, new_len);
 
         self.byte_to_token_idx.truncate(new_len);
         self.bytes.truncate(new_len);
@@ -1030,6 +1046,9 @@ impl ParserState {
         self.last_force_bytes_len = usize::MAX;
         self.lexer_stack_top_eos = false;
         self.rows_valid_end = self.num_rows();
+        if self.shared_box.lexer_backtracking.is_some() {
+            lexer_backtracking::refresh_fallback(self);
+        }
 
         self.assert_definitive();
 
@@ -1356,6 +1375,18 @@ impl ParserState {
         Ok(0)
     }
 
+    fn allow_token_ranges(&mut self, set: &mut SimpleVob) {
+        self.run_speculative("token_ranges", |state| {
+            if state.flush_lexer() {
+                for spec in state.token_range_lexemes() {
+                    for range in &spec.token_ranges {
+                        set.allow_range(range.clone());
+                    }
+                }
+            }
+        });
+    }
+
     fn token_range_lexemes(&self) -> Vec<&LexemeSpec> {
         let state = self.lexer_state().lexer_state;
         let possible = self.lexer().possible_lexemes(state);
@@ -1409,6 +1440,9 @@ impl ParserState {
                                 all_ok = false;
                                 break;
                             }
+                            if s.shared_box.lexer_backtracking.is_some() {
+                                lexer_backtracking::forced_byte_committed(s, b);
+                            }
                         }
 
                         if !all_ok {
@@ -1433,6 +1467,9 @@ impl ParserState {
                     // shouldn't happen?
                     debug!("  force_bytes reject {}", b as char);
                     break;
+                }
+                if s.shared_box.lexer_backtracking.is_some() {
+                    lexer_backtracking::forced_byte_committed(s, b);
                 }
             }
         });
@@ -1564,7 +1601,21 @@ impl ParserState {
     }
 
     pub fn is_accepting(&mut self) -> bool {
-        self.run_speculative("is_accepting", |s| s.is_accepting_inner())
+        if self.shared_box.lexer_backtracking.is_some() {
+            let mut accepting = self.run_speculative("is_accepting", |s| s.is_accepting_inner());
+            if !accepting {
+                lexer_backtracking::visit_fallbacks(self, |branch| {
+                    if !accepting {
+                        accepting = branch.run_speculative("backtracking_is_accepting", |s| {
+                            s.is_accepting_inner()
+                        });
+                    }
+                });
+            }
+            accepting
+        } else {
+            self.run_speculative("is_accepting", |s| s.is_accepting_inner())
+        }
     }
 
     // try_push_byte_definitive() attempts to 'push' a byte (that is advance
@@ -1597,6 +1648,7 @@ impl ParserState {
         }
 
         assert!(self.backtrack_byte_count == 0);
+        let lexer_error = res.is_error();
         if self.advance_lexer_or_parser(res, curr) {
             if let Some(b) = byte {
                 self.bytes.push(b);
@@ -1609,6 +1661,8 @@ impl ParserState {
                 self.bytes.truncate(self.bytes.len() - bt);
             }
             (true, bt)
+        } else if lexer_error && self.shared_box.lexer_backtracking.is_some() {
+            lexer_backtracking::recover(self, byte, byte.is_none())
         } else {
             (false, 0)
         }
@@ -1624,6 +1678,9 @@ impl ParserState {
     /// parser at this point, and returns it.  If there is
     /// no such byte, forced_byte() returns 'None'.
     fn forced_byte(&mut self) -> Option<u8> {
+        if self.shared_box.lexer_backtracking.is_some() {
+            return self.backtracking_forced_byte();
+        }
         if self.is_accepting() {
             debug!("  in accept state, not forcing");
             return None;
@@ -1698,6 +1755,10 @@ impl ParserState {
         self.lexer_stack.truncate(state.lexer_stack_length);
     }
 
+    fn backtracking_forced_byte(&mut self) -> Option<u8> {
+        lexer_backtracking::forced_byte(self)
+    }
+
     /// Advance the parser as if the current lexeme (if any)
     /// finished right here.
     /// Returns true if the parser was able to advance (or there were no pending bytes for a lexeme).
@@ -1715,6 +1776,9 @@ impl ParserState {
             self.lexer_stack_flush_position = prev_len;
         }
         assert!(self.backtrack_byte_count == 0);
+        if !r && self.scratch.definitive && self.shared_box.lexer_backtracking.is_some() {
+            return lexer_backtracking::recover(self, None, true).0;
+        }
         r
     }
 
@@ -2766,6 +2830,7 @@ impl Parser {
         let (state, lexer) = ParserState::new(tok_env, grammar, limits, perf_counters)?;
         let shared = Arc::new(Mutex::new(Box::new(SharedState {
             lexer_opt: Some(lexer),
+            lexer_backtracking: None,
         })));
         Ok(Parser { shared, state })
     }
@@ -2774,6 +2839,12 @@ impl Parser {
     /// in TokenParser in tokenparser.rs.  It is used by the compute_mask() method of
     /// the LLInterpreter interface.
     pub fn compute_bias(&mut self, computer: &dyn BiasComputer, start: &[u8]) -> SimpleVob {
+        self.compute_bias_inner(computer, start)
+    }
+
+    // Keep backtracking dispatch out of the feature-off compute_bias hot path.
+    #[inline(never)]
+    fn compute_bias_inner(&mut self, computer: &dyn BiasComputer, start: &[u8]) -> SimpleVob {
         self.with_shared(|state| state.compute_bias(computer, start))
     }
 
@@ -2822,10 +2893,30 @@ impl Parser {
         None
     }
 
+    /// Runs `f` against the parser's single recognizer state.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `lexer_backtracking` is enabled. That mode may have
+    /// multiple viable parser states, which a `ParserRecognizer` cannot expose.
     pub fn with_recognizer<T>(&mut self, f: impl FnOnce(&mut ParserRecognizer) -> T) -> T {
+        assert!(
+            self.state.shared_box.lexer_backtracking.is_none(),
+            "with_recognizer is unavailable with lexer_backtracking"
+        );
         self.with_shared(|state| {
             let mut rec = ParserRecognizer { state };
             f(&mut rec)
+        })
+    }
+
+    pub(crate) fn chop_tokens(&mut self, trie: &TokTrie, tokens: &[TokenId]) -> (usize, usize) {
+        self.with_shared(|state| {
+            if state.shared_box.lexer_backtracking.is_some() {
+                lexer_backtracking::chop_tokens(state, trie, tokens)
+            } else {
+                trie.chop_tokens(&mut ParserRecognizer { state }, tokens)
+            }
         })
     }
 
@@ -2873,16 +2964,39 @@ impl Parser {
     }
 
     pub fn apply_token(&mut self, tok_bytes: &[u8], tok_id: TokenId) -> Result<usize> {
-        let r = self.with_shared(|state| state.apply_token(tok_bytes, tok_id));
-        self.state.token_idx += 1;
-        r
+        self.with_shared(|state| {
+            let r = state.apply_token(tok_bytes, tok_id);
+            state.token_idx += 1;
+            if state.shared_box.lexer_backtracking.is_some() {
+                if matches!(r, Ok(0)) {
+                    lexer_backtracking::token_committed(state, tok_bytes, tok_id);
+                } else {
+                    lexer_backtracking::discard_fallback(state);
+                }
+            }
+            r
+        })
     }
 
     fn with_shared<T>(&mut self, f: impl FnOnce(&mut ParserState) -> T) -> T {
         let mut shared = self.shared.lock().unwrap();
-        self.state.shared_box = std::mem::take(&mut *shared);
+        let has_backtracking = self.state.shared_box.lexer_backtracking.is_some();
+        std::mem::swap(&mut self.state.shared_box, &mut shared);
+        if has_backtracking {
+            // The lexer moves under the mutex; backtracking state stays with this ParserState.
+            std::mem::swap(
+                &mut self.state.shared_box.lexer_backtracking,
+                &mut shared.lexer_backtracking,
+            );
+        }
         let r = f(&mut self.state);
-        *shared = std::mem::take(&mut self.state.shared_box);
+        if has_backtracking {
+            std::mem::swap(
+                &mut self.state.shared_box.lexer_backtracking,
+                &mut shared.lexer_backtracking,
+            );
+        }
+        std::mem::swap(&mut self.state.shared_box, &mut shared);
         assert!(shared.lexer_opt.is_some());
         r
     }
@@ -2894,6 +3008,9 @@ impl Parser {
 
     /// Returns how many tokens can be applied.
     pub fn validate_tokens(&mut self, tokens: &[TokenId]) -> usize {
+        if self.state.shared_box.lexer_backtracking.is_some() {
+            return lexer_backtracking::validate_tokens(self, tokens);
+        }
         self.with_shared(|state| {
             let r = state.validate_tokens(tokens);
             debug!(
@@ -2944,7 +3061,11 @@ impl Parser {
     }
 
     pub fn temperature(&self) -> Option<f32> {
-        self.state.temperature()
+        if self.state.shared_box.lexer_backtracking.is_some() {
+            lexer_backtracking::temperature(&self.state)
+        } else {
+            self.state.temperature()
+        }
     }
 
     pub fn deep_clone(&self) -> Self {
