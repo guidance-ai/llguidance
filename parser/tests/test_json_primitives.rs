@@ -174,10 +174,8 @@ fn integer_limits_incompatible(
         min_type: 1,
         max_type: -1
     });
-    json_err_test(
-        schema,
-        "Unsatisfiable schema: minimum (1) is greater than maximum (-1)",
-    );
+    let expected = format!("Unsatisfiable schema: {min_type} (1) is greater than {max_type} (-1)");
+    json_err_test(schema, &expected);
 }
 
 #[rstest]
@@ -387,10 +385,9 @@ fn number_limits_incompatible(
         min_type: -0.1,
         max_type: -1.0
     });
-    json_err_test(
-        schema,
-        "Unsatisfiable schema: minimum (-0.1) is greater than maximum (-1)",
-    );
+    let expected =
+        format!("Unsatisfiable schema: {min_type} (-0.1) is greater than {max_type} (-1)");
+    json_err_test(schema, &expected);
 }
 
 #[rstest]
