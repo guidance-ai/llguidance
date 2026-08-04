@@ -66,19 +66,17 @@ fn test_outer_skip_after_nested_json() {
 
 #[test]
 fn test_outer_skip_after_once_skip_hits_max_tokens() {
-    check_lark_grammar_nested(
-        r#"
-            start: sub "y"
-            sub[max_tokens=1]: @sub
-            %ignore /[ ]+/
-        "#,
-        r#"
+    let grammar = r#"
+        start: sub "y"
+        sub[max_tokens=1]: %lark {
             %llguidance { "skip_repetition": "once" }
             start: "a" "b"
             %ignore /[ ]/
-        "#,
-        &["", "a‧ ‧ ‧y"],
-    );
+        }
+        %ignore /[ ]+/
+    "#;
+
+    lark_str_test(grammar, true, "a  y", true);
 }
 
 #[test]

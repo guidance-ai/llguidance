@@ -1773,7 +1773,8 @@ impl ParserState {
                 .just_add_idx(self.scratch.items[i], i, "skip_lexeme");
         }
 
-        let (grammar_id, max_token_ptr) = self.maybe_pop_grammar_stack(lexeme.idx);
+        let (mut grammar_id, max_token_ptr) = self.maybe_pop_grammar_stack(lexeme.idx);
+        let hit_max_tokens = max_token_ptr.is_some();
 
         // no process_agenda() in the normal case
 
@@ -1782,6 +1783,8 @@ impl ParserState {
             self.process_max_tokens(ptr, lexeme);
             // process_agenda() will recompute push_allowed_lexemes etc
             lex_start = None;
+            grammar_id =
+                self.scratch.grammar_stack[self.scratch.push_grm_top.as_usize()].grammar_id;
         } else if skip_repetition == SkipRepetition::Once {
             let skip_id = self.lexer_spec().skip_id(grammar_id);
             let mut possible = self
@@ -1793,7 +1796,8 @@ impl ParserState {
             lex_start = Some(self.shared_box.lexer_mut().start_state(&possible));
         }
 
-        let allow_skip = skip_repetition == SkipRepetition::Unbounded;
+        // A max-token pop moves to the parent grammar, whose skip has not been consumed.
+        let allow_skip = hit_max_tokens || skip_repetition == SkipRepetition::Unbounded;
         let push_res = self.just_push_row(grammar_id, lex_start, allow_skip);
         assert!(push_res);
 
