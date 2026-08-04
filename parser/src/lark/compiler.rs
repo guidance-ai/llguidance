@@ -27,6 +27,8 @@ use super::{
 
 const DEBUG: bool = false;
 
+/// Options accepted by Lark's `%llguidance` directive. Skip repetition is
+/// Lark-specific because it controls how `%ignore` expressions are compiled.
 #[derive(Debug, Default, Deserialize)]
 struct LarkLLGuidanceOptions {
     #[serde(flatten)]
