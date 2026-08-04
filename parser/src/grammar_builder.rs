@@ -212,10 +212,18 @@ impl GrammarBuilder {
         warnings
     }
 
-    pub fn add_grammar(&mut self, options: LLGuidanceOptions, skip: SkipSpec) -> Result<SymIdx> {
+    pub fn add_grammar(&mut self, options: LLGuidanceOptions, skip: RegexAst) -> Result<SymIdx> {
+        self.add_grammar_with_skip(options, SkipSpec::unbounded(skip))
+    }
+
+    pub fn add_grammar_with_skip(
+        &mut self,
+        options: LLGuidanceOptions,
+        skip: SkipSpec,
+    ) -> Result<SymIdx> {
         self.check_limits()?;
 
-        self.curr_lexeme_class = self.regex.spec.setup_lexeme_class(skip)?;
+        self.curr_lexeme_class = self.regex.spec.setup_lexeme_class_with_skip(skip)?;
 
         self.strings.clear();
         self.at_most_cache.clear();

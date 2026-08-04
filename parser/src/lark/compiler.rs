@@ -669,7 +669,7 @@ impl Compiler {
             .map(|exp| Ok(RegexAst::ExprRef(self.do_token_expansions(exp)?)))
             .collect::<Result<Vec<_>>>()?;
         let skip = SkipSpec::new(RegexAst::Or(ignore), opts.skip_repetition);
-        let id = self.builder.add_grammar(opts.general, skip)?;
+        let id = self.builder.add_grammar_with_skip(opts.general, skip)?;
 
         let start = self.do_rule(start_name, None)?;
         self.builder.set_start_node(start);

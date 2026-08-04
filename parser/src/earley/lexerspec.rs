@@ -188,7 +188,11 @@ impl LexerSpec {
             .has_simply_forced_bytes(lex_spec.compiled_rx, bytes)
     }
 
-    pub fn setup_lexeme_class(&mut self, skip: SkipSpec) -> Result<LexemeClass> {
+    pub fn setup_lexeme_class(&mut self, skip: RegexAst) -> Result<LexemeClass> {
+        self.setup_lexeme_class_with_skip(SkipSpec::unbounded(skip))
+    }
+
+    pub fn setup_lexeme_class_with_skip(&mut self, skip: SkipSpec) -> Result<LexemeClass> {
         let SkipSpec {
             regex: skip,
             repetition: skip_repetition,
