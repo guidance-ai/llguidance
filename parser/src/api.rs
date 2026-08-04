@@ -39,6 +39,29 @@ pub enum SkipRepetition {
     Once,
 }
 
+/// The regex and repetition behavior of a compiled skip lexeme.
+#[derive(Debug, Clone)]
+pub struct SkipSpec {
+    /// Regex matched between grammar lexemes.
+    pub regex: RegexAst,
+    /// Whether the regex can be matched repeatedly at one grammar position.
+    pub repetition: SkipRepetition,
+}
+
+impl SkipSpec {
+    pub fn new(regex: RegexAst, repetition: SkipRepetition) -> Self {
+        Self { regex, repetition }
+    }
+
+    pub fn unbounded(regex: RegexAst) -> Self {
+        Self::new(regex, SkipRepetition::Unbounded)
+    }
+
+    pub fn once(regex: RegexAst) -> Self {
+        Self::new(regex, SkipRepetition::Once)
+    }
+}
+
 /// In lark syntax, this can be specified as JSON object after '%llguidance' declaration in the grammar.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -63,11 +86,6 @@ pub struct LLGuidanceOptions {
     /// including nested sub-grammars.
     #[serde(default)]
     pub allow_initial_skip: bool,
-
-    /// Controls whether the skip regex may be matched repeatedly at one grammar position.
-    /// With `once`, the regex describes the entire skipped span.
-    #[serde(default)]
-    pub skip_repetition: SkipRepetition,
 }
 
 impl LLGuidanceOptions {
@@ -80,9 +98,6 @@ impl LLGuidanceOptions {
         }
         if other.allow_initial_skip {
             self.allow_initial_skip = true;
-        }
-        if other.skip_repetition == SkipRepetition::Once {
-            self.skip_repetition = SkipRepetition::Once;
         }
     }
 }

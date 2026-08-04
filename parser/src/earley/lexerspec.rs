@@ -4,7 +4,7 @@ use std::{fmt::Debug, hash::Hash, ops::RangeInclusive};
 use toktrie::{bytes::limit_bytes, SimpleVob, TokTrie, TokenId};
 
 use crate::{
-    api::{ParserLimits, SkipRepetition},
+    api::{ParserLimits, SkipRepetition, SkipSpec},
     id32_type,
 };
 
@@ -188,11 +188,11 @@ impl LexerSpec {
             .has_simply_forced_bytes(lex_spec.compiled_rx, bytes)
     }
 
-    pub fn setup_lexeme_class(
-        &mut self,
-        skip: RegexAst,
-        skip_repetition: SkipRepetition,
-    ) -> Result<LexemeClass> {
+    pub fn setup_lexeme_class(&mut self, skip: SkipSpec) -> Result<LexemeClass> {
+        let SkipSpec {
+            regex: skip,
+            repetition: skip_repetition,
+        } = skip;
         let skip_node = self.regex_builder.mk(&skip)?; // validate first
 
         if !self.has_max_tokens && !self.has_temperature {

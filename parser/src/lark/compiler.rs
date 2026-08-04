@@ -6,9 +6,13 @@ use crate::{
 };
 use anyhow::{anyhow, bail, ensure, Result};
 use derivre::RegexAst;
+use serde::Deserialize;
 
 use crate::{
-    api::{GenGrammarOptions, GenOptions, GrammarId, LLGuidanceOptions, NodeProps, RegexExt},
+    api::{
+        GenGrammarOptions, GenOptions, GrammarId, LLGuidanceOptions, NodeProps, RegexExt,
+        SkipRepetition, SkipSpec,
+    },
     json::json_merge,
     substring::{chunk_into_chars, chunk_into_words},
     GrammarBuilder, JsonCompileOptions, NodeRef,
@@ -22,6 +26,15 @@ use super::{
 };
 
 const DEBUG: bool = false;
+
+#[derive(Debug, Default, Deserialize)]
+struct LarkLLGuidanceOptions {
+    #[serde(flatten)]
+    general: LLGuidanceOptions,
+    #[serde(default)]
+    skip_repetition: SkipRepetition,
+}
+
 macro_rules! debug {
     ($($arg:tt)*) => {
         if cfg!(feature = "logging") && DEBUG {
@@ -645,7 +658,7 @@ impl Compiler {
         let ignore = std::mem::take(&mut grm.ignore);
         self.grammar = grm;
 
-        let opts: LLGuidanceOptions =
+        let opts: LarkLLGuidanceOptions =
             serde_json::from_value(self.grammar.llguidance_options.clone())
                 .map_err(|e| anyhow!("failed to parse %llguidance declaration: {}", e))?;
 
@@ -653,7 +666,8 @@ impl Compiler {
             .into_iter()
             .map(|exp| Ok(RegexAst::ExprRef(self.do_token_expansions(exp)?)))
             .collect::<Result<Vec<_>>>()?;
-        let id = self.builder.add_grammar(opts, RegexAst::Or(ignore))?;
+        let skip = SkipSpec::new(RegexAst::Or(ignore), opts.skip_repetition);
+        let id = self.builder.add_grammar(opts.general, skip)?;
 
         let start = self.do_rule(start_name, None)?;
         self.builder.set_start_node(start);
@@ -725,7 +739,7 @@ impl Grammar {
                 // merge-in at the JSON level
                 json_merge(&mut self.llguidance_options, &json_value);
                 // but also check if it's valid format and all the right types
-                let _v: LLGuidanceOptions = serde_json::from_value(json_value)
+                let _v: LarkLLGuidanceOptions = serde_json::from_value(json_value)
                     .map_err(|e| anyhow!("failed to parse %llguidance declaration: {}", e))?;
             }
             Statement::OverrideRule(_) => {

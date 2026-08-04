@@ -246,6 +246,13 @@ fn test_lark_syntax_perc() {
         "#,
         "failed to parse %llguidance declaration",
     );
+    lark_err_test(
+        r#"
+            %llguidance { "skip_repetition": "many" }
+            start: "a" | "b"
+        "#,
+        "failed to parse %llguidance declaration",
+    );
 
     lark_ok(r#" start: %regex { "substring_words": "foo bar" } "#);
     lark_ok(r#" start: %regex { "substring_chars": "foo bar" } "#);

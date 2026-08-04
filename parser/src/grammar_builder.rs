@@ -1,5 +1,5 @@
 use crate::{
-    api::{LLGuidanceOptions, ParserLimits},
+    api::{LLGuidanceOptions, ParserLimits, SkipSpec},
     earley::{
         lexerspec::{token_ranges_to_string, LexemeClass, LexemeIdx, LexerSpec},
         Grammar, ParamCond, ParamExpr, SymIdx, SymbolProps,
@@ -212,13 +212,10 @@ impl GrammarBuilder {
         warnings
     }
 
-    pub fn add_grammar(&mut self, options: LLGuidanceOptions, skip: RegexAst) -> Result<SymIdx> {
+    pub fn add_grammar(&mut self, options: LLGuidanceOptions, skip: SkipSpec) -> Result<SymIdx> {
         self.check_limits()?;
 
-        self.curr_lexeme_class = self
-            .regex
-            .spec
-            .setup_lexeme_class(skip, options.skip_repetition)?;
+        self.curr_lexeme_class = self.regex.spec.setup_lexeme_class(skip)?;
 
         self.strings.clear();
         self.at_most_cache.clear();

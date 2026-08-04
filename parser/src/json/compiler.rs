@@ -1,4 +1,4 @@
-use crate::api::{LLGuidanceOptions, SkipRepetition};
+use crate::api::{LLGuidanceOptions, SkipSpec};
 use crate::grammar_builder::GrammarResult;
 use crate::json::schema::{NumberSchema, StringSchema};
 use crate::{regex_to_lark, HashMap};
@@ -157,13 +157,9 @@ impl Compiler {
         } else {
             RegexAst::NoMatch
         };
-        let id = self.builder.add_grammar(
-            LLGuidanceOptions {
-                skip_repetition: SkipRepetition::Once,
-                ..Default::default()
-            },
-            skip,
-        )?;
+        let id = self
+            .builder
+            .add_grammar(LLGuidanceOptions::default(), SkipSpec::once(skip))?;
 
         let built = build_schema(schema, &self.options)?;
         self.pattern_cache = built.pattern_cache;
