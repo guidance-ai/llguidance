@@ -64,7 +64,6 @@ impl SkipSpec {
 
 /// In lark syntax, this can be specified as JSON object after '%llguidance' declaration in the grammar.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[non_exhaustive]
 pub struct LLGuidanceOptions {
     /// Normally, when a sequence of bytes is forced by grammar, it is tokenized
     /// canonically and forced as tokens.
