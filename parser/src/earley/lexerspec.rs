@@ -3,7 +3,10 @@ use derivre::{raw::ExprSet, ExprRef, HashMap, JsonQuoteOptions, RegexAst, RegexB
 use std::{fmt::Debug, hash::Hash, ops::RangeInclusive};
 use toktrie::{bytes::limit_bytes, SimpleVob, TokTrie, TokenId};
 
-use crate::{api::ParserLimits, id32_type};
+use crate::{
+    api::{ParserLimits, SkipRepetition},
+    id32_type,
+};
 
 use super::{
     lexer::MatchingLexemesIdx,
@@ -18,7 +21,7 @@ pub struct LexerSpec {
     pub allow_initial_skip: bool,
     pub num_extra_lexemes: usize,
     pub skip_by_class: Vec<LexemeIdx>,
-    class_by_skip: HashMap<ExprRef, LexemeClass>,
+    class_by_skip: HashMap<(ExprRef, SkipRepetition), LexemeClass>,
     pub current_class: LexemeClass,
     // regex for \xFF \[ [0-9]+ \]
     pub special_token_rx: Option<ExprRef>,
@@ -57,6 +60,7 @@ pub struct LexemeSpec {
     pub(crate) is_extra: bool,
     pub(crate) is_suffix: bool,
     pub(crate) is_skip: bool,
+    pub(crate) skip_repetition: SkipRepetition,
     json_options: Option<JsonQuoteOptions>,
     pub(crate) token_ranges: Vec<RangeInclusive<TokenId>>,
 }
@@ -184,11 +188,15 @@ impl LexerSpec {
             .has_simply_forced_bytes(lex_spec.compiled_rx, bytes)
     }
 
-    pub fn setup_lexeme_class(&mut self, skip: RegexAst) -> Result<LexemeClass> {
+    pub fn setup_lexeme_class(
+        &mut self,
+        skip: RegexAst,
+        skip_repetition: SkipRepetition,
+    ) -> Result<LexemeClass> {
         let skip_node = self.regex_builder.mk(&skip)?; // validate first
 
         if !self.has_max_tokens && !self.has_temperature {
-            if let Some(&cls) = self.class_by_skip.get(&skip_node) {
+            if let Some(&cls) = self.class_by_skip.get(&(skip_node, skip_repetition)) {
                 // re-use existing
                 self.current_class = cls;
                 return Ok(cls);
@@ -196,13 +204,15 @@ impl LexerSpec {
         }
 
         self.current_class = LexemeClass::new(self.skip_by_class.len());
-        self.class_by_skip.insert(skip_node, self.current_class);
+        self.class_by_skip
+            .insert((skip_node, skip_repetition), self.current_class);
         self.skip_by_class.push(LexemeIdx(0)); // avoid assert in empty_spec()
         let idx = self
             .add_lexeme_spec(LexemeSpec {
                 name: format!("SKIP{}", self.current_class.as_usize()),
                 rx: skip,
                 is_skip: true,
+                skip_repetition,
                 ..self.empty_spec()
             })
             .expect("already validated");
@@ -326,6 +336,8 @@ impl LexerSpec {
                 && lex.max_tokens == spec.max_tokens
                 && lex.token_ranges == spec.token_ranges
                 && lex.is_extra == spec.is_extra
+                && lex.is_skip == spec.is_skip
+                && lex.skip_repetition == spec.skip_repetition
         }) {
             return Ok(LexemeIdx::new(idx));
         }
@@ -355,6 +367,7 @@ impl LexerSpec {
             contextual: false,
             ends_at_eos: false,
             is_skip: false,
+            skip_repetition: SkipRepetition::Unbounded,
             is_suffix: false,
             is_extra: false,
             json_options: None,

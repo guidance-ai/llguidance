@@ -327,6 +327,16 @@ see `LLGuidanceOptions` in [api.rs](../parser/src/api.rs#L36).
 Example: `%llguidance { "no_forcing": true }`.
 It can be specified multiple times, with the options being merged.
 
+By default, a `%ignore` regex can be matched repeatedly at the same grammar
+position. Set `"skip_repetition": "once"` to make the regex describe the
+entire skipped span, which allows bounds in the regex to be enforced:
+
+```lark
+%llguidance { "skip_repetition": "once" }
+%ignore /[ \t]{1,8}/
+start: "A" "!"
+```
+
 You can also start the grammar file with `%llguidance {}` to indicate
 that llguidance should be used to process the grammar.
 

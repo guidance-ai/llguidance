@@ -31,8 +31,17 @@ pub enum GrammarInit {
 /// cbindgen:ignore
 pub const DEFAULT_CONTEXTUAL: bool = true;
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SkipRepetition {
+    #[default]
+    Unbounded,
+    Once,
+}
+
 /// In lark syntax, this can be specified as JSON object after '%llguidance' declaration in the grammar.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct LLGuidanceOptions {
     /// Normally, when a sequence of bytes is forced by grammar, it is tokenized
     /// canonically and forced as tokens.
@@ -54,6 +63,11 @@ pub struct LLGuidanceOptions {
     /// including nested sub-grammars.
     #[serde(default)]
     pub allow_initial_skip: bool,
+
+    /// Controls whether the skip regex may be matched repeatedly at one grammar position.
+    /// With `once`, the regex describes the entire skipped span.
+    #[serde(default)]
+    pub skip_repetition: SkipRepetition,
 }
 
 impl LLGuidanceOptions {
@@ -66,6 +80,9 @@ impl LLGuidanceOptions {
         }
         if other.allow_initial_skip {
             self.allow_initial_skip = true;
+        }
+        if other.skip_repetition == SkipRepetition::Once {
+            self.skip_repetition = SkipRepetition::Once;
         }
     }
 }
