@@ -79,9 +79,9 @@ Following keys are available inside of it:
 - `item_separator`, defaults to `","` - a regex pattern for the separator between array items or object properties
 - `key_separator`, defaults to `":"` - a regex pattern for the separator between object keys and values
 - `whitespace_flexible`, defaults to `true`; set to `false` to enforce compact JSON representation
-- `whitespace_pattern`, optional string, overrides `whitespace_flexible`. The pattern
-  describes one complete whitespace span, so repetition bounds such as
-  `r"[\x20\x0A\x0D\x09]{1,8}"` are enforced. The span itself remains optional.
+- `whitespace_pattern`, optional string, overrides `whitespace_flexible`. The regex
+  is matched at most once at each location where JSON whitespace is allowed, so upper
+  bounds such as `r"[\x20\x0A\x0D\x09]{1,8}"` are enforced.
   `whitespace_flexible: true` is equivalent to
   `whitespace_pattern: r"[\x20\x0A\x0D\x09]+"`.
 - `coerce_one_of`, defaults to `false`; when set to `true`, the `"oneOf"` will be treated as `"anyOf"`
