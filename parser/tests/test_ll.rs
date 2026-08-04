@@ -65,6 +65,23 @@ fn test_outer_skip_after_nested_json() {
 }
 
 #[test]
+fn test_outer_skip_after_once_skip_hits_max_tokens() {
+    check_lark_grammar_nested(
+        r#"
+            start: sub "y"
+            sub[max_tokens=1]: @sub
+            %ignore /[ ]+/
+        "#,
+        r#"
+            %llguidance { "skip_repetition": "once" }
+            start: "a" "b"
+            %ignore /[ ]/
+        "#,
+        &["", "a‧ ‧ ‧y"],
+    );
+}
+
+#[test]
 fn test_ll_format() {
     check_lark_json(
         r#"start: "JSON" @sub
