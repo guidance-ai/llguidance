@@ -248,7 +248,7 @@ fn test_lark_syntax_perc() {
     );
     lark_err_test(
         r#"
-            %llguidance { "skip_repetition": "many" }
+            %llguidance { "ignore_once": "yes" }
             start: "a" | "b"
         "#,
         "failed to parse %llguidance declaration",

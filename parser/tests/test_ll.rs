@@ -32,7 +32,7 @@ fn test_ll_skip() {
     );
 
     let bounded_skip = r#"
-        %llguidance { "skip_repetition": "once" }
+        %llguidance { "ignore_once": true }
         start: "A" "!"
         %ignore /[ \t]{1,2}/
     "#;
@@ -69,7 +69,7 @@ fn test_outer_skip_after_once_skip_hits_max_tokens() {
     let grammar = r#"
         start: sub "y"
         sub[max_tokens=1]: %lark {
-            %llguidance { "skip_repetition": "once" }
+            %llguidance { "ignore_once": true }
             start: "a" "b"
             %ignore /[ ]/
         }

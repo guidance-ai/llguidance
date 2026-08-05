@@ -10,8 +10,7 @@ use serde::Deserialize;
 
 use crate::{
     api::{
-        GenGrammarOptions, GenOptions, GrammarId, LLGuidanceOptions, NodeProps, RegexExt,
-        SkipRepetition, SkipSpec,
+        GenGrammarOptions, GenOptions, GrammarId, LLGuidanceOptions, NodeProps, RegexExt, SkipSpec,
     },
     json::json_merge,
     substring::{chunk_into_chars, chunk_into_words},
@@ -27,14 +26,14 @@ use super::{
 
 const DEBUG: bool = false;
 
-/// Options accepted by Lark's `%llguidance` directive. Skip repetition is
+/// Options accepted by Lark's `%llguidance` directive. `ignore_once` is
 /// Lark-specific because it controls how `%ignore` expressions are compiled.
 #[derive(Debug, Default, Deserialize)]
 struct LarkLLGuidanceOptions {
     #[serde(flatten)]
     general: LLGuidanceOptions,
     #[serde(default)]
-    skip_repetition: SkipRepetition,
+    ignore_once: bool,
 }
 
 macro_rules! debug {
@@ -668,7 +667,12 @@ impl Compiler {
             .into_iter()
             .map(|exp| Ok(RegexAst::ExprRef(self.do_token_expansions(exp)?)))
             .collect::<Result<Vec<_>>>()?;
-        let skip = SkipSpec::new(RegexAst::Or(ignore), opts.skip_repetition);
+        let skip_regex = RegexAst::Or(ignore);
+        let skip = if opts.ignore_once {
+            SkipSpec::once(skip_regex)
+        } else {
+            SkipSpec::unbounded(skip_regex)
+        };
         let id = self.builder.add_grammar_with_skip(opts.general, skip)?;
 
         let start = self.do_rule(start_name, None)?;

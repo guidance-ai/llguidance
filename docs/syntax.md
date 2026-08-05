@@ -328,11 +328,11 @@ Example: `%llguidance { "no_forcing": true }`.
 It can be specified multiple times, with the options being merged.
 
 By default, a `%ignore` regex can be matched repeatedly at the same grammar
-position. Set `"skip_repetition": "once"` to make the regex describe the
-entire skipped span, which allows bounds in the regex to be enforced:
+position. Set `"ignore_once": true` to make the regex describe the entire
+skipped span, which allows bounds in the regex to be enforced:
 
 ```lark
-%llguidance { "skip_repetition": "once" }
+%llguidance { "ignore_once": true }
 %ignore /[ \t]{1,8}/
 start: "A" "!"
 ```
