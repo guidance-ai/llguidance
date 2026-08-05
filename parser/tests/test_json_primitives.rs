@@ -179,13 +179,20 @@ fn integer_limits_incompatible(
 }
 
 #[rstest]
-fn integer_limits_empty() {
+#[case::exclusive_bounds(&json!({
+    "type": "integer",
+    "exclusiveMinimum": 0,
+    "exclusiveMaximum": 1
+}))]
+#[case::fractional_bounds(&json!({
+    "type": "integer",
+    "minimum": 0.1,
+    "maximum": 0.9
+}))]
+fn integer_limits_empty(#[case] schema: &Value) {
     json_err_test(
-        &json!({
-            "type": "integer",
-            "exclusiveMinimum": 0, "exclusiveMaximum": 1
-        }),
-        "Failed to generate regex for integer range",
+        schema,
+        "Unsatisfiable schema: integer bounds contain no integer values",
     );
 }
 

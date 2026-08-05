@@ -297,6 +297,11 @@ impl Compiler {
             _ => None,
         }
         .map(|val| val as i64);
+        if matches!((minimum, maximum), (Some(min), Some(max)) if min > max) {
+            return Err(anyhow!(UnsatisfiableSchemaError {
+                message: "integer bounds contain no integer values".to_string(),
+            }));
+        }
         let rx = rx_int_range(minimum, maximum).with_context(|| {
             format!("Failed to generate regex for integer range: min={minimum:?}, max={maximum:?}")
         })?;
