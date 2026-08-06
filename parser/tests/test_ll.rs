@@ -30,6 +30,53 @@ fn test_ll_skip() {
            %ignore /[ \t]+/"#,
         &[".‧A", " ‧ ‧!"],
     );
+
+    let bounded_skip = r#"
+        %llguidance { "ignore_once": true }
+        start: "A" "!"
+        %ignore /[ \t]{1,2}/
+    "#;
+    lark_str_test(bounded_skip, true, "A!", true);
+    lark_str_test(bounded_skip, true, "A !", true);
+    lark_str_test(bounded_skip, true, "A  !", true);
+    lark_str_test(bounded_skip, false, "A   !", true);
+
+    let legacy_skip = r#"
+        start: "A" "!"
+        %ignore /[ \t]/
+    "#;
+    lark_str_test(legacy_skip, true, "A   !", true);
+}
+
+#[test]
+fn test_outer_skip_after_nested_json() {
+    let grammar = r#"
+        start: "BEGIN" payload "END"
+        payload: %json {
+            "type": "object",
+            "additionalProperties": false
+        }
+        %ignore /[\x20\x0A\x0D\x09]+/
+    "#;
+
+    lark_str_test(grammar, true, "BEGIN{} END", true);
+    lark_str_test(grammar, true, "BEGIN{}   END", true);
+    lark_str_test(grammar, true, "BEGIN{ } END", true);
+}
+
+#[test]
+fn test_outer_skip_after_once_skip_hits_max_tokens() {
+    let grammar = r#"
+        start: sub "y"
+        sub[max_tokens=1]: %lark {
+            %llguidance { "ignore_once": true }
+            start: "a" "b"
+            %ignore /[ ]/
+        }
+        %ignore /[ ]+/
+    "#;
+
+    lark_str_test(grammar, true, "a  y", true);
 }
 
 #[test]
