@@ -2,7 +2,7 @@ use std::{fmt::Display, hint::black_box, panic::AssertUnwindSafe, sync::Arc, tim
 
 use crate::{
     api::{GrammarInit, ParserLimits, StopReason},
-    earley::{BiasComputer, Parser, ParserError, ParserStats},
+    earley::{BiasComputer, Parser, ParserCheckpoint, ParserError, ParserStats},
     infoln, panic_utils, warn, Instant, Logger, ParserFactory,
 };
 use anyhow::{ensure, Result};
@@ -41,8 +41,24 @@ pub struct TokenParser {
     llm_tokens: Vec<TokenId>,
     llm_bytes: Vec<u8>,
 
+    // One rollback checkpoint per `llm_tokens` entry (recorded, not inferred —
+    // see `restore`).
+    checkpoints: Vec<TokenCheckpoint>,
+
+    // Number of immutable prompt/forced-prefix tokens; `rollback` may not cross
+    // below it (see `rollback`). Set by `process_prompt`.
+    prompt_token_floor: usize,
+
     grm_prefix: Vec<u8>,
     is_fresh: bool,
+}
+
+/// Per-LLM-token rollback checkpoint: the parser restore point plus the
+/// `llm_bytes` length, both captured after the token was processed.
+#[derive(Clone, Copy)]
+struct TokenCheckpoint {
+    parser: ParserCheckpoint,
+    llm_bytes_len: usize,
 }
 
 impl TokenParser {
@@ -115,6 +131,8 @@ impl TokenParser {
             eos_tokens,
             llm_tokens: Vec::new(),
             llm_bytes: Vec::new(),
+            checkpoints: Vec::new(),
+            prompt_token_floor: 0,
             grm_prefix: Vec::new(),
             max_tokens_total: max_tokens,
             last_bias_time: Duration::from_secs(0),
@@ -283,8 +301,41 @@ impl TokenParser {
             );
         }
 
+        // The prompt/grammar-prefix tokens were applied in bulk via
+        // apply_forced and are immutable under the speculative-rollback
+        // contract. They share the post-prefix parser position; record it for
+        // each so `checkpoints` stays aligned with `llm_tokens`, and mark the
+        // floor that `rollback` may not cross.
+        let prefix_cp = TokenCheckpoint {
+            parser: self.parser.checkpoint(),
+            llm_bytes_len: self.llm_bytes.len(),
+        };
+        self.checkpoints = vec![prefix_cp; self.llm_tokens.len()];
+        self.prompt_token_floor = self.llm_tokens.len();
+
         infoln!(self, "res_prompt: {}", trie.tokens_dbg(&res_prompt));
         res_prompt
+    }
+
+    /// Record the checkpoint for the just-processed token, one per `llm_tokens`
+    /// entry. A consume adds exactly one token (assert); a backtrack removes
+    /// some. Either way, align the length and set the tail to the current state.
+    fn record_checkpoint(&mut self) {
+        debug_assert!(
+            self.checkpoints.len() + 1 >= self.llm_tokens.len(),
+            "record_checkpoint: {} tokens added since last checkpoint",
+            self.llm_tokens.len() - self.checkpoints.len()
+        );
+        let cp = TokenCheckpoint {
+            parser: self.parser.checkpoint(),
+            llm_bytes_len: self.llm_bytes.len(),
+        };
+        self.checkpoints.truncate(self.llm_tokens.len());
+        if self.checkpoints.len() < self.llm_tokens.len() {
+            self.checkpoints.push(cp);
+        } else if let Some(last) = self.checkpoints.last_mut() {
+            *last = cp;
+        }
     }
 
     pub fn augment_err(&self, e: impl Display) -> String {
@@ -367,10 +418,25 @@ impl TokenParser {
         self.validate_tokens_raw(&[token]).map(|n| n > 0)
     }
 
+    /// Return generation to the start of the grammar, dropping all consumed
+    /// tokens including the prompt prefix. Does not clear captures, backtrack
+    /// flags, or stats. Unlike `rollback`, `reset` may cross the immutable
+    /// prompt prefix; it is a no-op on a fresh parser.
     pub fn reset(&mut self) -> Result<()> {
-        self.rollback(self.llm_tokens.len())
+        if !self.llm_tokens.is_empty() {
+            self.restore(0)?;
+        }
+        self.prompt_token_floor = 0;
+        Ok(())
     }
 
+    /// Roll back the last `n_tokens` generated tokens.
+    ///
+    /// Only generated (suffix) tokens may be undone; the prompt/forced prefix is
+    /// immutable. Rolling back into it returns an error without mutating state.
+    /// (One consequence: if natural backtracking has healed across the prompt
+    /// boundary, `prompt_token_floor` can exceed the current token count and
+    /// rollback then refuses everything until `reset`.)
     pub fn rollback(&mut self, n_tokens: usize) -> Result<()> {
         if n_tokens == 0 {
             return Ok(());
@@ -383,40 +449,58 @@ impl TokenParser {
             self.llm_tokens.len()
         );
 
+        let new_len = self.llm_tokens.len() - n_tokens;
+        // Failure-atomic prefix guard: reject before any mutation.
+        ensure!(
+            new_len >= self.prompt_token_floor,
+            "rollback into the immutable prompt prefix is not supported: \
+             target length {} < prompt floor {} (use reset() to start over)",
+            new_len,
+            self.prompt_token_floor
+        );
+
+        self.restore(new_len)
+    }
+
+    /// Shared restoration for `rollback`/`reset`: return to the recorded
+    /// checkpoint at `new_len` tokens (or the parser start when `new_len == 0`).
+    /// The caller is responsible for policy (e.g. the prefix floor).
+    ///
+    /// The target position is *recorded* per token rather than inferred, because
+    /// it can't be recovered from the current state: a `<[N]>` lexeme is stored
+    /// internally as `\xff[N]` (a different length than `token_len(N)`), forced
+    /// prefix bytes don't advance `token_idx`, and accepting-EOS tokens add no
+    /// bytes.
+    fn restore(&mut self, new_len: usize) -> Result<()> {
         if self.stop_reason.is_ok() {
-            // if we're stopped in "normal" way (e.g. end of grammar reached),
+            // if we're stopped in a "normal" way (end of grammar reached),
             // pretend we're not stopped
             self.stop_reason = StopReason::NotStopped;
         }
-
-        // this will fail in case we're in error state or not initialized
+        // fails if in error state or not initialized
         self.check_initialized("rollback")?;
-
         self.had_rollback = true;
 
-        let new_len = self.llm_tokens.len() - n_tokens;
-        let mut bytes_to_drop = 0;
-        for tok in &self.llm_tokens[new_len..] {
-            if self.eos_tokens.contains(tok) {
-                // doesn't count; we hope it's last though...
-                bytes_to_drop += 0;
-            } else {
-                bytes_to_drop += self.tok_trie().token_len(*tok);
-            }
-        }
-        ensure!(
-            bytes_to_drop <= self.llm_bytes.len(),
-            "rollback bytes: {} > {}",
-            bytes_to_drop,
-            self.llm_bytes.len()
+        debug_assert_eq!(
+            self.checkpoints.len(),
+            self.llm_tokens.len(),
+            "checkpoints out of sync with llm_tokens"
         );
 
-        self.parser.rollback(bytes_to_drop)?;
+        let dropped = self.llm_tokens.len() - new_len;
+        let llm_bytes_len = if new_len == 0 {
+            self.parser.rollback_to_start()?;
+            0
+        } else {
+            let cp = self.checkpoints[new_len - 1];
+            self.parser.rollback_to(cp.parser)?;
+            cp.llm_bytes_len
+        };
 
-        self.max_tokens_total = self.max_tokens_total.saturating_add(n_tokens);
+        self.max_tokens_total = self.max_tokens_total.saturating_add(dropped);
         self.llm_tokens.truncate(new_len);
-        self.llm_bytes
-            .truncate(self.llm_bytes.len() - bytes_to_drop);
+        self.llm_bytes.truncate(llm_bytes_len);
+        self.checkpoints.truncate(new_len);
         self.clear_caches();
 
         Ok(())
@@ -632,6 +716,9 @@ impl TokenParser {
                         // the non-backtracked bytes of backtracked token
                         self.parser.additional_backtrack(additional_backtrack_bytes);
                     }
+                    // Note: if healing crosses the prompt boundary this leaves
+                    // `prompt_token_floor > llm_tokens.len()`; rollback then
+                    // conservatively refuses until `reset` (see the field doc).
                     self.llm_tokens.truncate(token_ptr);
                     return Ok(backtrack_tokens);
                 }
@@ -831,6 +918,9 @@ impl TokenParser {
                 );
                 if accepting {
                     self.llm_tokens.push(token);
+                    // zero-byte token: nothing consumed, but keep checkpoints
+                    // aligned so a later rollback over it is a no-op.
+                    self.record_checkpoint();
                     return Ok(0);
                 }
             }
@@ -840,7 +930,10 @@ impl TokenParser {
         self.parser.log_row_infos("post-apply");
         match apply_res {
             Err(_) => Err(self.anyhow_error()),
-            Ok(n) => Ok(n),
+            Ok(n) => {
+                self.record_checkpoint();
+                Ok(n)
+            }
         }
     }
 
