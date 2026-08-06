@@ -506,6 +506,42 @@ pub fn rx_float_range(
     }
 }
 
+pub(super) fn normalize_integer_bounds(num: &NumberSchema) -> (Option<i64>, Option<i64>) {
+    let minimum = match num.get_minimum() {
+        (Some(min_val), true) => {
+            if min_val.fract() != 0.0 {
+                Some(min_val.ceil())
+            } else {
+                Some(min_val + 1.0)
+            }
+        }
+        (Some(min_val), false) => Some(min_val.ceil()),
+        _ => None,
+    }
+    .map(|val| val as i64);
+    let maximum = match num.get_maximum() {
+        (Some(max_val), true) => {
+            if max_val.fract() != 0.0 {
+                Some(max_val.floor())
+            } else {
+                Some(max_val - 1.0)
+            }
+        }
+        (Some(max_val), false) => Some(max_val.floor()),
+        _ => None,
+    }
+    .map(|val| val as i64);
+    (minimum, maximum)
+}
+
+fn check_integer_bounds(num: &NumberSchema) -> Result<(), String> {
+    let (minimum, maximum) = normalize_integer_bounds(num);
+    if matches!((minimum, maximum), (Some(min), Some(max)) if min > max) {
+        return Err("integer bounds contain no integer values".to_string());
+    }
+    Ok(())
+}
+
 pub fn check_number_bounds(num: &NumberSchema) -> Result<(), String> {
     let (minimum, exclusive_minimum) = num.get_minimum();
     let (maximum, exclusive_maximum) = num.get_maximum();
@@ -530,6 +566,9 @@ pub fn check_number_bounds(num: &NumberSchema) -> Result<(), String> {
                 "{minimum_repr} ({min}) is equal to {maximum_repr} ({max})"
             ));
         }
+    }
+    if num.integer {
+        check_integer_bounds(num)?;
     }
     if let Some(d) = num.multiple_of.as_ref() {
         if d.coef == 0 {
@@ -933,6 +972,62 @@ mod test_number_bounds {
     #[test]
     fn test_check_number_bounds() {
         let cases = vec![
+            // Integer bounds can be empty even when the corresponding real interval is not.
+            Case {
+                minimum: Some(0.0),
+                maximum: Some(1.0),
+                exclusive_minimum: true,
+                exclusive_maximum: true,
+                integer: true,
+                multiple_of: None,
+                ok: false,
+            },
+            Case {
+                minimum: Some(0.0),
+                maximum: Some(1.0),
+                exclusive_minimum: true,
+                exclusive_maximum: true,
+                integer: false,
+                multiple_of: None,
+                ok: true,
+            },
+            Case {
+                minimum: Some(0.1),
+                maximum: Some(0.9),
+                exclusive_minimum: false,
+                exclusive_maximum: false,
+                integer: true,
+                multiple_of: None,
+                ok: false,
+            },
+            Case {
+                minimum: Some(0.1),
+                maximum: Some(0.9),
+                exclusive_minimum: false,
+                exclusive_maximum: false,
+                integer: false,
+                multiple_of: None,
+                ok: true,
+            },
+            // Equal normalized integer endpoints represent valid singleton intervals.
+            Case {
+                minimum: Some(0.0),
+                maximum: Some(1.0),
+                exclusive_minimum: true,
+                exclusive_maximum: false,
+                integer: true,
+                multiple_of: None,
+                ok: true,
+            },
+            Case {
+                minimum: Some(0.0),
+                maximum: Some(1.0),
+                exclusive_minimum: false,
+                exclusive_maximum: true,
+                integer: true,
+                multiple_of: None,
+                ok: true,
+            },
             Case {
                 minimum: Some(5.5),
                 maximum: Some(6.0),

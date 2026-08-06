@@ -189,11 +189,46 @@ fn integer_limits_incompatible(
     "minimum": 0.1,
     "maximum": 0.9
 }))]
+#[case::before_multiple_of(&json!({
+    "type": "integer",
+    "minimum": 0.1,
+    "maximum": 0.9,
+    "multipleOf": 1
+}))]
 fn integer_limits_empty(#[case] schema: &Value) {
     json_err_test(
         schema,
         "Unsatisfiable schema: integer bounds contain no integer values",
     );
+}
+
+#[rstest]
+#[case::exclusive_minimum_accepts_one(
+    &json!({"type": "integer", "exclusiveMinimum": 0, "maximum": 1}),
+    &json!(1),
+    true
+)]
+#[case::exclusive_minimum_rejects_zero(
+    &json!({"type": "integer", "exclusiveMinimum": 0, "maximum": 1}),
+    &json!(0),
+    false
+)]
+#[case::exclusive_maximum_accepts_zero(
+    &json!({"type": "integer", "minimum": 0, "exclusiveMaximum": 1}),
+    &json!(0),
+    true
+)]
+#[case::exclusive_maximum_rejects_one(
+    &json!({"type": "integer", "minimum": 0, "exclusiveMaximum": 1}),
+    &json!(1),
+    false
+)]
+fn integer_limits_singleton(
+    #[case] schema: &Value,
+    #[case] sample: &Value,
+    #[case] should_pass: bool,
+) {
+    json_schema_check(schema, sample, should_pass);
 }
 
 #[rstest]

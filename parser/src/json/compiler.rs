@@ -8,7 +8,7 @@ use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::numeric::{check_number_bounds, rx_float_range, rx_int_range};
+use super::numeric::{check_number_bounds, normalize_integer_bounds, rx_float_range, rx_int_range};
 use super::schema::{build_schema, ArraySchema, ObjectSchema, OptSchemaExt, Schema};
 use super::shared_context::PatternPropertyCache;
 use super::RetrieveWrapper;
@@ -273,35 +273,7 @@ impl Compiler {
                 message: e.to_string(),
             })
         })?;
-        let minimum = match num.get_minimum() {
-            (Some(min_val), true) => {
-                if min_val.fract() != 0.0 {
-                    Some(min_val.ceil())
-                } else {
-                    Some(min_val + 1.0)
-                }
-            }
-            (Some(min_val), false) => Some(min_val.ceil()),
-            _ => None,
-        }
-        .map(|val| val as i64);
-        let maximum = match num.get_maximum() {
-            (Some(max_val), true) => {
-                if max_val.fract() != 0.0 {
-                    Some(max_val.floor())
-                } else {
-                    Some(max_val - 1.0)
-                }
-            }
-            (Some(max_val), false) => Some(max_val.floor()),
-            _ => None,
-        }
-        .map(|val| val as i64);
-        if matches!((minimum, maximum), (Some(min), Some(max)) if min > max) {
-            return Err(anyhow!(UnsatisfiableSchemaError {
-                message: "integer bounds contain no integer values".to_string(),
-            }));
-        }
+        let (minimum, maximum) = normalize_integer_bounds(num);
         let rx = rx_int_range(minimum, maximum).with_context(|| {
             format!("Failed to generate regex for integer range: min={minimum:?}, max={maximum:?}")
         })?;
