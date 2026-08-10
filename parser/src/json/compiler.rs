@@ -54,6 +54,9 @@ impl std::fmt::Display for UnsatisfiableSchemaError {
     }
 }
 
+// Keep both JSON string paths aligned with Derivre's regular escape policy.
+const DEFAULT_JSON_ALLOWED_ESCAPES: &str = "nrbtf\\\"u";
+
 // Match one Unicode scalar: a non-surrogate BMP escape or a high surrogate
 // immediately followed by a low surrogate. Keeping each pair in one alternative
 // makes string length limits count supplementary-plane characters correctly.
@@ -711,7 +714,7 @@ impl Compiler {
             .options
             .json_allowed_escapes
             .clone()
-            .unwrap_or_else(|| "nrbtf\\\"u".to_string());
+            .unwrap_or_else(|| DEFAULT_JSON_ALLOWED_ESCAPES.to_string());
         RegexAst::JsonQuote(
             Box::new(ast),
             JsonQuoteOptions {
@@ -866,7 +869,7 @@ impl Compiler {
                 .options
                 .json_allowed_escapes
                 .as_deref()
-                .unwrap_or("nrbtf\\\"u");
+                .unwrap_or(DEFAULT_JSON_ALLOWED_ESCAPES);
             let mut short_escapes = String::new();
             let mut allow_unicode_escapes = false;
 
@@ -1081,9 +1084,15 @@ mod tests {
         );
         let quoted = compiler.json_quote(RegexAst::EmptyString);
         match quoted {
-            RegexAst::JsonQuote(_, opts) => assert_eq!(opts.allowed_escapes, "nrbtf\\\"u"),
+            RegexAst::JsonQuote(_, opts) => {
+                assert_eq!(opts.allowed_escapes, DEFAULT_JSON_ALLOWED_ESCAPES)
+            }
             _ => panic!("expected JsonQuote AST"),
         }
+        assert_eq!(
+            DEFAULT_JSON_ALLOWED_ESCAPES,
+            JsonQuoteOptions::regular().allowed_escapes
+        );
     }
 
     #[test]
