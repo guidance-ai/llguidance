@@ -32,6 +32,9 @@ pub struct JsonCompileOptions {
     /// Defaults to full JSON set: nrbtf"u\
     /// For example, set to nrbtf"\ to disallow \uXXXX escapes.
     pub json_allowed_escapes: Option<String>,
+    /// Allow printable Unicode escapes in strings and object keys without regex constraints.
+    /// Paired surrogate escapes count as one character for string length limits.
+    pub json_allow_general_unicode_escapes: bool,
     #[serde(skip)]
     pub retriever: Option<RetrieveWrapper>,
 }
@@ -51,7 +54,14 @@ impl std::fmt::Display for UnsatisfiableSchemaError {
     }
 }
 
-const CHAR_REGEX: &str = r#"(\\([\"\\\/bfnrt]|u[a-fA-F0-9]{4})|[^\"\\\x00-\x1F\x7F])"#;
+// Match one Unicode scalar: a non-surrogate BMP escape or a high surrogate
+// immediately followed by a low surrogate. Keeping each pair in one alternative
+// makes string length limits count supplementary-plane characters correctly.
+const UNICODE_SCALAR_ESCAPE_REGEX: &str = concat!(
+    r"\\u(?:[0-9a-ce-fA-CE-F][0-9a-fA-F]{3}",
+    r"|[dD][0-7][0-9a-fA-F]{2}",
+    r"|[dD][89aAbB][0-9a-fA-F]{2}\\u[dD][c-fC-F][0-9a-fA-F]{2})"
+);
 
 struct Compiler {
     builder: GrammarBuilder,
@@ -85,6 +95,7 @@ impl Default for JsonCompileOptions {
             coerce_one_of: false,
             lenient: false,
             json_allowed_escapes: None,
+            json_allow_general_unicode_escapes: false,
             retriever: None,
         }
     }
@@ -335,7 +346,11 @@ impl Compiler {
 
     fn json_simple_string(&mut self) -> NodeRef {
         cache!(self.string_cache, {
-            let ast = self.json_quote(RegexAst::Regex("(?s:.*)".to_string()));
+            let ast = if self.options.json_allow_general_unicode_escapes {
+                self.json_general_unicode_string(0, None).unwrap()
+            } else {
+                self.json_quote(RegexAst::Regex("(?s:.*)".to_string()))
+            };
             self.ast_lexeme(ast).unwrap()
         })
     }
@@ -585,7 +600,8 @@ impl Compiler {
                 } else {
                     let taken = self.builder.regex.select(taken_name_ids);
                     let not_taken = self.builder.regex.not(taken);
-                    let valid = self.builder.regex.regex(&format!("\"({CHAR_REGEX})*\""))?;
+                    let valid_ast = self.json_general_unicode_string(0, None)?;
+                    let valid = self.builder.regex.add_ast(valid_ast)?;
                     let valid_and_not_taken = self.builder.regex.and(vec![valid, not_taken]);
                     self.builder.lexeme(valid_and_not_taken)
                 };
@@ -747,6 +763,9 @@ impl Compiler {
                 }));
             }
         }
+        if opts.regex.is_none() && self.options.json_allow_general_unicode_escapes {
+            return self.json_general_unicode_string(min_length, max_length);
+        }
         if min_length == 0 && max_length.is_none() && opts.regex.is_none() {
             return Ok(self.json_quote(RegexAst::Regex("(?s:.*)".to_string())));
         }
@@ -821,6 +840,55 @@ impl Compiler {
                 max_length.map_or("".to_string(), |v| v.to_string())
             ))))
         }
+    }
+
+    /// Builds a JSON-string regex whose repetitions count decoded Unicode scalars.
+    ///
+    /// This is only valid for strings without regex constraints: printable escapes
+    /// are not decoded before matching a schema pattern. Complete surrogate pairs
+    /// are one repetition, while unpaired surrogates are rejected.
+    fn json_general_unicode_string(
+        &self,
+        min_length: usize,
+        max_length: Option<usize>,
+    ) -> Result<RegexAst> {
+        let allowed_escapes = self
+            .options
+            .json_allowed_escapes
+            .as_deref()
+            .unwrap_or("nrbtf\\\"u");
+        let mut short_escapes = String::new();
+        let mut allow_unicode_escapes = false;
+
+        for escape in allowed_escapes.chars() {
+            match escape {
+                'u' => allow_unicode_escapes = true,
+                '\\' => short_escapes.push_str(r"\\"),
+                '"' | 'b' | 'f' | 'n' | 'r' | 't' => short_escapes.push(escape),
+                _ => bail!("invalid escape character in allowed_escapes: {escape}"),
+            }
+        }
+
+        let mut character_regex = r#"[^"\\\x00-\x1F\x7F]"#.to_string();
+        if !short_escapes.is_empty() {
+            character_regex.push_str(&format!(r"|\\[{short_escapes}]"));
+        }
+        if allow_unicode_escapes {
+            character_regex.push('|');
+            character_regex.push_str(UNICODE_SCALAR_ESCAPE_REGEX);
+        }
+
+        let repetition = if min_length == 0 && max_length.is_none() {
+            "*".to_string()
+        } else {
+            format!(
+                "{{{min_length},{}}}",
+                max_length.map_or_else(String::new, |max| max.to_string())
+            )
+        };
+        Ok(RegexAst::Regex(format!(
+            r#""(?:{character_regex}){repetition}""#
+        )))
     }
 
     fn gen_json_array(&mut self, arr: &ArraySchema) -> Result<NodeRef> {

@@ -453,6 +453,8 @@ class JsonCompiler:
         whitespace_flexible: bool = False,
         coerce_one_of: bool = False,
         whitespace_pattern: Optional[str] = None,
+        json_allowed_escapes: Optional[str] = None,
+        json_allow_general_unicode_escapes: bool = False,
     ) -> "JsonCompiler":
         """
         Create a new JSON compiler.
@@ -620,6 +622,10 @@ class JsonCompileOptions(TypedDict, total=False):
     coerce_one_of: Optional[bool]
     # ignore unimplemented keywords; defaults to false
     lenient: Optional[bool]
+    # permitted JSON escape letters; defaults to all supported escapes
+    json_allowed_escapes: Optional[str]
+    # permit printable Unicode escapes in strings without regex constraints
+    json_allow_general_unicode_escapes: Optional[bool]
 
 
 class LLParserLimits:
