@@ -3,7 +3,7 @@ use crate::grammar_builder::GrammarResult;
 use crate::json::schema::{NumberSchema, StringSchema};
 use crate::{regex_to_lark, HashMap};
 use anyhow::{anyhow, bail, Context, Result};
-use derivre::{JsonQuoteOptions, RegexAst};
+use derivre::{ExprRef, JsonQuoteOptions, RegexAst};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -72,6 +72,8 @@ struct Compiler {
 
     any_cache: Option<NodeRef>,
     string_cache: Option<NodeRef>,
+    /// Reuse compiled Unicode-string expressions for identical decoded length bounds.
+    general_unicode_string_cache: HashMap<(usize, Option<usize>), ExprRef>,
     item_separator_cache: Option<NodeRef>,
     key_separator_cache: Option<NodeRef>,
 }
@@ -154,6 +156,7 @@ impl Compiler {
             pending_definitions: vec![],
             any_cache: None,
             string_cache: None,
+            general_unicode_string_cache: HashMap::default(),
             item_separator_cache: None,
             key_separator_cache: None,
             pattern_cache: PatternPropertyCache::default(),
@@ -751,7 +754,7 @@ impl Compiler {
         Ok(r)
     }
 
-    fn gen_json_string(&self, opts: StringSchema) -> Result<RegexAst> {
+    fn gen_json_string(&mut self, opts: StringSchema) -> Result<RegexAst> {
         let min_length = opts.min_length;
         let max_length = opts.max_length;
         if let Some(max_length) = max_length {
@@ -846,12 +849,18 @@ impl Compiler {
     ///
     /// This is only valid for strings without regex constraints: printable escapes
     /// are not decoded before matching a schema pattern. Complete surrogate pairs
-    /// are one repetition, while unpaired surrogates are rejected.
+    /// are one repetition, while unpaired surrogates are rejected. Compiled
+    /// expressions are cached by length bounds to avoid repeated parsing and fuel use.
     fn json_general_unicode_string(
-        &self,
+        &mut self,
         min_length: usize,
         max_length: Option<usize>,
     ) -> Result<RegexAst> {
+        let cache_key = (min_length, max_length);
+        if let Some(expr) = self.general_unicode_string_cache.get(&cache_key) {
+            return Ok(RegexAst::ExprRef(*expr));
+        }
+
         let allowed_escapes = self
             .options
             .json_allowed_escapes
@@ -886,9 +895,10 @@ impl Compiler {
                 max_length.map_or_else(String::new, |max| max.to_string())
             )
         };
-        Ok(RegexAst::Regex(format!(
-            r#""(?:{character_regex}){repetition}""#
-        )))
+        let ast = RegexAst::Regex(format!(r#""(?:{character_regex}){repetition}""#));
+        let expr = self.builder.regex.add_ast(ast)?;
+        self.general_unicode_string_cache.insert(cache_key, expr);
+        Ok(RegexAst::ExprRef(expr))
     }
 
     fn gen_json_array(&mut self, arr: &ArraySchema) -> Result<NodeRef> {
@@ -1079,6 +1089,28 @@ mod tests {
             RegexAst::JsonQuote(_, opts) => assert_eq!(opts.allowed_escapes, "nrbtf\\\""),
             _ => panic!("expected JsonQuote AST"),
         }
+    }
+
+    /// Reuses compiled Unicode-string expressions without confusing different length bounds.
+    #[test]
+    fn general_unicode_strings_reuse_compiled_regex() {
+        let mut compiler = Compiler::new(
+            JsonCompileOptions::default(),
+            GrammarBuilder::new(None, ParserLimits::default()),
+        );
+
+        let unbounded = compiler.json_general_unicode_string(0, None).unwrap();
+        let repeated = compiler.json_general_unicode_string(0, None).unwrap();
+        let bounded = compiler.json_general_unicode_string(1, Some(1)).unwrap();
+
+        match (unbounded, repeated, bounded) {
+            (RegexAst::ExprRef(first), RegexAst::ExprRef(second), RegexAst::ExprRef(third)) => {
+                assert_eq!(first, second);
+                assert_ne!(first, third);
+            }
+            _ => panic!("expected cached regex expression references"),
+        }
+        assert_eq!(compiler.general_unicode_string_cache.len(), 2);
     }
 
     #[test]
