@@ -90,6 +90,10 @@ Following keys are available inside of it:
   corresponding escape (for example, `n` enables `\n`, `u` enables `\uXXXX`). Set to
   `"nrbtf\\\""` to disallow `\uXXXX` escapes. Note that removing `u` means control characters
   without named escapes (for example, U+0000, U+001E) become unrepresentable.
+- `json_allow_general_unicode_escapes`, defaults to `false`; when enabled, strings and object keys without
+  regex constraints can also use `\uXXXX` for printable characters. Valid surrogate pairs count
+  as one character for `minLength` and `maxLength`, and unpaired surrogates are rejected.
+  Unicode escapes remain disabled when `json_allowed_escapes` does not include `u`.
 - `lenient`, defaults to `false`; when set to `true`, the unsupported keywords and formats will be ignored; implies `coerce_one_of: true`
 
 For example:
