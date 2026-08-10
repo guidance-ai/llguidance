@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file. Dates are d
 
 If a release doesn't introduce any interesting changes (build fixes etc.), it's skipped.
 
+#### [v1.8.0](https://github.com/guidance-ai/llguidance/compare/v1.7.6...v1.8.0) 2026-08-10
+
+- Allow general Unicode escapes in JSON strings and object keys [`#374`](https://github.com/guidance-ai/llguidance/pull/374)
+- Support `\xHH` escapes in Lark string literals [`#354`](https://github.com/guidance-ai/llguidance/pull/354)
+  - Thanks [@palios-taey](https://github.com/palios-taey)!
+- Add single-match skip lexemes [`#370`](https://github.com/guidance-ai/llguidance/pull/370)
+- Add CI support for Windows ARM64 Python wheels [`#368`](https://github.com/guidance-ai/llguidance/pull/368)
+  - Thanks [@chinazhangchao](https://github.com/chinazhangchao)!
+- Preserve exclusive bound names in JSON Schema errors [`#369`](https://github.com/guidance-ai/llguidance/pull/369)
+  - Thanks [@bryanwhl](https://github.com/bryanwhl)!
+- Improve FFI safety and add C++ FFI tests [`#352`](https://github.com/guidance-ai/llguidance/pull/352) [`#353`](https://github.com/guidance-ai/llguidance/pull/353)
+- Treat `max_tokens=0` as an empty string [`#356`](https://github.com/guidance-ai/llguidance/pull/356)
+  - Thanks [@pjdurden](https://github.com/pjdurden)!
+- Accept negative numbers in `multipleOf` [`#357`](https://github.com/guidance-ai/llguidance/pull/357)
+  - Thanks [@pjdurden](https://github.com/pjdurden)!
+
 #### [v1.7.6](https://github.com/guidance-ai/llguidance/compare/v1.7.5...v1.7.6) 2026-06-03
 
 - Bump derivre to 0.3.12 [`#351`](https://github.com/guidance-ai/llguidance/pull/351)
