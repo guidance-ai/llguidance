@@ -80,15 +80,6 @@ struct Compiler {
     key_separator_cache: Option<NodeRef>,
 }
 
-macro_rules! cache {
-    ($field:expr, $gen:expr) => {{
-        if $field.is_none() {
-            $field = Some($gen);
-        };
-        return ($field).unwrap();
-    }};
-}
-
 impl Default for JsonCompileOptions {
     fn default() -> Self {
         Self {
@@ -208,7 +199,7 @@ impl Compiler {
             return self.ast_lexeme(ast);
         }
         match json_schema {
-            Schema::Any => Ok(self.gen_json_any()),
+            Schema::Any => self.gen_json_any(),
             Schema::Unsatisfiable(reason) => Err(anyhow!(UnsatisfiableSchemaError {
                 message: reason.to_string(),
             })),
@@ -350,15 +341,19 @@ impl Compiler {
         Ok(self.builder.lexeme(id))
     }
 
-    fn json_simple_string(&mut self) -> NodeRef {
-        cache!(self.string_cache, {
-            let ast = if self.options.json_allow_general_unicode_escapes {
-                self.json_general_unicode_string(0, None).unwrap()
-            } else {
-                self.json_quote(RegexAst::Regex("(?s:.*)".to_string()))
-            };
-            self.ast_lexeme(ast).unwrap()
-        })
+    fn json_simple_string(&mut self) -> Result<NodeRef> {
+        if let Some(node) = self.string_cache {
+            return Ok(node);
+        }
+
+        let ast = if self.options.json_allow_general_unicode_escapes {
+            self.json_general_unicode_string(0, None)?
+        } else {
+            self.json_quote(RegexAst::Regex("(?s:.*)".to_string()))
+        };
+        let node = self.ast_lexeme(ast)?;
+        self.string_cache = Some(node);
+        Ok(node)
     }
 
     fn item_separator(&mut self) -> Result<NodeRef> {
@@ -391,38 +386,38 @@ impl Compiler {
         Ok(r)
     }
 
-    fn gen_json_any(&mut self) -> NodeRef {
-        cache!(self.any_cache, {
-            let json_any = self.builder.new_node("json_any");
-            self.any_cache = Some(json_any); // avoid infinite recursion
-            let num = self.json_number(&NumberSchema::default()).unwrap();
-            let tf = self.builder.regex.regex("true|false").unwrap();
-            let options = vec![
-                self.builder.string("null"),
-                self.builder.lexeme(tf),
-                self.ast_lexeme(num).unwrap(),
-                self.json_simple_string(),
-                self.gen_json_array(&ArraySchema {
-                    min_items: 0,
-                    max_items: None,
-                    prefix_items: vec![],
-                    items: Schema::any_box(),
-                })
-                .unwrap(),
-                self.gen_json_object(&ObjectSchema {
-                    properties: IndexMap::new(),
-                    additional_properties: Schema::any_box(),
-                    required: IndexSet::new(),
-                    pattern_properties: IndexMap::new(),
-                    min_properties: 0,
-                    max_properties: None,
-                })
-                .unwrap(),
-            ];
-            let inner = self.builder.select(&options);
-            self.builder.set_placeholder(json_any, inner);
-            json_any
-        })
+    fn gen_json_any(&mut self) -> Result<NodeRef> {
+        if let Some(json_any) = self.any_cache {
+            return Ok(json_any);
+        }
+
+        let json_any = self.builder.new_node("json_any");
+        self.any_cache = Some(json_any); // avoid infinite recursion
+        let num = self.json_number(&NumberSchema::default())?;
+        let tf = self.builder.regex.regex("true|false")?;
+        let options = vec![
+            self.builder.string("null"),
+            self.builder.lexeme(tf),
+            self.ast_lexeme(num)?,
+            self.json_simple_string()?,
+            self.gen_json_array(&ArraySchema {
+                min_items: 0,
+                max_items: None,
+                prefix_items: vec![],
+                items: Schema::any_box(),
+            })?,
+            self.gen_json_object(&ObjectSchema {
+                properties: IndexMap::new(),
+                additional_properties: Schema::any_box(),
+                required: IndexSet::new(),
+                pattern_properties: IndexMap::new(),
+                min_properties: 0,
+                max_properties: None,
+            })?,
+        ];
+        let inner = self.builder.select(&options);
+        self.builder.set_placeholder(json_any, inner);
+        Ok(json_any)
     }
 
     fn gen_json_object(&mut self, obj: &ObjectSchema) -> Result<NodeRef> {
@@ -602,7 +597,7 @@ impl Compiler {
             }
             Ok(property) => {
                 let name = if taken_name_ids.is_empty() {
-                    self.json_simple_string()
+                    self.json_simple_string()?
                 } else {
                     let taken = self.builder.regex.select(taken_name_ids);
                     let not_taken = self.builder.regex.not(taken);
@@ -1129,6 +1124,35 @@ mod tests {
         }
         assert_eq!(compiler.general_unicode_scalar_cache, Some(scalar));
         assert_eq!(compiler.general_unicode_string_cache.len(), 2);
+    }
+
+    /// Returns invalid escape-policy errors for every schema shape instead of panicking.
+    #[test]
+    fn invalid_json_allowed_escapes_propagate_for_all_schema_shapes() {
+        for allow_general_unicode_escapes in [false, true] {
+            let options = JsonCompileOptions {
+                json_allowed_escapes: Some("x".to_string()),
+                json_allow_general_unicode_escapes: allow_general_unicode_escapes,
+                ..JsonCompileOptions::default()
+            };
+
+            for schema in [
+                json!({ "type": "string" }),
+                json!({ "type": "object" }),
+                json!({}),
+            ] {
+                let error = options
+                    .json_to_llg(GrammarBuilder::new(None, ParserLimits::default()), schema)
+                    .err()
+                    .expect("invalid JSON escape settings should return an error");
+                assert!(
+                    error
+                        .to_string()
+                        .contains("invalid escape character in allowed_escapes: x"),
+                    "unexpected error: {error}"
+                );
+            }
+        }
     }
 
     #[test]
