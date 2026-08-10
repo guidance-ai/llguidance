@@ -72,6 +72,8 @@ struct Compiler {
 
     any_cache: Option<NodeRef>,
     string_cache: Option<NodeRef>,
+    /// Reuse the decoded Unicode-scalar expression across all string length bounds.
+    general_unicode_scalar_cache: Option<ExprRef>,
     /// Reuse compiled Unicode-string expressions for identical decoded length bounds.
     general_unicode_string_cache: HashMap<(usize, Option<usize>), ExprRef>,
     item_separator_cache: Option<NodeRef>,
@@ -156,6 +158,7 @@ impl Compiler {
             pending_definitions: vec![],
             any_cache: None,
             string_cache: None,
+            general_unicode_scalar_cache: None,
             general_unicode_string_cache: HashMap::default(),
             item_separator_cache: None,
             key_separator_cache: None,
@@ -849,8 +852,8 @@ impl Compiler {
     ///
     /// This is only valid for strings without regex constraints: printable escapes
     /// are not decoded before matching a schema pattern. Complete surrogate pairs
-    /// are one repetition, while unpaired surrogates are rejected. Compiled
-    /// expressions are cached by length bounds to avoid repeated parsing and fuel use.
+    /// are one repetition, while unpaired surrogates are rejected. The scalar
+    /// expression is compiled once and reused across all string length bounds.
     fn json_general_unicode_string(
         &mut self,
         min_length: usize,
@@ -861,41 +864,54 @@ impl Compiler {
             return Ok(RegexAst::ExprRef(*expr));
         }
 
-        let allowed_escapes = self
-            .options
-            .json_allowed_escapes
-            .as_deref()
-            .unwrap_or("nrbtf\\\"u");
-        let mut short_escapes = String::new();
-        let mut allow_unicode_escapes = false;
-
-        for escape in allowed_escapes.chars() {
-            match escape {
-                'u' => allow_unicode_escapes = true,
-                '\\' => short_escapes.push_str(r"\\"),
-                '"' | 'b' | 'f' | 'n' | 'r' | 't' => short_escapes.push(escape),
-                _ => bail!("invalid escape character in allowed_escapes: {escape}"),
-            }
-        }
-
-        let mut character_regex = r#"[^"\\\x00-\x1F\x7F]"#.to_string();
-        if !short_escapes.is_empty() {
-            character_regex.push_str(&format!(r"|\\[{short_escapes}]"));
-        }
-        if allow_unicode_escapes {
-            character_regex.push('|');
-            character_regex.push_str(UNICODE_SCALAR_ESCAPE_REGEX);
-        }
-
-        let repetition = if min_length == 0 && max_length.is_none() {
-            "*".to_string()
+        let scalar = if let Some(expr) = self.general_unicode_scalar_cache {
+            expr
         } else {
-            format!(
-                "{{{min_length},{}}}",
-                max_length.map_or_else(String::new, |max| max.to_string())
-            )
+            let allowed_escapes = self
+                .options
+                .json_allowed_escapes
+                .as_deref()
+                .unwrap_or("nrbtf\\\"u");
+            let mut short_escapes = String::new();
+            let mut allow_unicode_escapes = false;
+
+            for escape in allowed_escapes.chars() {
+                match escape {
+                    'u' => allow_unicode_escapes = true,
+                    '\\' => short_escapes.push_str(r"\\"),
+                    '"' | 'b' | 'f' | 'n' | 'r' | 't' => short_escapes.push(escape),
+                    _ => bail!("invalid escape character in allowed_escapes: {escape}"),
+                }
+            }
+
+            let mut character_regex = r#"[^"\\\x00-\x1F\x7F]"#.to_string();
+            if !short_escapes.is_empty() {
+                character_regex.push_str(&format!(r"|\\[{short_escapes}]"));
+            }
+            if allow_unicode_escapes {
+                character_regex.push('|');
+                character_regex.push_str(UNICODE_SCALAR_ESCAPE_REGEX);
+            }
+
+            let expr = self.builder.regex.regex(&character_regex)?;
+            self.general_unicode_scalar_cache = Some(expr);
+            expr
         };
-        let ast = RegexAst::Regex(format!(r#""(?:{character_regex}){repetition}""#));
+
+        let min = u32::try_from(min_length)
+            .with_context(|| format!("minLength ({min_length}) exceeds the supported range"))?;
+        let max = max_length
+            .map(|max| {
+                u32::try_from(max)
+                    .with_context(|| format!("maxLength ({max}) exceeds the supported range"))
+            })
+            .transpose()?
+            .unwrap_or(u32::MAX);
+        let ast = RegexAst::Concat(vec![
+            RegexAst::Literal("\"".to_string()),
+            RegexAst::Repeat(Box::new(RegexAst::ExprRef(scalar)), min, max),
+            RegexAst::Literal("\"".to_string()),
+        ]);
         let expr = self.builder.regex.add_ast(ast)?;
         self.general_unicode_string_cache.insert(cache_key, expr);
         Ok(RegexAst::ExprRef(expr))
@@ -1091,7 +1107,7 @@ mod tests {
         }
     }
 
-    /// Reuses compiled Unicode-string expressions without confusing different length bounds.
+    /// Reuses one Unicode-scalar expression while keeping different string bounds distinct.
     #[test]
     fn general_unicode_strings_reuse_compiled_regex() {
         let mut compiler = Compiler::new(
@@ -1100,6 +1116,7 @@ mod tests {
         );
 
         let unbounded = compiler.json_general_unicode_string(0, None).unwrap();
+        let scalar = compiler.general_unicode_scalar_cache.unwrap();
         let repeated = compiler.json_general_unicode_string(0, None).unwrap();
         let bounded = compiler.json_general_unicode_string(1, Some(1)).unwrap();
 
@@ -1110,6 +1127,7 @@ mod tests {
             }
             _ => panic!("expected cached regex expression references"),
         }
+        assert_eq!(compiler.general_unicode_scalar_cache, Some(scalar));
         assert_eq!(compiler.general_unicode_string_cache.len(), 2);
     }
 
