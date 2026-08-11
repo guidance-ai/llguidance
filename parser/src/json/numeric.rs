@@ -534,14 +534,6 @@ pub(super) fn normalize_integer_bounds(num: &NumberSchema) -> (Option<i64>, Opti
     (minimum, maximum)
 }
 
-fn check_integer_bounds(num: &NumberSchema) -> Result<(), String> {
-    let (minimum, maximum) = normalize_integer_bounds(num);
-    if matches!((minimum, maximum), (Some(min), Some(max)) if min > max) {
-        return Err("integer bounds contain no integer values".to_string());
-    }
-    Ok(())
-}
-
 pub fn check_number_bounds(num: &NumberSchema) -> Result<(), String> {
     let (minimum, exclusive_minimum) = num.get_minimum();
     let (maximum, exclusive_maximum) = num.get_maximum();
@@ -566,9 +558,19 @@ pub fn check_number_bounds(num: &NumberSchema) -> Result<(), String> {
                 "{minimum_repr} ({min}) is equal to {maximum_repr} ({max})"
             ));
         }
-    }
-    if num.integer {
-        check_integer_bounds(num)?;
+        if num.integer {
+            let (integer_minimum, integer_maximum) = normalize_integer_bounds(num);
+            if matches!(
+                (integer_minimum, integer_maximum),
+                (Some(integer_min), Some(integer_max)) if integer_min > integer_max
+            ) {
+                let left_bracket = if exclusive_minimum { '(' } else { '[' };
+                let right_bracket = if exclusive_maximum { ')' } else { ']' };
+                return Err(format!(
+                    "integer interval {left_bracket}{min}, {max}{right_bracket} contains no integer values"
+                ));
+            }
+        }
     }
     if let Some(d) = num.multiple_of.as_ref() {
         if d.coef == 0 {

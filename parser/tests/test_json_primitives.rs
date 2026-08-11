@@ -183,23 +183,20 @@ fn integer_limits_incompatible(
     "type": "integer",
     "exclusiveMinimum": 0,
     "exclusiveMaximum": 1
-}))]
+}), "Unsatisfiable schema: integer interval (0, 1) contains no integer values")]
 #[case::fractional_bounds(&json!({
     "type": "integer",
     "minimum": 0.1,
     "maximum": 0.9
-}))]
+}), "Unsatisfiable schema: integer interval [0.1, 0.9] contains no integer values")]
 #[case::before_multiple_of(&json!({
     "type": "integer",
     "minimum": 0.1,
     "maximum": 0.9,
     "multipleOf": 1
-}))]
-fn integer_limits_empty(#[case] schema: &Value) {
-    json_err_test(
-        schema,
-        "Unsatisfiable schema: integer bounds contain no integer values",
-    );
+}), "Unsatisfiable schema: integer interval [0.1, 0.9] contains no integer values")]
+fn integer_limits_empty(#[case] schema: &Value, #[case] expected: &str) {
+    json_err_test(schema, expected);
 }
 
 #[rstest]
