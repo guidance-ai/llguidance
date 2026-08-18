@@ -15,4 +15,5 @@ pub use grammar::{
     SymbolProps,
 };
 pub use parser::{BiasComputer, Parser, ParserError, ParserMetrics, ParserRecognizer, ParserStats};
+pub(crate) use parser::ParserCheckpoint;
 pub use slicer::SlicedBiasComputer;
