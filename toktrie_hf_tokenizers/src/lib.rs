@@ -72,7 +72,29 @@ impl ByteTokenizer {
     /// Creates a [`ByteTokenizer`] from an existing HuggingFace [`Tokenizer`],
     /// applying normalizer and pre-tokenizer fixes and extracting byte-level
     /// token representations.
-    pub fn from_tokenizer(mut hft: Tokenizer) -> Result<ByteTokenizer> {
+    ///
+    /// Added tokens shaped like `<...>` are treated as special tokens even if
+    /// the tokenizer flags them `special = false` (some tokenizers, e.g. Phi-3,
+    /// mislabel their control tokens). Use
+    /// [`ByteTokenizer::from_tokenizer_with_options`] with
+    /// `infer_special_tokens = false` to honor the explicit flag instead.
+    pub fn from_tokenizer(hft: Tokenizer) -> Result<ByteTokenizer> {
+        ByteTokenizer::from_tokenizer_with_options(hft, true)
+    }
+
+    /// Like [`ByteTokenizer::from_tokenizer`], but with explicit control over
+    /// special-token detection for added tokens.
+    ///
+    /// If `infer_special_tokens` is `true`, any added token of the form `<...>`
+    /// is treated as special regardless of its `special` flag (the historical
+    /// default; helps tokenizers that mislabel control tokens). If `false`, only
+    /// the tokenizer's explicit per-token `special` flag is honored, so
+    /// content-carrying markup tokens like `<fcel>` with `special = false` are
+    /// not stripped on decode (see issue #361).
+    pub fn from_tokenizer_with_options(
+        mut hft: Tokenizer,
+        infer_special_tokens: bool,
+    ) -> Result<ByteTokenizer> {
         let mut is_byte_level = false;
         let mut is_byte_fallback = false;
         let mut space_ch = ' ';
@@ -184,8 +206,14 @@ impl ByteTokenizer {
         let mut specials = HashSet::new();
 
         for (id, info) in added.iter() {
-            // we treat all added tokens of the form <...> as special tokens
-            if info.special || (info.content.starts_with("<") && info.content.ends_with(">")) {
+            // With `infer_special_tokens`, we treat all added tokens of the form
+            // <...> as special tokens; otherwise the tokenizer's explicit
+            // per-token `special` flag wins (see issue #361).
+            let is_special = info.special
+                || (infer_special_tokens
+                    && info.content.starts_with("<")
+                    && info.content.ends_with(">"));
+            if is_special {
                 match info.content.as_str() {
                     "</s>"
                     | "<|endoftext|>"
@@ -704,6 +732,133 @@ mod tests {
         assert_eq!(
             bt.token_bytes[0], b" hello",
             "space_ch replacement should convert ▁ to space"
+        );
+    }
+
+    // Like MINIMAL_TOKENIZER_JSON, but with two `<...>`-shaped added tokens: a
+    // content token flagged `special = false` and a genuine control token flagged
+    // `special = true`. Used to check that `from_tokenizer_with_options` with
+    // `infer_special_tokens = false` honors the explicit per-token flag rather
+    // than the name shape (see issue #361), while the default `from_tokenizer`
+    // keeps inferring specialness from the `<...>` shape.
+    const ADDED_TOKENS_TOKENIZER_JSON: &str = r#"{
+        "version": "1.0",
+        "truncation": null,
+        "padding": null,
+        "added_tokens": [
+            {
+                "id": 1,
+                "content": "<fcel>",
+                "single_word": false,
+                "lstrip": false,
+                "rstrip": false,
+                "normalized": false,
+                "special": false
+            },
+            {
+                "id": 2,
+                "content": "<|im_end|>",
+                "single_word": false,
+                "lstrip": false,
+                "rstrip": false,
+                "normalized": false,
+                "special": true
+            }
+        ],
+        "normalizer": null,
+        "pre_tokenizer": {
+            "type": "ByteLevel",
+            "add_prefix_space": false,
+            "trim_offsets": true
+        },
+        "post_processor": null,
+        "decoder": {
+            "type": "ByteLevel",
+            "add_prefix_space": false,
+            "trim_offsets": true
+        },
+        "model": {
+            "type": "BPE",
+            "dropout": null,
+            "unk_token": null,
+            "continuing_subword_prefix": "",
+            "end_of_word_suffix": "",
+            "fuse_unk": false,
+            "vocab": {
+                "a": 0
+            },
+            "merges": []
+        }
+    }"#;
+
+    #[test]
+    fn from_tokenizer_with_options_honors_explicit_special_false() {
+        let bt = ByteTokenizer::from_tokenizer_with_options(
+            Tokenizer::from_str(ADDED_TOKENS_TOKENIZER_JSON).unwrap(),
+            false,
+        )
+        .unwrap();
+
+        // A `<...>`-shaped token with special=false must NOT get the special marker;
+        // it is content and its literal bytes are stored as-is.
+        assert_eq!(
+            bt.token_bytes[1],
+            b"<fcel>".to_vec(),
+            "special=false angle-bracket token must not be marked special"
+        );
+
+        // Its special=true companion is still marked with the 0xff prefix.
+        assert_eq!(bt.token_bytes[2][0], TokTrie::SPECIAL_TOKEN_MARKER);
+        assert_eq!(&bt.token_bytes[2][1..], b"<|im_end|>");
+
+        // Name-based end-of-turn detection still fires for the genuine special token.
+        assert_eq!(bt.tokrx_info().tok_end_of_turn, Some(2));
+
+        let env = ByteTokenizerEnv::new(bt, None).unwrap();
+        let trie = env.tok_trie();
+
+        // The content token survives a skip-special decode (this is the case from
+        // #361 — the shape heuristic dropped it, yielding b"a").
+        assert_eq!(trie.decode_ext(&[1, 0], false), b"<fcel>a".to_vec());
+
+        // The genuine special token is still stripped on skip-special decode.
+        assert_eq!(trie.decode_ext(&[2, 0], false), b"a".to_vec());
+
+        // With include_special=true, both are kept.
+        assert_eq!(
+            trie.decode_ext(&[1, 2, 0], true),
+            b"<fcel><|im_end|>a".to_vec()
+        );
+    }
+
+    #[test]
+    fn from_tokenizer_default_infers_special_tokens() {
+        // The default constructor keeps the historical behavior: any added token
+        // of the form <...> is treated as special, even with special=false.
+        let bt = ByteTokenizer::from_tokenizer(
+            Tokenizer::from_str(ADDED_TOKENS_TOKENIZER_JSON).unwrap(),
+        )
+        .unwrap();
+
+        // Both angle-bracket added tokens get the special marker.
+        assert_eq!(
+            bt.token_bytes[1][0],
+            TokTrie::SPECIAL_TOKEN_MARKER,
+            "special=false angle-bracket token is still inferred as special by default"
+        );
+        assert_eq!(&bt.token_bytes[1][1..], b"<fcel>");
+        assert_eq!(bt.token_bytes[2][0], TokTrie::SPECIAL_TOKEN_MARKER);
+        assert_eq!(&bt.token_bytes[2][1..], b"<|im_end|>");
+        assert_eq!(bt.tokrx_info().tok_end_of_turn, Some(2));
+
+        let env = ByteTokenizerEnv::new(bt, None).unwrap();
+        let trie = env.tok_trie();
+
+        // Both are stripped on skip-special decode, kept with include_special=true.
+        assert_eq!(trie.decode_ext(&[1, 2, 0], false), b"a".to_vec());
+        assert_eq!(
+            trie.decode_ext(&[1, 2, 0], true),
+            b"<fcel><|im_end|>a".to_vec()
         );
     }
 }
