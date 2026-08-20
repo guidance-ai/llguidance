@@ -141,12 +141,12 @@ pub fn lark_str_test_many_ext(quiet: bool, lark: &str, passing: &[&str], failing
 
 // ── JSON schema testing ─────────────────────────────────────────────────────
 
-/// Check that a JSON value is accepted or rejected by a JSON-schema grammar.
-///
-/// Unlike [`lark_str_test`], this function does not use the `FINAL_REJECT:`
-/// convention.  Instead it serialises `json_obj`, feeds the tokens, and
-/// compares the parser's final `is_accepting()` state to `expect_valid`.
-pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
+enum JsonSchemaMatch {
+    Complete(bool),
+    RejectedAt { token: String, index: usize },
+}
+
+fn json_schema_match(schema: &Value, json_obj: &Value) -> JsonSchemaMatch {
     /*
        This is a modification of the lark_str_test function, which makes the
        assumption that the input Value completely satifies the schema.
@@ -171,12 +171,10 @@ pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
         if m.is_allowed(*tok) {
             consume(&mut p, *tok);
         } else {
-            let curr_tok_str = get_tok_env().tok_trie().token_dbg(*tok);
-            assert!(
-                !expect_valid,
-                "Unexpected token: {curr_tok_str} at token index {i}",
-            );
-            return;
+            return JsonSchemaMatch::RejectedAt {
+                token: get_tok_env().tok_trie().token_dbg(*tok),
+                index: i,
+            };
         }
     }
 
@@ -186,7 +184,34 @@ pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
     For example, if we have a schema for any integer, then we can always add more digits
     to a valid integer string.
      */
-    assert_eq!(p.is_accepting(), expect_valid, "Final state mismatch");
+    JsonSchemaMatch::Complete(p.is_accepting())
+}
+
+/// Return whether a JSON value is accepted by a JSON-schema grammar.
+pub fn json_schema_accepts(schema: &Value, json_obj: &Value) -> bool {
+    match json_schema_match(schema, json_obj) {
+        JsonSchemaMatch::Complete(accepting) => accepting,
+        JsonSchemaMatch::RejectedAt { .. } => false,
+    }
+}
+
+/// Check that a JSON value is accepted or rejected by a JSON-schema grammar.
+///
+/// Unlike [`lark_str_test`], this function does not use the `FINAL_REJECT:`
+/// convention. Instead it serialises `json_obj`, feeds the tokens, and compares
+/// the parser's result to `expect_valid`.
+pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
+    match json_schema_match(schema, json_obj) {
+        JsonSchemaMatch::Complete(accepting) => {
+            assert_eq!(accepting, expect_valid, "Final state mismatch");
+        }
+        JsonSchemaMatch::RejectedAt { token, index } => {
+            assert!(
+                !expect_valid,
+                "Unexpected token: {token} at token index {index}",
+            );
+        }
+    }
 }
 
 pub fn json_test_many(schema: &Value, passing: &[Value], failing: &[Value]) {
