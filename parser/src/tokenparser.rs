@@ -707,9 +707,18 @@ impl TokenParser {
         if do_force {
             let t0 = Instant::now();
             let (mut tokens, mut num_fixed) = self.token_env.tokenize_bytes_marker(&forced_bytes);
+            let trie = self.token_env.tok_trie();
+            // Healing offsets are invalid when tokenization normalizes the forced bytes.
+            if num_fixed == 0 && trie.decode_raw(&tokens) != forced_bytes {
+                infoln!(
+                    self,
+                    "non-lossless forced-byte tokenization; falling back to byte prefix"
+                );
+                token_prefix = forced_bytes[num_existing_bytes..].to_vec();
+                return (Vec::new(), token_prefix);
+            }
             if !tokens.starts_with(&existing_tokens) {
                 // whoops, re-tokenize without the prefix
-                let trie = self.token_env.tok_trie();
                 infoln!(
                     self,
                     "re-tokenizing without prefix: {}; because we got {}",
