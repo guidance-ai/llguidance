@@ -925,6 +925,7 @@ impl Compiler {
         let mut required_items = vec![];
         let mut optional_items = vec![];
 
+        // Consider at most maxItems prefix items.
         let prefix_count = max_items.map_or(arr.prefix_items.len(), |max| {
             max.min(arr.prefix_items.len())
         });
@@ -959,7 +960,9 @@ impl Compiler {
             }
         }
 
+        // Compile the homogeneous tail compactly instead of expanding every item.
         if let Some(additional_item) = additional_item_grm {
+            // Array bounds include the prefix items that were already compiled.
             let explicit_items = required_items.len() + optional_items.len();
             let remaining_min = min_items.saturating_sub(explicit_items);
             let remaining_max = max_items.map(|max| max.saturating_sub(explicit_items));
@@ -968,6 +971,7 @@ impl Compiler {
                 let tail = if remaining_min == 0 && remaining_max.is_none() {
                     self.sequence(additional_item)?
                 } else {
+                    // The tail contains at least one item; its entirety may be optional below.
                     self.bounded_sequence(additional_item, remaining_min.max(1), remaining_max)?
                 };
 
