@@ -1441,7 +1441,7 @@ impl ParserState {
                                 break;
                             }
                             if s.shared_box.lexer_backtracking.is_some() {
-                                lexer_backtracking::forced_byte_committed(s, b);
+                                lexer_backtracking::commit_forced_byte(s, b);
                             }
                         }
 
@@ -1469,7 +1469,7 @@ impl ParserState {
                     break;
                 }
                 if s.shared_box.lexer_backtracking.is_some() {
-                    lexer_backtracking::forced_byte_committed(s, b);
+                    lexer_backtracking::commit_forced_byte(s, b);
                 }
             }
         });
@@ -1679,7 +1679,7 @@ impl ParserState {
     /// no such byte, forced_byte() returns 'None'.
     fn forced_byte(&mut self) -> Option<u8> {
         if self.shared_box.lexer_backtracking.is_some() {
-            return self.backtracking_forced_byte();
+            return lexer_backtracking::forced_byte(self);
         }
         if self.is_accepting() {
             debug!("  in accept state, not forcing");
@@ -1753,10 +1753,6 @@ impl ParserState {
 
     fn restore_state(&mut self, state: SavedParserState) {
         self.lexer_stack.truncate(state.lexer_stack_length);
-    }
-
-    fn backtracking_forced_byte(&mut self) -> Option<u8> {
-        lexer_backtracking::forced_byte(self)
     }
 
     /// Advance the parser as if the current lexeme (if any)
@@ -2969,7 +2965,7 @@ impl Parser {
             state.token_idx += 1;
             if state.shared_box.lexer_backtracking.is_some() {
                 if matches!(r, Ok(0)) {
-                    lexer_backtracking::token_committed(state, tok_bytes, tok_id);
+                    lexer_backtracking::commit_token(state, tok_bytes, tok_id);
                 } else {
                     lexer_backtracking::discard_fallback(state);
                 }

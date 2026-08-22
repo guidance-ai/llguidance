@@ -11,9 +11,9 @@ use super::{
 
 #[derive(Clone)]
 struct Snapshot {
-    trigger: usize,
+    rollback_cutoff: usize,
     state: ParserState,
-    fallback_state: Option<Box<LexerBacktracking>>,
+    backtracking: Option<Box<LexerBacktracking>>,
 }
 
 #[derive(Clone, Copy)]
@@ -37,30 +37,28 @@ impl Commit<'_> {
 
 #[derive(Clone, Default)]
 pub(super) struct LexerBacktracking {
-    // State before a fallback became definitive, used to undo it on rollback.
     rollback_snapshot: Option<Box<Snapshot>>,
-    // Latest accepting lexer-stack position in the current parser row.
     accepting_idx: Option<usize>,
-    // Number of lexer-stack entries already checked for an accepting position.
-    checked_stack_len: usize,
-    // Whether we already tried constructing the fallback at `accepting_idx`.
-    fallback_tried: bool,
-    // Parser state obtained by ending the lexeme at `accepting_idx`.
-    fallback: Option<Box<Snapshot>>,
+    scanned_stack_len: usize,
+    fallback_attempted: bool,
+    fallback_snapshot: Option<Box<Snapshot>>,
 }
 
-struct FallbackContext<'a> {
+struct BacktrackingContext<'a> {
     state: &'a mut ParserState,
-    fallback: &'a mut LexerBacktracking,
+    backtracking: &'a mut LexerBacktracking,
 }
 
-fn with_fallback<T>(state: &mut ParserState, f: impl FnOnce(&mut FallbackContext<'_>) -> T) -> T {
-    let mut fallback = state.shared_box.lexer_backtracking.take().unwrap();
-    let result = f(&mut FallbackContext {
+fn with_backtracking<T>(
+    state: &mut ParserState,
+    f: impl FnOnce(&mut BacktrackingContext<'_>) -> T,
+) -> T {
+    let mut backtracking = state.shared_box.lexer_backtracking.take().unwrap();
+    let result = f(&mut BacktrackingContext {
         state,
-        fallback: &mut fallback,
+        backtracking: &mut backtracking,
     });
-    state.shared_box.lexer_backtracking = Some(fallback);
+    state.shared_box.lexer_backtracking = Some(backtracking);
     result
 }
 
@@ -112,17 +110,16 @@ fn run_branch<T>(
     result
 }
 
-// Snapshots retain parser and fallback state, but borrow the live lexer
-// only while they are being advanced.
+// Snapshots keep parser/backtracking state but borrow the live lexer while running.
 fn with_snapshot<T>(
     owner: &mut ParserState,
     snapshot: &mut Snapshot,
     f: impl FnOnce(&mut ParserState) -> T,
 ) -> T {
     let mut shared = std::mem::take(&mut owner.shared_box);
-    shared.lexer_backtracking = snapshot.fallback_state.take();
+    shared.lexer_backtracking = snapshot.backtracking.take();
     let result = run_branch(owner, &mut snapshot.state, &mut shared, f);
-    snapshot.fallback_state = shared.lexer_backtracking.take();
+    snapshot.backtracking = shared.lexer_backtracking.take();
     owner.shared_box = shared;
     result
 }
@@ -166,18 +163,18 @@ fn branch_is_accepting(state: &ParserState, shared: &mut SharedState) -> bool {
     )
 }
 
-impl FallbackContext<'_> {
-    fn snapshot_with(&mut self, fallback: LexerBacktracking) -> Snapshot {
+impl BacktrackingContext<'_> {
+    fn snapshot_with(&mut self, backtracking: LexerBacktracking) -> Snapshot {
         Snapshot {
-            trigger: 0,
+            rollback_cutoff: 0,
             state: clone_without_shared(self.state),
-            fallback_state: Some(Box::new(fallback)),
+            backtracking: Some(Box::new(backtracking)),
         }
     }
 
     fn snapshot(&mut self) -> Box<Snapshot> {
-        let fallback = std::mem::take(self.fallback);
-        Box::new(self.snapshot_with(fallback))
+        let backtracking = std::mem::take(self.backtracking);
+        Box::new(self.snapshot_with(backtracking))
     }
 
     fn restore(&mut self, mut saved: Box<Snapshot>) {
@@ -192,12 +189,12 @@ impl FallbackContext<'_> {
         self.state.metrics = metrics;
         self.state.parser_error = parser_error;
         self.state.max_all_items = max_all_items;
-        *self.fallback = *saved.fallback_state.take().unwrap();
+        *self.backtracking = *saved.backtracking.take().unwrap();
     }
 
     fn latest_accepting(&mut self) -> Option<(usize, PreLexeme)> {
         self.refresh_accepting();
-        let idx = self.fallback.accepting_idx?;
+        let idx = self.backtracking.accepting_idx?;
         let item = self.state.lexer_stack[idx];
         let LexerResult::Lexeme(pre) = self.state.lexer_mut().try_lexeme_end(item.lexer_state)
         else {
@@ -212,15 +209,15 @@ impl FallbackContext<'_> {
             .iter()
             .map(|state| state.byte)
             .collect::<Option<Vec<_>>>()?;
-        let existing = bytes.len();
+        let replay_len = bytes.len();
         bytes.extend(byte);
         let (&first, rest) = bytes.split_first()?;
         let previous = self.snapshot();
-        let prefix = self.state.bytes.len().checked_sub(existing)?;
-        self.state.bytes.truncate(prefix);
+        let prefix_len = self.state.bytes.len().checked_sub(replay_len)?;
+        self.state.bytes.truncate(prefix_len);
         self.state
             .byte_to_token_idx
-            .truncate(prefix.min(self.state.byte_to_token_idx.len()));
+            .truncate(prefix_len.min(self.state.byte_to_token_idx.len()));
         self.state.row_infos.truncate(self.state.num_rows());
         self.state.last_force_bytes_len = usize::MAX;
         self.state.rows_valid_end = self.state.num_rows();
@@ -247,11 +244,11 @@ impl FallbackContext<'_> {
             };
         }
         if ok && backtrack == 0 {
-            let end = (prefix + existing).min(previous.state.byte_to_token_idx.len());
-            if prefix < end {
+            let end = (prefix_len + replay_len).min(previous.state.byte_to_token_idx.len());
+            if prefix_len < end {
                 self.state
                     .byte_to_token_idx
-                    .extend_from_slice(&previous.state.byte_to_token_idx[prefix..end]);
+                    .extend_from_slice(&previous.state.byte_to_token_idx[prefix_len..end]);
             }
         }
         if ok && backtrack == 0 && flush_end {
@@ -262,8 +259,8 @@ impl FallbackContext<'_> {
             return Some((false, backtrack));
         }
         let mut previous = previous;
-        previous.trigger = previous.state.bytes.len() + usize::from(byte.is_some());
-        self.fallback.rollback_snapshot = Some(previous);
+        previous.rollback_cutoff = previous.state.bytes.len() + usize::from(byte.is_some());
+        self.backtracking.rollback_snapshot = Some(previous);
         Some((true, backtrack))
     }
 
@@ -271,7 +268,7 @@ impl FallbackContext<'_> {
         self.try_recover(byte, flush_end).unwrap_or((false, 0))
     }
 
-    fn commit_fallback_prefix(&mut self) -> bool {
+    fn commit_accepting_boundary(&mut self) -> bool {
         let Some((checkpoint, pre)) = self.latest_accepting() else {
             return false;
         };
@@ -282,24 +279,24 @@ impl FallbackContext<'_> {
         }
     }
 
-    fn make_fallback_snapshot(&mut self) -> Option<Box<Snapshot>> {
+    fn build_fallback_snapshot(&mut self) -> Option<Box<Snapshot>> {
         let mut snapshot = Box::new(self.snapshot_with(LexerBacktracking::default()));
         let ok = with_snapshot(self.state, &mut snapshot, |state| {
-            with_fallback(state, |fallback| fallback.commit_fallback_prefix())
+            with_backtracking(state, |ctx| ctx.commit_accepting_boundary())
         });
         ok.then(|| {
-            snapshot.fallback_state.as_mut().unwrap().rollback_snapshot = None;
+            snapshot.backtracking.as_mut().unwrap().rollback_snapshot = None;
             snapshot
         })
     }
 
     fn refresh_accepting(&mut self) {
-        if self.fallback.checked_stack_len > self.state.lexer_stack.len() {
+        if self.backtracking.scanned_stack_len > self.state.lexer_stack.len() {
             self.discard_fallback();
         }
-        let previous = self.fallback.accepting_idx;
-        let mut accepting_idx = self.fallback.accepting_idx;
-        for idx in self.fallback.checked_stack_len..self.state.lexer_stack.len() {
+        let previous = self.backtracking.accepting_idx;
+        let mut accepting_idx = self.backtracking.accepting_idx;
+        for idx in self.backtracking.scanned_stack_len..self.state.lexer_stack.len() {
             let item = self.state.lexer_stack[idx];
             if accepting_idx.is_some_and(|idx| self.state.lexer_stack[idx].row_idx != item.row_idx)
             {
@@ -312,88 +309,88 @@ impl FallbackContext<'_> {
                 accepting_idx = Some(idx);
             }
         }
-        self.fallback.checked_stack_len = self.state.lexer_stack.len();
+        self.backtracking.scanned_stack_len = self.state.lexer_stack.len();
         if accepting_idx.is_some_and(|idx| {
             self.state.lexer_stack[idx].row_idx != self.state.lexer_state().row_idx
         }) {
             accepting_idx = None;
         }
         if accepting_idx != previous {
-            self.fallback.accepting_idx = accepting_idx;
-            self.fallback.fallback_tried = false;
-            self.fallback.fallback = None;
+            self.backtracking.accepting_idx = accepting_idx;
+            self.backtracking.fallback_attempted = false;
+            self.backtracking.fallback_snapshot = None;
         }
     }
 
     fn refresh_fallback(&mut self) {
         self.refresh_accepting();
-        if self.fallback.accepting_idx.is_some() && !self.fallback.fallback_tried {
-            self.fallback.fallback_tried = true;
-            self.fallback.fallback = self.make_fallback_snapshot();
+        if self.backtracking.accepting_idx.is_some() && !self.backtracking.fallback_attempted {
+            self.backtracking.fallback_attempted = true;
+            self.backtracking.fallback_snapshot = self.build_fallback_snapshot();
         }
     }
 
-    fn committed(&mut self, commit: Commit<'_>) {
-        if let Some(mut fallback) = self.fallback.fallback.take() {
-            let ok = with_snapshot(self.state, &mut fallback, |state| {
+    fn apply_commit(&mut self, commit: Commit<'_>) {
+        if let Some(mut snapshot) = self.backtracking.fallback_snapshot.take() {
+            let ok = with_snapshot(self.state, &mut snapshot, |state| {
                 let ok = commit.apply(state);
                 if ok && state.shared_box.lexer_backtracking.is_some() {
-                    with_fallback(state, |fallback| fallback.committed(commit));
+                    with_backtracking(state, |ctx| ctx.apply_commit(commit));
                 }
                 ok
             });
             if ok {
-                self.fallback.fallback = Some(fallback);
+                self.backtracking.fallback_snapshot = Some(snapshot);
             }
         }
         self.refresh_fallback();
     }
 
-    fn token_committed(&mut self, bytes: &[u8], token: TokenId) {
-        self.committed(Commit::Token(bytes, token));
+    fn commit_token(&mut self, bytes: &[u8], token: TokenId) {
+        self.apply_commit(Commit::Token(bytes, token));
     }
 
-    fn forced_byte_committed(&mut self, byte: u8) {
-        self.committed(Commit::Byte(byte));
+    fn commit_forced_byte(&mut self, byte: u8) {
+        self.apply_commit(Commit::Byte(byte));
     }
 
     fn discard_fallback(&mut self) {
-        self.fallback.accepting_idx = None;
-        self.fallback.checked_stack_len = 0;
-        self.fallback.fallback_tried = false;
-        self.fallback.fallback = None;
+        self.backtracking.accepting_idx = None;
+        self.backtracking.scanned_stack_len = 0;
+        self.backtracking.fallback_attempted = false;
+        self.backtracking.fallback_snapshot = None;
     }
 
     fn visit_fallbacks(&mut self, f: &mut impl FnMut(&mut ParserState)) {
         self.refresh_fallback();
-        if let Some(mut fallback) = self.fallback.fallback.take() {
-            with_snapshot(self.state, &mut fallback, |state| {
+        if let Some(mut snapshot) = self.backtracking.fallback_snapshot.take() {
+            with_snapshot(self.state, &mut snapshot, |state| {
                 f(state);
                 if state.shared_box.lexer_backtracking.is_some() {
-                    with_fallback(state, |fallback| fallback.visit_fallbacks(f));
+                    with_backtracking(state, |ctx| ctx.visit_fallbacks(f));
                 }
             });
-            self.fallback.fallback = Some(fallback);
+            self.backtracking.fallback_snapshot = Some(snapshot);
         }
     }
 
     fn visit_hidden_fallbacks(&mut self, f: &mut impl FnMut(&mut ParserState)) {
         self.refresh_fallback();
         let hidden = self
-            .fallback
+            .backtracking
             .accepting_idx
             .is_some_and(|idx| idx + 1 < self.state.lexer_stack.len());
         if !hidden {
             return;
         }
-        if let Some(mut fallback) = self.fallback.fallback.take() {
-            with_snapshot(self.state, &mut fallback, |state| {
+        if let Some(mut snapshot) = self.backtracking.fallback_snapshot.take() {
+            with_snapshot(self.state, &mut snapshot, |state| {
                 f(state);
                 if state.shared_box.lexer_backtracking.is_some() {
-                    with_fallback(state, |fallback| fallback.visit_hidden_fallbacks(f));
+                    with_backtracking(state, |ctx| ctx.visit_hidden_fallbacks(f));
                 }
             });
-            self.fallback.fallback = Some(fallback);
+            self.backtracking.fallback_snapshot = Some(snapshot);
         }
     }
 
@@ -405,7 +402,7 @@ impl FallbackContext<'_> {
 
     fn accepting_allows_eos(&mut self) -> bool {
         self.refresh_accepting();
-        self.fallback.accepting_idx.is_some_and(|idx| {
+        self.backtracking.accepting_idx.is_some_and(|idx| {
             let item = self.state.lexer_stack[idx];
             self.state.lexer_mut().allows_eos(item.lexer_state)
         })
@@ -413,9 +410,9 @@ impl FallbackContext<'_> {
 
     fn prepare_rollback(&mut self, target: usize) {
         while let Some(undo) = self
-            .fallback
+            .backtracking
             .rollback_snapshot
-            .take_if(|undo| target < undo.trigger)
+            .take_if(|undo| target < undo.rollback_cutoff)
         {
             self.restore(undo);
         }
@@ -423,26 +420,26 @@ impl FallbackContext<'_> {
     }
 }
 
-fn visit_persisted_fallbacks(state: &ParserState, f: &mut impl FnMut(&ParserState)) {
-    let Some(fallback) = state.shared_box.lexer_backtracking.as_deref() else {
+fn visit_saved_fallbacks(state: &ParserState, f: &mut impl FnMut(&ParserState)) {
+    let Some(backtracking) = state.shared_box.lexer_backtracking.as_deref() else {
         return;
     };
-    visit_persisted_fallback(fallback, f);
+    visit_saved_fallback(backtracking, f);
 }
 
-fn visit_persisted_fallback(fallback: &LexerBacktracking, f: &mut impl FnMut(&ParserState)) {
-    let Some(snapshot) = fallback.fallback.as_deref() else {
+fn visit_saved_fallback(backtracking: &LexerBacktracking, f: &mut impl FnMut(&ParserState)) {
+    let Some(snapshot) = backtracking.fallback_snapshot.as_deref() else {
         return;
     };
     f(&snapshot.state);
-    if let Some(nested) = snapshot.fallback_state.as_deref() {
-        visit_persisted_fallback(nested, f);
+    if let Some(nested) = snapshot.backtracking.as_deref() {
+        visit_saved_fallback(nested, f);
     }
 }
 
 pub(super) fn temperature(state: &ParserState) -> Option<f32> {
     let mut temperature = state.temperature();
-    visit_persisted_fallbacks(state, &mut |branch| {
+    visit_saved_fallbacks(state, &mut |branch| {
         if let Some(branch_temperature) = branch.temperature() {
             temperature = Some(temperature.map_or(branch_temperature, |current| {
                 current.max(branch_temperature)
@@ -455,61 +452,56 @@ pub(super) fn temperature(state: &ParserState) -> Option<f32> {
 fn hidden_fallbacks(state: &mut ParserState) -> Vec<ParserState> {
     let mut fallbacks = Vec::new();
     if state.shared_box.lexer_backtracking.is_some() {
-        with_fallback(state, |fallback| {
-            fallback.collect_hidden_fallbacks(&mut fallbacks)
-        });
+        with_backtracking(state, |ctx| ctx.collect_hidden_fallbacks(&mut fallbacks));
     }
     fallbacks
 }
 
-// Keep fallback dispatch out of line so feature-off parser wrappers stay small.
+// Keep this out of line so feature-off parser wrappers stay small.
 #[inline(never)]
 pub(super) fn visit_fallbacks(state: &mut ParserState, mut f: impl FnMut(&mut ParserState)) {
     if state.shared_box.lexer_backtracking.is_some() {
-        with_fallback(state, |fallback| fallback.visit_fallbacks(&mut f));
+        with_backtracking(state, |ctx| ctx.visit_fallbacks(&mut f));
     }
 }
 
-// The primary parse plus the fallback states which are already hidden behind
-// a longer greedy attempt.
-struct FallbackBranch {
+struct TrieBranch {
     state: ParserState,
     active: bool,
     active_history: Vec<bool>,
     pending_step: Option<LexerResult>,
 }
 
-// A trie-local fallback can replace older descendants. Keep the old suffix so
-// pop_bytes() can restore exactly the state at the parent trie prefix.
-struct FallbackChange {
+// Keep replaced descendants so pop_bytes() can restore the parent trie prefix.
+struct BranchChange {
     depth: usize,
-    parent: usize,
-    replaced: Vec<FallbackBranch>,
+    parent_idx: usize,
+    replaced: Vec<TrieBranch>,
 }
 
-struct FallbackRecognizer<'a> {
+struct BacktrackingRecognizer<'a> {
     owner: &'a mut ParserState,
     shared: Box<SharedState>,
-    branches: Vec<FallbackBranch>,
-    changes: Vec<FallbackChange>,
+    branches: Vec<TrieBranch>,
+    changes: Vec<BranchChange>,
     depth: usize,
 }
 
-impl<'a> FallbackRecognizer<'a> {
+impl<'a> BacktrackingRecognizer<'a> {
     fn new(owner: &'a mut ParserState) -> Self {
         let mut states = vec![clone_without_shared(owner)];
         states.extend(hidden_fallbacks(owner));
 
-        let fallback = owner.shared_box.lexer_backtracking.take();
+        let backtracking = owner.shared_box.lexer_backtracking.take();
         let shared = std::mem::take(&mut owner.shared_box);
-        owner.shared_box.lexer_backtracking = fallback;
+        owner.shared_box.lexer_backtracking = backtracking;
 
         Self {
             owner,
             shared,
             branches: states
                 .into_iter()
-                .map(|state| FallbackBranch {
+                .map(|state| TrieBranch {
                     state,
                     active: true,
                     active_history: Vec::new(),
@@ -521,8 +513,7 @@ impl<'a> FallbackRecognizer<'a> {
         }
     }
 
-    // Compute each lexer transition once. Most trie edges remain inside the
-    // current lexeme, so reusing this result avoids a second DFA transition.
+    // Boundary detection and branch advancement need the same lexer transition.
     fn prepare_steps(&mut self, byte: u8) {
         let shared = &mut self.shared;
         for branch in &mut self.branches {
@@ -533,10 +524,8 @@ impl<'a> FallbackRecognizer<'a> {
         }
     }
 
-    // Save a boundary only when this byte hides an accepting state behind a
-    // live, non-accepting continuation. Dead transitions are already handled by
-    // the lexer's normal one-byte lookahead; another accepting state supersedes
-    // the old boundary.
+    // Only a live non-accepting continuation hides a usable boundary. Dead
+    // transitions use normal lexer lookahead; a later accepting state supersedes it.
     fn add_hidden_fallback(&mut self, byte: u8) {
         for idx in 0..self.branches.len() {
             let Some(step) = self.branches[idx].pending_step.as_ref() else {
@@ -559,15 +548,15 @@ impl<'a> FallbackRecognizer<'a> {
             let replaced = self.branches.split_off(idx + 1);
             let current = state.lexer_state().lexer_state;
             let step = self.shared.lexer_mut().advance(current, byte, false);
-            self.branches.push(FallbackBranch {
+            self.branches.push(TrieBranch {
                 state,
                 active: true,
                 active_history: Vec::new(),
                 pending_step: Some(step),
             });
-            self.changes.push(FallbackChange {
+            self.changes.push(BranchChange {
                 depth: self.depth + 1,
-                parent: idx,
+                parent_idx: idx,
                 replaced,
             });
             break;
@@ -624,9 +613,9 @@ impl<'a> FallbackRecognizer<'a> {
         }
         if keep < self.branches.len() {
             let replaced = self.branches.split_off(keep);
-            self.changes.push(FallbackChange {
+            self.changes.push(BranchChange {
                 depth: self.depth,
-                parent: keep - 1,
+                parent_idx: keep - 1,
                 replaced,
             });
         }
@@ -639,14 +628,14 @@ impl<'a> FallbackRecognizer<'a> {
             .is_some_and(|change| change.depth > depth)
         {
             let change = self.changes.pop().unwrap();
-            self.branches.truncate(change.parent + 1);
+            self.branches.truncate(change.parent_idx + 1);
             self.branches.extend(change.replaced);
         }
     }
 
     fn revert_all_changes(&mut self) {
         while let Some(change) = self.changes.pop() {
-            self.branches.truncate(change.parent + 1);
+            self.branches.truncate(change.parent_idx + 1);
             self.branches.extend(change.replaced);
         }
     }
@@ -660,15 +649,15 @@ impl<'a> FallbackRecognizer<'a> {
     }
 }
 
-impl Drop for FallbackRecognizer<'_> {
+impl Drop for BacktrackingRecognizer<'_> {
     fn drop(&mut self) {
-        let fallback = self.owner.shared_box.lexer_backtracking.take();
+        let backtracking = self.owner.shared_box.lexer_backtracking.take();
         self.owner.shared_box = std::mem::take(&mut self.shared);
-        self.owner.shared_box.lexer_backtracking = fallback;
+        self.owner.shared_box.lexer_backtracking = backtracking;
     }
 }
 
-impl Recognizer for FallbackRecognizer<'_> {
+impl Recognizer for BacktrackingRecognizer<'_> {
     fn pop_bytes(&mut self, num: usize) {
         for _ in 0..num {
             let owner = &mut self.owner;
@@ -746,7 +735,7 @@ pub(super) fn compute_bias(
     let mut set = computer.trie().alloc_token_set();
     computer
         .trie()
-        .add_bias(&mut FallbackRecognizer::new(state), &mut set, start);
+        .add_bias(&mut BacktrackingRecognizer::new(state), &mut set, start);
     set
 }
 
@@ -755,7 +744,7 @@ pub(super) fn forced_byte(state: &mut ParserState) -> Option<u8> {
     if state.is_accepting() {
         return None;
     }
-    let mut recognizer = FallbackRecognizer::new(state);
+    let mut recognizer = BacktrackingRecognizer::new(state);
     recognizer.trie_started("forced_byte");
     let forced = {
         let mut allowed = (u8::MIN..=u8::MAX).filter(|&byte| recognizer.byte_allowed(byte));
@@ -771,7 +760,7 @@ pub(super) fn chop_tokens(
     trie: &TokTrie,
     tokens: &[TokenId],
 ) -> (usize, usize) {
-    trie.chop_tokens(&mut FallbackRecognizer::new(state), tokens)
+    trie.chop_tokens(&mut BacktrackingRecognizer::new(state), tokens)
 }
 
 #[inline(never)]
@@ -802,38 +791,38 @@ pub(super) fn validate_tokens(parser: &mut Parser, tokens: &[TokenId]) -> usize 
 
 #[inline(never)]
 pub(super) fn recover(state: &mut ParserState, byte: Option<u8>, flush_end: bool) -> (bool, usize) {
-    with_fallback(state, |fallback| fallback.recover(byte, flush_end))
+    with_backtracking(state, |ctx| ctx.recover(byte, flush_end))
 }
 
 #[inline(never)]
-pub(super) fn forced_byte_committed(state: &mut ParserState, byte: u8) {
-    with_fallback(state, |fallback| fallback.forced_byte_committed(byte));
+pub(super) fn commit_forced_byte(state: &mut ParserState, byte: u8) {
+    with_backtracking(state, |ctx| ctx.commit_forced_byte(byte));
 }
 
 #[inline(never)]
-pub(super) fn token_committed(state: &mut ParserState, bytes: &[u8], token: TokenId) {
-    with_fallback(state, |fallback| fallback.token_committed(bytes, token));
+pub(super) fn commit_token(state: &mut ParserState, bytes: &[u8], token: TokenId) {
+    with_backtracking(state, |ctx| ctx.commit_token(bytes, token));
 }
 
 #[inline(never)]
 pub(super) fn discard_fallback(state: &mut ParserState) {
-    with_fallback(state, |fallback| fallback.discard_fallback());
+    with_backtracking(state, |ctx| ctx.discard_fallback());
 }
 
 #[inline(never)]
 pub(super) fn accepting_allows_eos(state: &mut ParserState) -> bool {
     state.shared_box.lexer_backtracking.is_some()
-        && with_fallback(state, |fallback| fallback.accepting_allows_eos())
+        && with_backtracking(state, |ctx| ctx.accepting_allows_eos())
 }
 
 #[inline(never)]
 pub(super) fn refresh_fallback(state: &mut ParserState) {
-    with_fallback(state, |fallback| fallback.refresh_fallback());
+    with_backtracking(state, |ctx| ctx.refresh_fallback());
 }
 
 #[inline(never)]
 pub(super) fn prepare_rollback(state: &mut ParserState, target: usize) {
     if state.shared_box.lexer_backtracking.is_some() {
-        with_fallback(state, |fallback| fallback.prepare_rollback(target));
+        with_backtracking(state, |ctx| ctx.prepare_rollback(target));
     }
 }

@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 
 const LONG_LOOKAHEAD: usize = 80;
 
-fn long_backtracking_grammar() -> String {
+fn long_lookahead_grammar() -> String {
     format!(
         r#"
         %llguidance {{"no_forcing": true, "lexer_backtracking": true}}
@@ -24,7 +24,7 @@ fn spanning_token_grammar() -> &'static str {
     "#
 }
 
-fn branching_long_backtracking_grammar() -> String {
+fn long_branching_grammar() -> String {
     format!(
         r#"
         %llguidance {{"no_forcing": true, "lexer_backtracking": true}}
@@ -37,7 +37,7 @@ fn branching_long_backtracking_grammar() -> String {
 }
 
 #[test]
-fn test_lexer_backtracking_recovers_after_unfinished_longer_attempt() {
+fn test_recovers_shorter_match() {
     lark_str_test_many(
         r#"
             %llguidance {"no_forcing": true, "lexer_backtracking": true}
@@ -51,7 +51,7 @@ fn test_lexer_backtracking_recovers_after_unfinished_longer_attempt() {
 }
 
 #[test]
-fn test_lexer_backtracking_preserves_global_maximal_munch() {
+fn test_preserves_maximal_munch() {
     lark_str_test_many(
         r#"
             %llguidance {"no_forcing": true, "lexer_backtracking": true}
@@ -67,7 +67,7 @@ fn test_lexer_backtracking_preserves_global_maximal_munch() {
 }
 
 #[test]
-fn test_lexer_backtracking_contextual_ipv6() {
+fn test_contextual_ipv6() {
     lark_str_test_many(
         r#"
             %llguidance {"no_forcing": true, "lexer_backtracking": true}
@@ -83,7 +83,7 @@ fn test_lexer_backtracking_contextual_ipv6() {
 }
 
 #[test]
-fn test_lexer_backtracking_fstring_chunk() {
+fn test_fstring_chunk() {
     lark_str_test_many(
         r#"
             %llguidance {"no_forcing": true, "lexer_backtracking": true}
@@ -97,7 +97,7 @@ fn test_lexer_backtracking_fstring_chunk() {
 }
 
 #[test]
-fn test_lexer_backtracking_at_eos() {
+fn test_at_eos() {
     lark_str_test_many(
         r#"
             %llguidance {"no_forcing": true, "lexer_backtracking": true}
@@ -111,7 +111,7 @@ fn test_lexer_backtracking_at_eos() {
 }
 
 #[test]
-fn test_lexer_backtracking_accepting_boundary_preserves_state() {
+fn test_accepting_boundary_preserves_state() {
     let grammar = r#"
         %llguidance {"no_forcing": true, "lexer_backtracking": true}
         start: NUMBER
@@ -137,14 +137,14 @@ fn test_lexer_backtracking_accepting_boundary_preserves_state() {
 }
 
 #[test]
-fn test_lexer_backtracking_after_long_lookahead() {
-    let grammar = long_backtracking_grammar();
+fn test_long_lookahead() {
+    let grammar = long_lookahead_grammar();
     let input = format!("a{}d", "b".repeat(LONG_LOOKAHEAD));
     lark_str_test(&grammar, true, &input, true);
 }
 
 #[test]
-fn test_lexer_backtracking_across_nested_boundaries() {
+fn test_nested_boundaries() {
     let grammar = format!(
         r#"
         %llguidance {{"no_forcing": true, "lexer_backtracking": true}}
@@ -169,7 +169,7 @@ fn test_lexer_backtracking_across_nested_boundaries() {
 }
 
 #[test]
-fn test_lexer_backtracking_accepts_at_eos_after_long_lookahead() {
+fn test_long_lookahead_at_eos() {
     let grammar = format!(
         r#"
         %llguidance {{"no_forcing": true, "lexer_backtracking": true}}
@@ -196,7 +196,7 @@ fn consume_text(parser: &mut llguidance::TokenParser, text: &str) {
 }
 
 #[test]
-fn test_lexer_backtracking_preserves_capture() {
+fn test_preserves_capture() {
     let grammar = format!(
         r#"
         %llguidance {{"no_forcing": true, "lexer_backtracking": true}}
@@ -214,8 +214,8 @@ fn test_lexer_backtracking_preserves_capture() {
 }
 
 #[test]
-fn test_lexer_backtracking_rollback_and_rebuild() {
-    let grammar = long_backtracking_grammar();
+fn test_rollback_and_rebuild() {
+    let grammar = long_lookahead_grammar();
     let full = format!("a{}d", "b".repeat(LONG_LOOKAHEAD));
     let prefix = format!("a{}", "b".repeat(72));
     let mut parser = make_parser(&grammar, true).unwrap();
@@ -228,8 +228,8 @@ fn test_lexer_backtracking_rollback_and_rebuild() {
 }
 
 #[test]
-fn test_lexer_backtracking_deep_clone_is_independent() {
-    let grammar = branching_long_backtracking_grammar();
+fn test_deep_clone_is_independent() {
+    let grammar = long_branching_grammar();
     let prefix = format!("a{}", "b".repeat(72));
     let mut shorter = make_parser(&grammar, true).unwrap();
     consume_text(&mut shorter, &prefix);
@@ -241,8 +241,8 @@ fn test_lexer_backtracking_deep_clone_is_independent() {
 }
 
 #[test]
-fn test_lexer_backtracking_shared_lexer_clone_is_independent() {
-    let grammar = branching_long_backtracking_grammar();
+fn test_shared_lexer_clone_is_independent() {
+    let grammar = long_branching_grammar();
     let prefix = format!("a{}", "b".repeat(72));
     let mut shorter = make_parser(&grammar, true).unwrap();
     consume_text(&mut shorter, &prefix);
@@ -254,8 +254,8 @@ fn test_lexer_backtracking_shared_lexer_clone_is_independent() {
 }
 
 #[test]
-fn test_lexer_backtracking_validate_tokens_restores_state() {
-    let grammar = long_backtracking_grammar();
+fn test_validate_tokens_restores_state() {
+    let grammar = long_lookahead_grammar();
     let prefix = format!("a{}", "b".repeat(72));
     let suffix = format!("{}d", "b".repeat(8));
     let mut parser = make_parser(&grammar, true).unwrap();
@@ -268,7 +268,7 @@ fn test_lexer_backtracking_validate_tokens_restores_state() {
 }
 
 #[test]
-fn test_lexer_backtracking_with_forcing_enabled() {
+fn test_with_forcing() {
     let grammar = format!(
         r#"
         %llguidance {{"lexer_backtracking": true}}
@@ -282,7 +282,7 @@ fn test_lexer_backtracking_with_forcing_enabled() {
 }
 
 #[test]
-fn test_lexer_backtracking_with_stop_suffix_and_max_tokens() {
+fn test_stop_suffix_and_max_tokens() {
     let prefix = format!("a{}d", "b".repeat(LONG_LOOKAHEAD));
 
     let stop_grammar = format!(
@@ -318,13 +318,13 @@ fn test_lexer_backtracking_with_stop_suffix_and_max_tokens() {
 
 #[test]
 #[should_panic(expected = "with_recognizer is unavailable with lexer_backtracking")]
-fn test_lexer_backtracking_rejects_single_state_recognizer_api() {
+fn test_single_state_recognizer_panics() {
     let mut parser = make_parser(spanning_token_grammar(), true).unwrap();
     parser.parser.with_recognizer(|_| ());
 }
 
 #[test]
-fn test_lexer_backtracking_rollback_then_take_long_match() {
+fn test_rollback_then_long_match() {
     let grammar = format!(
         r#"
         %llguidance {{"no_forcing": true, "lexer_backtracking": true}}
@@ -360,7 +360,7 @@ fn test_lexer_backtracking_rollback_then_take_long_match() {
 }
 
 #[test]
-fn test_lexer_backtracking_rollback_after_eos() {
+fn test_rollback_after_eos() {
     let grammar = format!(
         r#"
         %llguidance {{"no_forcing": true, "lexer_backtracking": true}}
@@ -385,7 +385,7 @@ fn test_lexer_backtracking_rollback_after_eos() {
 }
 
 #[test]
-fn test_lexer_backtracking_rollback_across_multiple_backtracking_points() {
+fn test_rollback_across_multiple_points() {
     let grammar = format!(
         r#"
         %llguidance {{"no_forcing": true, "lexer_backtracking": true}}
@@ -448,8 +448,8 @@ fn test_lexer_backtracking_rollback_across_multiple_backtracking_points() {
 }
 
 #[test]
-fn test_lexer_backtracking_counts_branch_work_toward_item_limit() {
-    let grammar = long_backtracking_grammar();
+fn test_branch_work_counts_toward_item_limit() {
+    let grammar = long_lookahead_grammar();
     let prefix = format!("a{}", "b".repeat(LONG_LOOKAHEAD));
     let mut factory = ParserFactory::new_simple(get_tok_env()).unwrap();
     factory.limits_mut().step_max_items = 1;
@@ -466,9 +466,9 @@ fn test_lexer_backtracking_counts_branch_work_toward_item_limit() {
 }
 
 #[test]
-fn test_lexer_backtracking_stats_stay_cumulative_after_rollback() {
+fn test_stats_stay_cumulative_after_rollback() {
     let input = format!("a{}d", "b".repeat(LONG_LOOKAHEAD));
-    let mut parser = make_parser(&long_backtracking_grammar(), true).unwrap();
+    let mut parser = make_parser(&long_lookahead_grammar(), true).unwrap();
     consume_text(&mut parser, &input);
 
     let before = parser.parser_stats().clone();
@@ -481,7 +481,7 @@ fn test_lexer_backtracking_stats_stay_cumulative_after_rollback() {
 }
 
 #[test]
-fn test_lexer_backtracking_temperature_includes_backtracked_state() {
+fn test_temperature_includes_fallback() {
     let grammar = r#"
         %llguidance {"no_forcing": true, "lexer_backtracking": true}
         start: t s
@@ -495,7 +495,7 @@ fn test_lexer_backtracking_temperature_includes_backtracked_state() {
 }
 
 #[test]
-fn test_lexer_backtracking_temperature_is_ready_before_mask() {
+fn test_temperature_before_mask() {
     let grammar = r#"
         %llguidance {"no_forcing": true, "lexer_backtracking": true}
         start: t s
@@ -511,7 +511,7 @@ fn test_lexer_backtracking_temperature_is_ready_before_mask() {
 }
 
 #[test]
-fn test_lexer_backtracking_token_ranges_include_backtracked_state() {
+fn test_token_ranges_include_fallback() {
     let grammar = r#"
         %llguidance {"no_forcing": true, "lexer_backtracking": true}
         start: T S hd
@@ -569,7 +569,7 @@ fn assert_finite_language_masks(grammar: &str, words: &[&str]) {
 }
 
 #[test]
-fn test_lexer_backtracking_prefix_masks_match_finite_languages() {
+fn test_prefix_masks_match_finite_languages() {
     assert_finite_language_masks(
         r#"
             %llguidance {"no_forcing": true, "lexer_backtracking": true}
@@ -603,7 +603,7 @@ fn test_lexer_backtracking_prefix_masks_match_finite_languages() {
 }
 
 #[test]
-fn test_lexer_backtracking_within_single_token() {
+fn test_within_single_token() {
     let grammar = spanning_token_grammar();
     let env = get_tok_env();
     let tokens = env.tokenize("aby");
@@ -624,7 +624,7 @@ fn test_lexer_backtracking_within_single_token() {
 }
 
 #[test]
-fn test_lexer_backtracking_twice_within_single_token() {
+fn test_two_backtracks_within_single_token() {
     let grammar = r#"
         %llguidance {"no_forcing": true, "lexer_backtracking": true}
         start: T U V
@@ -652,7 +652,7 @@ fn test_lexer_backtracking_twice_within_single_token() {
 }
 
 #[test]
-fn test_lexer_backtracking_validates_single_spanning_token() {
+fn test_validate_spanning_token() {
     let grammar = spanning_token_grammar();
     let tokens = get_tok_env().tokenize("aby");
     assert_eq!(
@@ -670,7 +670,7 @@ fn test_lexer_backtracking_validates_single_spanning_token() {
 }
 
 #[test]
-fn test_lexer_backtracking_rolls_back_single_spanning_token() {
+fn test_rollback_spanning_token() {
     let grammar = spanning_token_grammar();
     let env = get_tok_env();
     let short = env.tokenize("aby");
