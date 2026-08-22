@@ -211,9 +211,7 @@ impl TokenParser {
         num_fixed: usize,
     ) -> (Vec<TokenId>, usize) {
         let trie = self.token_env.tok_trie();
-        let (chop_tokens, chop_bytes) = self
-            .parser
-            .with_recognizer(|r| trie.chop_tokens(r, &tokens[num_fixed..]));
+        let (chop_tokens, chop_bytes) = self.parser.chop_tokens(trie, &tokens[num_fixed..]);
         infoln!(
             self,
             "tokenize -> {}; chop: {} tokens, {} bytes",
