@@ -6,7 +6,9 @@ use crate::{
     infoln, panic_utils, warn, Instant, Logger, ParserFactory,
 };
 use anyhow::{ensure, Result};
-use toktrie::{InferenceCapabilities, SimpleVob, TokEnv, TokenId, INVALID_TOKEN};
+use toktrie::{
+    parse_numeric_token, InferenceCapabilities, SimpleVob, TokEnv, TokTrie, TokenId, INVALID_TOKEN,
+};
 
 /// Token-level parser that drives a single constrained-generation session.
 ///
@@ -683,6 +685,66 @@ impl TokenParser {
         trg.extend_from_slice(self.parser.currently_forced_bytes());
     }
 
+    fn first_non_lossless_marker_text(&self, bytes: &[u8]) -> Option<usize> {
+        let mut idx = 0;
+        let trie = self.token_env.tok_trie();
+        while idx < bytes.len() {
+            let normal_start = idx;
+            let normal_len = bytes[idx..]
+                .iter()
+                .position(|&byte| byte == TokTrie::SPECIAL_TOKEN_MARKER)
+                .unwrap_or(bytes.len() - idx);
+            if normal_len != 0 {
+                let normal_bytes = &bytes[idx..idx + normal_len];
+                let tokens = self.token_env.tokenize_bytes(normal_bytes);
+                if trie.decode_raw(&tokens) != normal_bytes {
+                    return Some(normal_start);
+                }
+                idx += normal_len;
+            }
+            if idx == bytes.len() {
+                break;
+            }
+
+            idx += 1; // skip the marker
+            if idx + 2 < bytes.len() && bytes[idx] == b'<' {
+                let special_len = bytes[idx..std::cmp::min(bytes.len(), idx + 100)]
+                    .iter()
+                    .position(|&byte| byte == b'>')
+                    .map(|len| len + 1);
+                if let Some(special_len) = special_len {
+                    let special_token = &bytes[idx - 1..idx + special_len];
+                    if trie.token_id_at_bytes(special_token).is_some() {
+                        idx += special_len;
+                    }
+                }
+            } else if idx < bytes.len() {
+                if let Some((num_bytes, token_id)) = parse_numeric_token(&bytes[idx..]) {
+                    if token_id < trie.vocab_size() as u32 {
+                        idx += num_bytes;
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn ff_tokens_before_lossy_segment(
+        &self,
+        forced_bytes: &[u8],
+        lossy_start: usize,
+        num_existing_bytes: usize,
+    ) -> (Vec<TokenId>, Vec<u8>) {
+        let prefix_start = std::cmp::max(lossy_start, num_existing_bytes);
+        let safe_bytes = &forced_bytes[num_existing_bytes..prefix_start];
+        let safe_tokens = if self.first_non_lossless_marker_text(safe_bytes).is_none() {
+            self.token_env.tokenize_bytes_marker(safe_bytes).0
+        } else {
+            Vec::new()
+        };
+        (safe_tokens, forced_bytes[prefix_start..].to_vec())
+    }
+
     /// Converts forced bytes into tokens.
     /// Also returns any bytes that need to be prefix of the
     /// next sampled token (token healing).
@@ -706,17 +768,19 @@ impl TokenParser {
             forced_bytes.len() > num_existing_bytes && self.token_env.tokenize_is_canonical();
         if do_force {
             let t0 = Instant::now();
-            let (mut tokens, mut num_fixed) = self.token_env.tokenize_bytes_marker(&forced_bytes);
-            let trie = self.token_env.tok_trie();
-            // Healing offsets are invalid when tokenization normalizes the forced bytes.
-            if num_fixed == 0 && trie.decode_raw(&tokens) != forced_bytes {
+            if let Some(lossy_start) = self.first_non_lossless_marker_text(&forced_bytes) {
                 infoln!(
                     self,
                     "non-lossless forced-byte tokenization; falling back to byte prefix"
                 );
-                token_prefix = forced_bytes[num_existing_bytes..].to_vec();
-                return (Vec::new(), token_prefix);
+                return self.ff_tokens_before_lossy_segment(
+                    &forced_bytes,
+                    lossy_start,
+                    num_existing_bytes,
+                );
             }
+            let (mut tokens, mut num_fixed) = self.token_env.tokenize_bytes_marker(&forced_bytes);
+            let trie = self.token_env.tok_trie();
             if !tokens.starts_with(&existing_tokens) {
                 // whoops, re-tokenize without the prefix
                 infoln!(
@@ -725,9 +789,15 @@ impl TokenParser {
                     trie.tokens_dbg(&existing_tokens),
                     trie.tokens_dbg(&tokens),
                 );
-                (tokens, num_fixed) = self
-                    .token_env
-                    .tokenize_bytes_marker(&forced_bytes[num_existing_bytes..]);
+                let retry_bytes = &forced_bytes[num_existing_bytes..];
+                if let Some(lossy_start) = self.first_non_lossless_marker_text(retry_bytes) {
+                    infoln!(
+                        self,
+                        "non-lossless retry tokenization; falling back to byte prefix"
+                    );
+                    return self.ff_tokens_before_lossy_segment(retry_bytes, lossy_start, 0);
+                }
+                (tokens, num_fixed) = self.token_env.tokenize_bytes_marker(retry_bytes);
                 infoln!(
                     self,
                     "re-tokenized: {} from: {:?}",
