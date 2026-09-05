@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use llguidance::{
     api::TopLevelGrammar,
     earley::SlicedBiasComputer,
-    toktrie::{ApproximateTokEnv, InferenceCapabilities, TokEnv, TokenizerEnv},
+    toktrie::{ApproximateTokEnv, InferenceCapabilities, TokEnv, TokRxInfo, TokTrie, TokenizerEnv},
     Matcher, ParserFactory, TokenParser,
 };
 use serde_json::{json, Value};
@@ -61,6 +61,54 @@ fn consume(parser: &mut TokenParser, tok: u32) {
     assert!(n == 0);
 }
 
+struct NormalizingTokEnv {
+    trie: TokTrie,
+    strip_all_spaces: bool,
+}
+
+impl NormalizingTokEnv {
+    fn new(strip_all_spaces: bool) -> Self {
+        let mut words = (0..=255).map(|byte| vec![byte]).collect::<Vec<_>>();
+        words.extend([
+            br#"{""#.to_vec(),
+            b"title".to_vec(),
+            br#"":"#.to_vec(),
+            br#"":""#.to_vec(),
+            b"a b".to_vec(),
+            b"\xff<special>".to_vec(),
+            b"\xff<eos>".to_vec(),
+        ]);
+        let info = TokRxInfo::new(words.len() as u32, words.len() as u32 - 1);
+        Self {
+            trie: TokTrie::from(&info, &words),
+            strip_all_spaces,
+        }
+    }
+}
+
+impl TokenizerEnv for NormalizingTokEnv {
+    fn tok_trie(&self) -> &TokTrie {
+        &self.trie
+    }
+
+    fn tokenize_bytes(&self, bytes: &[u8]) -> Vec<u32> {
+        let normalized = if self.strip_all_spaces {
+            bytes
+                .iter()
+                .copied()
+                .filter(|byte| *byte != b' ')
+                .collect::<Vec<_>>()
+        } else {
+            bytes
+                .iter()
+                .copied()
+                .skip_while(|byte| *byte == b' ')
+                .collect()
+        };
+        self.trie.greedy_tokenize(&normalized)
+    }
+}
+
 #[test]
 fn test_ff_tokens() {
     let lark = r#"
@@ -89,6 +137,78 @@ fn test_ff_tokens() {
     assert_eq!(t, vec![311, 1111]);
     let n = parser.validate_tokens_raw(&t).unwrap();
     assert_eq!(n, 2);
+}
+
+#[test]
+fn test_non_lossless_forced_tokenization_falls_back_to_byte_prefix() {
+    const OPEN_OBJECT_QUOTE: u32 = 256;
+    const TITLE: u32 = 257;
+    const QUOTE_COLON: u32 = 258;
+
+    let tok_env: TokEnv = Arc::new(NormalizingTokEnv::new(true));
+    let factory = ParserFactory::new_simple(&tok_env).unwrap();
+    let grammar = TopLevelGrammar::from_json_schema(json!({
+        "type": "object",
+        "properties": {"title": {"type": "string", "minLength": 1}},
+        "required": ["title"],
+        "x-guidance": {
+            "item_separator": ", ",
+            "key_separator": ": ",
+            "whitespace_flexible": false,
+            "whitespace_pattern": "",
+        },
+    }));
+    let mut matcher = Matcher::new(factory.create_parser(grammar));
+
+    for token in [OPEN_OBJECT_QUOTE, TITLE] {
+        let mask = matcher.compute_mask().unwrap();
+        assert!(mask.is_allowed(token));
+        matcher.consume_token(token).unwrap();
+    }
+
+    let mask = matcher.compute_mask().unwrap();
+    assert!(!mask.is_allowed(b':' as u32));
+    assert!(mask.is_allowed(QUOTE_COLON));
+    matcher.consume_token(QUOTE_COLON).unwrap();
+}
+
+#[test]
+fn test_non_lossless_retry_tokenization_falls_back_to_byte_prefix() {
+    const A_SPACE_B: u32 = 260;
+
+    let tok_env: TokEnv = Arc::new(NormalizingTokEnv::new(false));
+    let factory = ParserFactory::new_simple(&tok_env).unwrap();
+    let grammar = TopLevelGrammar::from_lark(r#"start: ("a" | "c") " b""#.to_string());
+    let mut matcher = Matcher::new(factory.create_parser(grammar));
+
+    let mask = matcher.compute_mask().unwrap();
+    assert!(mask.is_allowed(b'a' as u32));
+    matcher.consume_token(b'a' as u32).unwrap();
+
+    let mask = matcher.compute_mask().unwrap();
+    assert!(!mask.is_allowed(b'b' as u32));
+    assert!(!mask.is_allowed(A_SPACE_B));
+    assert!(mask.is_allowed(b' ' as u32));
+    matcher.consume_token(b' ' as u32).unwrap();
+}
+
+#[test]
+fn test_non_lossless_text_after_explicit_token_falls_back_to_byte_prefix() {
+    const SPECIAL: u32 = 261;
+
+    let tok_env: TokEnv = Arc::new(NormalizingTokEnv::new(false));
+    let factory = ParserFactory::new_simple(&tok_env).unwrap();
+    let grammar = TopLevelGrammar::from_lark(format!(r#"start: <[{SPECIAL}]> " b""#));
+    let mut parser = factory.create_parser(grammar).unwrap();
+    parser.start_without_prompt();
+
+    assert_eq!(parser.compute_ff_tokens(), vec![SPECIAL]);
+    parser.consume_token(SPECIAL).unwrap();
+
+    let mask = parser.compute_mask().unwrap();
+    assert!(!mask.is_allowed(b'b' as u32));
+    assert!(mask.is_allowed(b' ' as u32));
+    parser.consume_token(b' ' as u32).unwrap();
 }
 
 fn get_tok_env() -> &'static TokEnv {
