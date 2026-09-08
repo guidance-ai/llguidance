@@ -327,6 +327,9 @@ see `LLGuidanceOptions` in [api.rs](../parser/src/api.rs).
 Example: `%llguidance { "no_forcing": true }`.
 It can be specified multiple times, with the options being merged.
 
+Set `"lexer_backtracking": true` to let the lexer backtrack to the last valid
+lexeme match if a longer match later fails. This option is disabled by default.
+
 By default, a `%ignore` regex can be matched repeatedly at the same grammar
 position. Set `"ignore_once": true` to make the regex describe the entire
 skipped span, which allows bounds in the regex to be enforced:

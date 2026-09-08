@@ -34,6 +34,8 @@ struct LarkLLGuidanceOptions {
     general: LLGuidanceOptions,
     #[serde(default)]
     ignore_once: bool,
+    #[serde(default)]
+    lexer_backtracking: bool,
 }
 
 macro_rules! debug {
@@ -674,6 +676,7 @@ impl Compiler {
             SkipSpec::unbounded(skip_regex)
         };
         let id = self.builder.add_grammar_with_skip(opts.general, skip)?;
+        self.builder.regex.spec.lexer_backtracking |= opts.lexer_backtracking;
 
         let start = self.do_rule(start_name, None)?;
         self.builder.set_start_node(start);
