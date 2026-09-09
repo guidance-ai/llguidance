@@ -1137,13 +1137,25 @@ impl ParserState {
 
     fn flush_and_check_numeric(&mut self, tok_id: TokenId) -> Option<LexemeIdx> {
         if self.flush_lexer() {
+            // A committed token can fall on the boundary of several active
+            // token-range specs (e.g. the reasoning EOR is inside both the broad
+            // free-text set and the narrow <[EOR]> set). Resolve to the narrowest
+            // (smallest token_range_span) — the most specific lexeme. First-match
+            // would pick the broad set, stall the earley 'start' item, and freeze
+            // the DFA on the reasoning state.
+            let mut best: Option<&LexemeSpec> = None;
             for spec in self.token_range_lexemes() {
-                if spec.contains_token(tok_id) {
-                    return Some(spec.idx);
+                if !spec.contains_token(tok_id) {
+                    continue;
+                }
+                if best.map_or(true, |b| spec.token_range_span() < b.token_range_span()) {
+                    best = Some(spec);
                 }
             }
+            best.map(|s| s.idx)
+        } else {
+            None
         }
-        None
     }
 
     // apply_tokens() "pushes" the bytes in 'tokens' into the lexer and parser.  It is a top-level
@@ -1454,15 +1466,22 @@ impl ParserState {
         // we get here "FF [ 1 2 3 4", no final ']'
         let bytes = &bytes[2..bytes.len()];
         if let Ok(tok_id) = std::str::from_utf8(bytes).unwrap().parse::<u32>() {
-            let idx = specs.iter().position(|spec| {
-                spec.token_ranges
-                    .iter()
-                    .any(|range| range.contains(&tok_id))
-            });
-            debug!("  >> tok_id={} idx={:?}", tok_id, idx);
-            if let Some(idx) = idx {
+            // Prefer the narrowest matching spec (smallest token_range_span) over the
+            // first: a token on the boundary of several active token-range specs must
+            // resolve to the most specific one, or the parse stalls in the broad set.
+            let mut best: Option<&LexemeSpec> = None;
+            for spec in specs.iter().copied() {
+                if !spec.contains_token(tok_id) {
+                    continue;
+                }
+                if best.map_or(true, |b| spec.token_range_span() < b.token_range_span()) {
+                    best = Some(spec);
+                }
+            }
+            debug!("  >> tok_id={} best={:?}", tok_id, best.map(|s| s.idx.as_usize()));
+            if let Some(spec) = best {
                 let pre = PreLexeme {
-                    idx: MatchingLexemesIdx::Single(specs[idx].idx),
+                    idx: MatchingLexemesIdx::Single(spec.idx),
                     byte: Some(b']'),
                     byte_next_row: false,
                 };
