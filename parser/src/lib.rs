@@ -57,10 +57,6 @@ pub use logging::Logger;
 pub use derivre;
 pub use derivre::{HashMap, HashSet};
 
-pub mod ffi;
-#[cfg(feature = "rayon")]
-mod ffi_par;
-
 mod grammar_builder;
 mod json;
 #[cfg(feature = "jsonschema_validation")]
@@ -133,3 +129,6 @@ macro_rules! id32_type {
         }
     };
 }
+
+pub const VERSION: &str = concat!("llguidance@", env!("CARGO_PKG_VERSION"));
+pub const DERIVRE_VERSION: &str = derivre::VERSION;

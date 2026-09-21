@@ -9,7 +9,7 @@ find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 # Path to the llguidance static library and header
 set(LLG_ROOT "${CMAKE_SOURCE_DIR}/..")
-set(LLG_INCLUDE_DIR "${LLG_ROOT}/parser")
+set(LLG_INCLUDE_DIR "${LLG_ROOT}/c")
 set(LLG_LIB_DIR "${LLG_ROOT}/target/release")
 
 # Locate the static library
@@ -19,7 +19,7 @@ find_library(LLG_LIBRARY
     NO_DEFAULT_PATH
 )
 if(NOT LLG_LIBRARY)
-    message(FATAL_ERROR "libllguidance not found in ${LLG_LIB_DIR}. Run 'cargo build --release' in the parser directory first.")
+    message(FATAL_ERROR "libllguidance not found in ${LLG_LIB_DIR}. Run 'cargo build --release' in the 'c' directory first.")
 endif()
 
 # Test data directory

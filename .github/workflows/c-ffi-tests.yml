@@ -27,7 +27,7 @@ jobs:
 
     - name: Build llguidance (release)
       run: cargo build --release
-      working-directory: parser
+      working-directory: c
 
     - name: Remove shared libs to force static linking
       run: rm -f target/release/libllguidance.so target/release/libllguidance.dylib

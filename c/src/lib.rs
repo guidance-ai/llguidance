@@ -31,17 +31,20 @@ use std::{
 };
 
 use anyhow::{bail, ensure, Result};
-use toktrie::{
-    ApproximateTokEnv, InferenceCapabilities, SimpleVob, TokEnv, TokRxInfo, TokTrie, TokenizerEnv,
-    INVALID_TOKEN,
-};
 
-use crate::{
+use llguidance::{
     api::{GrammarInit, ParserLimits, TopLevelGrammar},
     earley::{SlicedBiasComputer, ValidationResult},
-    panic_utils, CommitResult, Constraint, Logger, Matcher, ParserFactory, StopController,
-    TokenParser,
+    panic_utils,
+    toktrie::{
+        self, ApproximateTokEnv, InferenceCapabilities, SimpleVob, TokEnv, TokRxInfo, TokTrie,
+        TokenizerEnv, INVALID_TOKEN,
+    },
+    CommitResult, Constraint, Logger, Matcher, ParserFactory, StopController, TokenParser,
 };
+
+#[cfg(feature = "rayon")]
+mod par;
 
 // ---------------------------------------------------------------------------
 // FFI panic-safety helpers
@@ -253,8 +256,7 @@ impl LlgTokenizer {
             let tokenizer_json = unsafe { c_str_to_str(init.tokenizer_json, "tokenizer_json") }?;
             let tokenizer_json = serde_json::from_str(tokenizer_json)
                 .map_err(|e| anyhow::anyhow!("Invalid JSON in tokenizer_json: {e}"))?;
-            let mut token_bytes =
-                crate::tokenizer_json::token_bytes_from_tokenizer_json(&tokenizer_json)?;
+            let mut token_bytes = llguidance::token_bytes_from_tokenizer_json(&tokenizer_json)?;
 
             let sz = init.vocab_size as usize;
             if token_bytes.len() < sz {
@@ -535,7 +537,103 @@ pub struct LlgConstraintInit {
     pub backtrack_ok: bool,
     /// The resource limits for the parser.
     /// Default values will be used for all fields that are 0.
-    pub limits: ParserLimits,
+    pub limits: LlgParserLimits,
+}
+
+#[derive(Clone, Debug)]
+#[repr(C)]
+pub struct LlgParserLimits {
+    /// For non-ambiguous grammars, this is the maximum "branching factor" of the grammar.
+    /// For ambiguous grammars, this might get hit much quicker.
+    /// Default: 2000
+    pub max_items_in_row: usize,
+
+    /// How much "fuel" are we willing to spend to build initial lexer regex AST nodes.
+    /// Default: 1_000_000
+    /// Speed: 50k/ms
+    pub initial_lexer_fuel: u64,
+
+    /// Maximum lexer fuel for computation of the whole token mask.
+    /// Default: 200_000
+    /// Speed: 14k/ms
+    pub step_lexer_fuel: u64,
+
+    /// Number of Earley items created for the whole token mask.
+    /// Default: 50_000
+    /// Speed: 20k/ms
+    pub step_max_items: usize,
+
+    /// Maximum number of lexer states.
+    /// Affects memory consumption, but not the speed for the most part.
+    /// Default: 250_000
+    /// Speed: ~1-2kB of memory per state
+    pub max_lexer_states: usize,
+
+    /// Maximum size of the grammar (symbols in productions)
+    /// Default: 500_000 (a few megabytes of JSON)
+    pub max_grammar_size: usize,
+
+    /// If true, we'll run any extremely large regexes against the whole
+    /// trie of the tokenizer while constructing the lexer.
+    /// This reduces future mask computation time, but increases
+    /// the time it takes to construct the lexer.
+    /// Default: true
+    pub precompute_large_lexemes: bool,
+
+    /// If true, include parser state (including tokens so far) and grammar in
+    /// errors.
+    /// Default: true
+    pub verbose_errors: bool,
+}
+
+impl From<LlgParserLimits> for ParserLimits {
+    fn from(value: LlgParserLimits) -> Self {
+        let LlgParserLimits {
+            max_items_in_row,
+            initial_lexer_fuel,
+            step_lexer_fuel,
+            step_max_items,
+            max_lexer_states,
+            max_grammar_size,
+            precompute_large_lexemes,
+            verbose_errors,
+        } = value;
+        Self {
+            max_items_in_row,
+            initial_lexer_fuel,
+            step_lexer_fuel,
+            step_max_items,
+            max_lexer_states,
+            max_grammar_size,
+            precompute_large_lexemes,
+            verbose_errors,
+        }
+    }
+}
+
+impl From<ParserLimits> for LlgParserLimits {
+    fn from(value: ParserLimits) -> Self {
+        let ParserLimits {
+            max_items_in_row,
+            initial_lexer_fuel,
+            step_lexer_fuel,
+            step_max_items,
+            max_lexer_states,
+            max_grammar_size,
+            precompute_large_lexemes,
+            verbose_errors,
+        } = value;
+        Self {
+            max_items_in_row,
+            initial_lexer_fuel,
+            step_lexer_fuel,
+            step_max_items,
+            max_lexer_states,
+            max_grammar_size,
+            precompute_large_lexemes,
+            verbose_errors,
+        }
+    }
 }
 
 impl LlgConstraintInit {
@@ -571,7 +669,7 @@ impl LlgConstraintInit {
             GrammarInit::Serialized(grammar),
             self.logger(),
             self.inference_capabilities(),
-            self.limits.clone(),
+            self.limits.clone().into(),
         )
     }
 
@@ -774,7 +872,7 @@ pub extern "C" fn llg_constraint_init_set_defaults(
         log_stderr_level: 1,
         ff_tokens_ok: false,
         backtrack_ok: false,
-        limits: ParserLimits::default(),
+        limits: ParserLimits::default().into(),
     };
 }
 
@@ -1023,7 +1121,7 @@ pub unsafe extern "C" fn llg_par_compute_mask(
     {
         // `par_compute_mask` takes ownership of `done_cb` and guarantees it is
         // invoked exactly once, even if the rayon spawn itself fails.
-        crate::ffi_par::par_compute_mask(steps, user_data, done_cb);
+        crate::par::par_compute_mask(steps, user_data, done_cb);
     }
 
     #[cfg(not(feature = "rayon"))]
@@ -1606,7 +1704,7 @@ fn validate_grammar(
     let data = unsafe { c_str_to_str(data, "data") }?;
     let grammar = TopLevelGrammar::from_tagged_str(tp, data)?;
     let tok_env = init.factory()?.tok_env().clone();
-    match GrammarInit::Serialized(grammar).validate(Some(tok_env), init.limits.clone()) {
+    match GrammarInit::Serialized(grammar).validate(Some(tok_env), init.limits.clone().into()) {
         ValidationResult::Valid => Ok(String::new()),
         ValidationResult::Error(e) => bail!(e),
         r => Ok(r.render(true)),
@@ -1919,14 +2017,16 @@ pub extern "C" fn llg_clone_matcher(matcher: &LlgMatcher) -> *mut LlgMatcher {
 /// be freed by the caller.
 #[no_mangle]
 pub extern "C" fn llg_get_version() -> *const c_char {
-    // Both version tags are compile-time literals so they're findable via `strings`.
-    static LLG_VERSION: &str = concat!("llguidance@", env!("CARGO_PKG_VERSION"));
+    // Both version tags are `static`s, so they're findable via `strings`.
+    static LLG_VERSION: &str = llguidance::VERSION;
+    static DERIVRE_VERSION: &str = llguidance::DERIVRE_VERSION;
+
     static VERSION: std::sync::OnceLock<std::ffi::CString> = std::sync::OnceLock::new();
     VERSION
         .get_or_init(|| {
             // Version strings are compile-time constants and cannot contain NUL,
             // but we use expect() with an explanatory message for robustness.
-            std::ffi::CString::new(format!("{} {}", LLG_VERSION, derivre::VERSION))
+            std::ffi::CString::new(format!("{LLG_VERSION} {DERIVRE_VERSION}"))
                 .expect("version strings must not contain NUL bytes")
         })
         .as_ptr()

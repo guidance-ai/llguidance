@@ -261,7 +261,6 @@ impl StopReason {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(default)]
-#[repr(C)]
 pub struct ParserLimits {
     /// For non-ambiguous grammars, this is the maximum "branching factor" of the grammar.
     /// For ambiguous grammars, this might get hit much quicker.

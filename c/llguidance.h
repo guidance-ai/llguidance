@@ -398,8 +398,6 @@ typedef struct LlgTokenizerInitV2 {
   uint32_t tok_eos_extra_count;
 } LlgTokenizerInitV2;
 
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
