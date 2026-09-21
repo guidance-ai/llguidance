@@ -36,4 +36,4 @@ jobs:
       working-directory: parser
 
     - name: Check cbindgen
-      run: cargo check -p llguidance --features generate-header && git diff --exit-code parser/llguidance.h
+      run: cargo check -p llguidance_c --features generate-header && git diff --exit-code c/llguidance.h
