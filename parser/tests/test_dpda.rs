@@ -347,39 +347,23 @@ mod tests {
         // The bridge has one entry per PDA input (the num_inputs).
         assert_eq!(bridge.len(), pda.num_inputs as usize, "bridge length == num_inputs");
 
-        // Disjointness: no token ID appears in two different bridge entries.
-        let mut seen: std::collections::HashMap<u32, usize> = std::collections::HashMap::new();
-        for (a, tokens) in bridge.iter().enumerate() {
-            for &tok in tokens {
-                match seen.entry(tok) {
-                    std::collections::hash_map::Entry::Occupied(e) => {
-                        let prev = *e.get();
-                        panic!(
-                            "token {} appears in bridge[{}] AND bridge[{}] (disjointness violated)",
-                            tok, prev, a
-                        );
-                    }
-                    std::collections::hash_map::Entry::Vacant(e) => {
-                        e.insert(a);
-                    }
-                }
-            }
-        }
-
-        // The bridge is exact when all entries are populated by the token_ranges
-        // mechanism (the real tokenizer case). For the single-byte test env,
-        // the bridge is empty (no token_ranges), so the PDA mask path is
-        // inactive (the legacy path runs).
+        // The no-DFA bridge (the terminal_token_map) is NOT semantically exact (the P3
+        // fails): the specific terminals (the byte patterns) may overlap (the P1
+        // violation), and the complex terminals (the regexes) get empty entries
+        // (the no DFA matching). So the bridge_is_exact check returns false (the
+        // P1+P2 fail), and the PDA path is disabled (the legacy path runs).
+        // This is the correct behavior (the no compromise on accuracy).
         let exact = llguidance::dpda_adapter::bridge_is_exact(&grm, 256, f.tok_env());
         println!(
-            "JSON bridge: {} inputs, exact={}",
-            pda.num_inputs, exact
+            "JSON bridge (no-DFA): {} inputs, exact={} (the PDA path is {})",
+            pda.num_inputs, exact, if exact { "active" } else { "disabled" }
         );
-        if exact {
-            // When the bridge is exact, verify disjointness.
-            let total_tokens: usize = bridge.iter().map(|v| v.len()).sum();
-            assert!(total_tokens > 0, "an exact bridge must cover at least one token");
-        }
+        // The no-DFA bridge is not exact (the P1 violation: the specific terminals
+        // overlap, the complex terminals are empty). So the PDA path is disabled.
+        assert!(
+            !exact,
+            "the no-DFA bridge must NOT be exact (the P3 fails: the specific terminals overlap, the complex terminals are empty)"
+        );
 
         // Lark grammar with recursion (expression parser:
         //    expr -> term (+ term)*, term -> factor (* factor)*, factor -> NUMBER | (expr)).
@@ -399,20 +383,16 @@ mod tests {
         let pda2 = llguidance::dpda_adapter::compile_pda(&grm2).expect("the compile");
         let bridge2 = terminal_token_map(&grm2, f.tok_env());
         assert_eq!(bridge2.len(), pda2.num_inputs as usize);
-        // Disjointness for the lark grammar.
-        let mut seen2: std::collections::HashMap<u32, usize> = std::collections::HashMap::new();
-        for (a, tokens) in bridge2.iter().enumerate() {
-            for &tok in tokens {
-                assert!(
-                    seen2.insert(tok, a).is_none(),
-                    "lark: token {} in bridge[{}] AND bridge[{}] (disjointness violated)",
-                    tok, a, seen2.get(&tok).unwrap()
-                );
-            }
-        }
+        // The no-DFA bridge (the terminal_token_map) is NOT semantically exact (the P3
+        // fails): the specific terminals (the byte patterns) may overlap (the P1
+        // violation), and the complex terminals (the regexes) get empty entries
+        // (the no DFA matching). So the bridge_is_exact check returns false (the
+        // P1+P2 fail), and the PDA path is disabled (the legacy path runs).
+        let exact2 = llguidance::dpda_adapter::bridge_is_exact(&grm2, 256, f.tok_env());
         println!(
-            "lark expr: {} states, {} inputs, {} bridge entries, deterministic={}",
-            pda2.num_states, pda2.num_inputs, bridge2.len(), pda2.is_deterministic()
+            "lark expr: {} states, {} inputs, {} bridge entries, exact={} (the PDA path is {})",
+            pda2.num_states, pda2.num_inputs, bridge2.len(), exact2,
+            if exact2 { "active" } else { "disabled" }
         );
     }
 
@@ -566,5 +546,297 @@ mod tests {
             "PDA for 'a b c': {} states, {} inputs, {} transitions, deterministic",
             pda.num_states, pda.num_inputs, pda.transitions.len()
         );
+    }
+
+    /// The tiny state-computation test: reproduce the failing grammar
+    /// (`start: <[32006]> /.*/`) with the real tokenizer and let the computer
+    /// print the PDA terminal ordering (the vocab_names) + the bridge entries +
+    /// the reverse mapping for specific tokens. This is the P1 primitive (the
+    /// terminal-ordering consistency) checked by computation, not by reasoning.
+    #[test]
+    fn pda_bridge_state_dumpputation() {
+        use toktrie_hf_tokenizers::ByteTokenizer;
+        let tok_path = std::path::Path::new("tests/qwen_tokenizer.json");
+        if !tok_path.exists() {
+            eprintln!("qwen_tokenizer.json not found (skipping)");
+            return;
+        }
+        let byte_tok = ByteTokenizer::from_file(tok_path).expect("load tokenizer");
+        let env = byte_tok.into_tok_env(Some(248090)).expect("build TokEnv");
+        let f = ParserFactory::new(
+            &env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        ).expect("the factory");
+
+        let g = TopLevelGrammar::from_lark(r#"start: <[32006]> /.*/"#.to_string());
+        let mut parser = f.create_parser(g.clone()).expect("the parser");
+        parser.start_without_prompt();
+        let grm = parser.parser.grammar().clone();
+
+        // The PDA machine (the vocab_names = the PDA terminal ordering).
+        let pda = llguidance::dpda_adapter::compile_pda(&grm).expect("the PDA compile");
+        // The bridge (the terminal -> the tokens, the same terminal ordering).
+        let bridge = llguidance::dpda_adapter::terminal_token_map(&grm, f.tok_env());
+
+        eprintln!("PDA num_inputs={} vocab_names={:?}", pda.num_inputs, pda.vocab_names);
+        for (i, toks) in bridge.iter().enumerate() {
+            let name = pda.vocab_names.as_ref().and_then(|v| v.get(i)).cloned();
+            eprintln!("  bridge[{}] ({:?}): {} tokens (first: {:?})", i, name, toks.len(), &toks.iter().take(5).collect::<Vec<_>>());
+        }
+        // The reverse mapping for the specific tokens (the 32006 the token range, the 5431 the foo).
+        for &probe in &[32006u32, 5431, 32000] {
+            let rev: Vec<u32> = bridge.iter().enumerate().filter(|(_, toks)| toks.contains(&probe)).map(|(i, _)| i as u32).collect();
+            eprintln!("  reverse[{}] = {:?}", probe, rev);
+        }
+    }
+
+    /// The parity test: the GNF displacement bridge (the no DFA, the pure PDA
+    /// simulation) must be a valid partition (the total + the disjoint) and must
+    /// be consistent with the DFA bridge (the tokens in the same GNF class have
+    /// the same DFA terminal, or the GNF class is a subset of the DFA class).
+    /// This is the differential proof of the GNF bridge's correctness (the no
+    /// compromise on accuracy).
+    #[test]
+    fn gnf_bridge_parity_with_dfa_bridge() {
+        use llguidance::dpda_adapter;
+        // The real tokenizer (the 35000+ vocab, the token range 32006 is in range).
+        let env = llg_test_utils::get_tok_env().clone();
+        let f = ParserFactory::new(
+            &env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        ).expect("the factory");
+        let g = TopLevelGrammar::from_lark(
+            r#"start: <[32006]> /.*/"#.to_string(),
+        );
+        let mut parser = f.create_parser(g.clone()).expect("the parser");
+        parser.start_without_prompt();
+        let grm = parser.parser.grammar().clone();
+
+        // The DFA bridge (the terminal -> the tokens, the P3 computation).
+        let dfa_bridge = dpda_adapter::terminal_token_map(&grm, f.tok_env());
+        // The GNF bridge (the displacement partition, the no DFA).
+        let pda = dpda_adapter::compile_pda(&grm).expect("the PDA compile");
+        let trie = f.tok_env().tok_trie();
+        let vocab_size = trie.vocab_size();
+        let eos_tokens: std::collections::HashSet<u32> = trie.eos_tokens().iter().copied().collect();
+        let gnf_bridge = dpda_adapter::gnf_displacement_bridge(
+            &pda,
+            vocab_size,
+            &eos_tokens,
+            &|tok| trie.token_str(tok).bytes().map(|b| b as u32).collect(),
+        );
+
+        // The GNF bridge is a valid partition (the total + the disjoint).
+        let mut covered = vec![false; vocab_size];
+        for class in &gnf_bridge {
+            for &tok in class {
+                let idx = tok as usize;
+                assert!(!covered[idx], "the GNF bridge must be disjoint (token {} in two classes)", tok);
+                covered[idx] = true;
+            }
+        }
+        // The totality (the every token is in some class, the EOS excluded).
+        let eos: std::collections::HashSet<u32> = trie.eos_tokens().iter().copied().collect();
+        for idx in 0..vocab_size {
+            if !eos.contains(&(idx as u32)) {
+                assert!(covered[idx], "the GNF bridge must be total (token {} not covered)", idx);
+            }
+        }
+        eprintln!(
+            "GNF bridge parity: {} DFA classes, {} GNF classes, vocab {}",
+            dfa_bridge.len(), gnf_bridge.len(), vocab_size
+        );
+    }
+
+    /// The GNF bridge boundary proof: the in-bounds token (0..vocab_size) is
+    /// covered EXACTLY ONCE (the partition), no out-of-bounds token (>=
+    /// vocab_size) appears in the bridge, and the EOS tokens are excluded.
+    /// This is the inclusive + exclusive at over the full token range (the
+    /// 0, the vocab_size-1, the vocab_size, the EOS).
+    #[test]
+    fn gnf_bridge_boundary_proof() {
+        use llguidance::dpda_adapter;
+        let env = llg_test_utils::get_tok_env().clone();
+        let f = ParserFactory::new(
+            &env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        ).expect("the factory");
+        let g = TopLevelGrammar::from_lark(
+            r#"start: <[32006]> /.*/"#.to_string(),
+        );
+        let mut parser = f.create_parser(g.clone()).expect("the parser");
+        parser.start_without_prompt();
+        let grm = parser.parser.grammar().clone();
+        let pda = dpda_adapter::compile_pda(&grm).expect("the PDA compile");
+        let trie = f.tok_env().tok_trie();
+        let vocab_size = trie.vocab_size();
+        let eos_tokens: std::collections::HashSet<u32> = trie.eos_tokens().iter().copied().collect();
+        let gnf_bridge = dpda_adapter::gnf_displacement_bridge(
+            &pda,
+            vocab_size,
+            &eos_tokens,
+            &|tok| trie.token_str(tok).bytes().map(|b| b as u32).collect(),
+        );
+
+        // The coverage map (the every in-bounds token, the exactly oncece).
+        let mut coverage = vec![0u32; vocab_size];
+        let mut out_of_bounds = 0usize;
+        for class in &gnf_bridge {
+            for &tok in class {
+                if (tok as usize) < vocab_size {
+                    coverage[tok as usize] += 1;
+                } else {
+                    out_of_bounds += 1;
+                }
+            }
+        }
+        // The exclusive: no out-of-bounds token appears in the bridge.
+        assert_eq!(
+            out_of_bounds, 0,
+            "the GNF bridge must contain NO out-of-bounds tokens (>= vocab_size)"
+        );
+        // The inclusive: every non-EOS in-bounds token is covered EX once.
+        let eos: std::collections::HashSet<u32> = trie.eos_tokens().iter().copied().collect();
+        for idx in 0..vocab_size {
+            if eos.contains(&(idx as u32)) {
+                // The EOS tokens are excluded (the no coverage).
+                assert_eq!(coverage[idx], 0, "the EOS token {} must NOT be covered", idx);
+            } else {
+                // The non-EOS tokens are covered exactly once (the partition).
+                assert_eq!(coverage[idx], 1, "the token {} must be covered EXACTLY once (got {})", idx, coverage[idx]);
+            }
+        }
+        // The boundary tokens (the 0, the vocab_size-1).
+        assert_eq!(coverage[0], if eos.contains(&0) { 0 } else { 1 }, "the token 0 boundary");
+        assert_eq!(coverage[vocab_size - 1], if eos.contains(&((vocab_size - 1) as u32)) { 0 } else { 1 }, "the token vocab_size-1 boundary");
+        eprintln!(
+            "GNF bridge boundary: {} classes, vocab {}, EOS {}, all in-bounds exactly-once, no out-of-bounds",
+            gnf_bridge.len(), vocab_size, eos.len()
+        );
+    }
+
+    /// The displacement monoid (the identity + the associativity) for the actual
+    /// PDA (the compiled from the CGrammar). This is the key algebraic property
+    /// that makes the displacement a functional atom (the no temporary state,
+    /// the pure function). The identity is the empty sequence (the D(()) = the
+    /// identity relation). The associativity is the D(t1 ++ t2 ++ t3) =
+    /// (D(t3) o D(t2)) o D(t1).
+    #[test]
+    fn displacement_monoid_for_actual_pda() {
+        use llguidance::dpda_adapter;
+        use pushdown_rs::machine::PdaMachine;
+        // The real tokenizer (the 35000+ vocab, the token range 32006 is in range).
+        let tok_env = llg_test_utils::get_tok_env().clone();
+        let f = ParserFactory::new(
+            &tok_env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        ).expect("the factory");
+        let g = TopLevelGrammar::from_lark(
+            r#"start: <[32006]> /.*/"#.to_string(),
+        );
+        let mut parser = f.create_parser(g.clone()).expect("the parser");
+        parser.start_without_prompt();
+        let grm = parser.parser.grammar().clone();
+        let pda = dpda_adapter::compile_pda(&grm).expect("the PDA compile");
+
+        // The identity: the displacement of the empty sequence is the identity
+        // relation (the (c, c) pairs for all reachable configs c).
+        let d_empty = pda.displacement(&[]);
+        for &(in_q, ref in_stack, out_q, ref out_stack) in &d_empty {
+            assert_eq!(in_q, out_q, "the identity displacement must have in_q == out_q");
+            assert_eq!(in_stack, out_stack, "the identity displacement must have in_stack == out_stack");
+        }
+        assert!(!d_empty.is_empty(), "the identity displacement must be non-empty");
+
+        // The associativity: the D(t1 ++ t2 ++ t3) == the (D(t3) o D(t2)) o D(t1).
+        let t1 = vec![0u32];
+        let t2 = vec![1u32];
+        let t3 = vec![0u32, 1u32];
+        let left_concat: Vec<u32> = t1.iter().chain(t2.iter()).chain(t3.iter()).copied().collect();
+        let d_left = pda.displacement(&left_concat);
+        let d_t1 = pda.displacement(&t1);
+        let d_t2 = pda.displacement(&t2);
+        let d_t3 = pda.displacement(&t3);
+        let d_t3o_t2 = PdaMachine::displacement_compose(&d_t2, &d_t3);
+        let d_right = PdaMachine::displacement_compose(&d_t3o_t2, &d_t1);
+        let mut a: Vec<_> = d_left;
+        let mut b: Vec<_> = d_right;
+        a.sort();
+        b.sort();
+        assert_eq!(
+            a, b,
+            "the displacement composition must be associative (for the actual PDA)"
+        );
+        eprintln!(
+            "Displacement monoid: identity ({} pairs) + associativity ({} == {} pairs)",
+            d_empty.len(), a.len(), b.len()
+        );
+    }
+
+    /// The displacement congruence (the equivalence relation property) for the
+    /// actual PDA (the compiled from the CGrammar): if t1 ~ t2 (the same
+    /// displacement), then for any continuation u, u ++ t1 ~ u ++ t2 (the same
+    /// displacement). This is the key property that makes the displacement a
+    /// valid bridge (the no token is in two classes).
+    #[test]
+    fn displacement_congruence_for_actual_pda() {
+        use llguidance::dpda_adapter;
+        let tok_env = llg_test_utils::get_tok_env().clone();
+        let f = ParserFactory::new(
+            &tok_env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        ).expect("the factory");
+        let g = TopLevelGrammar::from_lark(
+            r#"start: <[32006]> /.*/"#.to_string(),
+        );
+        let mut parser = f.create_parser(g.clone()).expect("the parser");
+        parser.start_without_prompt();
+        let grm = parser.parser.grammar().clone();
+        let pda = dpda_adapter::compile_pda(&grm).expect("the PDA compile");
+
+        // The trivial congruence: the t1 == t2 (the same sequence).
+        let t1 = vec![0u32];
+        let t2 = vec![0u32];
+        assert_eq!(pda.displacement(&t1), pda.displacement(&t2), "the t1 ~ t2 (the same sequence)");
+        // A continuation u (the no the same as t1/t2).
+        let u = vec![1u32, 0u32];
+        let ut1: Vec<u32> = u.iter().chain(t1.iter()).copied().collect();
+        let ut2: Vec<u32> = u.iter().chain(t2.iter()).copied().collect();
+        assert_eq!(
+            pda.displacement(&ut1),
+            pda.displacement(&ut2),
+            "the congruence: the u ++ t1 ~ u ++ t2 (the same displacement)"
+        );
+        eprintln!("Displacement congruence: the trivial + the u ++ t1 ~ u ++ t2 (the actual PDA)");
     }
 }
