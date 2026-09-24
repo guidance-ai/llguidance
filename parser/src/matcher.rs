@@ -68,6 +68,28 @@ impl Matcher {
         }
     }
 
+    /// The safe snapshot: a full copy of the matcher state (the parser's
+    /// `deep_clone`, no re-init through `new`). Taking it does not perturb the
+    /// original, so it can be held across a mutating read and either restored
+    /// or discarded.
+    pub fn snapshot(&self) -> Self {
+        match &self.0 {
+            MatcherState::Normal(inner) => {
+                let parser = inner.parser.deep_clone();
+                Self(MatcherState::Normal(MatcherInner { parser }))
+            }
+            MatcherState::Error(e) => Self(MatcherState::Error(e.clone())),
+        }
+    }
+
+    /// The exact restore: replace this matcher's state with the snapshot's (the
+    /// snapshot is consumed). A full state copy, so the restore is provably
+    /// exact (no partial glue). Discarding the snapshot instead leaves this
+    /// matcher untouched.
+    pub fn restore(&mut self, snap: Self) {
+        self.0 = snap.0;
+    }
+
     /// Advance the parser by one token.
     /// Also checks if the parser should stop after consuming the tokens
     /// and puts the parser in stop state if necessary.
@@ -116,6 +138,14 @@ impl Matcher {
         })
     }
 
+    /// The `_immut` mask: the allowed-token set from the already-settled state.
+    /// Non-advancing (no `force_bytes`) and non-perturbing (no `ff_tokens_cache`),
+    /// so it is safe to call repeatedly and to hold a `snapshot` across. The
+    /// caller must have settled via `settle()` (the writer).
+    pub fn compute_mask_immut(&mut self) -> Result<SimpleVob> {
+        self.with_inner(|inner| inner.parser.compute_mask_immut())
+    }
+
     /// Can the grammar be finished in the current state?
     /// In other words, would the current token mask allow EOS token?
     pub fn is_accepting(&mut self) -> Result<bool> {
@@ -142,6 +172,14 @@ impl Matcher {
             .unwrap_or_else(|_| vec![])
     }
 
+    /// The `_immut` ff-read: the forced run from the already-settled state (no
+    /// `force_bytes`, no `ff_tokens_cache`). The caller must have settled via
+    /// `settle()` (the writer).
+    pub fn compute_ff_tokens_immut(&mut self) -> Vec<TokenId> {
+        self.with_inner(|inner| Ok(inner.parser.compute_ff_tokens_immut()))
+            .unwrap_or_else(|_| vec![])
+    }
+
     pub fn consume_ff_tokens(&mut self) -> Vec<TokenId> {
         let toks = self.compute_ff_tokens();
         if !toks.is_empty() {
@@ -156,6 +194,39 @@ impl Matcher {
         self.with_inner(|inner| Ok(inner.parser.force_bytes()))
             .unwrap_or_else(|_| vec![])
     }
+
+    /// Settle the parser: advance the Earley state so the pending forced bytes are
+    /// computed. This is the ONLY position-advancing step on the read surface; the
+    /// writer calls it after each `consume_token`. The `_immut` reads assume the
+    /// state is already settled.
+    pub fn settle(&mut self) {
+        self.with_inner(|inner| {
+            inner.parser.settle();
+            Ok(())
+        })
+        .ok();
+    }
+
+    /// The current PDA config (the control state + the stack). Exposed for the
+    /// xinfer GuidanceState to use instead of maintaining its own parallel
+    /// PDA mirror. Returns None when the PDA is not active (the parametric
+    /// grammar, or the dpda feature is off).
+    #[cfg(feature = "dpda")]
+    pub fn pda_config(&mut self) -> Option<(u32, Vec<u32>)> {
+        self.with_inner(|inner| {
+            Ok(inner.parser.pda_config())
+        })
+        .ok()
+        .flatten()
+    }
+
+    /// The PDA machine (the static transition table). Returns None when the
+    /// PDA is not active (the parametric grammar, or the dpda feature is off).
+    /// The PDA machine is computed once at parser construction and never
+    /// changes during the parse (only the PDA config changes). The xinfer
+    /// GuidanceState stores its own copy of the PDA machine; it only needs
+    /// the PDA config (the ctrl + stack) from the Matcher, which is exposed
+    /// via the pda_config method.
 
     /// Tries to advance the parser by consuming the given tokens.
     /// Returns the number of tokens consumed.

@@ -4,7 +4,8 @@ use std::sync::Arc;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use llguidance::{
     api::TopLevelGrammar,
-    toktrie::{TokEnv, TokRxInfo, TokTrie, TokenId, TokenizerEnv},
+    earley::SlicedBiasComputer,
+    toktrie::{InferenceCapabilities, TokEnv, TokRxInfo, TokTrie, TokenId, TokenizerEnv},
     Matcher, ParserFactory,
 };
 
@@ -331,6 +332,63 @@ fn bench_lazy_lexeme_complex(c: &mut Criterion) {
     group.finish();
 }
 
+/// Benchmark the GNF displacement bridge (the no DFA, the pure PDA simulation)
+/// vs the DFA bridge (the P3, the DFA matching). The GNF bridge is the next
+/// increment (the live bridge, the no DFA dependency).
+#[cfg(feature = "dpda")]
+fn bench_gnf_bridge(c: &mut Criterion) {
+    use llguidance::dpda_adapter;
+    let env = llg_test_utils::get_tok_env().clone();
+    let f = ParserFactory::new(
+        &env,
+        InferenceCapabilities {
+            ff_tokens: true,
+            backtrack: false,
+            conditional_ff_tokens: false,
+            fork: false,
+        },
+        &SlicedBiasComputer::general_slices(),
+    ).expect("the factory");
+    let g = TopLevelGrammar::from_lark(r#"start: <[32006]> /.*/"#.to_string());
+    let mut parser = f.create_parser(g.clone()).expect("the parser");
+    parser.start_without_prompt();
+    let grm = parser.parser.grammar().clone();
+    let pda = dpda_adapter::compile_pda(&grm).expect("the PDA compile");
+    let trie = env.tok_trie();
+    // A subset of tokens (the 1000, the no full 35000 vocab, the benchmark speed).
+    let subset: Vec<u32> = (0..1000).collect();
+    let mut group = c.benchmark_group("gnf_bridge");
+    group.bench_function("dfa_bridge", |b| {
+        b.iter(|| {
+            black_box(dpda_adapter::terminal_token_map(&grm, &env));
+        })
+    });
+    group.bench_function("gnf_bridge_subset", |b| {
+        b.iter(|| {
+            black_box(dpda_adapter::gnf_displacement_bridge_subset(
+                &pda,
+                &subset,
+                &|tok| trie.token_str(tok).bytes().map(|b| b as u32).collect(),
+            ));
+        })
+    });
+    // The grouped full bridge (the no per-token BFS, the byte-sequence grouping +
+    // the rayon parallelism). The num_groups << the vocab_size (the many tokens
+    // share a byte sequence).
+    let eos_tokens: std::collections::HashSet<u32> = trie.eos_tokens().iter().copied().collect();
+    group.bench_function("gnf_bridge_grouped_full", |b| {
+        b.iter(|| {
+            black_box(dpda_adapter::gnf_displacement_bridge(
+                &pda,
+                trie.vocab_size(),
+                &eos_tokens,
+                &|tok| trie.token_str(tok).bytes().map(|b| b as u32).collect(),
+            ));
+        })
+    });
+    group.finish();
+}
+
 criterion_group! {
     name = benches;
     config = Criterion::default()
@@ -338,6 +396,6 @@ criterion_group! {
         .warm_up_time(std::time::Duration::from_secs(2))
         .measurement_time(std::time::Duration::from_secs(5))
         .noise_threshold(0.05);
-    targets = bench_compute_mask, bench_compute_mask_positions, bench_token_generation, bench_first_mask, bench_lazy_lexeme, bench_lazy_lexeme_complex
+    targets = bench_compute_mask, bench_compute_mask_positions, bench_token_generation, bench_first_mask, bench_lazy_lexeme, bench_lazy_lexeme_complex, bench_gnf_bridge
 }
 criterion_main!(benches);

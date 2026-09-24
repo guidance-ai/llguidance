@@ -185,6 +185,19 @@ impl TokenParser {
         }
     }
 
+    /// The current PDA config (the control state + the stack). Delegates to
+    /// the inner Parser. Returns None when the PDA is not active.
+    #[cfg(feature = "dpda")]
+    pub fn pda_config(&mut self) -> Option<(u32, Vec<u32>)> {
+        self.parser.pda_config()
+    }
+
+    /// The PDA machine (the static transition table). Delegates to the inner Parser.
+    #[cfg(feature = "dpda")]
+pub fn pda_machine(&self) -> Option<&pushdown_rs::machine::PdaMachine> {
+        self.parser.pda_machine()
+    }
+
     pub fn bytes_since(&self, mut idx: usize) -> &[u8] {
         idx += self.grm_prefix.len();
         let endp = std::cmp::min(self.llm_bytes.len(), self.parser.hidden_start());
@@ -468,6 +481,46 @@ impl TokenParser {
         r
     }
 
+    /// The `_immut` mask: the allowed-token set from the already-settled state.
+    /// Unlike `compute_mask` it never runs `force_bytes` (no position advance)
+    /// and never touches `ff_tokens_cache` (no observer effect); so repeated
+    /// calls are non-perturbing. The caller must have settled via `settle()`
+    /// (the writer). EOS is handled from the grammar's own `eos` rule, so the
+    /// stopped->eos-set fallback of `compute_mask_or_eos` is not needed here.
+    pub fn compute_mask_immut(&mut self) -> Result<SimpleVob> {
+        self.check_initialized("compute_mask_immut")?;
+        let prefix = if self.can_force_bytes() {
+            let (ff_tokens, token_prefix) = self.ff_tokens_immut();
+            if !ff_tokens.is_empty() {
+                let t = ff_tokens[0];
+                let mask = self.tok_trie().singleton_token_set(t);
+                self.last_step_stats = ParserStats::default();
+                return Ok(mask);
+            } else {
+                token_prefix
+            }
+        } else {
+            let mut trg = Vec::new();
+            self.compute_ff_bytes_inner(&mut trg);
+            trg
+        };
+        let mut allowed_tokens = self.compute_bias(&prefix);
+        if let Some(s) = self.parser.get_error() {
+            return Err(self.stop_for_parser_error("", s));
+        }
+        if self.is_accepting() {
+            for &eos in &self.eos_tokens {
+                if eos != INVALID_TOKEN {
+                    allowed_tokens.allow_token(eos);
+                }
+            }
+        }
+        if allowed_tokens.is_zero() {
+            return Err(self.stop("", StopReason::NoExtensionBias));
+        }
+        Ok(allowed_tokens)
+    }
+
     fn compute_mask_inner(&mut self) -> Result<SimpleVob> {
         self.check_initialized("compute_mask")?;
 
@@ -660,6 +713,15 @@ impl TokenParser {
         trg
     }
 
+    /// Settle the parser: advance the Earley state so the pending forced bytes are
+    /// computed. This is the ONLY position-advancing step; the writer calls it after
+    /// each `apply_token`. The `_immut` reads (`compute_mask_immut`,
+    /// `compute_ff_tokens_immut`) assume the state is already settled, so they never
+    /// call this and never perturb the position.
+    pub fn settle(&mut self) {
+        self.parser.force_bytes();
+    }
+
     fn compute_ff_bytes_to(&mut self, trg: &mut Vec<u8>) {
         // PERF: in some cases, this may be long
         if self.can_force_bytes() {
@@ -686,7 +748,20 @@ impl TokenParser {
     /// Converts forced bytes into tokens.
     /// Also returns any bytes that need to be prefix of the
     /// next sampled token (token healing).
-    fn ff_tokens(&mut self) -> (Vec<TokenId>, Vec<u8>) {
+    ///
+    /// `advance` selects the ff-byte source: `true` runs `force_bytes` (the
+    /// position-advancing settle, the existing behavior); `false` reads the
+    /// already-settled `currently_forced_bytes` (the `_immut` non-advancing
+    /// read). Everything else is shared.
+    fn ff_tokens_impl(&mut self, advance: bool) -> (Vec<TokenId>, Vec<u8>) {
+        // PDA singleton ff: if the PDA allows exactly one terminal AND that
+        // terminal covers exactly one token, the ff is that single token
+        // (the O(1) replacement for the byte-hunt over 256 values).
+        #[cfg(feature = "dpda")]
+        if let Some(forced_tok) = self.parser.pda_forced_token() {
+            return (vec![forced_tok], Vec::new());
+        }
+
         let mut forced_bytes = Vec::new();
         let mut existing_tokens = if self.llm_tokens.is_empty() {
             Vec::new()
@@ -698,7 +773,11 @@ impl TokenParser {
         };
         let num_existing_bytes = forced_bytes.len();
 
-        self.compute_ff_bytes_to(&mut forced_bytes);
+        if advance {
+            self.compute_ff_bytes_to(&mut forced_bytes);
+        } else {
+            self.compute_ff_bytes_inner(&mut forced_bytes);
+        }
 
         let mut token_prefix = Vec::new();
 
@@ -763,6 +842,19 @@ impl TokenParser {
         }
 
         (Vec::new(), token_prefix)
+    }
+
+    /// The existing ff-read: settles the state (the `force_bytes` advance) then
+    /// tokenizes the forced run.
+    fn ff_tokens(&mut self) -> (Vec<TokenId>, Vec<u8>) {
+        self.ff_tokens_impl(true)
+    }
+
+    /// The `_immut` ff-read: the forced run from the already-settled state (no
+    /// `force_bytes`, no `ff_tokens_cache`). The caller must have settled via
+    /// `settle()` (the writer).
+    fn ff_tokens_immut(&mut self) -> (Vec<TokenId>, Vec<u8>) {
+        self.ff_tokens_impl(false)
     }
 
     fn compute_bias(&mut self, token_prefix: &[u8]) -> SimpleVob {
@@ -893,6 +985,14 @@ impl TokenParser {
             self.ff_tokens_cache = Some(r.clone());
         }
         r.0
+    }
+
+    /// The `_immut` ff-read: the forced run from the already-settled state. It
+    /// never runs `force_bytes` (no position advance) and never touches
+    /// `ff_tokens_cache` (no observer effect). The caller must have settled via
+    /// `settle()` (the writer).
+    pub fn compute_ff_tokens_immut(&mut self) -> Vec<TokenId> {
+        self.ff_tokens_immut().0
     }
 
     /// Compute and then consume fast-forward tokens.

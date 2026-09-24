@@ -160,7 +160,15 @@ impl Lexer {
 
     pub fn force_lexeme_end(&self, prev: StateID) -> LexerResult {
         let info = self.state_info(prev);
-        match info.possible.first() {
+        // When several lexemes are possible at this state (a committed token on the
+        // boundary of multiple active token-range specs), pick the narrowest
+        // (smallest token_range_span) — the most specific one. `possible.first()`
+        // would pick the broad free-text set and freeze the parse.
+        let narrowest = info
+            .possible
+            .iter()
+            .min_by_key(|idx| self.spec.lexemes[idx.as_usize()].token_range_span());
+        match narrowest {
             Some(idx) => LexerResult::Lexeme(PreLexeme::just_idx(MatchingLexemesIdx::Single(idx))),
             None => LexerResult::Error,
         }

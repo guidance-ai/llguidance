@@ -32,6 +32,8 @@
 ///
 /// cbindgen:ignore
 pub mod earley;
+#[cfg(feature = "dpda")]
+pub mod dpda_adapter;
 
 mod hashcons;
 mod matcher;

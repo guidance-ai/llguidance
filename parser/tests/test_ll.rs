@@ -979,6 +979,41 @@ fn test_ll_numeric_token_for_text() {
 }
 
 #[test]
+fn test_ll_numeric_token_boundary_narrowest() {
+    // 5426 long, 5431 foo, 5432 _calling (Phi-3.5-mini-instruct ids).
+    //
+    // The EOR token 5431 sits on the boundary of two active token-range specs:
+    //   - the broad reasoning set  <[5426-5432]>  (span 7)
+    //   - the narrow EOR marker    <[5431]>       (span 1)
+    //
+    // Before the fix, first-match resolution classified 5431 as the broad set,
+    // so the earley `start` item never advanced past the EOR and the parser
+    // parked in the left-recursive `+` loop — the tool choice stayed masked out.
+    // The narrowest-span resolution must pick <[5431]> so the parse exits the
+    // reasoning block and admits the tool.
+    //
+    // The tool is a CHOICE (5433 | 5434) so it is generated, not fast-forwarded,
+    // which is what exercises the boundary mask.
+    check_lark_grammar(
+        r#"start: reasoning tool
+           reasoning: (<[5426-5432]>)+ (<[5431]>)
+           tool: <[5433]> | <[5434]>
+        "#,
+        &["", "<[5426]>‧<[5431]>‧<[5433]>"],
+    );
+
+    // Multi-iteration reasoning block: several broad-set tokens, then the
+    // boundary EOR, then the tool choice. The EOR must resolve to the narrow spec.
+    check_lark_grammar(
+        r#"start: reasoning tool
+           reasoning: (<[5426-5432]>)+ (<[5431]>)
+           tool: <[5433]> | <[5434]>
+        "#,
+        &["", "<[5426]>‧<[5427]>‧<[5431]>‧<[5434]>"],
+    );
+}
+
+#[test]
 fn test_ll_numeric_and_text() {
     check_lark_grammar(
         r#"start: <[5432]> <[5426]> | "qux"

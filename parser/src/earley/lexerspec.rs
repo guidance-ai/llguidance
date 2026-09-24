@@ -123,6 +123,16 @@ impl LexemeSpec {
     pub fn contains_token(&self, token: TokenId) -> bool {
         self.token_ranges.iter().any(|range| range.contains(&token))
     }
+
+    /// Total number of token ids covered by this spec's `token_ranges`.
+    /// Used to prefer the most specific (narrowest) lexeme when a committed
+    /// token falls on the boundary of several active token-range specs.
+    pub fn token_range_span(&self) -> u64 {
+        self.token_ranges
+            .iter()
+            .map(|r| (*r.end()) as u64 - (*r.start()) as u64 + 1)
+            .sum()
+    }
 }
 
 impl Debug for LexemeSpec {
@@ -614,5 +624,50 @@ impl Lexeme {
 
     pub fn all_bytes(&self) -> &[u8] {
         &self.bytes
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn spec_with_ranges(ranges: Vec<RangeInclusive<TokenId>>) -> LexemeSpec {
+        LexemeSpec {
+            idx: LexemeIdx(0),
+            single_set: MatchingLexemes::None,
+            name: String::new(),
+            rx: RegexAst::NoMatch,
+            class: LexemeClass(0),
+            compiled_rx: ExprRef::INVALID,
+            ends_at_eos: false,
+            lazy: false,
+            contextual: false,
+            max_tokens: usize::MAX,
+            is_extra: false,
+            is_suffix: false,
+            is_skip: false,
+            skip_repetition: SkipRepetition::Unbounded,
+            json_options: None,
+            token_ranges: ranges,
+        }
+    }
+
+    #[test]
+    fn test_token_range_span_narrow_vs_broad() {
+        // A single-token range (the EOR marker) has span 1.
+        let narrow = spec_with_ranges(vec![5431..=5431]);
+        assert_eq!(narrow.token_range_span(), 1);
+
+        // A broad range (the reasoning free-text set) has a larger span.
+        let broad = spec_with_ranges(vec![5426..=5432]);
+        assert_eq!(broad.token_range_span(), 7);
+
+        // The narrow spec must sort before the broad one — this is the ordering
+        // the boundary fix relies on (most the most specific lexeme).
+        assert!(narrow.token_range_span() < broad.token_range_span());
+
+        // Multi-range span is the sum of the individual ranges.
+        let multi = spec_with_ranges(vec![10..=12, 20..=21]);
+        assert_eq!(multi.token_range_span(), 3 + 2);
     }
 }
