@@ -9,6 +9,7 @@ use crate::{
 };
 
 use super::{
+    int_ranges::IntRanges,
     lexer::MatchingLexemesIdx,
     regexvec::{LexemeSet, MatchingLexemes, RegexVec, RxLexeme},
 };
@@ -47,6 +48,8 @@ impl LexemeClass {
 
 #[derive(Clone)]
 pub struct LexemeSpec {
+    /// A specialized matcher replaces the ordinary regex for this lexeme.
+    pub(crate) int_ranges: Option<IntRanges>,
     pub(crate) idx: LexemeIdx,
     pub(crate) single_set: MatchingLexemes,
     pub(crate) name: String,
@@ -101,6 +104,9 @@ impl LexemeSpec {
         let mut f = String::new();
         write!(f, "[{}] {} ", self.idx.0, self.name).unwrap();
         self.rx.write_to_str(&mut f, max_len, exprset);
+        if let Some(config) = &self.int_ranges {
+            write!(f, " %int_ranges {config:?}").unwrap();
+        }
         if self.lazy {
             f.push_str(" lazy");
         }
@@ -267,6 +273,9 @@ impl LexerSpec {
     }
 
     pub fn is_nullable(&self, idx: LexemeIdx) -> bool {
+        if let Some(config) = &self.lexemes[idx.as_usize()].int_ranges {
+            return config.min_ranges == 0;
+        }
         self.regex_builder
             .is_nullable(self.lexemes[idx.as_usize()].compiled_rx)
     }
@@ -282,6 +291,7 @@ impl LexerSpec {
             .lexemes
             .iter()
             .map(|lex| RxLexeme {
+                int_ranges: lex.int_ranges.clone(),
                 rx: lex.compiled_rx,
                 priority: 0,
                 lazy: lex.lazy,
@@ -336,6 +346,7 @@ impl LexerSpec {
 
         if let Some(idx) = self.lexemes.iter().position(|lex| {
             lex.compiled_rx == compiled
+                && lex.int_ranges == spec.int_ranges
                 && lex.class == spec.class
                 && lex.max_tokens == spec.max_tokens
                 && lex.token_ranges == spec.token_ranges
@@ -362,6 +373,7 @@ impl LexerSpec {
             "new_lexeme_class() not called"
         );
         LexemeSpec {
+            int_ranges: None,
             idx: LexemeIdx(0),
             single_set: MatchingLexemes::One(LexemeIdx(0)),
             name: "".to_string(),
@@ -379,6 +391,17 @@ impl LexerSpec {
             max_tokens: usize::MAX,
             token_ranges: vec![],
         }
+    }
+
+    /// Registers a dynamic interval lexeme. Its placeholder regex is never
+    /// scanned; the regex vector selects the specialized matcher by lexeme ID.
+    #[cfg(feature = "lark")]
+    pub(crate) fn add_int_ranges(&mut self, config: IntRanges) -> Result<LexemeIdx> {
+        self.add_lexeme_spec(LexemeSpec {
+            name: "%int_ranges".to_string(),
+            int_ranges: Some(config),
+            ..self.empty_spec()
+        })
     }
 
     pub fn add_rx_and_stop(

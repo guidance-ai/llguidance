@@ -4,7 +4,7 @@ use crate::{
     substring::substring,
     HashMap,
 };
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use derivre::RegexAst;
 use serde::Deserialize;
 
@@ -192,6 +192,9 @@ impl Compiler {
                 Value::Json(_) => {
                     bail!("%json literals cannot be used in terminals");
                 }
+                Value::IntRanges(_) => {
+                    bail!("%int_ranges cannot be used in terminals; use a rule instead");
+                }
                 Value::GrammarRef(g) => {
                     bail!(
                         "grammar references (like {:?}) cannot be used in terminals",
@@ -370,6 +373,11 @@ impl Compiler {
                     }
                     Value::GrammarRef(g) => {
                         return self.gen_grammar(g, None, NodeProps::default());
+                    }
+                    Value::IntRanges(config) => {
+                        let config = serde_json::from_value(config.clone())
+                            .context("invalid %int_ranges configuration")?;
+                        return self.builder.int_ranges(config);
                     }
                     Value::NestedLark(_) | Value::Json(_) => {
                         return self.do_nested(loc, value, None, NodeProps::default());

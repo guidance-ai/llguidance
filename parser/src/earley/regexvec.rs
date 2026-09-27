@@ -14,7 +14,10 @@ pub use derivre::{AlphabetInfo, ExprRef, NextByte, StateID};
 
 use crate::api::ParserLimits;
 
-use super::lexerspec::LexemeIdx;
+use super::{
+    int_ranges::{IntRanges, IntRangesMatcher},
+    lexerspec::LexemeIdx,
+};
 
 #[derive(Clone, Serialize, Deserialize, Default)]
 pub struct LexerStats {
@@ -210,6 +213,12 @@ pub struct RegexVec {
     lazy: LexemeSet,
     subsumable: LexemeSet,
     rx_list: Vec<ExprRef>,
+    /// Per-lexeme iterative matchers. Their interned position IDs occupy the same
+    /// state-vector slot as ordinary regex expression IDs, so all lexer-state
+    /// consumers (rollback, cloning and mask caches) include the dynamic bounds.
+    int_ranges: Vec<Option<Box<IntRangesMatcher>>>,
+    /// Accumulated dynamic matcher work, kept separately to make fuel checks O(1).
+    int_ranges_cost: u64,
     special_token_rx: Option<ExprRef>,
     rx_sets: VecHashCons,
     state_table: Vec<StateID>,
@@ -254,9 +263,13 @@ impl RegexVec {
     pub fn initial_state(&mut self, selected: &LexemeSet) -> StateID {
         let mut vec_desc = vec![];
         for idx in selected.iter() {
+            if self.int_ranges[idx.as_usize()].is_some() {
+                Self::push_state(&mut vec_desc, idx, 0);
+                continue;
+            }
             let rx = self.get_rx(idx);
             if rx != ExprRef::NO_MATCH {
-                Self::push_rx(&mut vec_desc, idx, rx);
+                Self::push_state(&mut vec_desc, idx, rx.as_u32());
             }
         }
         self.insert_state(vec_desc)
@@ -273,8 +286,10 @@ impl RegexVec {
             return len;
         }
         let mut max_len = 0;
-        for (_, e) in iter_state(&self.rx_sets, state) {
-            max_len = max_len.max(self.exprs.possible_lookahead_len(e));
+        for (idx, e) in iter_state(&self.rx_sets, state) {
+            if self.int_ranges[idx.as_usize()].is_none() {
+                max_len = max_len.max(self.exprs.possible_lookahead_len(ExprRef::new(e)));
+            }
         }
         desc.possible_lookahead_len = Some(max_len);
         max_len
@@ -291,9 +306,12 @@ impl RegexVec {
         let mut res = None;
         let exprs = &self.exprs;
         for (idx2, e) in iter_state(&self.rx_sets, state) {
-            if res.is_none() && exprs.is_nullable(e) {
-                assert!(desc.greedy_accepting.contains(idx2));
-                res = Some(exprs.lookahead_len(e).unwrap_or(0));
+            if res.is_none() && desc.greedy_accepting.contains(idx2) {
+                res = Some(if self.int_ranges[idx2.as_usize()].is_some() {
+                    0
+                } else {
+                    exprs.lookahead_len(ExprRef::new(e)).unwrap_or(0)
+                });
             }
         }
         desc.lookahead_len = Some(res);
@@ -332,7 +350,7 @@ impl RegexVec {
             return false;
         }
         for (idx, _) in iter_state(&self.rx_sets, state) {
-            if self.lazy.contains(idx) {
+            if self.lazy.contains(idx) || self.int_ranges[idx.as_usize()].is_some() {
                 return false;
             }
         }
@@ -376,7 +394,7 @@ impl RegexVec {
                     &mut self.exprs,
                     &mut self.deriv,
                     small,
-                    e,
+                    ExprRef::new(e),
                     budget,
                     cache_failures,
                 )
@@ -408,6 +426,12 @@ impl RegexVec {
             + self.state_descs.len() * 100
             + self.state_table.len() * std::mem::size_of::<StateID>()
             + self.rx_sets.num_bytes()
+            + self
+                .int_ranges
+                .iter()
+                .flatten()
+                .map(|matcher| matcher.num_bytes())
+                .sum::<usize>()
     }
 
     // Find the lowest, or best, match in 'state'.  It is the first lazy regex.
@@ -431,6 +455,20 @@ impl RegexVec {
 
         // For every regex in this state
         for (idx, e) in iter_state(&self.rx_sets, desc.state) {
+            if let Some(matcher) = &mut self.int_ranges[idx.as_usize()] {
+                let cost = matcher.cost();
+                let next = matcher.next_byte(e);
+                self.int_ranges_cost += matcher.cost() - cost;
+                if next == NextByte::ForcedEOI {
+                    if all_eoi {
+                        eois.add(idx);
+                    }
+                } else {
+                    all_eoi = false;
+                }
+                continue;
+            }
+            let e = ExprRef::new(e);
             // If this lexeme is not a match.  (If the derivative at this point is nullable,
             // there is a match, so if it is not nullable, there is no match.)
             // println!("idx: {:?} e: {:?} {:?}", idx, e,self.special_token_rx);
@@ -492,8 +530,16 @@ impl RegexVec {
         }
 
         let mut next_byte = NextByte::Dead;
-        for (_, e) in iter_state(&self.rx_sets, state) {
-            next_byte = next_byte | self.next_byte.next_byte(&self.exprs, e);
+        for (idx, e) in iter_state(&self.rx_sets, state) {
+            let next = if let Some(matcher) = &mut self.int_ranges[idx.as_usize()] {
+                let cost = matcher.cost();
+                let next = matcher.next_byte(e);
+                self.int_ranges_cost += matcher.cost() - cost;
+                next
+            } else {
+                self.next_byte.next_byte(&self.exprs, ExprRef::new(e))
+            };
+            next_byte = next_byte | next;
             if next_byte.is_some_bytes() {
                 break;
             }
@@ -507,14 +553,14 @@ impl RegexVec {
         let mut vec_desc = vec![];
         for (idx, e) in iter_state(&self.rx_sets, state) {
             if allowed_lexemes.contains(idx) {
-                Self::push_rx(&mut vec_desc, idx, e);
+                Self::push_state(&mut vec_desc, idx, e);
             }
         }
         self.insert_state(vec_desc)
     }
 
     pub fn total_fuel_spent(&self) -> u64 {
-        self.exprs.cost()
+        self.exprs.cost() + self.int_ranges_cost
     }
 
     pub fn lexeme_weight(&mut self, lexeme_idx: LexemeIdx) -> u32 {
@@ -590,6 +636,8 @@ impl RegexVec {
 #[derive(Clone, Debug)]
 pub(crate) struct RxLexeme {
     pub rx: ExprRef,
+    /// Optional replacement for ordinary regular-expression scanning.
+    pub int_ranges: Option<IntRanges>,
     pub lazy: bool,
     #[allow(dead_code)]
     pub priority: i32,
@@ -598,7 +646,7 @@ pub(crate) struct RxLexeme {
 // private implementation
 impl RegexVec {
     pub(crate) fn new_with_exprset(
-        exprset: ExprSet,
+        mut exprset: ExprSet,
         mut rx_lexemes: Vec<RxLexeme>,
         special_token_rx: Option<ExprRef>,
         limits: &mut ParserLimits,
@@ -608,10 +656,20 @@ impl RegexVec {
         } else {
             None
         };
-        let (alpha, mut exprset, mut rx_list) = AlphabetInfo::from_exprset(
-            exprset,
-            &rx_lexemes.iter().map(|r| r.rx).collect::<Vec<_>>(),
-        );
+        let mut roots: Vec<_> = rx_lexemes.iter().map(|r| r.rx).collect();
+        // Dynamic numeric bounds must distinguish every digit. Literal separators
+        // must also retain their byte identities in the shared transition cache.
+        for config in rx_lexemes.iter().filter_map(|r| r.int_ranges.as_ref()) {
+            for byte in b"0123456789-"
+                .iter()
+                .copied()
+                .chain(config.separator.bytes())
+            {
+                roots.push(exprset.mk_byte(byte));
+            }
+        }
+        let (alpha, mut exprset, mut rx_list) = AlphabetInfo::from_exprset(exprset, &roots);
+        rx_list.truncate(rx_lexemes.len());
         let num_ast_nodes = exprset.len();
         let special_token_rx = spec_pos.map(|pos| rx_list[pos]);
 
@@ -651,6 +709,23 @@ impl RegexVec {
         }
 
         let rx_sets = StateID::new_hash_cons();
+        let int_ranges: Vec<_> = rx_lexemes
+            .iter()
+            .map(|r| {
+                r.int_ranges
+                    .clone()
+                    .map(|config| Box::new(IntRangesMatcher::new(config)))
+            })
+            .collect();
+        let dynamic_cost: u64 = int_ranges
+            .iter()
+            .flatten()
+            .map(|matcher| matcher.cost())
+            .sum();
+        if dynamic_cost > limits.initial_lexer_fuel {
+            bail!("fuel exhausted when compiling %int_ranges");
+        }
+        limits.initial_lexer_fuel -= dynamic_cost;
         let mut r = RegexVec {
             deriv: DerivCache::new(),
             next_byte: NextByteCache::new(),
@@ -662,6 +737,8 @@ impl RegexVec {
             exprs: exprset,
             alpha,
             rx_list,
+            int_ranges,
+            int_ranges_cost: dynamic_cost,
             rx_sets,
             state_table: vec![],
             state_descs: vec![],
@@ -727,7 +804,12 @@ impl RegexVec {
         };
         for (idx, e) in iter_state(&self.rx_sets, state) {
             res.possible.add(idx);
-            if self.exprs.is_nullable(e) {
+            let accepting = if let Some(matcher) = &mut self.int_ranges[idx.as_usize()] {
+                matcher.is_accepting(e)
+            } else {
+                self.exprs.is_nullable(ExprRef::new(e))
+            };
+            if accepting {
                 res.greedy_accepting.add(idx);
             }
         }
@@ -743,9 +825,11 @@ impl RegexVec {
         res
     }
 
-    fn push_rx(vec_desc: &mut Vec<u32>, idx: LexemeIdx, e: ExprRef) {
+    /// Appends a regex expression ID or an iterative matcher position ID,
+    /// interpreted according to the associated lexeme's matcher kind.
+    fn push_state(vec_desc: &mut Vec<u32>, idx: LexemeIdx, value: u32) {
         vec_desc.push(idx.as_usize() as u32);
-        vec_desc.push(e.as_u32());
+        vec_desc.push(value);
     }
 
     /// Given a transition (from-state and byte), create the to-state.
@@ -762,7 +846,7 @@ impl RegexVec {
         let mut vec_desc = vec![];
 
         // let d0 = self.deriv.num_deriv;
-        let c0 = self.exprs.cost();
+        let c0 = self.total_fuel_spent();
         // let t0 = crate::Instant::now();
         // let mut state_size = 0;
 
@@ -770,12 +854,23 @@ impl RegexVec {
             if cancellation.as_ref().is_some_and(|c| c.is_cancelled()) {
                 return StateID::DEAD;
             }
-            let d = self.deriv.derivative(&mut self.exprs, e, b);
+            if let Some(matcher) = &mut self.int_ranges[idx.as_usize()] {
+                let cost = matcher.cost();
+                let next = matcher.transition(e, b);
+                self.int_ranges_cost += matcher.cost() - cost;
+                #[cfg(test)]
+                crate::cancellation::checkpoint("lexer");
+                if let Some(next) = next {
+                    Self::push_state(&mut vec_desc, idx, next);
+                }
+                continue;
+            }
+            let d = self.deriv.derivative(&mut self.exprs, ExprRef::new(e), b);
             if cancellation.as_ref().is_some_and(|c| c.is_cancelled()) {
                 return StateID::DEAD;
             }
 
-            let fuel = self.fuel.saturating_sub(self.exprs.cost() - c0);
+            let fuel = self.fuel.saturating_sub(self.total_fuel_spent() - c0);
             let non_empty = self
                 .relevance
                 .is_non_empty_limited(&mut self.exprs, d, fuel);
@@ -795,7 +890,7 @@ impl RegexVec {
             crate::cancellation::checkpoint("lexer");
             // state_size += 1;
             if d != ExprRef::NO_MATCH {
-                Self::push_rx(&mut vec_desc, idx, d);
+                Self::push_state(&mut vec_desc, idx, d.as_u32());
             }
         }
 
@@ -805,7 +900,8 @@ impl RegexVec {
         }
 
         // let num_deriv = self.deriv.num_deriv - d0;
-        let cost = self.exprs.cost() - c0;
+        let new_state = self.insert_state(vec_desc);
+        let cost = self.total_fuel_spent() - c0;
         self.fuel = self.fuel.saturating_sub(cost);
         if self.fuel == 0 {
             self.alpha.enter_error_state();
@@ -823,7 +919,6 @@ impl RegexVec {
         //     //     eprintln!("expr{}: {}", idx, self.exprs.expr_to_string(e));
         //     // }
         // }
-        let new_state = self.insert_state(vec_desc);
         self.num_transitions += 1;
         self.state_table[idx] = new_state;
         new_state
@@ -836,17 +931,15 @@ impl Debug for RegexVec {
     }
 }
 
+/// Iterates the interned vector without interpreting its matcher-specific IDs.
 fn iter_state(
     rx_sets: &VecHashCons,
     state: StateID,
-) -> impl Iterator<Item = (LexemeIdx, ExprRef)> + '_ {
+) -> impl Iterator<Item = (LexemeIdx, u32)> + '_ {
     let lst = rx_sets.get(state.as_u32());
-    (0..lst.len()).step_by(2).map(move |idx| {
-        (
-            LexemeIdx::new(lst[idx] as usize),
-            ExprRef::new(lst[idx + 1]),
-        )
-    })
+    (0..lst.len())
+        .step_by(2)
+        .map(move |idx| (LexemeIdx::new(lst[idx] as usize), lst[idx + 1]))
 }
 
 // #[test]

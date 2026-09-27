@@ -319,6 +319,51 @@ MULT_NUM: %regex {
 }
 ```
 
+### Ordered integer ranges
+
+`%int_ranges { ... }` matches a sequence of ordered, non-overlapping integer
+intervals. Use it in a rule (a lowercase name):
+
+```lark
+start: "{\"content\":\"" ranges "\"}"
+ranges: %int_ranges {
+  "min": 0,
+  "max": 999,
+  "width": 3,
+  "separator": ",",
+  "min_ranges": 0,
+  "max_ranges": 20
+}
+```
+
+For example, this accepts `{"content":"031-031,108-208,300-420"}`.
+The construct itself matches raw text, without surrounding quotes or brackets.
+
+| Parameter | Meaning | Default |
+| --- | --- | --- |
+| `min`, `max` | Inclusive bounds on every endpoint, from 0 through 4294967295 | Required |
+| `width` | Exact decimal width with leading zeros; 0 uses ordinary decimal without leading zeros | 0 |
+| `separator` | Literal string between intervals | `","` |
+| `min_ranges` | Minimum number of intervals | 0 |
+| `max_ranges` | Maximum number of intervals | No explicit limit |
+
+Each interval is `start-end`, with `start <= end`. Each subsequent start must be
+strictly greater than the preceding end. Singletons retain both endpoints, such
+as `031-031`. An empty sequence is allowed when `min_ranges` is 0; set both count
+limits to 1 to require exactly one interval.
+
+Whitespace is allowed inside the sequence only as part of `separator`.
+Surrounding `%ignore` rules do not apply within it. The separator must be
+nonempty and contain neither ASCII decimal digits nor `-`. Invalid endpoint
+bounds, insufficient width, inconsistent count limits, and impossible minimum
+counts are compilation errors.
+
+Scanning reserves enough IDs for the minimum count and forbids another separator
+when either the count limit or numeric domain is exhausted. This also applies
+inside tokens that span several endpoints. The matcher is iterative and caches
+bounded-number regexes; it does not expand the sequence into recursive rules.
+This construct is available in Lark rules only, without JSON Schema integration.
+
 ### Grammar options
 
 Certain grammar options can be set by using `%llguidance { ... }`,

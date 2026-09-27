@@ -444,6 +444,22 @@ choices: {alternatives}
         );
     }
 
+    /// Cancelling an interval transition must leave cached numeric positions
+    /// usable by sibling matchers, without publishing a dead lexer transition.
+    #[test]
+    fn cancellation_inside_int_ranges_preserves_shared_cache() {
+        let mut original = matcher(
+            r#"start: %int_ranges {"min":0,"max":999,"width":3,"min_ranges":2}"#,
+            &[],
+            true,
+        );
+        original
+            .consume_tokens(&b"012-".iter().map(|b| u32::from(*b)).collect::<Vec<_>>())
+            .unwrap();
+        interrupt(original.deep_clone(), "lexer", 1, false, mask);
+        interrupt(original, "lexer", 1, true, mask);
+    }
+
     #[test]
     fn cancellation_inside_start_transition_preserves_shared_cache() {
         let choices = (1..=128)

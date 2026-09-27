@@ -13,6 +13,8 @@ use std::ops::RangeInclusive;
 use toktrie::{bytes::limit_str, TokEnv, INVALID_TOKEN};
 
 use crate::api::{GenGrammarOptions, GenOptions, NodeProps};
+#[cfg(feature = "lark")]
+use crate::earley::int_ranges::IntRanges;
 
 const DEBUG: bool = false;
 macro_rules! debug {
@@ -288,6 +290,19 @@ impl GrammarBuilder {
         };
         self.strings.insert(s.to_string(), r);
         r
+    }
+
+    /// Adds one iterative interval lexeme, keeping separators and endpoints out
+    /// of the grammar's skip machinery. Empty-only sequences need no matcher.
+    #[cfg(feature = "lark")]
+    pub(crate) fn int_ranges(&mut self, config: IntRanges) -> Result<NodeRef> {
+        config.validate()?;
+        self.check_limits()?;
+        if config.max_ranges == Some(0) {
+            return Ok(self.empty());
+        }
+        let idx = self.regex.spec.add_int_ranges(config)?;
+        Ok(self.lexeme_to_node(idx))
     }
 
     pub fn token_ranges(&mut self, token_ranges: Vec<RangeInclusive<u32>>) -> Result<NodeRef> {

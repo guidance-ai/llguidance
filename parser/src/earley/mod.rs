@@ -1,5 +1,6 @@
 mod from_guidance;
 mod grammar;
+pub(crate) mod int_ranges;
 pub(crate) mod lexer;
 mod parser;
 mod slicer;
