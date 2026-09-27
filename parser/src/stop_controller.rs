@@ -68,11 +68,11 @@ impl StopController {
             let mut dfa = RegexVec::new_with_exprset(
                 builder.into_exprset(),
                 vec![RxLexeme {
-                    int_ranges: None,
                     rx,
                     lazy: true,
                     priority: 0,
                 }],
+                None,
                 None,
                 &mut ParserLimits::default(),
             )?;

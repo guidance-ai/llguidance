@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use toktrie::SimpleVob;
 
+use derivre::HashMap;
 pub use derivre::{AlphabetInfo, ExprRef, NextByte, StateID};
 
 use crate::api::ParserLimits;
@@ -213,12 +214,11 @@ pub struct RegexVec {
     lazy: LexemeSet,
     subsumable: LexemeSet,
     rx_list: Vec<ExprRef>,
-    /// Per-lexeme iterative matchers. Their interned position IDs occupy the same
-    /// state-vector slot as ordinary regex expression IDs, so all lexer-state
+    /// Sparse iterative matchers, allocated only when the grammar uses them.
+    /// Their interned position IDs occupy the same state-vector slot as ordinary
+    /// regex expression IDs, so all lexer-state
     /// consumers (rollback, cloning and mask caches) include the dynamic bounds.
-    int_ranges: Vec<Option<Box<IntRangesMatcher>>>,
-    /// Accumulated dynamic matcher work, kept separately to make fuel checks O(1).
-    int_ranges_cost: u64,
+    int_ranges: Option<Box<IntRangesLexers>>,
     special_token_rx: Option<ExprRef>,
     rx_sets: VecHashCons,
     state_table: Vec<StateID>,
@@ -263,7 +263,11 @@ impl RegexVec {
     pub fn initial_state(&mut self, selected: &LexemeSet) -> StateID {
         let mut vec_desc = vec![];
         for idx in selected.iter() {
-            if self.int_ranges[idx.as_usize()].is_some() {
+            if self
+                .int_ranges
+                .as_ref()
+                .is_some_and(|ranges| ranges.matchers.contains_key(&idx))
+            {
                 Self::push_state(&mut vec_desc, idx, 0);
                 continue;
             }
@@ -287,7 +291,11 @@ impl RegexVec {
         }
         let mut max_len = 0;
         for (idx, e) in iter_state(&self.rx_sets, state) {
-            if self.int_ranges[idx.as_usize()].is_none() {
+            if self
+                .int_ranges
+                .as_ref()
+                .is_none_or(|ranges| !ranges.matchers.contains_key(&idx))
+            {
                 max_len = max_len.max(self.exprs.possible_lookahead_len(ExprRef::new(e)));
             }
         }
@@ -306,12 +314,25 @@ impl RegexVec {
         let mut res = None;
         let exprs = &self.exprs;
         for (idx2, e) in iter_state(&self.rx_sets, state) {
-            if res.is_none() && desc.greedy_accepting.contains(idx2) {
-                res = Some(if self.int_ranges[idx2.as_usize()].is_some() {
+            let is_dynamic = self
+                .int_ranges
+                .as_ref()
+                .is_some_and(|ranges| ranges.matchers.contains_key(&idx2));
+            // Preserve the constant-time nullable check for ordinary lexemes;
+            // searching the accepting set here can be quadratic in its size.
+            let accepting = if is_dynamic {
+                desc.greedy_accepting.contains(idx2)
+            } else {
+                exprs.is_nullable(ExprRef::new(e))
+            };
+            if accepting {
+                assert!(desc.greedy_accepting.contains(idx2));
+                res = Some(if is_dynamic {
                     0
                 } else {
                     exprs.lookahead_len(ExprRef::new(e)).unwrap_or(0)
                 });
+                break;
             }
         }
         desc.lookahead_len = Some(res);
@@ -337,8 +358,10 @@ impl RegexVec {
         let new_state = self.state_table[idx];
         if new_state != StateID::MISSING {
             new_state
+        } else if self.int_ranges.is_none() {
+            self.transition_inner::<false>(state, b, idx, cancellation)
         } else {
-            self.transition_inner(state, b, idx, cancellation)
+            self.transition_inner::<true>(state, b, idx, cancellation)
         }
     }
 
@@ -350,7 +373,12 @@ impl RegexVec {
             return false;
         }
         for (idx, _) in iter_state(&self.rx_sets, state) {
-            if self.lazy.contains(idx) || self.int_ranges[idx.as_usize()].is_some() {
+            if self.lazy.contains(idx)
+                || self
+                    .int_ranges
+                    .as_ref()
+                    .is_some_and(|ranges| ranges.matchers.contains_key(&idx))
+            {
                 return false;
             }
         }
@@ -426,19 +454,21 @@ impl RegexVec {
             + self.state_descs.len() * 100
             + self.state_table.len() * std::mem::size_of::<StateID>()
             + self.rx_sets.num_bytes()
-            + self
-                .int_ranges
-                .iter()
-                .flatten()
-                .map(|matcher| matcher.num_bytes())
-                .sum::<usize>()
+            + self.int_ranges.as_ref().map_or(0, |ranges| {
+                ranges
+                    .matchers
+                    .values()
+                    .map(|matcher| matcher.num_bytes())
+                    .sum::<usize>()
+            })
     }
 
-    // Find the lowest, or best, match in 'state'.  It is the first lazy regex.
-    // If there is no lazy regex, and all greedy lexemes have reached the end of
-    // the lexeme, then it is the first greedy lexeme.  If neither of these
-    // criteria produce a choice for "best", 'None' is returned.
-    fn lowest_match_inner(&mut self, desc: &mut StateDesc) {
+    /// Find the lowest, or best, match in 'state'.  It is the first lazy regex.
+    /// If there is no lazy regex, and all greedy lexemes have reached the end of
+    /// the lexeme, then it is the first greedy lexeme.  If neither of these
+    /// criteria produce a choice for "best", 'None' is returned.
+    /// Specialization removes per-lexeme matcher checks for ordinary grammars.
+    fn lowest_match_inner<const WITH_INT_RANGES: bool>(&mut self, desc: &mut StateDesc) {
         // 'all_eoi' is true if all greedy lexemes match, that is, if we are at
         // the end of lexeme for all of them.  End of lexeme is called
         // "end of input" or EOI for consistency with the regex package.
@@ -455,18 +485,21 @@ impl RegexVec {
 
         // For every regex in this state
         for (idx, e) in iter_state(&self.rx_sets, desc.state) {
-            if let Some(matcher) = &mut self.int_ranges[idx.as_usize()] {
-                let cost = matcher.cost();
-                let next = matcher.next_byte(e);
-                self.int_ranges_cost += matcher.cost() - cost;
-                if next == NextByte::ForcedEOI {
-                    if all_eoi {
-                        eois.add(idx);
+            if WITH_INT_RANGES {
+                let ranges = self.int_ranges.as_mut().unwrap();
+                if let Some(matcher) = ranges.matchers.get_mut(&idx) {
+                    let cost = matcher.cost();
+                    let next = matcher.next_byte(e);
+                    ranges.cost += matcher.cost() - cost;
+                    if next == NextByte::ForcedEOI {
+                        if all_eoi {
+                            eois.add(idx);
+                        }
+                    } else {
+                        all_eoi = false;
                     }
-                } else {
-                    all_eoi = false;
+                    continue;
                 }
-                continue;
             }
             let e = ExprRef::new(e);
             // If this lexeme is not a match.  (If the derivative at this point is nullable,
@@ -524,28 +557,42 @@ impl RegexVec {
     /// Check if the there is only one transition out of state.
     /// This is an approximation - see docs for NextByte.
     pub fn next_byte(&mut self, state: StateID) -> NextByte {
-        let desc = &mut self.state_descs[state.as_usize()];
+        let desc = &self.state_descs[state.as_usize()];
         if let Some(next_byte) = desc.next_byte {
             return next_byte;
         }
+        if self.int_ranges.is_none() {
+            self.next_byte_inner::<false>(state)
+        } else {
+            self.next_byte_inner::<true>(state)
+        }
+    }
 
+    /// Computes and caches the union of possible bytes. Ordinary grammars use a
+    /// separate instantiation whose loop only queries the regex next-byte cache.
+    fn next_byte_inner<const WITH_INT_RANGES: bool>(&mut self, state: StateID) -> NextByte {
         let mut next_byte = NextByte::Dead;
         for (idx, e) in iter_state(&self.rx_sets, state) {
-            let next = if let Some(matcher) = &mut self.int_ranges[idx.as_usize()] {
-                let cost = matcher.cost();
-                let next = matcher.next_byte(e);
-                self.int_ranges_cost += matcher.cost() - cost;
-                next
+            let dynamic_next = if WITH_INT_RANGES {
+                let ranges = self.int_ranges.as_mut().unwrap();
+                ranges.matchers.get_mut(&idx).map(|matcher| {
+                    let cost = matcher.cost();
+                    let next = matcher.next_byte(e);
+                    ranges.cost += matcher.cost() - cost;
+                    next
+                })
             } else {
-                self.next_byte.next_byte(&self.exprs, ExprRef::new(e))
+                None
             };
+            let next = dynamic_next
+                .unwrap_or_else(|| self.next_byte.next_byte(&self.exprs, ExprRef::new(e)));
             next_byte = next_byte | next;
             if next_byte.is_some_bytes() {
                 break;
             }
         }
 
-        desc.next_byte = Some(next_byte);
+        self.state_descs[state.as_usize()].next_byte = Some(next_byte);
         next_byte
     }
 
@@ -560,7 +607,18 @@ impl RegexVec {
     }
 
     pub fn total_fuel_spent(&self) -> u64 {
-        self.exprs.cost() + self.int_ranges_cost
+        self.fuel_spent::<true>()
+    }
+
+    /// Includes dynamic matcher work only when needed. The ordinary transition
+    /// loop specializes this to the original regex-only fuel calculation.
+    fn fuel_spent<const WITH_INT_RANGES: bool>(&self) -> u64 {
+        self.exprs.cost()
+            + if WITH_INT_RANGES {
+                self.int_ranges.as_ref().map_or(0, |ranges| ranges.cost)
+            } else {
+                0
+            }
     }
 
     pub fn lexeme_weight(&mut self, lexeme_idx: LexemeIdx) -> u32 {
@@ -636,11 +694,18 @@ impl RegexVec {
 #[derive(Clone, Debug)]
 pub(crate) struct RxLexeme {
     pub rx: ExprRef,
-    /// Optional replacement for ordinary regular-expression scanning.
-    pub int_ranges: Option<IntRanges>,
     pub lazy: bool,
     #[allow(dead_code)]
     pub priority: i32,
+}
+
+/// Owns the optional runtime tables without adding a slot to every ordinary lexeme.
+#[derive(Clone)]
+struct IntRangesLexers {
+    /// Only lexemes whose state-vector entries are interval positions occur here.
+    matchers: HashMap<LexemeIdx, IntRangesMatcher>,
+    /// Accumulated dynamic work keeps fuel checks independent of the matcher count.
+    cost: u64,
 }
 
 // private implementation
@@ -649,6 +714,7 @@ impl RegexVec {
         mut exprset: ExprSet,
         mut rx_lexemes: Vec<RxLexeme>,
         special_token_rx: Option<ExprRef>,
+        int_ranges: Option<&HashMap<LexemeIdx, IntRanges>>,
         limits: &mut ParserLimits,
     ) -> Result<Self> {
         let spec_pos = if let Some(rx) = special_token_rx {
@@ -659,13 +725,21 @@ impl RegexVec {
         let mut roots: Vec<_> = rx_lexemes.iter().map(|r| r.rx).collect();
         // Dynamic numeric bounds must distinguish every digit. Literal separators
         // must also retain their byte identities in the shared transition cache.
-        for config in rx_lexemes.iter().filter_map(|r| r.int_ranges.as_ref()) {
-            for byte in b"0123456789-"
-                .iter()
-                .copied()
-                .chain(config.separator.bytes())
-            {
-                roots.push(exprset.mk_byte(byte));
+        if let Some(configs) = int_ranges {
+            let mut bytes = [false; 256];
+            for config in configs.values() {
+                for byte in b"0123456789-"
+                    .iter()
+                    .copied()
+                    .chain(config.separator.bytes())
+                {
+                    bytes[byte as usize] = true;
+                }
+            }
+            for (byte, used) in bytes.into_iter().enumerate() {
+                if used {
+                    roots.push(exprset.mk_byte(byte as u8));
+                }
             }
         }
         let (alpha, mut exprset, mut rx_list) = AlphabetInfo::from_exprset(exprset, &roots);
@@ -709,23 +783,20 @@ impl RegexVec {
         }
 
         let rx_sets = StateID::new_hash_cons();
-        let int_ranges: Vec<_> = rx_lexemes
-            .iter()
-            .map(|r| {
-                r.int_ranges
-                    .clone()
-                    .map(|config| Box::new(IntRangesMatcher::new(config)))
-            })
-            .collect();
-        let dynamic_cost: u64 = int_ranges
-            .iter()
-            .flatten()
-            .map(|matcher| matcher.cost())
-            .sum();
-        if dynamic_cost > limits.initial_lexer_fuel {
-            bail!("fuel exhausted when compiling %int_ranges");
+        let int_ranges = int_ranges.map(|configs| {
+            let matchers: HashMap<_, _> = configs
+                .iter()
+                .map(|(&idx, config)| (idx, IntRangesMatcher::new(config.clone())))
+                .collect();
+            let cost = matchers.values().map(|matcher| matcher.cost()).sum();
+            Box::new(IntRangesLexers { matchers, cost })
+        });
+        if let Some(ranges) = &int_ranges {
+            if ranges.cost > limits.initial_lexer_fuel {
+                bail!("fuel exhausted when compiling %int_ranges");
+            }
+            limits.initial_lexer_fuel -= ranges.cost;
         }
-        limits.initial_lexer_fuel -= dynamic_cost;
         let mut r = RegexVec {
             deriv: DerivCache::new(),
             next_byte: NextByteCache::new(),
@@ -738,7 +809,6 @@ impl RegexVec {
             alpha,
             rx_list,
             int_ranges,
-            int_ranges_cost: dynamic_cost,
             rx_sets,
             state_table: vec![],
             state_descs: vec![],
@@ -780,7 +850,11 @@ impl RegexVec {
         assert!(lst.len().is_multiple_of(2));
         let id = StateID::new(self.rx_sets.insert(&lst));
         if id.as_usize() >= self.state_descs.len() {
-            let state_desc = self.compute_state_desc(id);
+            let state_desc = if self.int_ranges.is_none() {
+                self.compute_state_desc::<false>(id)
+            } else {
+                self.compute_state_desc::<true>(id)
+            };
             self.append_state(state_desc);
         }
         if self.state_desc(id).lazy_accepting.is_some() {
@@ -790,7 +864,9 @@ impl RegexVec {
         }
     }
 
-    fn compute_state_desc(&mut self, state: StateID) -> StateDesc {
+    /// Builds acceptance metadata using the same matcher kind as the transition
+    /// loop, with no interval-table lookups in the ordinary specialization.
+    fn compute_state_desc<const WITH_INT_RANGES: bool>(&mut self, state: StateID) -> StateDesc {
         let mut res = StateDesc {
             state,
             greedy_accepting: MatchingLexemes::None,
@@ -804,11 +880,18 @@ impl RegexVec {
         };
         for (idx, e) in iter_state(&self.rx_sets, state) {
             res.possible.add(idx);
-            let accepting = if let Some(matcher) = &mut self.int_ranges[idx.as_usize()] {
-                matcher.is_accepting(e)
+            let dynamic_accepting = if WITH_INT_RANGES {
+                self.int_ranges
+                    .as_mut()
+                    .unwrap()
+                    .matchers
+                    .get_mut(&idx)
+                    .map(|matcher| matcher.is_accepting(e))
             } else {
-                self.exprs.is_nullable(ExprRef::new(e))
+                None
             };
+            let accepting =
+                dynamic_accepting.unwrap_or_else(|| self.exprs.is_nullable(ExprRef::new(e)));
             if accepting {
                 res.greedy_accepting.add(idx);
             }
@@ -818,7 +901,7 @@ impl RegexVec {
             assert!(state == StateID::DEAD);
         }
 
-        self.lowest_match_inner(&mut res);
+        self.lowest_match_inner::<WITH_INT_RANGES>(&mut res);
 
         // println!("state {:?} desc: {:?}", state, res);
 
@@ -834,7 +917,9 @@ impl RegexVec {
 
     /// Given a transition (from-state and byte), create the to-state.
     /// It is assumed the to-state does not exist.
-    fn transition_inner(
+    /// Ordinary grammars instantiate a regex-only loop, avoiding an optional
+    /// matcher lookup for every live lexeme on every uncached byte.
+    fn transition_inner<const WITH_INT_RANGES: bool>(
         &mut self,
         state: StateID,
         b: u8,
@@ -846,7 +931,7 @@ impl RegexVec {
         let mut vec_desc = vec![];
 
         // let d0 = self.deriv.num_deriv;
-        let c0 = self.total_fuel_spent();
+        let c0 = self.fuel_spent::<WITH_INT_RANGES>();
         // let t0 = crate::Instant::now();
         // let mut state_size = 0;
 
@@ -854,23 +939,28 @@ impl RegexVec {
             if cancellation.as_ref().is_some_and(|c| c.is_cancelled()) {
                 return StateID::DEAD;
             }
-            if let Some(matcher) = &mut self.int_ranges[idx.as_usize()] {
-                let cost = matcher.cost();
-                let next = matcher.transition(e, b);
-                self.int_ranges_cost += matcher.cost() - cost;
-                #[cfg(test)]
-                crate::cancellation::checkpoint("lexer");
-                if let Some(next) = next {
-                    Self::push_state(&mut vec_desc, idx, next);
+            if WITH_INT_RANGES {
+                let ranges = self.int_ranges.as_mut().unwrap();
+                if let Some(matcher) = ranges.matchers.get_mut(&idx) {
+                    let cost = matcher.cost();
+                    let next = matcher.transition(e, b);
+                    ranges.cost += matcher.cost() - cost;
+                    #[cfg(test)]
+                    crate::cancellation::checkpoint("lexer");
+                    if let Some(next) = next {
+                        Self::push_state(&mut vec_desc, idx, next);
+                    }
+                    continue;
                 }
-                continue;
             }
             let d = self.deriv.derivative(&mut self.exprs, ExprRef::new(e), b);
             if cancellation.as_ref().is_some_and(|c| c.is_cancelled()) {
                 return StateID::DEAD;
             }
 
-            let fuel = self.fuel.saturating_sub(self.total_fuel_spent() - c0);
+            let fuel = self
+                .fuel
+                .saturating_sub(self.fuel_spent::<WITH_INT_RANGES>() - c0);
             let non_empty = self
                 .relevance
                 .is_non_empty_limited(&mut self.exprs, d, fuel);
@@ -901,7 +991,7 @@ impl RegexVec {
 
         // let num_deriv = self.deriv.num_deriv - d0;
         let new_state = self.insert_state(vec_desc);
-        let cost = self.total_fuel_spent() - c0;
+        let cost = self.fuel_spent::<WITH_INT_RANGES>() - c0;
         self.fuel = self.fuel.saturating_sub(cost);
         if self.fuel == 0 {
             self.alpha.enter_error_state();
