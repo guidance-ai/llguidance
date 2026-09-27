@@ -214,10 +214,9 @@ pub struct RegexVec {
     lazy: LexemeSet,
     subsumable: LexemeSet,
     rx_list: Vec<ExprRef>,
-    /// Sparse iterative matchers, allocated only when the grammar uses them.
-    /// Their interned position IDs occupy the same state-vector slot as ordinary
-    /// regex expression IDs, so rollback, cloning and mask caches include the
-    /// dynamic bounds.
+    /// Iterative interval matchers. The state vector stores their interned position
+    /// IDs in place of regex expression IDs, so rollback, cloning and mask caches
+    /// include the dynamic bounds.
     int_ranges: Option<Box<IntRangesLexers>>,
     special_token_rx: Option<ExprRef>,
     rx_sets: VecHashCons,
@@ -464,7 +463,6 @@ impl RegexVec {
     /// If there is no lazy regex, and all greedy lexemes have reached the end of
     /// the lexeme, then it is the first greedy lexeme.  If neither of these
     /// criteria produce a choice for "best", 'None' is returned.
-    /// Specialization removes per-lexeme matcher checks for ordinary grammars.
     fn lowest_match_inner<const WITH_INT_RANGES: bool>(&mut self, desc: &mut StateDesc) {
         // 'all_eoi' is true if all greedy lexemes match, that is, if we are at
         // the end of lexeme for all of them.  End of lexeme is called
@@ -557,7 +555,6 @@ impl RegexVec {
 
     /// Stops fast-forwarding while an integer-range matcher is possible, so the
     /// model chooses among valid tokenizations without expanding a forced sequence.
-    /// Ordinary grammars require only the absent-table check and no extra storage.
     pub(crate) fn allows_forcing(&self, state: StateID) -> bool {
         self.int_ranges.as_ref().is_none_or(|ranges| {
             !ranges
@@ -567,7 +564,7 @@ impl RegexVec {
         })
     }
 
-    /// Whether initialization must enforce budgets for dynamic interval matchers.
+    /// Reports whether this lexer contains interval matchers.
     pub(crate) fn has_int_ranges(&self) -> bool {
         self.int_ranges.is_some()
     }
@@ -586,8 +583,7 @@ impl RegexVec {
         }
     }
 
-    /// Computes and caches the union of possible bytes. Ordinary grammars use a
-    /// separate instantiation whose loop only queries the regex next-byte cache.
+    /// Computes and caches the union of possible next bytes from active matchers.
     fn next_byte_inner<const WITH_INT_RANGES: bool>(&mut self, state: StateID) -> NextByte {
         let mut next_byte = NextByte::Dead;
         for (idx, e) in iter_state(&self.rx_sets, state) {
@@ -720,11 +716,11 @@ pub(crate) struct RxLexeme {
     pub priority: i32,
 }
 
-/// Owns the optional runtime tables without adding a slot to every ordinary lexeme.
+/// Interval matchers and their aggregate resource usage.
 struct IntRangesLexers {
-    /// Only lexemes whose state-vector entries are interval positions occur here.
+    /// Matchers indexed by lexeme ID; their position IDs appear in the state vector.
     matchers: HashMap<LexemeIdx, IntRangesMatcher>,
-    /// Accumulated dynamic work keeps fuel checks independent of the matcher count.
+    /// Running total of matcher work used for fuel accounting.
     cost: u64,
     /// Retained inner caches, including sequence positions and bounded-number DFAs.
     num_bytes: usize,
@@ -876,7 +872,7 @@ impl RegexVec {
                 ranges.cost += cost;
                 ranges.num_bytes += matcher.num_bytes();
                 ranges.matchers.insert(idx, matcher);
-                // The map itself is sparse but still grows with the number of declarations.
+                // Include the matcher map's allocation in the storage budget.
                 let map_bytes = ranges.matchers.capacity()
                     * (std::mem::size_of::<(LexemeIdx, IntRangesMatcher)>() + 1);
                 if ranges.num_bytes + map_bytes >= ranges.max_bytes {
@@ -972,8 +968,7 @@ impl RegexVec {
         }
     }
 
-    /// Builds acceptance metadata using the same matcher kind as the transition
-    /// loop, with no interval-table lookups in the ordinary specialization.
+    /// Builds acceptance metadata for the active regex and interval matchers.
     fn compute_state_desc<const WITH_INT_RANGES: bool>(&mut self, state: StateID) -> StateDesc {
         let mut res = StateDesc {
             state,
@@ -1031,8 +1026,7 @@ impl RegexVec {
 
     /// Given a transition (from-state and byte), create the to-state.
     /// It is assumed the to-state does not exist.
-    /// Ordinary grammars instantiate a regex-only loop, avoiding an optional
-    /// matcher lookup for every live lexeme on every uncached byte.
+    /// `WITH_INT_RANGES` specializes the hot loop for the grammar's lexeme kinds.
     fn transition_inner<const WITH_INT_RANGES: bool>(
         &mut self,
         state: StateID,
@@ -1045,8 +1039,7 @@ impl RegexVec {
         let mut vec_desc = vec![];
 
         // let d0 = self.deriv.num_deriv;
-        // Dynamic operations debit fuel immediately; ordinary regex work is
-        // charged below, preserving the original path for ordinary grammars.
+        // Dynamic operations debit fuel immediately; regex work is charged below.
         let mut c0 = self.exprs.cost();
         // let t0 = crate::Instant::now();
         // let mut state_size = 0;
@@ -1107,8 +1100,8 @@ impl RegexVec {
                 Self::push_state(&mut vec_desc, idx, d.as_u32());
             }
             if WITH_INT_RANGES {
-                // Make ordinary work visible to the next dynamic operation's
-                // budget check, without changing the ordinary specialization.
+                // Charge regex work before the next dynamic operation checks
+                // the remaining fuel.
                 self.fuel = self.fuel.saturating_sub(self.exprs.cost() - c0);
                 c0 = self.exprs.cost();
                 if self.fuel == 0 {

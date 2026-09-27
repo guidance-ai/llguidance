@@ -17,7 +17,7 @@ use super::{
 #[derive(Clone)]
 pub struct LexerSpec {
     pub lexemes: Vec<LexemeSpec>,
-    /// Sparse storage keeps ordinary lexemes and their clones at their original size.
+    /// Interval configurations, indexed by lexeme ID.
     int_ranges: Option<Box<HashMap<LexemeIdx, IntRanges>>>,
     pub regex_builder: RegexBuilder,
     pub no_forcing: bool,
@@ -303,13 +303,12 @@ impl LexerSpec {
         )
     }
 
-    /// Registers an ordinary regex lexeme without allocating specialized matcher storage.
+    /// Registers a regex lexeme.
     fn add_lexeme_spec(&mut self, spec: LexemeSpec) -> Result<LexemeIdx> {
         self.add_lexeme_spec_inner(spec, None)
     }
 
     /// Deduplicates lexemes by both their regex and optional interval configuration.
-    /// Only interval lexemes populate the sparse configuration table.
     fn add_lexeme_spec_inner(
         &mut self,
         mut spec: LexemeSpec,

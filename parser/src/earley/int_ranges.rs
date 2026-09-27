@@ -64,7 +64,7 @@ impl IntRanges {
 }
 
 /// One immutable position in an interval sequence. Interning these positions
-/// lets the ordinary lexer state stack restore speculative and committed scans.
+/// lets the lexer state stack restore speculative and committed scans.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct Position {
     /// Fully consumed intervals before the current endpoint or separator.

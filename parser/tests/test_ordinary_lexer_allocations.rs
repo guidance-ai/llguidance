@@ -68,8 +68,7 @@ fn measure<T>(f: impl FnOnce() -> T) -> (T, Allocations) {
     (result, allocations)
 }
 
-/// Ordinary grammars must not pay for interval configurations or matcher tables.
-/// Thousands of distinct lexemes expose even one additional slot per lexeme.
+/// Checks allocation sizes for building and cloning a 4,096-lexeme regex grammar.
 #[test]
 fn ordinary_lexer_allocations() {
     let (spec, build) = measure(|| {
@@ -93,9 +92,8 @@ fn ordinary_lexer_allocations() {
     let (lexer_copy, lexer_clone) = measure(|| lexer.clone());
     std::hint::black_box((spec_copy, lexer_copy));
 
-    // Measured before adding %int_ranges on 64-bit targets with the default
-    // hasher. Allow small fixed changes, but less than a pointer per lexeme
-    // (32 KiB), so an optional feature cannot silently add a dense table.
+    // Baseline measured before adding %int_ranges on 64-bit targets with the
+    // default hasher. The tolerance is less than one pointer per lexeme (32 KiB).
     #[cfg(all(target_pointer_width = "64", feature = "ahash"))]
     for (name, actual, bytes, large_bytes) in [
         ("build", build, 3_563_172, 2_935_552),
