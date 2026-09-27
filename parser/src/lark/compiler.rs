@@ -1,5 +1,5 @@
 use crate::{
-    earley::{ParamCond, ParamExpr},
+    earley::{int_ranges::IntRanges, ParamCond, ParamExpr},
     grammar_builder::{GrammarResult, RegexId},
     substring::substring,
     HashMap,
@@ -375,7 +375,7 @@ impl Compiler {
                         return self.gen_grammar(g, None, NodeProps::default());
                     }
                     Value::IntRanges(config) => {
-                        let config = serde_json::from_value(config.clone())
+                        let config = IntRanges::deserialize(config)
                             .context("invalid %int_ranges configuration")?;
                         return self.builder.int_ranges(config);
                     }

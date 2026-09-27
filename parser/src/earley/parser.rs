@@ -1663,11 +1663,15 @@ impl ParserState {
         &self.rows[self.lexer_state().row_idx as usize]
     }
 
-    /// forced_byte() finds the unique byte allowed by the
-    /// parser at this point, and returns it.  If there is
-    /// no such byte, forced_byte() returns 'None'.
+    /// Finds the unique byte allowed by the parser when fast-forwarding is
+    /// permitted. Returns `None` for multiple choices or an active integer-range
+    /// construct, which leaves tokenization choices to the model.
     fn forced_byte(&mut self) -> Option<u8> {
         if self.is_cancelled() {
+            return None;
+        }
+        let lex_state = self.lexer_state().lexer_state;
+        if !self.lexer().dfa.allows_forcing(lex_state) {
             return None;
         }
         if self.is_accepting() {
@@ -1678,7 +1682,6 @@ impl ParserState {
         // self.print_row(self.num_rows() - 1);
 
         //let t0 = Instant::now();
-        let lex_state = self.lexer_state().lexer_state;
         let quick_res = self.lexer_mut().next_byte(lex_state);
         if let NextByte::ForcedByte(b) = quick_res {
             return Some(b);

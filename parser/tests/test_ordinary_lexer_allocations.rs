@@ -7,9 +7,7 @@ use llguidance::{api::ParserLimits, derivre::RegexAst, earley::lexerspec::LexerS
 /// Large buffers are tracked separately to catch storage proportional to lexeme count.
 #[derive(Clone, Copy, Debug, Default)]
 struct Allocations {
-    calls: usize,
     bytes: usize,
-    large_calls: usize,
     large_bytes: usize,
 }
 
@@ -27,10 +25,8 @@ static ALLOCATOR: CountingAllocator = CountingAllocator;
 fn record(size: usize) {
     let _ = ALLOCATIONS.try_with(|counter| {
         if let Some(mut allocations) = counter.get() {
-            allocations.calls += 1;
             allocations.bytes += size;
             if size >= 64 * 1024 {
-                allocations.large_calls += 1;
                 allocations.large_bytes += size;
             }
             counter.set(Some(allocations));
@@ -95,7 +91,6 @@ fn ordinary_lexer_allocations() {
     }
     assert!(lexer.state_desc(state).greedy_accepting.is_some());
     let (lexer_copy, lexer_clone) = measure(|| lexer.clone());
-    println!("build: {build:?}\nspec clone: {spec_clone:?}\ncompile: {compile:?}\nlexer clone: {lexer_clone:?}");
     std::hint::black_box((spec_copy, lexer_copy));
 
     // Measured before adding %int_ranges on 64-bit targets with the default

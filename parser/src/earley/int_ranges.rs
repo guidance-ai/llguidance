@@ -12,9 +12,10 @@ use crate::{json::numeric::rx_int_range, HashMap};
 pub(crate) struct IntRanges {
     pub min: u32,
     pub max: u32,
-    /// Exact decimal width; zero uses canonical, unpadded decimal notation.
+    /// Exact decimal width, at most ten; zero uses canonical, unpadded notation.
     #[serde(default)]
     pub width: u32,
+    /// Nonempty literal of at most sixteen UTF-8 bytes, excluding ASCII digits and '-'.
     #[serde(default = "IntRanges::default_separator")]
     pub separator: String,
     #[serde(default)]
@@ -24,13 +25,18 @@ pub(crate) struct IntRanges {
 }
 
 impl IntRanges {
-    /// Rejects configurations that cannot produce the requested sequence.
+    /// Rejects oversized widths or separators and impossible sequence constraints.
     #[cfg(feature = "lark")]
     pub fn validate(&self) -> Result<()> {
         ensure!(self.min <= self.max, "%int_ranges: min must be <= max");
+        ensure!(self.width <= 10, "%int_ranges: width must be at most 10");
         ensure!(
             self.width == 0 || self.width >= self.max.to_string().len() as u32,
             "%int_ranges: width is insufficient for max"
+        );
+        ensure!(
+            self.separator.len() <= 16,
+            "%int_ranges: separator must be at most 16 UTF-8 bytes"
         );
         ensure!(
             !self.separator.is_empty()
@@ -75,9 +81,6 @@ enum Phase {
         matcher: usize,
         state: StateID,
         value: u32,
-        /// Width beyond ten digits is necessarily zero padding. Track it without
-        /// constructing a huge regex or using the regex engine's unbounded repeat.
-        padding: u32,
     },
     /// A literal separator; the previous end determines the next lower bound.
     Separator { offset: usize, end: u32 },
@@ -123,14 +126,8 @@ impl IntRangesMatcher {
                 matcher,
                 state,
                 value,
-                padding,
             } => {
-                if *padding > 0 {
-                    if byte != b'0' {
-                        return None;
-                    }
-                    *padding -= 1;
-                } else if byte.is_ascii_digit() {
+                if byte.is_ascii_digit() {
                     let rx = &mut self.matchers[*matcher];
                     let cost = rx.cost();
                     let next = rx.transition(*state, byte);
@@ -193,7 +190,6 @@ impl IntRangesMatcher {
                 is_end: true,
                 matcher,
                 state,
-                padding: 0,
                 ..
             } => {
                 pos.count + 1 >= self.config.min_ranges
@@ -214,15 +210,11 @@ impl IntRangesMatcher {
         let pos = self.positions[id as usize];
         match pos.phase {
             Phase::Endpoint {
-                padding,
                 is_end,
                 matcher,
                 state,
                 value,
             } => {
-                if padding > 0 {
-                    return next | NextByte::ForcedByte(b'0');
-                }
                 let rx = &mut self.matchers[matcher];
                 let cost = rx.cost();
                 for byte in b'0'..=b'9' {
@@ -270,7 +262,7 @@ impl IntRangesMatcher {
         let matcher = if let Some(&idx) = self.matcher_ids.get(&(min, max)) {
             idx
         } else {
-            let width = self.config.width.min(10);
+            let width = self.config.width;
             let pattern = if width == 0 {
                 rx_int_range(Some(i64::from(min)), Some(i64::from(max))).unwrap()
             } else {
@@ -301,7 +293,6 @@ impl IntRangesMatcher {
             matcher,
             state: self.matchers[matcher].initial_state(),
             value: 0,
-            padding: self.config.width.saturating_sub(10),
         }
     }
 

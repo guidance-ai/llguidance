@@ -216,8 +216,8 @@ pub struct RegexVec {
     rx_list: Vec<ExprRef>,
     /// Sparse iterative matchers, allocated only when the grammar uses them.
     /// Their interned position IDs occupy the same state-vector slot as ordinary
-    /// regex expression IDs, so all lexer-state
-    /// consumers (rollback, cloning and mask caches) include the dynamic bounds.
+    /// regex expression IDs, so rollback, cloning and mask caches include the
+    /// dynamic bounds.
     int_ranges: Option<Box<IntRangesLexers>>,
     special_token_rx: Option<ExprRef>,
     rx_sets: VecHashCons,
@@ -554,6 +554,18 @@ impl RegexVec {
         }
     }
 
+    /// Stops fast-forwarding while an integer-range matcher is possible, so the
+    /// model chooses among valid tokenizations without expanding a forced sequence.
+    /// Ordinary grammars require only the absent-table check and no extra storage.
+    pub(crate) fn allows_forcing(&self, state: StateID) -> bool {
+        self.int_ranges.as_ref().is_none_or(|ranges| {
+            !ranges
+                .matchers
+                .keys()
+                .any(|idx| self.state_desc(state).possible.contains(*idx))
+        })
+    }
+
     /// Check if the there is only one transition out of state.
     /// This is an approximation - see docs for NextByte.
     pub fn next_byte(&mut self, state: StateID) -> NextByte {
@@ -783,20 +795,27 @@ impl RegexVec {
         }
 
         let rx_sets = StateID::new_hash_cons();
-        let int_ranges = int_ranges.map(|configs| {
-            let matchers: HashMap<_, _> = configs
-                .iter()
-                .map(|(&idx, config)| (idx, IntRangesMatcher::new(config.clone())))
-                .collect();
-            let cost = matchers.values().map(|matcher| matcher.cost()).sum();
-            Box::new(IntRangesLexers { matchers, cost })
-        });
-        if let Some(ranges) = &int_ranges {
-            if ranges.cost > limits.initial_lexer_fuel {
-                bail!("fuel exhausted when compiling %int_ranges");
+        let int_ranges = if let Some(configs) = int_ranges {
+            let mut ranges = IntRangesLexers {
+                matchers: HashMap::default(),
+                cost: 0,
+            };
+            for (&idx, config) in configs {
+                let matcher = IntRangesMatcher::new(config.clone());
+                let cost = matcher.cost();
+                // Stop at the exhausted budget instead of compiling every
+                // interval lexeme before checking their combined cost.
+                if cost > limits.initial_lexer_fuel {
+                    bail!("fuel exhausted when compiling %int_ranges");
+                }
+                limits.initial_lexer_fuel -= cost;
+                ranges.cost += cost;
+                ranges.matchers.insert(idx, matcher);
             }
-            limits.initial_lexer_fuel -= ranges.cost;
-        }
+            Some(Box::new(ranges))
+        } else {
+            None
+        };
         let mut r = RegexVec {
             deriv: DerivCache::new(),
             next_byte: NextByteCache::new(),
