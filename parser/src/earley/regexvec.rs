@@ -454,13 +454,10 @@ impl RegexVec {
             + self.state_descs.len() * 100
             + self.state_table.len() * std::mem::size_of::<StateID>()
             + self.rx_sets.num_bytes()
-            + self.int_ranges.as_ref().map_or(0, |ranges| {
-                ranges
-                    .matchers
-                    .values()
-                    .map(|matcher| matcher.num_bytes())
-                    .sum::<usize>()
-            })
+            + self
+                .int_ranges
+                .as_ref()
+                .map_or(0, |ranges| ranges.num_bytes)
     }
 
     /// Find the lowest, or best, match in 'state'.  It is the first lazy regex.
@@ -487,10 +484,14 @@ impl RegexVec {
         for (idx, e) in iter_state(&self.rx_sets, desc.state) {
             if WITH_INT_RANGES {
                 let ranges = self.int_ranges.as_mut().unwrap();
-                if let Some(matcher) = ranges.matchers.get_mut(&idx) {
-                    let cost = matcher.cost();
-                    let next = matcher.next_byte(e);
-                    ranges.cost += matcher.cost() - cost;
+                let next = match ranges.with_matcher(idx, &mut self.fuel, |m| m.next_byte(e)) {
+                    Ok(next) => next,
+                    Err(()) => {
+                        self.alpha.enter_error_state();
+                        return;
+                    }
+                };
+                if let Some(next) = next {
                     if next == NextByte::ForcedEOI {
                         if all_eoi {
                             eois.add(idx);
@@ -566,6 +567,11 @@ impl RegexVec {
         })
     }
 
+    /// Whether initialization must enforce budgets for dynamic interval matchers.
+    pub(crate) fn has_int_ranges(&self) -> bool {
+        self.int_ranges.is_some()
+    }
+
     /// Check if the there is only one transition out of state.
     /// This is an approximation - see docs for NextByte.
     pub fn next_byte(&mut self, state: StateID) -> NextByte {
@@ -587,12 +593,13 @@ impl RegexVec {
         for (idx, e) in iter_state(&self.rx_sets, state) {
             let dynamic_next = if WITH_INT_RANGES {
                 let ranges = self.int_ranges.as_mut().unwrap();
-                ranges.matchers.get_mut(&idx).map(|matcher| {
-                    let cost = matcher.cost();
-                    let next = matcher.next_byte(e);
-                    ranges.cost += matcher.cost() - cost;
-                    next
-                })
+                match ranges.with_matcher(idx, &mut self.fuel, |m| m.next_byte(e)) {
+                    Ok(next) => next,
+                    Err(()) => {
+                        self.alpha.enter_error_state();
+                        return NextByte::Dead;
+                    }
+                }
             } else {
                 None
             };
@@ -619,18 +626,7 @@ impl RegexVec {
     }
 
     pub fn total_fuel_spent(&self) -> u64 {
-        self.fuel_spent::<true>()
-    }
-
-    /// Includes dynamic matcher work only when needed. The ordinary transition
-    /// loop specializes this to the original regex-only fuel calculation.
-    fn fuel_spent<const WITH_INT_RANGES: bool>(&self) -> u64 {
-        self.exprs.cost()
-            + if WITH_INT_RANGES {
-                self.int_ranges.as_ref().map_or(0, |ranges| ranges.cost)
-            } else {
-                0
-            }
+        self.exprs.cost() + self.int_ranges.as_ref().map_or(0, |ranges| ranges.cost)
     }
 
     pub fn lexeme_weight(&mut self, lexeme_idx: LexemeIdx) -> u32 {
@@ -641,6 +637,14 @@ impl RegexVec {
     pub fn set_max_states(&mut self, max_states: usize) {
         if !self.has_error() {
             self.max_states = max_states;
+            if let Some(ranges) = &mut self.int_ranges {
+                ranges.max_bytes = max_states
+                    .saturating_sub(self.state_descs.len())
+                    .saturating_mul(1024);
+                if ranges.num_bytes >= ranges.max_bytes {
+                    self.alpha.enter_error_state();
+                }
+            }
         }
     }
 
@@ -669,6 +673,11 @@ impl RegexVec {
                     "too many states: {} >= {}",
                     self.state_descs.len(),
                     self.max_states
+                ))
+            } else if let Some(ranges) = &self.int_ranges {
+                Some(format!(
+                    "%int_ranges cache exceeds max_lexer_states: {} bytes, {} bytes available",
+                    ranges.num_bytes, ranges.max_bytes
                 ))
             } else {
                 Some("unknown error".to_string())
@@ -712,12 +721,65 @@ pub(crate) struct RxLexeme {
 }
 
 /// Owns the optional runtime tables without adding a slot to every ordinary lexeme.
-#[derive(Clone)]
 struct IntRangesLexers {
     /// Only lexemes whose state-vector entries are interval positions occur here.
     matchers: HashMap<LexemeIdx, IntRangesMatcher>,
     /// Accumulated dynamic work keeps fuel checks independent of the matcher count.
     cost: u64,
+    /// Retained inner caches, including sequence positions and bounded-number DFAs.
+    num_bytes: usize,
+    /// Each unused outer-state budget unit permits one KiB of inner cache storage.
+    max_bytes: usize,
+}
+
+impl Clone for IntRangesLexers {
+    /// Recomputes storage after cloning because cloned vectors can have less spare
+    /// capacity. Repeated clone-and-grow cycles must not accumulate phantom usage.
+    fn clone(&self) -> Self {
+        let matchers = self.matchers.clone();
+        let num_bytes = matchers
+            .values()
+            .map(IntRangesMatcher::num_bytes)
+            .sum::<usize>()
+            + matchers.capacity() * (std::mem::size_of::<(LexemeIdx, IntRangesMatcher)>() + 1);
+        Self {
+            matchers,
+            cost: self.cost,
+            num_bytes,
+            max_bytes: self.max_bytes,
+        }
+    }
+}
+
+impl IntRangesLexers {
+    /// Accounts for one bounded operation and stops before visiting another matcher
+    /// when fuel or storage is exhausted. It leaves error publication to callers
+    /// so cancellable scans can check cancellation first.
+    fn with_matcher<T>(
+        &mut self,
+        idx: LexemeIdx,
+        fuel: &mut u64,
+        operation: impl FnOnce(&mut IntRangesMatcher) -> T,
+    ) -> Result<Option<T>, ()> {
+        let Some(matcher) = self.matchers.get_mut(&idx) else {
+            return Ok(None);
+        };
+        if *fuel == 0 || self.num_bytes >= self.max_bytes {
+            return Err(());
+        }
+        let cost = matcher.cost();
+        let bytes = matcher.num_bytes();
+        let result = operation(matcher);
+        let cost = matcher.cost() - cost;
+        self.cost += cost;
+        *fuel = fuel.saturating_sub(cost);
+        self.num_bytes = self.num_bytes - bytes + matcher.num_bytes();
+        if *fuel == 0 || self.num_bytes >= self.max_bytes {
+            Err(())
+        } else {
+            Ok(Some(result))
+        }
+    }
 }
 
 // private implementation
@@ -799,6 +861,8 @@ impl RegexVec {
             let mut ranges = IntRangesLexers {
                 matchers: HashMap::default(),
                 cost: 0,
+                num_bytes: 0,
+                max_bytes: limits.max_lexer_states.saturating_mul(1024),
             };
             for (&idx, config) in configs {
                 let matcher = IntRangesMatcher::new(config.clone());
@@ -810,8 +874,17 @@ impl RegexVec {
                 }
                 limits.initial_lexer_fuel -= cost;
                 ranges.cost += cost;
+                ranges.num_bytes += matcher.num_bytes();
                 ranges.matchers.insert(idx, matcher);
+                // The map itself is sparse but still grows with the number of declarations.
+                let map_bytes = ranges.matchers.capacity()
+                    * (std::mem::size_of::<(LexemeIdx, IntRangesMatcher)>() + 1);
+                if ranges.num_bytes + map_bytes >= ranges.max_bytes {
+                    bail!("%int_ranges cache exceeds max_lexer_states during compilation");
+                }
             }
+            ranges.num_bytes += ranges.matchers.capacity()
+                * (std::mem::size_of::<(LexemeIdx, IntRangesMatcher)>() + 1);
             Some(Box::new(ranges))
         } else {
             None
@@ -845,6 +918,13 @@ impl RegexVec {
         // in fact, transition from MISSING and DEAD should both lead to DEAD
         r.state_table.fill(StateID::DEAD);
         assert!(!r.alpha.is_empty());
+        if r.int_ranges.is_some() {
+            r.set_max_states(limits.max_lexer_states);
+            r.set_fuel(limits.initial_lexer_fuel);
+            if let Some(error) = r.get_error() {
+                bail!(error);
+            }
+        }
         Ok(r)
     }
 
@@ -858,6 +938,15 @@ impl RegexVec {
         self.state_descs.push(state_desc);
         if self.state_descs.len() >= self.max_states {
             self.alpha.enter_error_state();
+        }
+        if let Some(ranges) = &mut self.int_ranges {
+            ranges.max_bytes = self
+                .max_states
+                .saturating_sub(self.state_descs.len())
+                .saturating_mul(1024);
+            if ranges.num_bytes >= ranges.max_bytes {
+                self.alpha.enter_error_state();
+            }
         }
     }
 
@@ -900,12 +989,18 @@ impl RegexVec {
         for (idx, e) in iter_state(&self.rx_sets, state) {
             res.possible.add(idx);
             let dynamic_accepting = if WITH_INT_RANGES {
-                self.int_ranges
+                match self
+                    .int_ranges
                     .as_mut()
                     .unwrap()
-                    .matchers
-                    .get_mut(&idx)
-                    .map(|matcher| matcher.is_accepting(e))
+                    .with_matcher(idx, &mut self.fuel, |m| m.is_accepting(e))
+                {
+                    Ok(accepting) => accepting,
+                    Err(()) => {
+                        self.alpha.enter_error_state();
+                        return res;
+                    }
+                }
             } else {
                 None
             };
@@ -950,7 +1045,9 @@ impl RegexVec {
         let mut vec_desc = vec![];
 
         // let d0 = self.deriv.num_deriv;
-        let c0 = self.fuel_spent::<WITH_INT_RANGES>();
+        // Dynamic operations debit fuel immediately; ordinary regex work is
+        // charged below, preserving the original path for ordinary grammars.
+        let mut c0 = self.exprs.cost();
         // let t0 = crate::Instant::now();
         // let mut state_size = 0;
 
@@ -960,12 +1057,22 @@ impl RegexVec {
             }
             if WITH_INT_RANGES {
                 let ranges = self.int_ranges.as_mut().unwrap();
-                if let Some(matcher) = ranges.matchers.get_mut(&idx) {
-                    let cost = matcher.cost();
-                    let next = matcher.transition(e, b);
-                    ranges.cost += matcher.cost() - cost;
-                    #[cfg(test)]
+                let next = ranges.with_matcher(idx, &mut self.fuel, |m| m.transition(e, b));
+                #[cfg(test)]
+                if !matches!(next, Ok(None)) {
                     crate::cancellation::checkpoint("lexer");
+                }
+                if cancellation.as_ref().is_some_and(|c| c.is_cancelled()) {
+                    return StateID::DEAD;
+                }
+                let next = match next {
+                    Ok(next) => next,
+                    Err(()) => {
+                        self.alpha.enter_error_state();
+                        return StateID::DEAD;
+                    }
+                };
+                if let Some(next) = next {
                     if let Some(next) = next {
                         Self::push_state(&mut vec_desc, idx, next);
                     }
@@ -977,9 +1084,7 @@ impl RegexVec {
                 return StateID::DEAD;
             }
 
-            let fuel = self
-                .fuel
-                .saturating_sub(self.fuel_spent::<WITH_INT_RANGES>() - c0);
+            let fuel = self.fuel.saturating_sub(self.exprs.cost() - c0);
             let non_empty = self
                 .relevance
                 .is_non_empty_limited(&mut self.exprs, d, fuel);
@@ -1001,16 +1106,29 @@ impl RegexVec {
             if d != ExprRef::NO_MATCH {
                 Self::push_state(&mut vec_desc, idx, d.as_u32());
             }
+            if WITH_INT_RANGES {
+                // Make ordinary work visible to the next dynamic operation's
+                // budget check, without changing the ordinary specialization.
+                self.fuel = self.fuel.saturating_sub(self.exprs.cost() - c0);
+                c0 = self.exprs.cost();
+                if self.fuel == 0 {
+                    break;
+                }
+            }
         }
 
         // Do not publish an incomplete transition or change shared error state.
         if cancellation.as_ref().is_some_and(|c| c.is_cancelled()) {
             return StateID::DEAD;
         }
+        if WITH_INT_RANGES && self.fuel == 0 {
+            self.alpha.enter_error_state();
+            return StateID::DEAD;
+        }
 
         // let num_deriv = self.deriv.num_deriv - d0;
         let new_state = self.insert_state(vec_desc);
-        let cost = self.fuel_spent::<WITH_INT_RANGES>() - c0;
+        let cost = self.exprs.cost() - c0;
         self.fuel = self.fuel.saturating_sub(cost);
         if self.fuel == 0 {
             self.alpha.enter_error_state();

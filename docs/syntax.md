@@ -367,6 +367,17 @@ The sequence is generated through token masks even when its text is uniquely
 determined. Fast-forwarding stops while this construct is active, leaving the
 model free to choose among valid tokenizations and avoiding expansion of a long
 forced sequence before the next token is sampled.
+
+Resource limits apply to the dynamic matchers as well. `initial_lexer_fuel`
+covers their construction and initialization; `step_lexer_fuel` covers mask
+computation, including matcher visits that use cached numeric transitions.
+Work stops between matcher operations when the budget is exhausted. A single
+bounded-number regex compilation may exceed the remaining fuel before returning.
+`max_lexer_states` also budgets retained interval positions and numeric regex
+caches: each KiB of estimated inner storage consumes one state-budget unit, in
+addition to the outer lexer states. These are work and storage estimates, not
+strict wall-clock or allocator limits.
+
 This construct is available in Lark rules only, without JSON Schema integration.
 
 ### Grammar options

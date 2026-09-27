@@ -95,8 +95,10 @@ pub(crate) struct IntRangesMatcher {
     position_ids: HashMap<Position, u32>,
     matchers: Vec<Regex>,
     matcher_ids: HashMap<(u32, u32), usize>,
-    /// Regex construction and derivative work, charged to the lexer fuel budget.
+    /// Regex work, matcher visits and position insertions charged to lexer fuel.
     cost: u64,
+    /// Sum of inner DFA storage estimates, maintained without scanning old matchers.
+    regex_bytes: usize,
 }
 
 impl IntRangesMatcher {
@@ -110,6 +112,7 @@ impl IntRangesMatcher {
             matchers: Vec::new(),
             matcher_ids: HashMap::default(),
             cost: 0,
+            regex_bytes: 0,
         };
         let phase = result.endpoint(false, result.config.min, 0);
         assert_eq!(result.intern(Position { count: 0, phase }), 0);
@@ -119,6 +122,7 @@ impl IntRangesMatcher {
     /// Advances a single byte, rejecting prefixes that cannot be completed.
     /// Bound changes occur here, so tokens may cross any number of endpoints.
     pub fn transition(&mut self, id: u32, byte: u8) -> Option<u32> {
+        self.cost += 1;
         let mut pos = self.positions[id as usize];
         match &mut pos.phase {
             Phase::Endpoint {
@@ -130,8 +134,10 @@ impl IntRangesMatcher {
                 if byte.is_ascii_digit() {
                     let rx = &mut self.matchers[*matcher];
                     let cost = rx.cost();
+                    let bytes = rx.num_bytes();
                     let next = rx.transition(*state, byte);
                     self.cost += rx.cost() - cost;
+                    self.regex_bytes = self.regex_bytes - bytes + rx.num_bytes();
                     if next.is_dead() {
                         return None;
                     }
@@ -181,6 +187,7 @@ impl IntRangesMatcher {
 
     /// Whether the sequence may end here, without an incomplete endpoint or separator.
     pub fn is_accepting(&mut self, id: u32) -> bool {
+        self.cost += 1;
         if id == 0 && self.config.min_ranges == 0 {
             return true;
         }
@@ -202,6 +209,7 @@ impl IntRangesMatcher {
     /// Finds exact next bytes, including the delimiter and optional end of input.
     /// Query the number DFA with raw bytes, independently of its compressed alphabet.
     pub fn next_byte(&mut self, id: u32) -> NextByte {
+        self.cost += 1;
         let mut next = if self.is_accepting(id) {
             NextByte::ForcedEOI
         } else {
@@ -217,12 +225,15 @@ impl IntRangesMatcher {
             } => {
                 let rx = &mut self.matchers[matcher];
                 let cost = rx.cost();
+                let bytes = rx.num_bytes();
                 for byte in b'0'..=b'9' {
+                    self.cost += 1;
                     if !rx.transition(state, byte).is_dead() {
                         next = next | NextByte::ForcedByte(byte);
                     }
                 }
                 self.cost += rx.cost() - cost;
+                self.regex_bytes = self.regex_bytes - bytes + rx.num_bytes();
                 if rx.is_accepting(state) {
                     if !is_end {
                         next = next | NextByte::ForcedByte(b'-');
@@ -240,22 +251,27 @@ impl IntRangesMatcher {
         next
     }
 
-    /// Returns accumulated bounded-number regex work for lexer accounting.
+    /// Returns accumulated work, including visits which use cached regex transitions.
     pub fn cost(&self) -> u64 {
         self.cost
     }
 
-    /// Estimates retained matcher and position storage for lexer statistics.
+    /// Estimates retained storage in constant time for statistics and budget checks.
+    /// Container capacities include spare allocation; inner DFAs use derivre's estimate.
     pub fn num_bytes(&self) -> usize {
-        self.matchers.iter().map(Regex::num_bytes).sum::<usize>()
-            + self.positions.len() * (2 * std::mem::size_of::<Position>() + 16)
-            + self.matcher_ids.len() * 32
+        self.regex_bytes
+            + self.config.separator.capacity()
+            + self.matchers.capacity() * std::mem::size_of::<Regex>()
+            + self.positions.capacity() * std::mem::size_of::<Position>()
+            + self.position_ids.capacity() * (std::mem::size_of::<(Position, u32)>() + 1)
+            + self.matcher_ids.capacity() * (std::mem::size_of::<((u32, u32), usize)>() + 1)
     }
 
     /// Creates a bounded endpoint, reserving one unused ID for each still-required
     /// later interval. Split by decimal length to reuse the canonical integer regex
     /// generator while adding exactly the necessary leading zeros.
     fn endpoint(&mut self, is_end: bool, min: u32, count: u64) -> Phase {
+        self.cost += 1;
         let reserved = self.config.min_ranges.saturating_sub(count + 1);
         let max = (u64::from(self.config.max) - reserved) as u32;
         assert!(min <= max, "endpoint must leave room for required ranges");
@@ -283,6 +299,7 @@ impl IntRangesMatcher {
             };
             let rx = Regex::new(&pattern).expect("validated u32 endpoint regex");
             self.cost += rx.cost();
+            self.regex_bytes += rx.num_bytes();
             let idx = self.matchers.len();
             self.matchers.push(rx);
             self.matcher_ids.insert((min, max), idx);
@@ -301,6 +318,7 @@ impl IntRangesMatcher {
         if let Some(&id) = self.position_ids.get(&pos) {
             id
         } else {
+            self.cost += 1;
             let id = self
                 .positions
                 .len()

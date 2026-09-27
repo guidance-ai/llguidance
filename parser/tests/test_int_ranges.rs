@@ -224,6 +224,104 @@ fn test_int_ranges_mask_work_stays_within_token() {
     }
 }
 
+/// Cached digit transitions still cost fuel, and exhausting it stops within one
+/// matcher operation rather than after all overlapping alternatives are visited.
+#[test]
+fn test_int_ranges_mask_fuel() {
+    let tokens = (0..1000).map(|n| format!("{n:03}")).collect::<Vec<_>>();
+    let mut factory = factory(&tokens.iter().map(String::as_str).collect::<Vec<_>>(), &[]);
+    for alternatives in [1, 100] {
+        let choices = (1..=alternatives)
+            .map(|count| {
+                format!(
+                    "%int_ranges {}",
+                    json!({"min":0,"max":999,"width":3,"max_ranges":count})
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(" | ");
+        let grammar = format!("start: ranges \"!\"\nranges: {choices}");
+        let mut cases = vec![("", 1), ("031", 64)];
+        if alternatives == 100 {
+            cases.push(("", 200_000));
+        }
+        for (prefix, fuel) in cases {
+            factory.limits_mut().step_lexer_fuel = fuel;
+            let mut parser = factory
+                .create_parser(TopLevelGrammar::from_lark(grammar.clone()))
+                .unwrap();
+            parser.start_without_prompt();
+            for byte in prefix.bytes() {
+                parser.consume_token(u32::from(byte)).unwrap();
+            }
+            let before = parser.parser.lexer_stats().total_fuel_spent;
+            let error = parser.compute_mask().unwrap_err().to_string();
+            let work = parser.parser.lexer_stats().total_fuel_spent - before;
+            assert!(error.contains("too many expressions"), "{error}");
+            // One ten-digit regex operation can overshoot, but visiting all 100
+            // alternatives used to spend over 13,000 units before stopping.
+            assert!(
+                (fuel as usize..fuel as usize + 1000).contains(&work),
+                "work={work} fuel={fuel}"
+            );
+        }
+    }
+}
+
+/// Many overlapping lexemes can keep the outer DFA small while retaining large
+/// inner caches. Both compilation and later cache growth must honor the limit.
+#[test]
+fn test_int_ranges_cache_budget() {
+    let choices = (1..=100)
+        .map(|count| {
+            format!(
+                "%int_ranges {}",
+                json!({"min":0,"max":999,"width":3,"max_ranges":count})
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" | ");
+    let grammar = format!("start: ranges \"!\"\nranges: {choices}");
+    let tokens = (0..1000).map(|n| format!("{n:03}")).collect::<Vec<_>>();
+    let mut factory = factory(&tokens.iter().map(String::as_str).collect::<Vec<_>>(), &[]);
+    factory.limits_mut().max_lexer_states = 64;
+    let error = factory
+        .create_parser(TopLevelGrammar::from_lark(grammar.clone()))
+        .err()
+        .unwrap()
+        .to_string();
+    assert!(error.contains("cache exceeds max_lexer_states"), "{error}");
+
+    factory.limits_mut().max_lexer_states = 2000;
+    factory.limits_mut().step_lexer_fuel = 2_000_000;
+    let mut parser = factory
+        .create_parser(TopLevelGrammar::from_lark(grammar))
+        .unwrap();
+    parser.start_without_prompt();
+    let error = parser.compute_mask().unwrap_err().to_string();
+    assert!(error.contains("cache exceeds max_lexer_states"), "{error}");
+    let stats = parser.parser.lexer_stats();
+    assert!(stats.num_states < 500, "{stats}");
+    assert!(stats.num_bytes < 4 * 1024 * 1024, "{stats}");
+}
+
+/// Initialization scans first-byte transitions even with optional precomputation
+/// disabled; exhausting its fuel must fail compilation rather than return a parser.
+#[test]
+fn test_int_ranges_initialization_fuel() {
+    let mut factory = factory(&[], &[]);
+    factory.limits_mut().precompute_large_lexemes = false;
+    factory.limits_mut().initial_lexer_fuel = 250;
+    let error = factory
+        .create_parser(TopLevelGrammar::from_lark(
+            r#"start: %int_ranges {"min":0,"max":999,"width":3}"#.to_string(),
+        ))
+        .err()
+        .unwrap()
+        .to_string();
+    assert!(error.contains("initialization failed"), "{error}");
+}
+
 /// Invalid declarations fail at compilation, including impossible minimum counts.
 #[test]
 fn test_int_ranges_configuration_errors() {

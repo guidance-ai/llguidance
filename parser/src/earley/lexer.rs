@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use std::fmt::Debug;
 use toktrie::{Recognizer, SimpleVob, TokTrie};
 
@@ -95,6 +95,12 @@ impl Lexer {
         for i in 0..=255 {
             if !dfa.transition(s0, i).is_dead() {
                 allowed_first_byte.allow_token(i as u32);
+            }
+        }
+        if dfa.has_int_ranges() {
+            limits.initial_lexer_fuel = dfa.get_fuel();
+            if let Some(error) = dfa.get_error() {
+                bail!("integer-range lexer initialization failed: {error}");
             }
         }
 

@@ -736,6 +736,11 @@ impl ParserState {
         let lexer = std::mem::take(&mut r.shared_box).lexer_opt.unwrap();
 
         r.stats.lexer_cost = lexer.dfa.total_fuel_spent();
+        if lexer.dfa.has_int_ranges() {
+            if let Some(error) = lexer.dfa.get_error() {
+                bail!("integer-range parser initialization failed: {error}");
+            }
+        }
 
         Ok((r, lexer))
     }
