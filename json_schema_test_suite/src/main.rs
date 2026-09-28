@@ -18,7 +18,7 @@
 /// With --draft, only the specified draft(s) are run.
 use anyhow::{bail, Result};
 use clap::Parser;
-use llg_test_utils::{json_schema_check, make_parser};
+use llg_test_utils::{json_schema_accepts, make_parser};
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -132,18 +132,13 @@ fn run_test_file(path: &Path, prefix: &str, results: &mut Results) {
             }
             Ok(_) => {
                 for test in &group.tests {
-                    let result = std::panic::catch_unwind(|| {
-                        json_schema_check(&group.schema, &test.data, test.valid);
-                    });
-                    let category = match result {
-                        Ok(()) => "pass",
-                        Err(_) => {
-                            if test.valid {
-                                "false_negative"
-                            } else {
-                                "false_positive"
-                            }
-                        }
+                    let accepted = json_schema_accepts(&group.schema, &test.data);
+                    let category = if accepted == test.valid {
+                        "pass"
+                    } else if test.valid {
+                        "false_negative"
+                    } else {
+                        "false_positive"
                     };
                     group_results.insert(test.description.clone(), category.to_string());
                 }
@@ -348,9 +343,6 @@ struct Args {
 }
 
 fn main() -> Result<()> {
-    // Suppress panic messages from catch_unwind (expected for false_negative/false_positive cases)
-    std::panic::set_hook(Box::new(|_| {}));
-
     let args = Args::parse();
     llg_test_utils::set_quiet_mode(!args.verbose);
     let mut drafts_arg = args.draft;
