@@ -138,6 +138,36 @@ fn test_int_ranges_long_sequence() {
     );
 }
 
+/// Long selections compute actual masks over numeric tokens. Equivalent numeric
+/// prefixes must share states so speculative scans stay within the default budget.
+#[test]
+fn test_int_ranges_long_sequence_masks() {
+    let tokens = (0..100)
+        .map(|n| format!("{n:02}"))
+        .chain((0..1000).map(|n| format!("{n:03}")))
+        .collect::<Vec<_>>();
+    let factory = factory(&tokens.iter().map(String::as_str).collect::<Vec<_>>(), &[]);
+    for width in [0, 6] {
+        let config = json!({"min":0,"max":100000,"width":width});
+        let mut parser = factory
+            .create_parser(TopLevelGrammar::from_lark(format!(
+                "start: %int_ranges {config}"
+            )))
+            .unwrap();
+        parser.start_without_prompt();
+        let text = (0..1000)
+            .map(|n| format!("{:0width$}-{:0width$}", n * 97, n * 97 + 1))
+            .collect::<Vec<_>>()
+            .join(",");
+        for token in factory.tok_env().tokenize(&text) {
+            assert!(parser.compute_mask().unwrap().is_allowed(token));
+            parser.consume_token(token).unwrap();
+        }
+        assert!(parser.is_accepting());
+        assert_eq!(parser.parser.get_bytes(), text.as_bytes());
+    }
+}
+
 /// Even a uniquely determined sequence leaves all valid tokenizations available
 /// to the model. Ordinary literals outside the construct still fast-forward.
 #[test]
@@ -224,7 +254,7 @@ fn test_int_ranges_mask_work_stays_within_token() {
     }
 }
 
-/// Cached digit transitions still cost fuel, and exhausting it stops within one
+/// Numeric probes cost fuel, and exhausting it stops within one
 /// matcher operation rather than after all overlapping alternatives are visited.
 #[test]
 fn test_int_ranges_mask_fuel() {
@@ -241,7 +271,7 @@ fn test_int_ranges_mask_fuel() {
             .collect::<Vec<_>>()
             .join(" | ");
         let grammar = format!("start: ranges \"!\"\nranges: {choices}");
-        let mut cases = vec![("", 1), ("031", 64)];
+        let mut cases = vec![("", 1), ("031-", 64)];
         if alternatives == 100 {
             cases.push(("", 200_000));
         }
@@ -258,8 +288,8 @@ fn test_int_ranges_mask_fuel() {
             let error = parser.compute_mask().unwrap_err().to_string();
             let work = parser.parser.lexer_stats().total_fuel_spent - before;
             assert!(error.contains("too many expressions"), "{error}");
-            // One ten-digit regex operation can overshoot, but visiting all 100
-            // alternatives used to spend over 13,000 units before stopping.
+            // One matcher operation may overshoot; the budget must stop work
+            // before visiting the rest of the overlapping alternatives.
             assert!(
                 (fuel as usize..fuel as usize + 1000).contains(&work),
                 "work={work} fuel={fuel}"
@@ -311,7 +341,7 @@ fn test_int_ranges_cache_budget() {
 fn test_int_ranges_initialization_fuel() {
     let mut factory = factory(&[], &[]);
     factory.limits_mut().precompute_large_lexemes = false;
-    factory.limits_mut().initial_lexer_fuel = 250;
+    factory.limits_mut().initial_lexer_fuel = 64;
     let error = factory
         .create_parser(TopLevelGrammar::from_lark(
             r#"start: %int_ranges {"min":0,"max":999,"width":3}"#.to_string(),
@@ -496,11 +526,14 @@ fn test_int_ranges_eos() {
 fn test_int_ranges_every_prefix_has_completion() {
     let factory = factory(&[], &[]);
     for (min, max, width, separator, min_count, max_count) in [
-        (0, 3, 0, ",", 0, 3),
-        (0, 3, 2, " ; ", 2, 3),
-        (0, 3, 0, "→", 3, 3),
-        (8, 11, 0, ",", 2, 3),
-        (98, 101, 3, ",", 2, 3),
+        (0, 3, 0, ",", 0, Some(3)),
+        (0, 3, 2, " ; ", 2, Some(3)),
+        (0, 3, 0, "→", 3, Some(3)),
+        (8, 11, 0, ",", 2, Some(3)),
+        (98, 101, 3, ",", 2, Some(3)),
+        (0, 3, 0, ",", 0, None),
+        (0, 3, 2, " ; ", 2, None),
+        (8, 11, 0, ",", 2, None),
     ] {
         let config = json!({
             "min": min,
@@ -519,7 +552,7 @@ fn test_int_ranges_every_prefix_has_completion() {
             width,
             separator,
             min_count,
-            max_count,
+            max_count.unwrap_or((max - min + 1) as usize),
         );
         let mut prefixes: BTreeMap<Vec<u8>, Vec<u8>> = BTreeMap::new();
         for text in &language {
@@ -564,6 +597,45 @@ fn test_int_ranges_grammar_composition() {
         &["0-0,1-1!", "0-3?"],
         &["0-3!", "0-0,1-1?"],
     );
+}
+
+/// Range completion must compose with a special token and a nullable suffix
+/// lookahead without allowing either to bypass an incomplete endpoint.
+#[test]
+fn test_int_ranges_special_token_and_nullable_suffix() {
+    let env = ApproximateTokEnv::single_byte_env();
+    let tool = env.tok_trie().get_special_token("<|tool|>").unwrap();
+    let mut factory = ParserFactory::new(&env, InferenceCapabilities::default(), &[]).unwrap();
+    factory.quiet();
+    let base = Matcher::new(Ok(factory
+        .create_parser(TopLevelGrammar::from_lark(
+            r#"
+        start: ranges <|tool|> tail
+        ranges: %int_ranges {"min":0,"max":99}
+        tail[suffix="!"]: /[a-z]*/
+    "#
+            .into(),
+        ))
+        .unwrap()));
+    let consume = |m: &mut Matcher, text: &str| {
+        for b in text.bytes() {
+            assert!(m.compute_mask_or_eos().unwrap().is_allowed(u32::from(b)));
+            m.consume_token(u32::from(b)).unwrap();
+        }
+    };
+    for (ranges, tail) in [("", "!"), ("6-6", "!"), ("1-9", "abc!")] {
+        let mut m = base.clone();
+        consume(&mut m, ranges);
+        let mask = m.compute_mask_or_eos().unwrap();
+        assert!(mask.is_allowed(tool));
+        assert!(!mask.is_allowed(env.eos_token()));
+        m.consume_token(tool).unwrap();
+        consume(&mut m, tail);
+        assert!(m.compute_mask_or_eos().unwrap().is_allowed(env.eos_token()));
+    }
+    let mut m = base.clone();
+    consume(&mut m, "1-");
+    assert!(!m.compute_mask_or_eos().unwrap().is_allowed(tool));
 }
 
 /// Builds a self-contained byte vocabulary, optionally with tokens spanning ranges.

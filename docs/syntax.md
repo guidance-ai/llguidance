@@ -361,8 +361,9 @@ minimum counts.
 
 Scanning reserves enough IDs for the minimum count and forbids another separator
 when either the count limit or numeric domain is exhausted. This also applies
-inside tokens that span several endpoints. The matcher is iterative and caches
-bounded-number regexes; it does not expand the sequence into recursive rules.
+inside tokens that span several endpoints. The matcher checks decimal prefixes
+arithmetically and caches equivalent sequence positions. It is iterative and
+does not expand the sequence into recursive rules.
 The sequence is generated through token masks even when its text is uniquely
 determined. Fast-forwarding stops while this construct is active, leaving the
 model free to choose among valid tokenizations and avoiding expansion of a long
@@ -370,11 +371,12 @@ forced sequence before the next token is sampled.
 
 Resource limits apply to the dynamic matchers as well. `initial_lexer_fuel`
 covers their construction and initialization; `step_lexer_fuel` covers mask
-computation, including matcher visits that use cached numeric transitions.
-Work stops between matcher operations when the budget is exhausted. A single
-bounded-number regex compilation may exceed the remaining fuel before returning.
-`max_lexer_states` also budgets retained interval positions and numeric regex
-caches: each KiB of estimated inner storage consumes one state-budget unit, in
+computation, including matcher visits, decimal-prefix probes and cache lookups.
+Work stops between matcher operations when the budget is exhausted. Numeric
+probes examine at most ten decimal lengths; fuel may overshoot by one matcher
+operation and storage by one allocation.
+`max_lexer_states` also budgets retained interval positions and their lookup
+tables: each KiB of estimated inner storage consumes one state-budget unit, in
 addition to the outer lexer states. These are work and storage estimates, not
 strict wall-clock or allocator limits.
 

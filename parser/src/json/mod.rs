@@ -1,6 +1,6 @@
 pub mod compiler;
 mod formats;
-pub(crate) mod numeric;
+mod numeric;
 mod schema;
 mod shared_context;
 

@@ -482,18 +482,20 @@ impl RegexVec {
         for (idx, e) in iter_state(&self.rx_sets, desc.state) {
             if WITH_INT_RANGES {
                 let ranges = self.int_ranges.as_mut().unwrap();
-                let next = match ranges.with_matcher(idx, &mut self.fuel, |m| m.next_byte(e)) {
+                let at_eoi = match ranges.with_matcher(idx, &mut self.fuel, |m| {
+                    // Dynamic lexemes are greedy. Only an accepting position can
+                    // finish, and further probes cannot restore a false all_eoi.
+                    m.is_accepting(e) && all_eoi && m.next_byte(e) == NextByte::ForcedEOI
+                }) {
                     Ok(next) => next,
                     Err(()) => {
                         self.alpha.enter_error_state();
                         return;
                     }
                 };
-                if let Some(next) = next {
-                    if next == NextByte::ForcedEOI {
-                        if all_eoi {
-                            eois.add(idx);
-                        }
+                if let Some(at_eoi) = at_eoi {
+                    if at_eoi {
+                        eois.add(idx);
                     } else {
                         all_eoi = false;
                     }
@@ -722,7 +724,7 @@ struct IntRangesLexers {
     matchers: HashMap<LexemeIdx, IntRangesMatcher>,
     /// Running total of matcher work used for fuel accounting.
     cost: u64,
-    /// Retained inner caches, including sequence positions and bounded-number DFAs.
+    /// Retained sequence positions and their lookup tables.
     num_bytes: usize,
     /// Each unused outer-state budget unit permits one KiB of inner cache storage.
     max_bytes: usize,

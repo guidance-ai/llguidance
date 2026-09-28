@@ -276,7 +276,7 @@ pub struct ParserLimits {
     pub initial_lexer_fuel: u64,
 
     /// Maximum lexer fuel for computation of the whole token mask.
-    /// Includes visits to integer-range matchers even when their regexes are cached.
+    /// Includes integer-range matcher visits and decimal-prefix arithmetic.
     /// Default: 200_000
     /// Speed: 14k/ms
     pub step_lexer_fuel: u64,
@@ -288,7 +288,7 @@ pub struct ParserLimits {
 
     /// Maximum number of lexer states.
     /// Integer-range matcher caches additionally consume one state-budget unit
-    /// per KiB of estimated storage, including positions and bounded-number DFAs.
+    /// per KiB of estimated storage for positions and their lookup tables.
     /// Affects memory consumption, but not the speed for the most part.
     /// Default: 250_000
     /// Speed: ~1-2kB of memory per state
