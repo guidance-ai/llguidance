@@ -607,16 +607,12 @@ fn test_int_ranges_special_token_and_nullable_suffix() {
     let tool = env.tok_trie().get_special_token("<|tool|>").unwrap();
     let mut factory = ParserFactory::new(&env, InferenceCapabilities::default(), &[]).unwrap();
     factory.quiet();
-    let base = Matcher::new(Ok(factory
-        .create_parser(TopLevelGrammar::from_lark(
-            r#"
-        start: ranges <|tool|> tail
+    let base = matcher(
+        &factory,
+        r#"start: ranges <|tool|> tail
         ranges: %int_ranges {"min":0,"max":99}
-        tail[suffix="!"]: /[a-z]*/
-    "#
-            .into(),
-        ))
-        .unwrap()));
+        tail[suffix="!"]: /[a-z]*/"#,
+    );
     let consume = |m: &mut Matcher, text: &str| {
         for b in text.bytes() {
             assert!(m.compute_mask_or_eos().unwrap().is_allowed(u32::from(b)));
@@ -633,7 +629,7 @@ fn test_int_ranges_special_token_and_nullable_suffix() {
         consume(&mut m, tail);
         assert!(m.compute_mask_or_eos().unwrap().is_allowed(env.eos_token()));
     }
-    let mut m = base.clone();
+    let mut m = base;
     consume(&mut m, "1-");
     assert!(!m.compute_mask_or_eos().unwrap().is_allowed(tool));
 }

@@ -731,7 +731,7 @@ struct IntRangesLexers {
 }
 
 impl Clone for IntRangesLexers {
-    /// Recomputes storage after cloning because cloned vectors can have less spare
+    /// Recomputes storage after cloning because cloned collections can have less spare
     /// capacity. Repeated clone-and-grow cycles must not accumulate phantom usage.
     fn clone(&self) -> Self {
         let matchers = self.matchers.clone();
