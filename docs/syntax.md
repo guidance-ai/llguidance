@@ -340,7 +340,7 @@ selected_lines: %int_ranges {
 }
 ```
 
-The output `{"selected_lines":"031-031,108-208,300-420"}` selects line 31,
+The output `{"selected_lines":"031,108-208,300-420"}` selects line 31,
 lines 108 through 208, and lines 300 through 420, with both endpoints included.
 The construct itself matches raw text, without surrounding quotes or brackets.
 
@@ -352,10 +352,11 @@ The construct itself matches raw text, without surrounding quotes or brackets.
 | `min_ranges` | 0 allows an empty sequence; 1 requires at least one interval | 0 |
 | `max_ranges` | Maximum number of intervals | No explicit limit |
 
-Each interval is `start-end`, with `start <= end`. Each subsequent start must be
-strictly greater than the preceding end. Singletons retain both endpoints, such
-as `031-031`. An empty sequence is allowed when `min_ranges` is 0; set both count
-limits to 1 to require exactly one interval.
+Each interval is `start-end`, with `start <= end`, or a single number for a
+singleton. For example, `031` and `031-031` both select line 31 and count as one
+interval. The same width rules apply to both forms. Each subsequent start must
+be strictly greater than the preceding end. An empty sequence is allowed when
+`min_ranges` is 0; set both count limits to 1 to require exactly one interval.
 
 Whitespace is allowed inside the sequence only as part of `separator`.
 Surrounding `%ignore` rules do not apply within it. The separator must be

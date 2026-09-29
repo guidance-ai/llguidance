@@ -130,7 +130,7 @@ impl IntRangesMatcher {
         self.cost += 1;
         let pos = &self.positions[id as usize];
         (id == 0 && self.config.min_ranges == 0)
-            || (pos.phase == Phase::End && self.complete_number(pos))
+            || (matches!(pos.phase, Phase::Start | Phase::End) && self.complete_number(pos))
     }
 
     /// Finds exact next bytes, including the delimiter and optional end of input.
@@ -210,7 +210,8 @@ impl IntRangesMatcher {
     }
 
     /// Computes a transition without interning it, for both scanning and next-byte
-    /// probes. Only complete ends may start a separator; singletons require '-'.
+    /// probes. A complete start may end a singleton or continue with '-'; either
+    /// form advances the next interval's lower bound past its final endpoint.
     fn step(&mut self, mut pos: Position, byte: u8) -> Option<Position> {
         self.cost += 1;
         if let Phase::Separator(offset) = pos.phase {
@@ -246,7 +247,7 @@ impl IntRangesMatcher {
                 pos.phase = Phase::End;
                 pos.lower = pos.value;
             }
-            Phase::End
+            Phase::Start | Phase::End
                 if byte == self.config.separator.as_bytes()[0]
                     && pos.count + 1 < self.config.max_ranges.unwrap_or(u64::MAX)
                     && pos.value < self.config.max =>

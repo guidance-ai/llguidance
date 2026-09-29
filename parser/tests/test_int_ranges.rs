@@ -18,10 +18,15 @@ fn test_int_ranges_language() {
         &[
             r#"{"content":""}"#,
             r#"{"content":"031-031,108-208,300-420"}"#,
+            r#"{"content":"031,108-208,300-420"}"#,
+            r#"{"content":"031"}"#,
+            r#"{"content":"031,032-032,033"}"#,
         ],
         &[
             r#"{"content":"31-031"}"#,
-            r#"{"content":"031"}"#,
+            r#"{"content":"31"}"#,
+            r#"{"content":"031,031"}"#,
+            r#"{"content":"031-100,100"}"#,
             r#"{"content":"032-031"}"#,
             r#"{"content":"031-100,100-101"}"#,
             r#"{"content":"031-100,099-101"}"#,
@@ -33,7 +38,13 @@ fn test_int_ranges_language() {
         r#"start: "[" ranges "]"
         ranges: %int_ranges {"min":0,"max":20,"separator":", "}
         %ignore /[ \t\n]+/"#,
-        &["[]", "[0-0]", "[0-9, 10-20]", "[ 0-9, 10-20 ]"],
+        &[
+            "[]",
+            "[0-0]",
+            "[0-9, 10-20]",
+            "[ 0-9, 10-20 ]",
+            "[0, 1-9, 10]",
+        ],
         &[
             "[00-0]",
             "[0-00]",
@@ -42,28 +53,35 @@ fn test_int_ranges_language() {
             "[0-9,10-20]",
             "[0-9,  10-20]",
             "[0-9 , 10-20]",
+            "[00]",
+            "[0,1]",
+            "[0,  1]",
+            "[0 , 1]",
         ],
     );
     assert_language(
         r#"start: ranges "!"
         ranges: %int_ranges {"min":7,"max":10,"min_ranges":1,"max_ranges":1}"#,
-        &["7-7!", "7-10!", "10-10!"],
-        &["!", "6-7!", "7-11!", "7-7,8-8!", "07-07!", "-7-7!"],
+        &["7-7!", "7-10!", "10-10!", "7!", "10!"],
+        &[
+            "!", "6-7!", "7-11!", "7-7,8-8!", "07-07!", "-7-7!", "7,8!", "7,8-9!", "07!",
+        ],
     );
     assert_language(
         r#"start: ranges "!"
         ranges: %int_ranges {"min":0,"max":0,"max_ranges":0}"#,
         &["!"],
-        &["0-0!"],
+        &["0-0!", "0!"],
     );
     // The separator limit counts UTF-8 bytes, including literal punctuation.
     for separator in [";".repeat(16), format!("{},", "→".repeat(5))] {
         let config = json!({"min":0,"max":1,"separator":separator,"min_ranges":1});
         let accepted = format!("0-0{separator}1-1!");
+        let singletons = format!("0{separator}1!");
         let rejected = format!("0-0{}1-1!", &separator[..15]);
         assert_language(
             &format!("start: ranges \"!\"\nranges: %int_ranges {config}"),
-            &[&accepted],
+            &[&accepted, &singletons],
             &[&rejected],
         );
     }
@@ -85,10 +103,14 @@ fn test_int_ranges_numeric_edges() {
             "4294967294-4294967294,4294967295-4294967295!",
             "4294967295-4294967295!",
             "4294967294-4294967295!",
+            "4294967294,4294967295!",
+            "4294967295!",
         ],
         &[
             "4294967294-4294967295,4294967295-4294967295!",
             "4294967294-4294967294,4294967295-4294967295,0-0!",
+            "4294967295,4294967295!",
+            "4294967296!",
         ],
     );
     assert_language(
@@ -100,8 +122,13 @@ fn test_int_ranges_numeric_edges() {
     assert_language(
         r#"start: ranges "!"
         ranges: %int_ranges {"min":9,"max":10,"width":10,"min_ranges":1}"#,
-        &["0000000009-0000000010!"],
-        &["000000009-0000000010!", "00000000009-0000000010!"],
+        &["0000000009-0000000010!", "0000000009,0000000010!"],
+        &[
+            "000000009-0000000010!",
+            "00000000009-0000000010!",
+            "000000009!",
+            "00000000009!",
+        ],
     );
     assert_language(
         r#"start: ranges "!"
@@ -171,7 +198,7 @@ fn test_int_ranges_long_sequence_masks() {
     }
 }
 
-/// Even a uniquely determined sequence leaves all valid tokenizations available
+/// Even when the next bytes are forced, all valid tokenizations stay available
 /// to the model. Ordinary literals outside the construct still fast-forward.
 #[test]
 fn test_int_ranges_does_not_force_tokens() {
@@ -426,6 +453,16 @@ fn test_int_ranges_speculative_tokens_and_slices() {
         "0-0,1-0!",
         "00-0,1-1!",
         "0-0,1-1,!",
+        "0,1-2,3!",
+        "0-1,2,3!",
+        "0,0!",
+        "0-1,1!",
+        "0,1-2,2!",
+        "0,1,2,3!",
+        "0,1-!",
+        "0,01!",
+        "3!",
+        "3,",
     ];
     for slices in [vec![], vec!["[0-9,-]+!?".to_string(), "[0-9]+".to_string()]] {
         let factory = factory(&tokens, &slices);
@@ -435,7 +472,8 @@ fn test_int_ranges_speculative_tokens_and_slices() {
             ranges: %int_ranges {"min":0,"max":3,"min_ranges":1,"max_ranges":3}"#,
         );
         let expected = [
-            true, true, false, false, true, false, true, true, false, false, false, false,
+            true, true, false, false, true, false, true, true, false, false, false, false, true,
+            true, false, false, false, false, false, false, true, false,
         ];
         let mask = matcher.compute_mask().unwrap();
         for (idx, valid) in expected.into_iter().enumerate() {
@@ -467,9 +505,20 @@ fn test_int_ranges_rollback_cloning_and_forcing() {
         r#"start: ranges "!"
         ranges: %int_ranges {"min":0,"max":9,"min_ranges":1,"max_ranges":2}"#,
     );
-    original
-        .consume_tokens(&b"7-".iter().map(|b| u32::from(*b)).collect::<Vec<_>>())
-        .unwrap();
+    original.consume_token(b'7' as u32).unwrap();
+    let singleton_mask = original.compute_mask().unwrap();
+    for byte in b"!,-" {
+        assert!(singleton_mask.is_allowed(u32::from(*byte)));
+    }
+    let mut singleton = original.clone();
+    singleton.consume_token(b',' as u32).unwrap();
+    assert_eq!(
+        singleton.compute_mask().unwrap().iter().collect::<Vec<_>>(),
+        vec![b'8' as u32, b'9' as u32]
+    );
+    singleton.rollback(1).unwrap();
+    assert_eq!(singleton_mask, singleton.compute_mask().unwrap());
+    original.consume_token(b'-' as u32).unwrap();
     let high_mask = original.compute_mask().unwrap();
     assert!(!high_mask.is_allowed(b'6' as u32));
     assert!(high_mask.is_allowed(b'9' as u32));
@@ -517,8 +566,14 @@ fn test_int_ranges_eos() {
         r#"start: %int_ranges {"min":0,"max":10,"min_ranges":1,"max_ranges":2}"#,
     );
     assert!(!m.compute_mask().unwrap().is_allowed(eos));
-    m.consume_tokens(&b"0-0".iter().map(|b| u32::from(*b)).collect::<Vec<_>>())
-        .unwrap();
+    m.consume_token(b'0' as u32).unwrap();
+    let mask = m.compute_mask().unwrap();
+    assert!(mask.is_allowed(eos));
+    assert!(mask.is_allowed(b'-' as u32));
+    assert!(mask.is_allowed(b',' as u32));
+    m.consume_token(b'-' as u32).unwrap();
+    assert!(!m.compute_mask().unwrap().is_allowed(eos));
+    m.consume_token(b'0' as u32).unwrap();
     assert!(m.compute_mask().unwrap().is_allowed(eos));
     m.consume_token(b',' as u32).unwrap();
     assert!(!m.compute_mask().unwrap().is_allowed(eos));
@@ -640,7 +695,13 @@ fn test_int_ranges_special_token_and_nullable_suffix() {
             m.consume_token(u32::from(b)).unwrap();
         }
     };
-    for (ranges, tail) in [("", "!"), ("6-6", "!"), ("1-9", "abc!")] {
+    for (ranges, tail) in [
+        ("", "!"),
+        ("6", "!"),
+        ("6-6", "!"),
+        ("1-9", "abc!"),
+        ("1,3-9", "abc!"),
+    ] {
         let mut m = base.clone();
         consume(&mut m, ranges);
         let mask = m.compute_mask_or_eos().unwrap();
@@ -716,17 +777,23 @@ fn enumerate(
     }
     for start in bounds.0..=bounds.1 {
         for end in start..=bounds.1 {
-            parts.push(format!("{start:0width$}-{end:0width$}"));
-            enumerate(
-                language,
-                parts,
-                (end + 1, bounds.1),
-                width,
-                separator,
-                min_count,
-                max_count,
-            );
-            parts.pop();
+            let mut spellings = vec![format!("{start:0width$}-{end:0width$}")];
+            if start == end {
+                spellings.push(format!("{start:0width$}"));
+            }
+            for spelling in spellings {
+                parts.push(spelling);
+                enumerate(
+                    language,
+                    parts,
+                    (end + 1, bounds.1),
+                    width,
+                    separator,
+                    min_count,
+                    max_count,
+                );
+                parts.pop();
+            }
         }
     }
 }
