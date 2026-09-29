@@ -58,7 +58,7 @@ fn test_int_ranges_language() {
     );
     // The separator limit counts UTF-8 bytes, including literal punctuation.
     for separator in [";".repeat(16), format!("{},", "→".repeat(5))] {
-        let config = json!({"min":0,"max":1,"separator":separator,"min_ranges":2});
+        let config = json!({"min":0,"max":1,"separator":separator,"min_ranges":1});
         let accepted = format!("0-0{separator}1-1!");
         let rejected = format!("0-0{}1-1!", &separator[..15]);
         assert_language(
@@ -74,17 +74,20 @@ fn test_int_ranges_language() {
 fn test_int_ranges_numeric_edges() {
     assert_language(
         r#"start: ranges "!"
-        ranges: %int_ranges {"min":0,"max":10,"min_ranges":2}"#,
-        &["9-9,10-10!", "1-9,10-10!"],
-        &["10-10!", "9-10,10-10!", "1-1,02-3!"],
+        ranges: %int_ranges {"min":0,"max":10,"min_ranges":1}"#,
+        &["9-9,10-10!", "1-9,10-10!", "10-10!", "9-10!"],
+        &["!", "9-10,10-10!", "1-1,02-3!"],
     );
     assert_language(
         r#"start: ranges "!"
-        ranges: %int_ranges {"min":4294967294,"max":4294967295,"min_ranges":2}"#,
-        &["4294967294-4294967294,4294967295-4294967295!"],
+        ranges: %int_ranges {"min":4294967294,"max":4294967295,"min_ranges":1}"#,
         &[
+            "4294967294-4294967294,4294967295-4294967295!",
             "4294967295-4294967295!",
             "4294967294-4294967295!",
+        ],
+        &[
+            "4294967294-4294967295,4294967295-4294967295!",
             "4294967294-4294967294,4294967295-4294967295,0-0!",
         ],
     );
@@ -172,7 +175,7 @@ fn test_int_ranges_long_sequence_masks() {
 /// to the model. Ordinary literals outside the construct still fast-forward.
 #[test]
 fn test_int_ranges_does_not_force_tokens() {
-    let vocab = factory(&["00", "000", "00-00,01-01", "00-01"], &[]);
+    let vocab = factory(&["00", "000", "00-00", "00-01"], &[]);
     // Canonical byte tokenization would force individual zeros; the vocabulary
     // also permits longer tokens which the mask must leave available.
     let env: TokEnv = Arc::new(TokEnvWithTrie::new(
@@ -184,7 +187,7 @@ fn test_int_ranges_does_not_force_tokens() {
     let mut parser = factory
         .create_parser(TopLevelGrammar::from_lark(
             r#"start: "[" ranges "]" | "abc"
-            ranges: %int_ranges {"min":0,"max":1,"width":2,"min_ranges":2}"#
+            ranges: %int_ranges {"min":0,"max":0,"width":2,"min_ranges":1}"#
                 .to_string(),
         ))
         .unwrap();
@@ -204,10 +207,10 @@ fn test_int_ranges_does_not_force_tokens() {
     assert!(mask.is_allowed(b'0' as u32));
     assert!(mask.is_allowed(256)); // 00
     assert!(!mask.is_allowed(257)); // 000
-    assert!(mask.is_allowed(258)); // 00-00,01-01
-    assert!(!mask.is_allowed(259)); // 00-01 leaves no ID for the second range
+    assert!(mask.is_allowed(258)); // 00-00
+    assert!(!mask.is_allowed(259)); // 00-01 exceeds the endpoint bound
 
-    for byte in b"00-00,01-01" {
+    for byte in b"00-00" {
         assert!(parser.force_bytes().is_empty());
         assert!(parser.compute_mask().unwrap().is_allowed(u32::from(*byte)));
         parser.consume_token(u32::from(*byte)).unwrap();
@@ -216,8 +219,8 @@ fn test_int_ranges_does_not_force_tokens() {
     assert!(parser.is_accepting());
 }
 
-/// Compact parameters can describe enormous forced strings. Computing one mask
-/// must visit only token prefixes, without expanding padding, counts or separators.
+/// Computing one mask must visit only token prefixes, without expanding the
+/// remaining endpoint digits, padding or literal separator.
 #[test]
 fn test_int_ranges_mask_work_stays_within_token() {
     let env = ApproximateTokEnv::single_byte_env();
@@ -226,14 +229,14 @@ fn test_int_ranges_mask_work_stays_within_token() {
     factory.limits_mut().max_lexer_states = 64;
     for (config, prefix, next) in [
         (
-            json!({"min":0,"max":4294967295u64,"min_ranges":4294967296u64}),
+            json!({"min":4294967295u64,"max":4294967295u64,"min_ranges":1}),
             "",
-            b'0',
+            b'4',
         ),
         (json!({"min":0,"max":9,"width":10,"min_ranges":1}), "", b'0'),
         (
-            json!({"min":0,"max":1,"min_ranges":2,"separator":",".repeat(16)}),
-            "0-0",
+            json!({"min":0,"max":1,"min_ranges":1,"separator":",".repeat(16)}),
+            "0-0,",
             b',',
         ),
     ] {
@@ -352,7 +355,7 @@ fn test_int_ranges_initialization_fuel() {
     assert!(error.contains("initialization failed"), "{error}");
 }
 
-/// Invalid declarations fail at compilation, including impossible minimum counts.
+/// Invalid declarations fail at compilation, including unsupported minimum counts.
 #[test]
 fn test_int_ranges_configuration_errors() {
     let factory = factory(&[], &[]);
@@ -371,8 +374,9 @@ fn test_int_ranges_configuration_errors() {
         json!({"min":0,"max":3,"separator":" - "}),
         json!({"min":0,"max":3,"separator":",".repeat(17)}),
         json!({"min":0,"max":3,"separator":format!("{}, ", "→".repeat(5))}),
-        json!({"min":0,"max":3,"min_ranges":2,"max_ranges":1}),
-        json!({"min":0,"max":3,"min_ranges":5}),
+        json!({"min":0,"max":3,"min_ranges":1,"max_ranges":0}),
+        json!({"min":0,"max":3,"min_ranges":-1}),
+        json!({"min":0,"max":3,"min_ranges":0.5}),
         json!({"min":0,"max":3,"max_ranges":-1}),
         json!({"min":0,"max":3,"unknown":1}),
     ] {
@@ -384,6 +388,17 @@ fn test_int_ranges_configuration_errors() {
                 .is_err(),
             "{config}"
         );
+    }
+    for min_ranges in [2, 4294967296, u64::MAX] {
+        let config = json!({"min":0,"max":4294967295u64,"min_ranges":min_ranges});
+        let err = factory
+            .create_parser(TopLevelGrammar::from_lark(format!(
+                "start: %int_ranges {config}"
+            )))
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(err.contains("min_ranges must be 0 or 1"), "{err}");
     }
     let err = factory
         .create_parser(TopLevelGrammar::from_lark(
@@ -417,10 +432,10 @@ fn test_int_ranges_speculative_tokens_and_slices() {
         let mut matcher = matcher(
             &factory,
             r#"start: ranges "!"
-            ranges: %int_ranges {"min":0,"max":3,"min_ranges":2,"max_ranges":3}"#,
+            ranges: %int_ranges {"min":0,"max":3,"min_ranges":1,"max_ranges":3}"#,
         );
         let expected = [
-            true, true, false, false, true, false, false, true, false, false, false, false,
+            true, true, false, false, true, false, true, true, false, false, false, false,
         ];
         let mask = matcher.compute_mask().unwrap();
         for (idx, valid) in expected.into_iter().enumerate() {
@@ -450,14 +465,14 @@ fn test_int_ranges_rollback_cloning_and_forcing() {
     let mut original = matcher(
         &factory,
         r#"start: ranges "!"
-        ranges: %int_ranges {"min":0,"max":9,"min_ranges":2,"max_ranges":2}"#,
+        ranges: %int_ranges {"min":0,"max":9,"min_ranges":1,"max_ranges":2}"#,
     );
     original
         .consume_tokens(&b"7-".iter().map(|b| u32::from(*b)).collect::<Vec<_>>())
         .unwrap();
     let high_mask = original.compute_mask().unwrap();
     assert!(!high_mask.is_allowed(b'6' as u32));
-    assert!(!high_mask.is_allowed(b'9' as u32));
+    assert!(high_mask.is_allowed(b'9' as u32));
     assert!(high_mask.is_allowed(b'7' as u32));
     assert!(high_mask.is_allowed(b'8' as u32));
     for mut copy in [original.clone(), original.deep_clone()] {
@@ -465,7 +480,7 @@ fn test_int_ranges_rollback_cloning_and_forcing() {
         assert!(copy.compute_ff_bytes().is_empty());
         assert_eq!(
             copy.compute_mask().unwrap().iter().collect::<Vec<_>>(),
-            vec![b',' as u32]
+            vec![b'!' as u32, b',' as u32]
         );
         copy.consume_tokens(&b",9-9!".iter().map(|b| u32::from(*b)).collect::<Vec<_>>())
             .unwrap();
@@ -480,7 +495,7 @@ fn test_int_ranges_rollback_cloning_and_forcing() {
     assert!(low_mask.is_allowed(b'1' as u32));
     assert!(low_mask.is_allowed(b'6' as u32));
     assert!(!low_mask.is_allowed(b'0' as u32));
-    assert!(!low_mask.is_allowed(b'9' as u32));
+    assert!(low_mask.is_allowed(b'9' as u32));
     original
         .consume_tokens(&[b'2' as u32, b',' as u32])
         .unwrap();
@@ -491,22 +506,25 @@ fn test_int_ranges_rollback_cloning_and_forcing() {
     assert_eq!(low_mask, original.compute_mask().unwrap());
 }
 
-/// A standalone construct allows EOS only after the minimum count, even when
-/// the current decimal endpoint could still consume another digit.
+/// A required sequence allows EOS after each complete interval, even when its
+/// endpoint could consume another digit, but never inside an interval or separator.
 #[test]
 fn test_int_ranges_eos() {
     let factory = factory(&[], &[]);
     let eos = factory.tok_env().tok_trie().eos_token();
     let mut m = matcher(
         &factory,
-        r#"start: %int_ranges {"min":0,"max":10,"min_ranges":2,"max_ranges":2}"#,
+        r#"start: %int_ranges {"min":0,"max":10,"min_ranges":1,"max_ranges":2}"#,
     );
     assert!(!m.compute_mask().unwrap().is_allowed(eos));
     m.consume_tokens(&b"0-0".iter().map(|b| u32::from(*b)).collect::<Vec<_>>())
         .unwrap();
+    assert!(m.compute_mask().unwrap().is_allowed(eos));
+    m.consume_token(b',' as u32).unwrap();
     assert!(!m.compute_mask().unwrap().is_allowed(eos));
-    m.consume_tokens(&b",1-1".iter().map(|b| u32::from(*b)).collect::<Vec<_>>())
-        .unwrap();
+    m.consume_tokens(&[b'1' as u32, b'-' as u32]).unwrap();
+    assert!(!m.compute_mask().unwrap().is_allowed(eos));
+    m.consume_token(b'1' as u32).unwrap();
     let mask = m.compute_mask().unwrap();
     assert!(mask.is_allowed(eos));
     assert!(mask.is_allowed(b'0' as u32));
@@ -527,13 +545,16 @@ fn test_int_ranges_every_prefix_has_completion() {
     let factory = factory(&[], &[]);
     for (min, max, width, separator, min_count, max_count) in [
         (0, 3, 0, ",", 0, Some(3)),
-        (0, 3, 2, " ; ", 2, Some(3)),
-        (0, 3, 0, "→", 3, Some(3)),
-        (8, 11, 0, ",", 2, Some(3)),
-        (98, 101, 3, ",", 2, Some(3)),
+        (0, 3, 0, ",", 0, Some(0)),
+        (0, 3, 0, ",", 1, Some(1)),
+        (0, 0, 0, ",", 1, None),
+        (0, 3, 2, " ; ", 1, Some(3)),
+        (0, 3, 0, "→", 1, Some(3)),
+        (8, 11, 0, ",", 1, Some(3)),
+        (98, 101, 3, ",", 1, Some(3)),
         (0, 3, 0, ",", 0, None),
-        (0, 3, 2, " ; ", 2, None),
-        (8, 11, 0, ",", 2, None),
+        (0, 3, 2, " ; ", 1, None),
+        (8, 11, 0, ",", 1, None),
     ] {
         let config = json!({
             "min": min,
@@ -592,10 +613,10 @@ fn test_int_ranges_grammar_composition() {
     );
     assert_language(
         r#"start: a "!" | b "?"
-        a: %int_ranges {"min":0,"max":3,"min_ranges":2}
+        a: %int_ranges {"min":0,"max":3,"min_ranges":0}
         b: %int_ranges {"min":0,"max":3,"min_ranges":1,"max_ranges":1}"#,
-        &["0-0,1-1!", "0-3?"],
-        &["0-3!", "0-0,1-1?"],
+        &["!", "0-3!", "0-0,1-1!", "0-3?"],
+        &["?", "0-0,1-1?"],
     );
 }
 

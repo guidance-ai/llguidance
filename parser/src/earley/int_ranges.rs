@@ -17,6 +17,7 @@ pub(crate) struct IntRanges {
     /// Nonempty literal of at most sixteen UTF-8 bytes, excluding ASCII digits and '-'.
     #[serde(default = "IntRanges::default_separator")]
     pub separator: String,
+    /// Zero allows an empty sequence; one requires at least one interval.
     #[serde(default)]
     pub min_ranges: u64,
     /// An omitted limit is bounded only by the number of available IDs.
@@ -46,12 +47,12 @@ impl IntRanges {
             "%int_ranges: separator must be nonempty and contain neither decimal digits nor '-'"
         );
         ensure!(
-            self.min_ranges <= self.max_ranges.unwrap_or(u64::MAX),
-            "%int_ranges: min_ranges must be <= max_ranges"
+            self.min_ranges <= 1,
+            "%int_ranges: min_ranges must be 0 or 1"
         );
         ensure!(
-            self.min_ranges <= u64::from(self.max) - u64::from(self.min) + 1,
-            "%int_ranges: impossible min_ranges for the endpoint bounds"
+            self.min_ranges <= self.max_ranges.unwrap_or(u64::MAX),
+            "%int_ranges: min_ranges must be <= max_ranges"
         );
         Ok(())
     }
@@ -66,8 +67,7 @@ impl IntRanges {
 /// lets the lexer state stack restore speculative and committed scans.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct Position {
-    /// Completed intervals before this endpoint. With no maximum, counts beyond
-    /// the minimum's last interval are equivalent and use the same value.
+    /// Completed intervals before this endpoint; zero when there is no maximum.
     count: u64,
     phase: Phase,
     /// Lower bound on this endpoint, or on the next start during a separator.
@@ -130,9 +130,7 @@ impl IntRangesMatcher {
         self.cost += 1;
         let pos = &self.positions[id as usize];
         (id == 0 && self.config.min_ranges == 0)
-            || (pos.phase == Phase::End
-                && pos.count + 1 >= self.config.min_ranges
-                && self.complete_number(pos))
+            || (pos.phase == Phase::End && self.complete_number(pos))
     }
 
     /// Finds exact next bytes, including the delimiter and optional end of input.
@@ -173,25 +171,19 @@ impl IntRangesMatcher {
                 * (std::mem::size_of::<Position>() + 3 * std::mem::size_of::<usize>())
     }
 
-    /// Reserves one unused ID for each still-required interval after this one.
-    fn upper_bound(&self, pos: &Position) -> u32 {
-        let reserved = self.config.min_ranges.saturating_sub(pos.count + 1);
-        (u64::from(self.config.max) - reserved) as u32
-    }
-
     /// Checks whether the current decimal prefix is a complete bounded endpoint.
     fn complete_number(&self, pos: &Position) -> bool {
         pos.digits > 0
             && (self.config.width == 0 || u32::from(pos.digits) == self.config.width)
             && pos.value >= pos.lower
-            && pos.value <= self.upper_bound(pos)
+            && pos.value <= self.config.max
     }
 
     /// Tests whether any permitted decimal extension intersects the endpoint bounds.
     /// Each candidate length costs fuel; u64 covers every ten-digit extension.
     fn viable_number(&mut self, pos: &Position) -> bool {
         let lo = u64::from(pos.lower);
-        let hi = u64::from(self.upper_bound(pos));
+        let hi = u64::from(self.config.max);
         let extra = if self.config.width == 0 {
             if pos.value == 0 {
                 0
@@ -259,7 +251,9 @@ impl IntRangesMatcher {
                     && pos.count + 1 < self.config.max_ranges.unwrap_or(u64::MAX)
                     && pos.value < self.config.max =>
             {
-                pos.count += 1;
+                if self.config.max_ranges.is_some() {
+                    pos.count += 1;
+                }
                 pos.phase = if self.config.separator.len() == 1 {
                     Phase::Start
                 } else {
@@ -279,9 +273,6 @@ impl IntRangesMatcher {
     /// digit state for each previously selected endpoint.
     fn canonicalize(&mut self, pos: &mut Position) {
         self.cost += 1;
-        if self.config.max_ranges.is_none() {
-            pos.count = pos.count.min(self.config.min_ranges.saturating_sub(1));
-        }
         if pos.digits == 0 {
             return;
         }
@@ -335,7 +326,7 @@ mod tests {
                 max: 9999,
                 width,
                 separator: ",".into(),
-                min_ranges: 2,
+                min_ranges: 1,
                 max_ranges: None,
             });
             for value in [0u32, 1, 3, 4, 9, 10, 31, 32, 33, 99, 300, 350, 999] {

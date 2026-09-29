@@ -449,7 +449,7 @@ choices: {alternatives}
     #[test]
     fn cancellation_inside_int_ranges_preserves_shared_cache() {
         let mut original = matcher(
-            r#"start: %int_ranges {"min":0,"max":999,"width":3,"min_ranges":2}"#,
+            r#"start: %int_ranges {"min":0,"max":999,"width":3,"min_ranges":1}"#,
             &[],
             true,
         );

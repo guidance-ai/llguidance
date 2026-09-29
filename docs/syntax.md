@@ -349,7 +349,7 @@ The construct itself matches raw text, without surrounding quotes or brackets.
 | `min`, `max` | Inclusive bounds on every endpoint, from 0 through 4294967295 | Required |
 | `width` | Exact decimal width from 1 through 10 with leading zeros; 0 uses ordinary decimal without leading zeros | 0 |
 | `separator` | Literal string of 1 through 16 UTF-8 bytes between intervals | `","` |
-| `min_ranges` | Minimum number of intervals | 0 |
+| `min_ranges` | 0 allows an empty sequence; 1 requires at least one interval | 0 |
 | `max_ranges` | Maximum number of intervals | No explicit limit |
 
 Each interval is `start-end`, with `start <= end`. Each subsequent start must be
@@ -361,14 +361,13 @@ Whitespace is allowed inside the sequence only as part of `separator`.
 Surrounding `%ignore` rules do not apply within it. The separator must be
 nonempty and contain neither ASCII decimal digits nor `-`. Widths above 10 and
 separators longer than 16 UTF-8 bytes are compilation errors, as are invalid
-endpoint bounds, insufficient width, inconsistent count limits, and impossible
-minimum counts.
+endpoint bounds, insufficient width, inconsistent count limits, and `min_ranges`
+values other than 0 or 1.
 
-Scanning reserves enough IDs for the minimum count and forbids another separator
-when either the count limit or numeric domain is exhausted. This also applies
-inside tokens that span several endpoints. The matcher checks decimal prefixes
-arithmetically and caches equivalent sequence positions. It is iterative and
-does not expand the sequence into recursive rules.
+Scanning forbids another separator when either the count limit or numeric domain
+is exhausted, including inside tokens that span several endpoints. The matcher
+checks decimal prefixes arithmetically and caches equivalent sequence positions.
+It is iterative and does not expand the sequence into recursive rules.
 The sequence is generated through token masks even when its text is uniquely
 determined. Fast-forwarding stops while this construct is active, leaving the
 model free to choose among valid tokenizations and avoiding expansion of a long
