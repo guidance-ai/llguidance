@@ -94,6 +94,7 @@ typedef struct LlgParserLimits {
   uint64_t initial_lexer_fuel;
   /**
    * Maximum lexer fuel for computation of the whole token mask.
+   * Includes integer-range matcher visits and decimal-prefix arithmetic.
    * Default: 200_000
    * Speed: 14k/ms
    */
@@ -106,6 +107,8 @@ typedef struct LlgParserLimits {
   size_t step_max_items;
   /**
    * Maximum number of lexer states.
+   * Integer-range matcher caches additionally consume one state-budget unit
+   * per KiB of estimated storage for positions and their lookup tables.
    * Affects memory consumption, but not the speed for the most part.
    * Default: 250_000
    * Speed: ~1-2kB of memory per state
