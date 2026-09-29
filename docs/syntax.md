@@ -322,12 +322,16 @@ MULT_NUM: %regex {
 ### Ordered integer ranges
 
 `%int_ranges { ... }` matches a sequence of ordered, non-overlapping integer
-intervals. Use it in a rule (a lowercase name):
+intervals. Use it to select elements from a numbered list, such as lines in a
+document. Define it in a rule (a lowercase name).
+
+For example, this grammar selects up to 20 spans from a document whose lines
+are numbered 001 through 999:
 
 ```lark
-start: "{\"content\":\"" ranges "\"}"
-ranges: %int_ranges {
-  "min": 0,
+start: "{\"selected_lines\":\"" selected_lines "\"}"
+selected_lines: %int_ranges {
+  "min": 1,
   "max": 999,
   "width": 3,
   "separator": ",",
@@ -336,7 +340,8 @@ ranges: %int_ranges {
 }
 ```
 
-For example, this accepts `{"content":"031-031,108-208,300-420"}`.
+The output `{"selected_lines":"031-031,108-208,300-420"}` selects line 31,
+lines 108 through 208, and lines 300 through 420, with both endpoints included.
 The construct itself matches raw text, without surrounding quotes or brackets.
 
 | Parameter | Meaning | Default |
