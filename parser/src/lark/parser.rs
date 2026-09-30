@@ -575,6 +575,11 @@ impl Parser {
             Ok(Value::GrammarRef(grammar_ref))
         } else if let Some(special_token) = self.match_token_with_value(Token::SpecialToken) {
             Ok(Value::SpecialToken(special_token))
+        } else if self.has_token(Token::KwIntRanges) {
+            match self.take_token_value() {
+                LexemeValue::Json(v) => Ok(Value::IntRanges(v)),
+                v => bail!("expected %int_ranges JSON object, got {}", v),
+            }
         } else if self.has_token(Token::KwJson) {
             match self.take_token_value() {
                 LexemeValue::Json(v) => Ok(Value::Json(v)),

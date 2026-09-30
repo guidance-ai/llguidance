@@ -319,6 +319,74 @@ MULT_NUM: %regex {
 }
 ```
 
+### Ordered integer ranges
+
+`%int_ranges { ... }` matches a sequence of ordered, non-overlapping integer
+intervals. Use it to select elements from a numbered list, such as lines in a
+document. Define it in a rule (a lowercase name).
+
+For example, this grammar selects up to 20 spans from a document whose lines
+are numbered 001 through 999:
+
+```lark
+start: "{\"selected_lines\":\"" selected_lines "\"}"
+selected_lines: %int_ranges {
+  "min": 1,
+  "max": 999,
+  "width": 3,
+  "separator": ",",
+  "min_ranges": 0,
+  "max_ranges": 20
+}
+```
+
+The output `{"selected_lines":"031,108-208,300-420"}` selects line 31,
+lines 108 through 208, and lines 300 through 420, with both endpoints included.
+The construct itself matches raw text, without surrounding quotes or brackets.
+
+| Parameter | Meaning | Default |
+| --- | --- | --- |
+| `min`, `max` | Inclusive bounds on every endpoint, from 0 through 4294967295 | Required |
+| `width` | Exact decimal width from 1 through 10 with leading zeros; 0 uses ordinary decimal without leading zeros | 0 |
+| `separator` | Literal string of 1 through 16 UTF-8 bytes between intervals | `","` |
+| `min_ranges` | 0 allows an empty sequence; 1 requires at least one interval | 0 |
+| `max_ranges` | Maximum number of intervals | No explicit limit |
+
+Each interval is `start-end`, with `start <= end`, or a single number for a
+singleton. For example, `031` and `031-031` both select line 31 and count as one
+interval. The same width rules apply to both forms. Each subsequent start must
+be strictly greater than the preceding end. An empty sequence is allowed when
+`min_ranges` is 0; set both count limits to 1 to require exactly one interval.
+
+Whitespace is allowed inside the sequence only as part of `separator`.
+Surrounding `%ignore` rules do not apply within it. The separator must be
+nonempty and contain neither ASCII decimal digits nor `-`. Widths above 10 and
+separators longer than 16 UTF-8 bytes are compilation errors, as are invalid
+endpoint bounds, insufficient width, inconsistent count limits, and `min_ranges`
+values other than 0 or 1.
+
+Scanning forbids another separator when either the count limit or numeric domain
+is exhausted, including inside tokens that span several endpoints. The matcher
+checks decimal prefixes arithmetically and caches equivalent sequence positions.
+It is iterative and does not expand the sequence into recursive rules.
+The sequence is generated through token masks even when its text is uniquely
+determined. Fast-forwarding stops while this construct is active, leaving the
+model free to choose among valid tokenizations and avoiding expansion of a long
+forced sequence before the next token is sampled.
+
+Resource limits apply to the dynamic matchers as well. `initial_lexer_fuel`
+covers their construction and initialization; `step_lexer_fuel` covers mask
+computation, including matcher visits, decimal-prefix probes and cache lookups.
+Work stops between matcher operations when the budget is exhausted. Numeric
+probes examine at most ten decimal lengths; fuel may overshoot by one matcher
+operation and storage by one allocation.
+`max_lexer_states` also budgets retained interval positions and their lookup
+tables: each KiB of estimated inner storage consumes one state-budget unit, in
+addition to the outer lexer states. These are work and storage estimates, not
+strict wall-clock or allocator limits.
+
+This construct is available in Lark rules only, without JSON Schema integration.
+
 ### Grammar options
 
 Certain grammar options can be set by using `%llguidance { ... }`,

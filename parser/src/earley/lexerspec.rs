@@ -9,6 +9,7 @@ use crate::{
 };
 
 use super::{
+    int_ranges::IntRanges,
     lexer::MatchingLexemesIdx,
     regexvec::{LexemeSet, MatchingLexemes, RegexVec, RxLexeme},
 };
@@ -16,6 +17,8 @@ use super::{
 #[derive(Clone)]
 pub struct LexerSpec {
     pub lexemes: Vec<LexemeSpec>,
+    /// Interval configurations, indexed by lexeme ID.
+    int_ranges: Option<Box<HashMap<LexemeIdx, IntRanges>>>,
     pub regex_builder: RegexBuilder,
     pub no_forcing: bool,
     pub allow_initial_skip: bool,
@@ -136,6 +139,7 @@ impl LexerSpec {
     pub fn new() -> Result<Self> {
         Ok(LexerSpec {
             lexemes: Vec::new(),
+            int_ranges: None,
             special_token_rx: None,
             regex_builder: RegexBuilder::new(),
             no_forcing: false,
@@ -267,6 +271,9 @@ impl LexerSpec {
     }
 
     pub fn is_nullable(&self, idx: LexemeIdx) -> bool {
+        if let Some(config) = self.int_ranges.as_ref().and_then(|ranges| ranges.get(&idx)) {
+            return config.min_ranges == 0;
+        }
         self.regex_builder
             .is_nullable(self.lexemes[idx.as_usize()].compiled_rx)
     }
@@ -291,11 +298,22 @@ impl LexerSpec {
             self.regex_builder.exprset().clone(),
             rx_list,
             self.special_token_rx,
+            self.int_ranges.as_deref(),
             limits,
         )
     }
 
-    fn add_lexeme_spec(&mut self, mut spec: LexemeSpec) -> Result<LexemeIdx> {
+    /// Registers a regex lexeme.
+    fn add_lexeme_spec(&mut self, spec: LexemeSpec) -> Result<LexemeIdx> {
+        self.add_lexeme_spec_inner(spec, None)
+    }
+
+    /// Deduplicates lexemes by both their regex and optional interval configuration.
+    fn add_lexeme_spec_inner(
+        &mut self,
+        mut spec: LexemeSpec,
+        int_ranges: Option<IntRanges>,
+    ) -> Result<LexemeIdx> {
         let compiled = if !spec.token_ranges.is_empty() {
             if let Some(rx) = self.special_token_rx {
                 rx
@@ -342,6 +360,11 @@ impl LexerSpec {
                 && lex.is_extra == spec.is_extra
                 && lex.is_skip == spec.is_skip
                 && lex.skip_repetition == spec.skip_repetition
+                && self
+                    .int_ranges
+                    .as_ref()
+                    .and_then(|ranges| ranges.get(&lex.idx))
+                    == int_ranges.as_ref()
         }) {
             return Ok(LexemeIdx::new(idx));
         }
@@ -351,6 +374,11 @@ impl LexerSpec {
         spec.compiled_rx = compiled;
         if spec.name.is_empty() {
             spec.name = format!("[{}]", idx.as_usize());
+        }
+        if let Some(config) = int_ranges {
+            self.int_ranges
+                .get_or_insert_with(Default::default)
+                .insert(idx, config);
         }
         self.lexemes.push(spec);
         Ok(idx)
@@ -379,6 +407,19 @@ impl LexerSpec {
             max_tokens: usize::MAX,
             token_ranges: vec![],
         }
+    }
+
+    /// Registers a dynamic interval lexeme. Its placeholder regex is never
+    /// scanned; the regex vector selects the specialized matcher by lexeme ID.
+    #[cfg(feature = "lark")]
+    pub(crate) fn add_int_ranges(&mut self, config: IntRanges) -> Result<LexemeIdx> {
+        self.add_lexeme_spec_inner(
+            LexemeSpec {
+                name: "%int_ranges".to_string(),
+                ..self.empty_spec()
+            },
+            Some(config),
+        )
     }
 
     pub fn add_rx_and_stop(
@@ -497,7 +538,13 @@ impl LexerSpec {
     }
 
     pub fn lexeme_def_to_string(&self, idx: LexemeIdx) -> String {
-        self.lexemes[idx.as_usize()].to_string(512, Some(self.regex_builder.exprset()))
+        use std::fmt::Write;
+        let mut text =
+            self.lexemes[idx.as_usize()].to_string(512, Some(self.regex_builder.exprset()));
+        if let Some(config) = self.int_ranges.as_ref().and_then(|ranges| ranges.get(&idx)) {
+            write!(text, " %int_ranges {config:?}").unwrap();
+        }
+        text
     }
 
     pub fn dbg_lexeme_set_ext(&self, vob: &SimpleVob) -> String {
@@ -515,7 +562,7 @@ impl Debug for LexerSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "LexerSpec {{ lexemes: [")?;
         for lex in &self.lexemes {
-            let slex = lex.to_string(512, Some(self.regex_builder.exprset()));
+            let slex = self.lexeme_def_to_string(lex.idx);
             writeln!(f, "  {slex}")?;
         }
         write!(
