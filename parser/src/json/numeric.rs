@@ -379,7 +379,7 @@ pub fn rx_float_range(
             if right == 0.0 {
                 let r = format!("-{}", rx_float_range(Some(0.0), None, false, false)?);
                 if right_inclusive {
-                    Ok(mk_or(vec![r, "0".to_string()]))
+                    Ok(mk_or(vec![r, "-?0(\\.0+)?".to_string()]))
                 } else {
                     Ok(r)
                 }
@@ -850,6 +850,42 @@ mod test_ranges {
                     }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_float_range_zero_upper_bound_lexemes() {
+        let inclusive = Regex::new(&format!(
+            "^{}$",
+            rx_float_range(None, Some(0.0), true, true).unwrap()
+        ))
+        .unwrap();
+        let exclusive = Regex::new(&format!(
+            "^{}$",
+            rx_float_range(None, Some(0.0), true, false).unwrap()
+        ))
+        .unwrap();
+
+        let cases = [
+            ("0", true, false),
+            ("0.0", true, false),
+            ("0.00", true, false),
+            ("-0", true, false),
+            ("-0.0", true, false),
+            ("-0.00", true, false),
+            ("-1", true, true),
+            ("-0.01", true, true),
+            ("0.01", false, false),
+            ("1", false, false),
+        ];
+        for (value, expected_inclusive, expected_exclusive) in cases {
+            assert_eq!(inclusive.is_match(value), expected_inclusive, "{value}");
+            assert_eq!(exclusive.is_match(value), expected_exclusive, "{value}");
+        }
+
+        for value in ["00", "00.0", "-00", "-00.0", ".0", "-.0", "0.", "-0."] {
+            assert!(!inclusive.is_match(value), "{value}");
+            assert!(!exclusive.is_match(value), "{value}");
         }
     }
 }
