@@ -1073,6 +1073,8 @@ impl ParserState {
         self.last_force_bytes_len = usize::MAX;
         self.lexer_stack_top_eos = false;
         self.rows_valid_end = self.num_rows();
+        // A different branch can reuse the same lexer state and row index.
+        self.bias_cache = None;
 
         self.assert_definitive();
 
