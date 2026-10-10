@@ -34,8 +34,10 @@ use super::{
     lexer::{LexerResult, PreLexeme},
     lexerspec::{Lexeme, LexemeIdx, LexemeSpec, LexerSpec},
     perf::ParserPerfCounters,
-    regexvec::{LexemeSet, LexerStats},
-};
+regexvec::{LexemeSet, LexerStats},
+ };
+#[cfg(feature = "dpda")]
+use pushdown_rs::pda::Dpda;
 
 const TRACE: bool = false;
 const DEBUG: bool = true;
@@ -396,6 +398,27 @@ struct ParserState {
     // (common in long lexemes, e.g. the interior of JSON strings)
     bias_cache: Option<BiasCache>,
 
+    /// The PDA machine (the RTN compilation of the CFG). `None` when the
+    /// grammar is parametric (the RTN is CFG-only) or the `dpda` feature is off.
+    #[cfg(feature = "dpda")]
+    pda: Option<pushdown_rs::machine::PdaMachine>,
+    /// The lazily-computed PDA bridge memo (the terminal-to-token hybrid bridge + its exactness +
+    /// the reverse bridge), computed once on first PDA-path use and shared across the &self
+    /// readers via interior mutability. `None` until first use, so parser construction does not
+    /// pay the O(vocab x displacement) hybrid-bridge cost (which locked up every CPU on the 248K
+    /// Qwen vocab).
+    #[cfg(feature = "dpda")]
+    pda_bridge_memo: Option<PdaBridgeMemo>,
+    /// The PDA's current config SET (the NPDA frontier, the lockstep with the Earley parser). A
+    /// non-deterministic PDA (the one_or_more loops) has several live configs after each token;
+    /// tracking the SET (the no a single config) preserves the loop back-edges. Each entry is
+    /// the (ctrl, stack) pair.
+    #[cfg(feature = "dpda")]
+    pda_configs: Vec<(u32, Vec<u32>)>,
+    /// The PDA history ring (for rollback): the config SET before each token commit.
+    #[cfg(feature = "dpda")]
+    pda_history: Vec<Vec<(u32, Vec<u32>)>>,
+
     shared_box: Box<SharedState>,
 }
 
@@ -410,6 +433,23 @@ struct BiasCache {
 #[derive(Clone, Default)]
 struct SharedState {
     lexer_opt: Option<Lexer>,
+}
+
+/// The lazily-computed PDA bridge memo (the terminal-to-token hybrid bridge + its exactness +
+/// the reverse bridge). Built once on first PDA-path use (the ensure_pda_bridge), shared across
+/// the &self readers via the ParserState's interior-mutability.
+#[cfg(feature = "dpda")]
+#[derive(Clone)]
+struct PdaBridgeMemo {
+    /// The terminal-indexed token bridge (the hybrid CFGzip displacement bridge, the no the DFA).
+    bridge: Vec<Vec<u32>>,
+    /// Whether the bridge is exact (total + disjoint over the vocab, the exempt terminals allowed
+    /// empty). The PDA mask path is active only when exact (the no the legacy Earley fallback).
+    exact: bool,
+    /// The reverse bridge (the token -> the terminal RELATION, the no the function): populated
+    /// only when exact. A token may map to several terminals (the ambiguous byte in two ranges);
+    /// the apply_token lockstep resolves the relation against the state's allowed terminals.
+    reverse: Vec<Vec<u32>>,
 }
 
 impl SharedState {
@@ -661,6 +701,15 @@ impl ParserState {
         } else {
             INVALID_TOKEN
         };
+        // Compile the PDA from the grammar (the RTN construction). One-time cost.
+        // `None` when the grammar is parametric (the RTN is CFG-only) or the
+        // compilation fails.
+        #[cfg(feature = "dpda")]
+        let pda_machine = if grammar.parametric() {
+            None
+        } else {
+            crate::dpda_adapter::compile_pda(grammar.as_ref()).ok()
+        };
         let mut r = ParserState {
             cancellation: None,
             grammar,
@@ -694,6 +743,14 @@ impl ParserState {
             trie_grammar_stack: 0,
             parser_error: None,
             bias_cache: None,
+            #[cfg(feature = "dpda")]
+            pda: pda_machine,
+            #[cfg(feature = "dpda")]
+            pda_bridge_memo: None,
+            #[cfg(feature = "dpda")]
+            pda_configs: vec![(0, vec![])],
+            #[cfg(feature = "dpda")]
+            pda_history: vec![],
             shared_box: Box::new(SharedState {
                 lexer_opt: Some(lexer),
             }),
@@ -795,12 +852,50 @@ impl ParserState {
         }
         let t0 = Instant::now();
 
+        #[cfg(feature = "dpda")]
+        {
+            // Ensure the bridge memo is built BEFORE borrowing self.pda (the ensure_pda_bridge is
+            // a &mut self borrow that must not overlap a live &self.pda borrow).
+            self.ensure_pda_bridge();
+            let bridge_exact = self.pda_bridge_memo.as_ref().expect("the memo is built above").exact;
+            let pda = self.pda.as_ref();
+            if let Some(pda) = pda {
+                // The CPU PDA mask is only faster for DETERMINISTIC grammars (the
+                // LR(1) case, where the epsilon closure is a single path, O(1)).
+                // For non-deterministic grammars (the full-envelope with choices),
+                // the epsilon closure BFS is slower than the legacy Earley path. The
+                // GPU PDA path (the fused_sample kernel) is the correct optimization
+                // for non-deterministic grammars.
+                if pda.is_deterministic() && start.is_empty() && (bridge_exact || std::env::var("LLG_PDA_OVER_ALLOW").is_ok()) {
+                    // The PDA mask is a safe over-approximation for non-deterministic
+                    // grammars (the epsilon-closure union allows more tokens than the
+                    // Earley parser would). The firewall (validate_tokens / commit)
+                    // rejects illegal tokens before they reach the sequence, so the
+                    // over-allowing is harmless. For deterministic grammars, the PDA
+                    // mask is precise (the settled gate).
+                    let mask = self.pda_mask();
+                    let d = t0.elapsed();
+                    self.stats.compute_time_us += d.as_micros() as u64;
+                    self.perf_counters.compute_bias.record(d);
+                    return mask;
+                }
+            }
+        }
+
         // Check cache - only valid when start is empty (common case)
         if start.is_empty() {
             let curr_state = self.lexer_state();
             let has_pending = self.has_pending_lexeme_bytes();
+            // Key the cache on the row's lexer_start_state (the up-to-date DFA state), not
+            // the lexer_stack top (which lags one advance_parser push behind — the
+            // TOCTOU that served the frozen mask).
+            let key_state = self
+                .rows
+                .get(curr_state.row_idx as usize)
+                .map(|r| r.lexer_start_state)
+                .unwrap_or(curr_state.lexer_state);
             if let Some(ref cache) = self.bias_cache {
-                if cache.lexer_state == curr_state.lexer_state
+                if cache.lexer_state == key_state
                     && cache.row_idx == curr_state.row_idx
                     && cache.has_pending_lexeme_bytes == has_pending
                 {
@@ -854,8 +949,15 @@ impl ParserState {
         // Only complete masks can enter the cache.
         if start.is_empty() && !self.is_cancelled() {
             let curr_state = self.lexer_state();
+            // Store the same key the check used (the row's lexer_start_state), so a
+            // hit only happens when the up-to-date state is genuinely unchanged.
+            let key_state = self
+                .rows
+                .get(curr_state.row_idx as usize)
+                .map(|r| r.lexer_start_state)
+                .unwrap_or(curr_state.lexer_state);
             self.bias_cache = Some(BiasCache {
-                lexer_state: curr_state.lexer_state,
+                lexer_state: key_state,
                 row_idx: curr_state.row_idx,
                 has_pending_lexeme_bytes: self.has_pending_lexeme_bytes(),
                 mask: set.clone(),
@@ -1055,6 +1157,8 @@ impl ParserState {
         debug!("rollback: {} bytes", n_bytes);
         ensure!(self.parser_error.is_none(), "rollback: parser error");
         self.assert_definitive();
+        // Rewinding changes the settled state; drop the bias cache.
+        self.bias_cache = None;
         ensure!(
             n_bytes <= self.byte_to_token_idx.len(),
             "rollback: too many bytes {} > {}",
@@ -1063,6 +1167,25 @@ impl ParserState {
         );
 
         let new_len = self.byte_to_token_idx.len() - n_bytes;
+
+        // The number of tokens rolled back = the number of distinct token indices in
+        // the rolled-back byte range (byte_to_token_idx[new_len..], the scanned in
+        // order). This is the number of PDA history entries to pop (the history is
+        // per-token, the unconditional apply_token push, the NOT per-byte). EOS
+        // tokens have no bytes (the absent from byte_to_token_idx), so they are not
+        // counted (the PDA history is per non-EOS commit).
+        #[cfg(feature = "dpda")]
+        let tokens_rolled_back = {
+            let mut r = 0;
+            let mut prev = u32::MAX;
+            for &tok in &self.byte_to_token_idx[new_len..] {
+                if tok != prev {
+                    r += 1;
+                    prev = tok;
+                }
+            }
+            r
+        };
 
         self.byte_to_token_idx.truncate(new_len);
         self.bytes.truncate(new_len);
@@ -1076,11 +1199,96 @@ impl ParserState {
 
         self.assert_definitive();
 
+        // Restore the PDA config from the history ring (the R5 rollback).
+        // Each apply_token pushed one entry (the per-token, the unconditional).
+        // Rolling back n_bytes pops tokens_rolled_back entries (the per-token
+        // count, the no per-byte unit mismatch) and restores the PDA to the
+        // pre-rollback state.
+        #[cfg(feature = "dpda")]
+        if self.pda.is_some() {
+            for _ in 0..tokens_rolled_back {
+                if let Some(prev_configs) = self.pda_history.pop() {
+                    self.pda_configs = prev_configs;
+                }
+            }
+        }
+
         Ok(())
     }
 
-    pub fn validate_tokens(&mut self, tokens: &[TokenId]) -> usize {
+pub fn validate_tokens(&mut self, tokens: &[TokenId]) -> usize {
         self.assert_definitive();
+
+        // PDA validation path: when the PDA is active, check each token against
+        // the PDA frontier (the advance_eps). This is O(1) per token (the
+        // indexed lookup) vs O(grammar) for the speculative Earley walk.
+        // For non-deterministic PDAs, the single-config advance is conservative
+        // (it may reject some legal tokens, but never accepts illegal ones).
+        #[cfg(feature = "dpda")]
+        {
+            // Capture the memo's exactness + reverse bridge BEFORE borrowing self.pda (the
+            // ensure_pda_bridge is a &mut self borrow that must not overlap a live &self.pda borrow).
+            let memo = self.ensure_pda_bridge();
+            let bridge_exact = memo.exact;
+            let reverse_bridge: Vec<Vec<u32>> = memo.reverse.clone();
+            // The PDA validate_tokens path engages only for DETERMINISTIC machines (the the
+            // single-path, the the O(1) exact speculative check). For non-deterministic machines
+            // (the VPA / the star-loop, the the JSON), the PDA frontier walk is over-restrictive
+            // (the the config branches), so the Earley speculative walk is the source of truth.
+            let pda_deterministic = self.pda.as_ref().map(|p| p.is_deterministic()).unwrap_or(false);
+            if pda_deterministic && bridge_exact {
+                if let Some(ref pda) = self.pda {
+                    // The config SET (the NPDA frontier, the no the single config). validate_tokens is
+                    // SPECULATIVE: it walks a local copy of the SET, the no the definitive self.pda_configs.
+                    let mut configs: Vec<(u32, Vec<u32>)> = self.pda_configs.clone();
+                    let mut count = 0;
+                    for &tok in tokens {
+                        // Check for EOS (the PDA accepting state, the via-closure).
+                        if self.tok_env.tok_trie().eos_tokens().contains(&tok) {
+                            // The EOS is accepted iff ANY config in the SET reaches an accepting state via eps.
+                            if configs.iter().any(|(q, stk)| pda.accepts_via_eps(*q, stk)) {
+                                return count + 1;
+                            }
+                            return count;
+                        }
+                        // Map the token to the PDA terminal(s) via the completing-keyed reverse RELATION.
+                        let Some(term_set) = reverse_bridge.get(tok as usize) else {
+                            break; // token not in any terminal (illegal)
+                        };
+if term_set.is_empty() {
+                            break;
+                        }
+                        // Resolve the relation against the config SET's allowed terminals (the mask_at_cfg union).
+                        let allowed: std::collections::HashSet<u32> = configs.iter().flat_map(|(q, stk)| pda.mask_at_cfg(*q, stk)).collect();
+                        let resolved: Vec<u32> = term_set.iter().copied().filter(|t| allowed.contains(t)).collect();
+                        if resolved.is_empty() {
+                            break; // illegal at every live config
+                        }
+                        // Advance the config SET on each resolved terminal (the NPDA step).
+                        let mut new_configs: Vec<(u32, Vec<u32>)> = Vec::new();
+                        for &terminal_id in &resolved {
+                            if (terminal_id as usize) < pda.num_inputs as usize {
+                                for cfg in pda.advance_eps_set(&configs, terminal_id) {
+                                    if !new_configs.contains(&cfg) {
+                                        new_configs.push(cfg);
+                                    }
+                                }
+                            }
+                        }
+                        if new_configs.is_empty() {
+                            break; // the PDA rejected the token at every live config
+                        }
+                        configs = new_configs;
+                        count += 1;
+                    }
+                    // validate_tokens is SPECULATIVE (the no definitive mutation): the local config SET
+                    // walks the tokens, but the definitive PDA state (self.pda_configs) is advanced only
+                    // by apply_token (the lockstep with the Earley). Writing back here would desync the PDA.
+                    return count;
+                }
+            }
+        }
+
         self.run_speculative("validate_tokens", |state| {
             state.scratch.log_override = true;
             let mut applied_idx = state.byte_to_token_idx.len();
@@ -1186,13 +1394,25 @@ impl ParserState {
 
     fn flush_and_check_numeric(&mut self, tok_id: TokenId) -> Option<LexemeIdx> {
         if self.flush_lexer() {
+            // A committed token can fall on the boundary of several active
+            // token-range specs (e.g. the reasoning EOR is inside both the broad
+            // free-text set and the narrow <[EOR]> set). Resolve to the narrowest
+            // (smallest token_range_span) — the most specific lexeme. First-match
+            // would pick the broad set, stall the earley 'start' item, and freeze
+            // the DFA on the reasoning state.
+            let mut best: Option<&LexemeSpec> = None;
             for spec in self.token_range_lexemes() {
-                if spec.contains_token(tok_id) {
-                    return Some(spec.idx);
+                if !spec.contains_token(tok_id) {
+                    continue;
+                }
+                if best.map_or(true, |b| spec.token_range_span() < b.token_range_span()) {
+                    best = Some(spec);
                 }
             }
+            best.map(|s| s.idx)
+        } else {
+            None
         }
-        None
     }
 
     // apply_tokens() "pushes" the bytes in 'tokens' into the lexer and parser.  It is a top-level
@@ -1200,6 +1420,28 @@ impl ParserState {
     // LLInterpreter interface, it is called indirectly via the commit_token() method.
     pub fn apply_token(&mut self, tok_bytes: &[u8], tok_id: TokenId) -> Result<usize> {
         self.assert_definitive();
+        // Consuming a token advances the settled state; the bias cache is only
+        // valid within a single state, so drop it (the TOCTOU-safe key alone does
+        // not detect every advance).
+        self.bias_cache = None;
+
+        // The PDA bypass (the the dfa_replacement_plan Phase 2): when the PDA is engaged
+        // (the deterministic machine + the exact bridge), the PDA advance (the the 46µs) is the
+        // commit, and the Earley item-set update (the the 800µs) is SKIPPED. The DFA advance
+        // (the the lexer_stack push, the the invariant-preserving) + the bytes update + the
+        // byte_to_token_idx + the row_infos bookkeeping are still done (the the parser state
+        // consistency). The item-set goes stale, but it is not read (the the next compute_mask
+        // uses the PDA path, the the deterministic + the exact bridge). When the PDA is NOT
+        // engaged (the general NPDA / the inexact bridge), the full Earley walk runs (the the
+        // legacy path, the the maintained).
+        #[cfg(feature = "dpda")]
+        {
+            let pda_engaged = self.pda.as_ref().map(|p| p.is_deterministic()).unwrap_or(false)
+                && self.pda_bridge_memo.as_ref().map(|m| m.exact).unwrap_or(false);
+            if pda_engaged {
+                return self.apply_token_pda_bypass(tok_bytes, tok_id);
+            }
+        }
 
         item_trace!("apply_token: {:?}", String::from_utf8_lossy(tok_bytes));
 
@@ -1404,13 +1646,423 @@ impl ParserState {
 
         self.assert_definitive();
 
+        // Advance the PDA (the lockstep with the Earley parser). The token ID maps to
+        // the terminal ID via the reverse bridge (the token -> the terminal, the
+        // exact-bridge O(1) lookup) - NOT the identity assumption (the tok_id as
+        // terminal_id, which desyncs the PDA for real multi-byte tokenizers).
+        // The history entry is pushed UNCONDITIONALLY (one per token commit), so
+        // the history length == the token count (the rollback pops per-token, the
+        // no per-byte unit mismatch). When the bridge is inexact (the reverse
+        // bridge is empty), the advance is a no-op (the config is unchanged) and
+        // the legacy Earley path is the source of truth.
+        #[cfg(feature = "dpda")]
+        {
+            // The PDA lockstep mirror engages for the DETERMINISTIC + the VISIBLY-PUSHDOWN machines
+            // (the the classify, the the programmatic determination). The VPA (the the JSON, the the
+            // input-driven stack) tracks the config-set frontier (the the pda_configs, the the
+            // advance_eps_set, the the loop preservation) in lockstep with the Earley parser. The
+            // mirror is READ-ONLY (the the no the Earley state mutation), so it cannot desync the
+            // lexer_stack/bytes invariant. Only the truly general NPDA (the the NonDeterministic
+            // kind) leaves the pda_configs untracked (the the Earley path is the source of truth,
+            // the the rollback is a no-op). The bridge (the O(vocab) hybrid build) is only needed
+            // when the PDA path engages, so it is built lazily inside the engaged gate (the no the
+            // per-token O(vocab) thrash on the general NPDA grammars).
+            let pda_engaged = self.pda.as_ref()
+                .map(|p| matches!(p.classify(), pushdown_rs::machine::PdaKind::Deterministic | pushdown_rs::machine::PdaKind::VisiblyPushdown))
+                .unwrap_or(false);
+            if pda_engaged {
+                // Capture the reverse bridge (the ensure_pda_bridge is a &mut self borrow; the pda is
+                // re-borrowed after it ends).
+                let memo = self.ensure_pda_bridge();
+                let reverse_bridge: Vec<Vec<u32>> = memo.reverse.clone();
+                if let Some(ref pda) = self.pda {
+                    // The rollback: push the current config SET (one SET per token commit, so the
+                    // history length == the token count, the rollback pops per-token).
+                    self.pda_history.push(self.pda_configs.clone());
+                    // The token -> terminal RELATION (the ambiguous token maps to several terminals).
+                    if let Some(term_set) = reverse_bridge.get(tok_id as usize) {
+                        if !term_set.is_empty() {
+                            // The allowed terminals at the current config SET (the closure-union over the SET).
+                            let allowed: std::collections::HashSet<u32> = self
+                                .pda_configs
+                                .iter()
+                                .flat_map(|(q, stk)| pda.mask_at_cfg(*q, stk))
+                                .collect();
+                            // The resolved terminals: the token's terminals intersect the allowed set.
+                            let resolved: Vec<u32> = term_set.iter().copied().filter(|t| allowed.contains(t)).collect();
+                            // Advance the config SET on each resolved terminal (the NPDA step). The new
+                            // SET is the union of the advances; an empty result means the token is
+                            // illegal at every live config (the PDA rejects it).
+                            if !resolved.is_empty() {
+                                let mut new_configs: Vec<(u32, Vec<u32>)> = Vec::new();
+                                for &terminal_id in &resolved {
+                                    if (terminal_id as usize) < pda.num_inputs as usize {
+                                        for cfg in pda.advance_eps_set(&self.pda_configs, terminal_id) {
+                                            if !new_configs.contains(&cfg) {
+                                                new_configs.push(cfg);
+                                            }
+                                        }
+                                    }
+                                }
+                                self.pda_configs = new_configs;
+                            }
+                            // resolved empty (illegal at this state): the config SET is unchanged (the
+                            // legacy Earley path remains the source of truth for the reject).
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(0)
+    }
+
+    /// The PDA bypass commit (the the dfa_replacement_plan Phase 2): when the PDA is engaged
+    /// (the deterministic + the exact bridge), the PDA advance (the the advance_eps_set, the
+    /// the 46µs) is the commit check, and the Earley item-set update (the the advance_parser,
+    /// the the 800µs) is SKIPPED. The DFA advance (the the lexer_stack push, the the invariant-
+    /// preserving, the the cheap) IS done (the the lexer_stack.len() == the bytes.len() + off
+    /// invariant holds). The item-set goes stale, but it is not read (the the next compute_mask
+    /// uses the PDA path, the the deterministic + the exact bridge).
+    ///
+    /// Returns Ok(0) on success (the the no backtrack), or Err (the the PDA rejected the token,
+    /// the the illegal at every live config).
+    #[cfg(feature = "dpda")]
+    fn apply_token_pda_bypass(&mut self, tok_bytes: &[u8], tok_id: TokenId) -> Result<usize> {
+        // The cheap bookkeeping (the the parser state consistency, the the no the item-set walk).
+        let applied_idx0 = self.byte_to_token_idx.len();
+        // The row_infos update (the the token idx for the rows fully contained in the new token).
+        let mut row_to_apply = self.num_rows() - 1;
+        while row_to_apply > 0 {
+            if self.row_infos[row_to_apply].start_byte_idx <= applied_idx0 {
+                break;
+            }
+            row_to_apply -= 1;
+        }
+        for idx in row_to_apply..self.num_rows() {
+            if self.row_infos[idx].start_byte_idx >= applied_idx0 {
+                self.row_infos[idx].set_token_idx(self.token_idx);
+            } else {
+                self.row_infos[idx].apply_token_idx(self.token_idx);
+            }
+        }
+        // The byte_to_token_idx push (the the per-byte token mapping, the the cheap).
+        for _ in tok_bytes {
+            self.byte_to_token_idx.push(self.token_idx.try_into().unwrap());
+        }
+        // The DFA advance (the the lexer_stack push, the the invariant-preserving, the the cheap).
+        // Each byte in tok_bytes advances the DFA (the the lexer_stack grows by one per byte, the
+        // the matching the bytes growth). The item-set update (the the advance_parser, the the
+        // expensive) is SKIPPED (the the item-set goes stale, the the no the PDA path reads it).
+        let curr = self.lexer_state();
+        for &b in tok_bytes {
+            let res = self.shared_box.lexer_mut().advance(curr.lexer_state, b, false, &self.cancellation);
+            if let LexerResult::State(next_state, _) = res {
+                self.lexer_stack.push(LexerState {
+                    row_idx: curr.row_idx,
+                    lexer_state: next_state,
+                    byte: Some(b),
+                });
+            }
+        }
+        // The bytes update (the the committed byte history, the the invariant).
+        if self.scratch.definitive {
+            self.bytes.extend_from_slice(tok_bytes);
+        }
+        // The PDA advance push (the the rollback, the the per-token).
+        self.pda_history.push(self.pda_configs.clone());
+        // The PDA advance (the the commit check, the the 46µs). The token -> the terminal RELATION
+        // (the the reverse bridge), resolved against the config SET's allowed terminals (the the
+        // mask_at_cfg union). The advance_eps_set is the NPDA frontier step (the the loop
+        // preservation, the the full depth).
+        let memo = self.ensure_pda_bridge();
+        let reverse_bridge: Vec<Vec<u32>> = memo.reverse.clone();
+        if let Some(ref pda) = self.pda {
+            if let Some(term_set) = reverse_bridge.get(tok_id as usize) {
+                if !term_set.is_empty() {
+                    // The allowed terminals at the current config SET (the closure-union over the SET).
+                    let allowed: std::collections::HashSet<u32> = self
+                        .pda_configs
+                        .iter()
+                        .flat_map(|(q, stk)| pda.mask_at_cfg(*q, stk))
+                        .collect();
+                    // The resolved terminals: the token's terminals intersect the allowed set.
+                    let resolved: Vec<u32> = term_set.iter().copied().filter(|t| allowed.contains(t)).collect();
+                    // Advance the config SET on each resolved terminal (the NPDA step). The new
+                    // SET is the union of the advances; an empty result means the token is
+                    // illegal at every live config (the PDA rejects it).
+                    if !resolved.is_empty() {
+                        let mut new_configs: Vec<(u32, Vec<u32>)> = Vec::new();
+                        for &terminal_id in &resolved {
+                            if (terminal_id as usize) < pda.num_inputs as usize {
+                                for cfg in pda.advance_eps_set(&self.pda_configs, terminal_id) {
+                                    if !new_configs.contains(&cfg) {
+                                        new_configs.push(cfg);
+                                    }
+                                }
+                            }
+                        }
+                        if new_configs.is_empty() {
+                            // The PDA rejected the token at every live config (the the illegal).
+                            bail!(
+                                "token {:?} rejected by the PDA (the the illegal at every live config)",
+                                String::from_utf8_lossy(tok_bytes)
+                            );
+                        }
+                        self.pda_configs = new_configs;
+                    }
+                    // resolved empty (illegal at this state): the config SET is unchanged (the
+                    // the token is not in any terminal, the the reject).
+                }
+            }
+        }
+        // The PDA bypass does the commit (the the no the item-set update). The backtrack is 0 (the
+        // the PDA advance is the definitive, the the no the speculative backtrack).
+        Ok(0)
+    }
+    /// `M(c) = union over a in mask_at_cfg(q, stack) of Tok(R(a))`.
+    /// The bridge (`terminal_token_map`) lifts the PDA's terminal-level mask
+    /// to the token level. This is O(1) with the PDA index (vs O(grammar)
+    /// for the Earley recognizer).
+    #[cfg(feature = "dpda")]
+    fn ensure_pda_bridge(&mut self) -> &PdaBridgeMemo {
+        // The lazy memo: compute the hybrid bridge + its exactness + the reverse bridge ONCE, on
+        // first PDA-path use, and cache it (the no the construction-time O(vocab x displacement)
+        // cost that locked up every CPU on the 248K Qwen vocab).
+        if self.pda_bridge_memo.is_none() {
+            self.pda_bridge_memo = Some(self.build_pda_bridge_memo());
+        }
+        self.pda_bridge_memo.as_ref().expect("the memo is built above")
+    }
+
+    /// Build the PDA bridge memo (the hybrid bridge + the exactness + the reverse bridge). Called once,
+    /// from ensure_pda_bridge, on first PDA-path use.
+    #[cfg(feature = "dpda")]
+    fn build_pda_bridge_memo(&self) -> PdaBridgeMemo {
+        // No PDA machine (the parametric grammar, the dpda feature off for this grammar): the
+        // bridge is empty + inexact, so the PDA path stays off (the legacy Earley path runs).
+        let Some(pda) = self.pda.as_ref() else {
+            return PdaBridgeMemo {
+                bridge: Vec::new(),
+                exact: false,
+                reverse: Vec::new(),
+            };
+        };
+        let trie = self.tok_env.tok_trie();
+        let vocab_size = trie.vocab_size();
+        let eos_tokens: std::collections::HashSet<u32> =
+            trie.eos_tokens().iter().copied().collect();
+        let adapter = crate::dpda_adapter::PdaGrammar::new(self.grammar.as_ref());
+        let terminals = pushdown_rs::compile::Grammar::terminals(&adapter);
+        let num_terminals = terminals.len();
+        // The token-range terminal's exact token set (the option (a): the range's token IDs).
+        // None for a non-token-range terminal (the displacement-bridged instead).
+        let terminal_token_set = |t: u32| -> Option<Vec<u32>> {
+            let csym = terminals[t as usize];
+            let ranges = self.grammar.terminal_token_ranges(csym);
+            if ranges.is_empty() {
+                None
+            } else {
+                let mut set = Vec::new();
+                for range in ranges {
+                    for tok in range.clone() {
+                        if (tok as usize) < vocab_size {
+                            set.push(tok);
+                        }
+                    }
+                }
+                Some(set)
+            }
+        };
+        // The terminal's preterminal (byte) sequence for the displacement bridge: the byte
+        // pattern for byte-level terminals, the empty (the no displacement key) for token-ranges.
+        let terminal_preterminals = |t: u32| -> Vec<u32> {
+            let csym = terminals[t as usize];
+            match crate::dpda_adapter::terminal_preterminals(self.grammar.as_ref(), csym) {
+                Some(bytes) => bytes.into_iter().map(|b| b as u32).collect(),
+                None => Vec::new(),
+            }
+        };
+        // The token's preterminal sequence: the token's byte string (the no the lexer DFA).
+        let token_preterminals = |tok: u32| -> Vec<u32> {
+            trie.token(tok).iter().map(|&b| b as u32).collect()
+        };
+        let bridge = crate::dpda_adapter::terminal_hybrid_bridge(
+            pda,
+            vocab_size,
+            &eos_tokens,
+            num_terminals,
+            &terminal_token_set,
+            &terminal_preterminals,
+            &token_preterminals,
+        );
+        // The exactness (the disjointness + the terminal-totality, the exempt terminals allowed
+        // empty). When inexact, the PDA mask path is off (the legacy Earley path runs).
+        let exempt: Vec<usize> = terminals
+            .iter()
+            .enumerate()
+            .filter(|(_, csym)| self.grammar.sym_data(**csym).lexeme.is_none())
+            .map(|(i, _)| i)
+            .collect();
+        let exact = crate::dpda_adapter::bridge_is_exact_from_map(
+            &bridge,
+            vocab_size,
+            &self.tok_env,
+            &exempt,
+        );
+        // The reverse bridge (the token -> the terminal RELATION), populated only when exact.
+        let reverse: Vec<Vec<u32>> = if exact {
+            let completing =
+                crate::dpda_adapter::terminal_completing_token(self.grammar.as_ref(), &self.tok_env, &bridge);
+            let mut rev: Vec<Vec<u32>> = vec![Vec::new(); vocab_size];
+            for (terminal_id, tokens) in bridge.iter().enumerate() {
+                match completing.get(terminal_id).copied().flatten() {
+                    Some(completing_tok) => {
+                        if (completing_tok as usize) < vocab_size {
+                            rev[completing_tok as usize].push(terminal_id as u32);
+                        }
+                    }
+                    None => {
+                        for &tok in tokens {
+                            if (tok as usize) < vocab_size {
+                                rev[tok as usize].push(terminal_id as u32);
+                            }
+                        }
+                    }
+                }
+            }
+            rev
+        } else {
+            Vec::new()
+        };
+        PdaBridgeMemo {
+            bridge,
+            exact,
+            reverse,
+        }
+    }
+
+    /// Compute the token mask from the PDA config (the epsilon-closure gate).
+    /// `M(c) = union over a in mask_at_cfg(q, stack) of Tok(R(a))`.
+    /// The bridge lifts the PDA's terminal-level mask to the token level.
+    /// This is O(1) with the PDA index (vs O(grammar) for the Earley recognizer).
+    #[cfg(feature = "dpda")]
+    fn pda_mask(&mut self) -> SimpleVob {
+        // The epsilon-closure mask for the current PDA config SET: the union of the allowed
+        // terminals over every live config (the NPDA frontier, the no the single-config under-mask).
+        // Over-allowing is safe (the firewall rejects illegal tokens on commit).
+        let mut allowed_terminals: std::collections::HashSet<u32> = std::collections::HashSet::new();
+        if let Some(pda) = self.pda.as_ref() {
+            for (q, stk) in &self.pda_configs {
+                for &a in &pda.mask_at_cfg(*q, stk) {
+                    allowed_terminals.insert(a);
+                }
+            }
+        }
+        let allowed_terminals: Vec<u32> = allowed_terminals.into_iter().collect();
+        // Capture the vocab size BEFORE the &mut self ensure_pda_bridge borrow (the no the
+        // simultaneous mut + shared self of self.tok_env).
+        let vocab_size = self.tok_env.tok_trie().vocab_size();
+        // Lift to token level via the memoized hybrid bridge.
+        let memo = self.ensure_pda_bridge();
+        let bridge = &memo.bridge;
+        let mut vob = SimpleVob::alloc(vocab_size);
+        for &a in &allowed_terminals {
+            if let Some(tokens) = bridge.get(a as usize) {
+                for &tok in tokens {
+                    vob.set(tok as usize, true);
+                }
+            }
+        }
+        vob
+    }
+
+    /// Batch PDA commit: project K draft tokens through the PDA in one call
+    /// (the `project_batch`), returning the legal prefix length and the final
+    /// PDA config. The caller then does a single FSM `try_consume_tokens` for
+    /// the legal prefix, instead of K sequential advances + K sequential commits.
+    ///
+    /// Returns `(legal_count, final_ctrl, final_stack)`. If `legal_count < K`,
+    /// the draft diverged from the grammar at position `legal_count` (the
+    /// projection broke). The final config is the PDA state after consuming
+    /// the legal prefix.
+    #[allow(dead_code)]
+    #[cfg(feature = "dpda")]
+    fn pda_commit_batch(
+        &mut self,
+        pda: &pushdown_rs::machine::PdaMachine,
+        drafts: &[u32],
+    ) -> (usize, u32, Vec<u32>) {
+        use pushdown_rs::simd_pipeline::SimdPipeline;
+        let k = drafts.len();
+        if k == 0 {
+            // The dead-code placeholder (the single-config return shape, the representative config).
+            let (cq, cs) = self.pda_configs.first().cloned().unwrap_or((0, vec![]));
+            return (0, cq, cs);
+        }
+        // The projection: K+1 masks in one call (the SimdPipeline's project_batch,
+        // the B-lane version, the no per-lane scalar). The final config is the
+        // state after K advances.
+        let pipeline = SimdPipeline::new(pda);
+        let configs = self.pda_configs.clone();
+        let projections = pipeline.project_batch(&configs, &[drafts.to_vec()]);
+        let masks = &projections[0];
+        // The projection returns K+1 masks if all drafts are legal, fewer if
+        // the projection broke. The legal count is masks.len() - 1 (subtract
+        // the initial mask).
+        let legal = masks.len().saturating_sub(1);
+        // Advance the config SET to the legal prefix (the NPDA step, the sequential fallback).
+        let mut cur = self.pda_configs.clone();
+        for &a in drafts.iter().take(legal) {
+            let next = pda.advance_eps_set(&cur, a);
+            if next.is_empty() {
+                break;
+            }
+            cur = next;
+        }
+        self.pda_configs = cur.clone();
+        let (cq, cs) = cur.first().cloned().unwrap_or((0, vec![]));
+        (legal, cq, cs)
     }
 
     fn token_range_lexemes(&self) -> Vec<&LexemeSpec> {
         let state = self.lexer_state().lexer_state;
         let possible = self.lexer().possible_lexemes(state);
         self.lexer_spec().token_range_lexemes(possible)
+    }
+
+    /// The PDA singleton ff check: if the PDA allows exactly one terminal
+    /// AND that terminal covers exactly one token, the token is forced
+    /// (the O(1) replacement for the byte-hunt). Returns the forced token
+    /// or None (the sample, not force).
+    #[cfg(feature = "dpda")]
+    fn pda_forced_token(&mut self) -> Option<u32> {
+        // The allowed terminals over the config SET (the union, the NPDA frontier). The pda borrow
+        // is scoped to this block so it ends before the &mut self ensure_pda_bridge call below.
+        let allowed: std::collections::HashSet<u32> = {
+            let pda = self.pda.as_ref()?;
+            let mut allowed = std::collections::HashSet::new();
+            for (q, stk) in &self.pda_configs {
+                let top = stk.last().copied().unwrap_or(pda.start_stack);
+                for &a in &pda.mask_at_cfg_settled(*q, top) {
+                    allowed.insert(a);
+                }
+            }
+            allowed
+        };
+        // The singleton condition: exactly one terminal is allowed.
+        if allowed.len() != 1 {
+            return None;
+        }
+        let a = *allowed.iter().next().unwrap();
+        // The terminal must cover exactly one token (the bridge entry has 1 element).
+        let memo = self.ensure_pda_bridge();
+        let bridge = &memo.bridge;
+        let tokens = bridge.get(a as usize)?;
+        if tokens.len() != 1 {
+            return None;
+        }
+        Some(tokens[0])
     }
 
     pub fn needs_force_bytes(&self) -> bool {
@@ -1510,15 +2162,22 @@ impl ParserState {
         // we get here "FF [ 1 2 3 4", no final ']'
         let bytes = &bytes[2..bytes.len()];
         if let Ok(tok_id) = std::str::from_utf8(bytes).unwrap().parse::<u32>() {
-            let idx = specs.iter().position(|spec| {
-                spec.token_ranges
-                    .iter()
-                    .any(|range| range.contains(&tok_id))
-            });
-            debug!("  >> tok_id={} idx={:?}", tok_id, idx);
-            if let Some(idx) = idx {
+            // Prefer the narrowest matching spec (smallest token_range_span) over the
+            // first: a token on the boundary of several active token-range specs must
+            // resolve to the most specific one, or the parse stalls in the broad set.
+            let mut best: Option<&LexemeSpec> = None;
+            for spec in specs.iter().copied() {
+                if !spec.contains_token(tok_id) {
+                    continue;
+                }
+                if best.map_or(true, |b| spec.token_range_span() < b.token_range_span()) {
+                    best = Some(spec);
+                }
+            }
+            debug!("  >> tok_id={} best={:?}", tok_id, best.map(|s| s.idx.as_usize()));
+            if let Some(spec) = best {
                 let pre = PreLexeme {
-                    idx: MatchingLexemesIdx::Single(specs[idx].idx),
+                    idx: MatchingLexemesIdx::Single(spec.idx),
                     byte: Some(b']'),
                     byte_next_row: false,
                 };
@@ -1620,6 +2279,62 @@ impl ParserState {
     }
 
     pub fn is_accepting(&mut self) -> bool {
+        // PDA accepting check: the PDA is accepting when the control state is
+        // in the accepting set AND the stack is at the bottom (the start_stack).
+        // This is the O(1) replacement for the O(grammar) row set check.
+        // ONLY run when the PDA is actually being tracked (deterministic + exact
+        // bridge + configs being advanced). For non-deterministic or inexact-bridge
+        // grammars, the pda_configs is never advanced (stays at the start), so the
+        // PDA check is meaningless — fall through to the Earley is_accepting_inner.
+        #[cfg(feature = "dpda")]
+        if let Some(ref pda) = self.pda {
+            // The PDA path engages only for DETERMINISTIC machines (the the single-path, the
+            // the pda_configs tracks the unique frontier) AND the bridge is exact (the pda_configs
+            // is actually being advanced by apply_token). Only the truly general NPDA (the the
+            // NonDeterministic kind) falls through to the Earley is_accepting_inner.
+            let bridge_exact = self.pda_bridge_memo.as_ref().map(|m| m.exact).unwrap_or(false);
+            if pda.is_deterministic() && bridge_exact {
+                // The bounded accepting check: the epsilon closure (the (state, top) dedup, the finite
+                // num_states x num_stack_syms domain) reaches an accepting state. The stack depth is
+                // bounded by the machine's own six-property #5 bound (the max_stack_depth, the max
+                // production length), the no a synthetic constant.
+                let depth_bound = pda.max_stack_depth();
+                for (q, stk) in &self.pda_configs {
+                    let mut seen: std::collections::HashSet<(u32, u32)> = std::collections::HashSet::new();
+                    let mut frontier: Vec<(u32, Vec<u32>)> = vec![(*q, stk.clone())];
+                    seen.insert((*q, stk.last().copied().unwrap_or(pda.start_stack)));
+                    let mut fi = 0;
+                    let mut accepted = false;
+                    while fi < frontier.len() && !accepted {
+                        let (cq, cstk) = frontier[fi].clone();
+                        fi += 1;
+                        if cstk.len() > depth_bound {
+                            continue; // beyond the machine's bounded-pushdown depth (the six-property #5)
+                        }
+                        if pda.accepting.contains(&cq) {
+                            accepted = true;
+                            break;
+                        }
+                        let ctop = cstk.last().copied().unwrap_or(pda.start_stack);
+                        let eps_moves: Vec<_> = pda.transitions.iter().filter(|t| t.q == cq && t.a == pda.num_inputs && t.top == ctop).collect();
+                        for t in eps_moves {
+                            let mut ns = cstk.clone();
+                            ns.pop();
+                            for &p in t.push.iter().rev() {
+                                ns.push(p);
+                            }
+                            let ns_top = ns.last().copied().unwrap_or(pda.start_stack);
+                            if seen.insert((t.next_q, ns_top)) {
+                                frontier.push((t.next_q, ns));
+                            }
+                        }
+                    }
+                    if accepted {
+                        return true;
+                    }
+                }
+            }
+        }
         self.run_speculative("is_accepting", |s| s.is_accepting_inner())
     }
 
@@ -2964,6 +3679,43 @@ impl Parser {
     /// the LLInterpreter interface.
     pub fn compute_bias(&mut self, computer: &dyn BiasComputer, start: &[u8]) -> SimpleVob {
         self.with_shared(|state| state.compute_bias(computer, start))
+    }
+
+    /// The PDA machine (the static transition table). Returns None when the
+    /// PDA is not active (the parametric grammar, or the dpda feature is off).
+    #[cfg(feature = "dpda")]
+    pub fn pda_machine(&self) -> Option<&pushdown_rs::machine::PdaMachine> {
+        self.state.pda.as_ref()
+    }
+
+    /// The SIMD pipeline (the B-lane parallelism, the no per-lane scalar).
+    /// Returns None when the PDA is not active (the parametric grammar, or the
+    /// dpda feature is off). The xinfer runtime uses this for batch decode (the
+    /// B sequences in B SIMD lanes, the fearless_simd dispatch! selects the
+    /// best ISA at runtime).
+    #[cfg(feature = "dpda")]
+    pub fn simd_pipeline(&self) -> Option<pushdown_rs::simd_pipeline::SimdPipeline<'_>> {
+        self.state.pda.as_ref().map(|pda| pushdown_rs::simd_pipeline::SimdPipeline::new(pda))
+    }
+
+    /// The current PDA config SET (the NPDA frontier, the (control state, stack) pairs). Returns
+    /// None when the PDA is not active (the parametric grammar, or the dpda feature is off).
+    /// Exposed for the xinfer GuidanceState to use instead of maintaining its own parallel PDA mirror.
+    #[cfg(feature = "dpda")]
+    pub fn pda_config(&self) -> Option<Vec<(u32, Vec<u32>)>> {
+        if self.state.pda.is_some() {
+            Some(self.state.pda_configs.clone())
+        } else {
+            None
+        }
+    }
+
+    /// The PDA singleton ff check (the O(1) replacement for the byte-hunt).
+    /// Returns the forced token if the PDA allows exactly one terminal AND
+    /// that terminal covers exactly one token. None otherwise (the sample).
+    #[cfg(feature = "dpda")]
+    pub fn pda_forced_token(&mut self) -> Option<u32> {
+        self.state.pda_forced_token()
     }
 
     pub fn captures(&self) -> &[(String, Vec<u8>)] {
