@@ -356,6 +356,33 @@ fn number_upper_bound(
 }
 
 #[rstest]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.1), true)]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.12), true)]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.15), true)]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.09), false)]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.16), false)]
+#[case(json!({"minimum": 1.2, "maximum": 1.25}), json!(1.2), true)]
+#[case(json!({"minimum": -0.15, "maximum": -0.1}), json!(-0.1), true)]
+#[case(json!({"maximum": 0.05}), json!(0.0), true)]
+#[case(json!({"maximum": 0.05}), json!(0), true)]
+#[case(json!({"minimum": -0.05, "maximum": 0.05}), json!(0.0), true)]
+#[case(json!({"exclusiveMinimum": 0.1, "maximum": 0.15}), json!(0.1), false)]
+#[case(json!({"exclusiveMinimum": 0, "maximum": 0.05}), json!(0), false)]
+#[case(json!({"exclusiveMinimum": 1, "maximum": 1.5}), json!(1), false)]
+#[case(json!({"exclusiveMinimum": 1, "maximum": 1.5}), json!(1.0), false)]
+#[case(json!({"exclusiveMinimum": 1, "maximum": 1.5}), json!(1.25), true)]
+fn number_limits_same_integer_part(
+    #[case] bounds: Value,
+    #[case] sample_value: Value,
+    #[case] expected_pass: bool,
+) {
+    // Bounds that share their integer part, with fewer fractional digits on the left
+    let mut schema = bounds;
+    schema["type"] = json!("number");
+    json_schema_check(&schema, &sample_value, expected_pass);
+}
+
+#[rstest]
 #[case(&json!(0))]
 #[case(&json!(-100))]
 #[case(&json!(100))]

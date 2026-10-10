@@ -307,13 +307,18 @@ fn lexi_range(ld: &str, rd: &str, ld_incl: bool, rd_incl: bool) -> Result<String
         if l0 == r0 {
             let ld_rest = &ld[1..];
             let rd_rest = &rd[1..];
-            Ok(format!(
-                "{}{}",
-                ld.chars()
-                    .next()
-                    .ok_or_else(|| anyhow!("ld is unexpectedly empty"))?,
-                lexi_range(ld_rest, rd_rest, ld_incl, rd_incl)?
-            ))
+            let first = ld
+                .chars()
+                .next()
+                .ok_or_else(|| anyhow!("ld is unexpectedly empty"))?;
+            let rest = lexi_range(ld_rest, rd_rest, ld_incl, rd_incl)?;
+            if ld_incl && ld_rest.chars().all(|c| c == '0') {
+                // ld may be zero-padded to the length of rd; the remaining
+                // digits are then optional, since stopping here equals ld
+                Ok(format!("{first}({rest})?"))
+            } else {
+                Ok(format!("{first}{rest}"))
+            }
         } else {
             if l0 >= r0 {
                 return Err(anyhow!("l0 must be less than r0"));
@@ -468,7 +473,7 @@ pub fn rx_float_range(
                         "\\.{}",
                         lexi_range(&ld, &rd, left_inclusive, right_inclusive)?
                     );
-                    if ld.parse::<i64>().unwrap_or(0) == 0 {
+                    if left_inclusive && ld.chars().all(|c| c == '0') {
                         Ok(format!("({left_rec}({suff})?)"))
                     } else {
                         Ok(format!("({left_rec}{suff})"))
@@ -783,6 +788,14 @@ mod test_ranges {
             (Some(0.45), Some(0.5)),
             (Some(0.3245), Some(0.325)),
             (Some(0.443245), Some(0.44325)),
+            (Some(0.0), Some(0.05)),
+            (Some(0.1), Some(0.15)),
+            (Some(1.2), Some(1.25)),
+            (Some(10.5), Some(10.5501)),
+            (Some(0.0), Some(2.3e-7)),
+            (Some(-1.25), Some(-1.2)),
+            (Some(-0.05), Some(0.05)),
+            (None, Some(0.05)),
             (Some(1.0), Some(2.34)),
             (Some(1.33), Some(2.0)),
             (Some(1.0), Some(10.34)),
