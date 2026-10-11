@@ -15,14 +15,14 @@ def tokenize(s: str) -> list[int]:
     return r["input_ids"][0].tolist()
 
 
-def test_tokenize(s: str):
+def run_tokenize(s: str):
     t = tokenize(s)
     dbg = llg_tokenizer.dbg_tokens(t)
     print(f"{repr(s)} -> {t} {dbg}")
 
 
-test_tokenize("additional_properties")
-test_tokenize('{"_properties')
-test_tokenize("<|end_of_text|>_properties")
-test_tokenize("_properties")
-test_tokenize("\u0002_properties")
+run_tokenize("additional_properties")
+run_tokenize('{"_properties')
+run_tokenize("<|end_of_text|>_properties")
+run_tokenize("_properties")
+run_tokenize("\u0002_properties")
