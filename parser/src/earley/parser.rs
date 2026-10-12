@@ -1986,17 +1986,18 @@ if term_set.is_empty() {
     /// the draft diverged from the grammar at position `legal_count` (the
     /// projection broke). The final config is the PDA state after consuming
     /// the legal prefix.
-    #[allow(dead_code)]
     #[cfg(feature = "dpda")]
-    fn pda_commit_batch(
+    pub(crate) fn pda_commit_batch(
         &mut self,
-        pda: &pushdown_rs::machine::PdaMachine,
         drafts: &[u32],
     ) -> (usize, u32, Vec<u32>) {
         use pushdown_rs::simd_pipeline::SimdPipeline;
+        let Some(pda) = self.pda.as_ref() else {
+            let (cq, cs) = self.pda_configs.first().cloned().unwrap_or((0, vec![]));
+            return (0, cq, cs);
+        };
         let k = drafts.len();
         if k == 0 {
-            // The dead-code placeholder (the single-config return shape, the representative config).
             let (cq, cs) = self.pda_configs.first().cloned().unwrap_or((0, vec![]));
             return (0, cq, cs);
         }
@@ -3716,6 +3717,18 @@ impl Parser {
     #[cfg(feature = "dpda")]
     pub fn pda_forced_token(&mut self) -> Option<u32> {
         self.state.pda_forced_token()
+    }
+
+    /// Batch PDA draft: project K draft tokens through the PDA in one SIMD call,
+    /// returning the legal prefix length + the final PDA config. Delegates to the
+    /// inner ParserState. Returns `(0, start_ctrl, start_stack)` when the PDA is
+    /// not active.
+    #[cfg(feature = "dpda")]
+    pub fn pda_commit_batch(
+        &mut self,
+        drafts: &[u32],
+    ) -> (usize, u32, Vec<u32>) {
+        self.state.pda_commit_batch(drafts)
     }
 
     pub fn captures(&self) -> &[(String, Vec<u8>)] {

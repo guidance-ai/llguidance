@@ -214,10 +214,27 @@ impl TokenParser {
         self.parser.pda_config()
     }
 
-    /// The PDA machine (the static transition table). Delegates to the inner Parser.
+/// The PDA machine (the static transition table). Delegates to the inner Parser.
     #[cfg(feature = "dpda")]
-pub fn pda_machine(&self) -> Option<&pushdown_rs::machine::PdaMachine> {
+    pub fn pda_machine(&self) -> Option<&pushdown_rs::machine::PdaMachine> {
         self.parser.pda_machine()
+    }
+
+    /// Project a batch of drafted tokens through the PDA in one SIMD call.
+    /// Returns `(legal_count, final_config)` where `final_config` is
+    /// `Some((ctrl, stack))` when the PDA is active, or `None` when it is not.
+    /// If `legal_count < drafts.len()`, the draft diverged from the grammar at
+    /// position `legal_count`. The caller commits the legal prefix with a single
+    /// `try_consume_tokens` call instead of K sequential advances.
+    #[cfg(feature = "dpda")]
+    pub fn project_drafts(&mut self, drafts: &[u32]) -> (usize, Option<(u32, Vec<u32>)>) {
+        // The PDA is active only when the machine exists present (the parametric
+        // grammar, or the dpda feature off, yields None).
+        if self.parser.pda_machine().is_none() {
+            return (0, None);
+        }
+        let (legal, ctrl, stack) = self.parser.pda_commit_batch(drafts);
+        (legal, Some((ctrl, stack)))
     }
 
     pub fn bytes_since(&self, mut idx: usize) -> &[u8] {

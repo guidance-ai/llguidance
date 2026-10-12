@@ -176,7 +176,60 @@ The CPU `PdaMachine` is the correctness oracle for the GPU kernel.
 If they disagree, the kernel is wrong (the table is proven correct by
 the pushdown-rs test suite, 93/93).
 
-## 6. File Map
+## 6. CPU Batched Draft Projection (the consumer API)
+
+For CPU-side speculative decoding (the no GPU fused kernel), a consumer
+(xinfer, mistral-rs) holds a `Matcher` (or `TokenParser`) and projects a
+batch of drafted tokens through the PDA in one SIMD call, then commits the
+legal prefix in a single FSM step. This avoids K sequential PDA advances.
+
+The API surface (all `#[cfg(feature = "dpda")]`):
+
+```rust
+use llguidance::Matcher;
+
+// matcher: the per-sequence grammar matcher (the CPU authority).
+
+// 1. Project K drafted tokens through the PDA in one SIMD call.
+//    Returns (legal_count, final_config):
+//      - legal_count: how many of the K drafts are grammar-legal (the prefix).
+//      - final_config: Some((ctrl, stack)) when the PDA is active, None when it is not.
+//    If legal_count < K, the draft diverged from the grammar at position
+_count.
+let (legal, _final_cfg) = matcher.project_drafts(&drafts);
+
+// 2. Commit the legal prefix in ONE FSM step (the no legal sequential consumes).
+//    try_consume_tokens returns the count actually consumed (== legal when the
+//    PDA projection agreed with the Earley authority).
+matcher.try_consume_tokens(&drafts[..legal])?;
+
+// 3. (Optional) drive the SIMD pipeline directly over the static machine, e.g.
+//    to compute K+1 projected masks for the draft positions in one call.
+//    Read the current config frontier FIRST (it needs &mut), then yield the
+//    static machine to the closure (the machine borrow is contained to the body).
+let configs = matcher.pda_config()?;
+matcher.with_pda_machine(|machine| {
+    use pushdown_rs::simd_pipeline::SimdPipeline;
+    let pipeline = SimdPipeline::new(machine);
+    let projections = pipeline.project_batch(&configs, &[drafts.to_vec()]);
+    // projections[0] is the K+1 VOB masks (one per draft position).
+    Some(projections)
+});
+```
+
+Key invariants for the consumer:
+- `project_drafts` is the CLAIMANT (the fast SIMD projection); the subsequent
+  `try_consume_tokens` is the ORACLE (the Earley authority). They must
+  agree on the legal prefix; if they diverge, trust the oracle (the Earley) and
+  resync the PDA (the `pda_config` re-read on the next step).
+- `with_pda_machine` yields the static machine to a closure; the machine borrow
+  is contained to the closure body (it cannot escape), so build + run the
+  `SimdPipeline` inside the closure.
+- When the PDA is not active (the parametric grammar, or the `dpda` feature is
+  off), `project_drafts` returns `(0, None)` + `with_pda_machine` returns
+  `None`; the consumer falls back to the sequential `validate_tokens` path.
+
+## 7. File Map
 
 | File | Crate | Role |
 |------|-------|------|
@@ -191,6 +244,7 @@ the pushdown-rs test suite, 93/93).
 | `src/oracle.rs` | pushdown-rs | The independent CFG membership oracle |
 | `tests/simd_accuracy.rs` | pushdown-rs | 6 SIMD accuracy proofs |
 | `benches/simd_bench.rs` | pushdown-rs | Criterion: scalar vs SIMD at 4 vocab sizes |
+| `parser/matcher.rs` | llguidance | The Matcher consumer API: `project_drafts` (the batched SIMD projection), `with_pda_machine` (the SIMD pipeline yield), `pda_config` (the live frontier) |
 | `src/pda.rs` | attention-rs | The PdaPushdownTable + fused_sample + fused_project + vob_to_allow |
 | `src/kernels/src/pda.cu` | attention-rs | The CUDA kernel implementations |
 | `src/kernels/src/ffi.rs` | attention-rs | The FFI declarations (pda_fused_sample_f32/bf16, pda_fused_project_masks) |

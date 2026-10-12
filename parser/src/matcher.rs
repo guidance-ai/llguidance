@@ -313,6 +313,39 @@ impl Matcher {
         .flatten()
     }
 
+    /// Project a batch of drafted tokens through the PDA in one SIMD call.
+    /// Delegates to the inner TokenParser. Returns `(legal_count, final_config)`
+    /// where `final_config` is `Some((ctrl, stack))` when the PDA is active.
+    /// This is the batched draft-validation primitive point for speculative
+    /// decoding consumers (xinfer, mistral-rs): project K drafts, commit the
+    /// legal prefix in one `try_consume_tokens` call.
+    #[cfg(feature = "dpda")]
+    pub fn project_drafts(&mut self, drafts: &[u32]) -> (usize, Option<(u32, Vec<u32>)>) {
+        self.with_inner(|inner| {
+            Ok(inner.parser.project_drafts(drafts))
+        })
+        .ok()
+        .unwrap_or((0, None))
+    }
+
+    /// Yield the static PDA machine to a closure so the caller can drive the SIMD
+    /// pipeline over it. The machine is is contained to the closure body (it
+    /// cannot escape `with_inner`), so the caller builds a `SimdPipeline` and runs
+    /// its batch nodes inside `f`. Returns `None` when the PDA is not active (the
+    /// parametric grammar, or the dpda feature is off) or the matcher is in an
+    /// error/cancelled state.
+    #[cfg(feature = "dpda")]
+    pub fn with_pda_machine<T>(&mut self, f: impl FnOnce(&pushdown_rs::machine::PdaMachine) -> T) -> Option<T> {
+        self.with_inner(|inner| {
+            Ok(match inner.parser.pda_machine() {
+                Some(machine) => Some(f(machine)),
+                None => None,
+            })
+        })
+        .ok()
+        .flatten()
+    }
+
     /// The PDA machine (the static transition table). Returns None when the
     /// PDA is not active (the parametric grammar, or the dpda feature is off).
     /// The PDA machine is computed once at parser construction and never

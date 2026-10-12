@@ -14,7 +14,8 @@
 use pushdown_rs::compile::{CfgError, Grammar};
 
 use crate::earley::{CGrammar, CSymIdx};
-use derivre::RegexAst;
+use derivre::raw::ExprSet;
+use derivre::{ExprRef, RegexAst};
 
 /// A wrapper around &CGrammar that precomputes the global->local symbol index
 /// maps for O(1) terminal_id/nonterminal_id lookups during RTN compilation.
@@ -40,10 +41,16 @@ impl<'a> PdaGrammar<'a> {
         let mut nt_count = 0u32;
         for i in 0..num_syms {
             let s = CSymIdx::new_checked(i);
-            if grm.is_terminal(s) {
+            // The NULL sentinel (CSymIdx(0)) is the RHS terminator placeholder, not a
+            // real input terminal. It is marked is_terminal=true by the CGrammar
+            // constructor but has no lexeme + no token ranges, so it can never match
+            // input. Exclude it from the terminal alphabet so the PDA's terminal
+            // indices align with the real matchable terminals (the no spurious empty
+            // terminal at local index 0).
+            if i != 0 && grm.is_terminal(s) {
                 global_to_local_terminal[i] = Some(term_count);
                 term_count += 1;
-            } else {
+            } else if i != 0 {
                 global_to_local_nonterminal[i] = Some(nt_count);
                 nt_count += 1;
             }
@@ -211,8 +218,9 @@ pub fn terminal_token_map_dfa(
     // (two terminals accept the same token), the bridge is a relation (the NPDA,
     // the nondeterministic choice).
     let mut bridge: Vec<Vec<u32>> = vec![Vec::new(); num_terminals];
+    let exprs = grm.lexer_spec().regex_builder.exprset();
 
-for (i, &csym) in terminals.iter().enumerate() {
+    for (i, &csym) in terminals.iter().enumerate() {
         // The specific terminals (the token_ranges, the byte patterns): the known set.
         let ranges = grm.terminal_token_ranges(csym);
         if !ranges.is_empty() {
@@ -231,7 +239,7 @@ for (i, &csym) in terminals.iter().enumerate() {
         let lexeme_idx = grm.sym_data(csym).lexeme;
         if let Some(lex) = lexeme_idx {
             let lexeme_spec = grm.lexer_spec().lexeme_spec(lex);
-            let byte_pattern = extract_byte_pattern(&lexeme_spec.rx);
+            let byte_pattern = extract_byte_pattern(&lexeme_spec.rx, exprs);
             if let Some(bytes) = byte_pattern {
                 if bytes.len() == 1 {
                     if let Some(tok_id) = trie.token_id(&bytes) {
@@ -309,6 +317,7 @@ pub fn terminal_completing_token(
     let terminals = adapter.terminals();
     let trie = tok_env.tok_trie();
     let vocab_size = trie.vocab_size();
+    let exprs = grm.lexer_spec().regex_builder.exprset();
     let mut completing: Vec<Option<u32>> = vec![None; terminals.len()];
 
     for (i, &csym) in terminals.iter().enumerate() {
@@ -321,7 +330,7 @@ pub fn terminal_completing_token(
         let lexeme_idx = grm.sym_data(csym).lexeme;
         if let Some(lex) = lexeme_idx {
             let lexeme_spec = grm.lexer_spec().lexeme_spec(lex);
-            let byte_pattern = extract_byte_pattern(&lexeme_spec.rx);
+            let byte_pattern = extract_byte_pattern(&lexeme_spec.rx, exprs);
             if let Some(bytes) = byte_pattern {
                 if bytes.len() == 1 {
                     // The single-byte terminal: the single token completes it.
@@ -473,23 +482,71 @@ pub fn displacement_bridge(
 }
 
 /// Extract a fixed byte pattern from a `RegexAst` (the simple cases: the
-/// `Literal`, the `Byte`, the `Concat` of literals/bytes). Returns `None`
-/// for complex regexes (the `Or`, the `Regex`, the `AndRef`) that require
-/// the DFA matching approach (the next increment).
-fn extract_byte_pattern(ast: &RegexAst) -> Option<Vec<u8>> {
+/// `Literal`, the `Byte`, the `ByteLiteral`, the `Concat` of those, + the
+/// `ExprRef` resolved through the `ExprSet`). Returns `None` for complex
+/// regexes (the `Or`, the `Regex`, the `ByteSet`) that require the DFA
+/// matching approach (the next increment).
+fn extract_byte_pattern(ast: &RegexAst, exprs: &ExprSet) -> Option<Vec<u8>> {
     match ast {
         RegexAst::Literal(s) => Some(s.as_bytes().to_vec()),
         RegexAst::Byte(b) => Some(vec![*b]),
+        RegexAst::ByteLiteral(bytes) => Some(bytes.clone()),
         RegexAst::Concat(parts) => {
             let mut result = Vec::new();
             for part in parts {
-                let bytes = extract_byte_pattern(part)?;
+                let bytes = extract_byte_pattern(part, exprs)?;
                 result.extend(bytes);
             }
             Some(result)
         }
-        _ => None, // the complex regexes (the Or, the Regex, the ExprRef) need the DFA
+        RegexAst::ExprRef(id) => expr_ref_to_bytes(*id, exprs),
+        _ => None, // the complex regexes (the Or, the Regex, the ByteSet) need the DFA
     }
+}
+
+/// Resolve an interned `ExprRef` to a fixed byte pattern, if the expression is
+/// byte-deterministic. Walks the forced-byte prefix via `iter_concat_bytes`:
+/// every element must be a `Byte` (a forced byte); the moment an `Expr`
+/// ( appears (a non-deterministic sub-expression), the pattern is not
+/// fixed and `None` is returned.
+fn expr_ref_to_bytes(id: ExprRef, exprs: &ExprSet) -> Option<Vec<u8>> {
+    // Recover the forced byte prefix of an interned expression using only the
+    // public ExprSet API. has_simply_forced_bytes(id, &[b]) is true iff the
+    // expression matches ONLY strings starting with b. A fixed literal forces
+    // exactly one first byte; a character class (ByteSet) forces none (several
+    // bytes are all possible), so it is not a fixed pattern.
+    let mut first_byte: Option<u8> = None;
+    for b in 0..256 {
+        let b = b as u8;
+        if exprs.has_simply_forced_bytes(id, &[b]) {
+            match first_byte {
+                None => first_byte = Some(b),
+                Some(_) => return None, // two different first bytes -> a class, not a literal
+            }
+        }
+    }
+    let b0 = first_byte?;
+    // Extend the prefix: it stays forced. A literal "ab" forces [97, 98];
+    // stop as soon as no single next byte is forced (the end of a fixed literal).
+    let mut bytes = vec![b0];
+    loop {
+        let candidate_prefix = bytes.clone();
+        let mut extended = false;
+        for b in 0..256 {
+            let b = b as u8;
+            let mut trial = candidate_prefix.clone();
+            trial.push(b);
+            if exprs.has_simply_forced_bytes(id, &trial) {
+                bytes = trial;
+                extended = true;
+                break;
+            }
+        }
+        if !extended {
+            break;
+        }
+    }
+    Some(bytes)
 }
 
 /// The terminal classification (the GNF conversion, the first step): each
@@ -524,9 +581,10 @@ pub fn classify_terminal(grm: &CGrammar, csym: CSymIdx) -> TerminalKind {
     }
     // The byte-level terminal (the known byte pattern).
     let lexeme_idx = grm.sym_data(csym).lexeme;
+    let exprs = grm.lexer_spec().regex_builder.exprset();
     if let Some(lex) = lexeme_idx {
         let lexeme_spec = grm.lexer_spec().lexeme_spec(lex);
-        if let Some(bytes) = extract_byte_pattern(&lexeme_spec.rx) {
+        if let Some(bytes) = extract_byte_pattern(&lexeme_spec.rx, exprs) {
             return TerminalKind::BytePattern(bytes);
         }
     }
