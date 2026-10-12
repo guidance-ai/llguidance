@@ -91,10 +91,13 @@ jobs:
       run: |
         git clone -b main https://github.com/guidance-ai/guidance
 
+    - name: Install dependencies
+      run: ./scripts/install-deps.sh
+
     - name: Install guidance
       run: |
         cd guidance
-        pip install .[all,test]
+        pip install --no-deps -e .
 
     - name: Install local llguidance
       run: |
