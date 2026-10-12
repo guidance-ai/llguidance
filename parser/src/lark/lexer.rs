@@ -30,6 +30,8 @@ pub enum Token {
     KwOverride,
     KwDeclare,
     KwJson,
+    /// An ordered sequence of bounded integer intervals.
+    KwIntRanges,
     KwRegex,
     KwLLGuidance,
     KwIf,
@@ -196,6 +198,7 @@ impl Token {
         (Token::KwImport, "%import"),
         (Token::KwOverride, "%override"),
         (Token::KwJson, "%json"),
+        (Token::KwIntRanges, "%int_ranges"),
         (Token::KwRegex, "%regex"),
         (Token::KwLark, "%lark"),
         (Token::KwIf, "%if"),
@@ -285,7 +288,7 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
             lexer.try_lexeme_end(state)
         } else {
             b = input_bytes[idx];
-            lexer.advance(state, b, false)
+            lexer.advance(state, b, false, &None)
         };
 
         match res {
@@ -323,6 +326,7 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
                 let raw_value = &input[start_idx..end_idx];
 
                 curr_lexeme.value = if token == Token::KwJson
+                    || token == Token::KwIntRanges
                     || token == Token::KwLLGuidance
                     || token == Token::KwRegex
                 {
@@ -364,7 +368,7 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
                 }
 
                 state = lexer.start_state(&all_lexemes);
-                state = lexer.transition_start_state(state, transition_byte);
+                state = lexer.transition_start_state(state, transition_byte, &None);
 
                 curr_lexeme.line = line_no;
                 curr_lexeme.column = column_no;

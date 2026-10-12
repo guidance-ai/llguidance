@@ -151,6 +151,8 @@ pub enum Value {
     GrammarRef(String),
     SpecialToken(String),
     Json(serde_json::Value),
+    /// Configuration for the specialized ordered-interval matcher.
+    IntRanges(serde_json::Value),
     NestedLark(Vec<Item>),
     RegexExt(RegexExt),
     #[allow(dead_code)]

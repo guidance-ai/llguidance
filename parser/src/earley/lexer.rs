@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use std::fmt::Debug;
 use toktrie::{Recognizer, SimpleVob, TokTrie};
 
@@ -72,7 +72,7 @@ impl Recognizer for LexerPrecomputer<'_> {
     }
     fn try_push_byte(&mut self, byte: u8) -> bool {
         let state = *self.states.last().unwrap();
-        match self.lex.advance(state, byte, false) {
+        match self.lex.advance(state, byte, false, &None) {
             LexerResult::State(next_state, _) => {
                 self.states.push(next_state);
                 true
@@ -95,6 +95,12 @@ impl Lexer {
         for i in 0..=255 {
             if !dfa.transition(s0, i).is_dead() {
                 allowed_first_byte.allow_token(i as u32);
+            }
+        }
+        if dfa.has_int_ranges() {
+            limits.initial_lexer_fuel = dfa.get_fuel();
+            if let Some(error) = dfa.get_error() {
+                bail!("integer-range lexer initialization failed: {error}");
             }
         }
 
@@ -124,8 +130,20 @@ impl Lexer {
         trie.add_bias(&mut pre, &mut toks, &[]);
     }
 
-    pub fn transition_start_state(&mut self, s: StateID, first_byte: Option<u8>) -> StateID {
-        first_byte.map(|b| self.dfa.transition(s, b)).unwrap_or(s)
+    pub fn transition_start_state(
+        &mut self,
+        s: StateID,
+        first_byte: Option<u8>,
+        cancellation: &Option<crate::CancellationHandle>,
+    ) -> StateID {
+        first_byte.map_or(s, |b| {
+            #[cfg(all(test, feature = "lark"))]
+            crate::cancellation::IN_START_TRANSITION.with(|flag| flag.set(true));
+            let state = self.dfa.transition_with_cancellation(s, b, cancellation);
+            #[cfg(all(test, feature = "lark"))]
+            crate::cancellation::IN_START_TRANSITION.with(|flag| flag.set(false));
+            state
+        })
     }
 
     pub fn a_dead_state(&self) -> StateID {
@@ -192,9 +210,19 @@ impl Lexer {
         self.dfa.subsume_possible(state)
     }
 
-    pub fn check_subsume(&mut self, state: StateID, extra_idx: usize, budget: u64) -> Result<bool> {
-        self.dfa
-            .check_subsume(state, self.spec.extra_lexeme(extra_idx), budget)
+    pub fn check_subsume(
+        &mut self,
+        state: StateID,
+        extra_idx: usize,
+        budget: u64,
+        cancellation: Option<&crate::CancellationHandle>,
+    ) -> Result<bool> {
+        self.dfa.check_subsume_with_cancellation(
+            state,
+            self.spec.extra_lexeme(extra_idx),
+            budget,
+            cancellation,
+        )
     }
 
     pub fn next_byte(&mut self, state: StateID) -> NextByte {
@@ -215,8 +243,16 @@ impl Lexer {
     }
 
     #[inline(always)]
-    pub fn advance(&mut self, prev: StateID, byte: u8, enable_logging: bool) -> LexerResult {
-        let state = self.dfa.transition(prev, byte);
+    pub fn advance(
+        &mut self,
+        prev: StateID,
+        byte: u8,
+        enable_logging: bool,
+        cancellation: &Option<crate::CancellationHandle>,
+    ) -> LexerResult {
+        let state = self
+            .dfa
+            .transition_with_cancellation(prev, byte, cancellation);
 
         if enable_logging {
             let info = self.state_info(state);

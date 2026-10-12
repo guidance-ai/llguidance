@@ -16,7 +16,8 @@ extern "C" size_t byte_tokenize_callback(const void * /*user_data*/,
   return bytes_len;
 }
 
-LlgTokenizer *create_byte_tokenizer() {
+LlgTokenizer *create_byte_tokenizer(LlgTokenizeFn tokenize_fn,
+                                    const void *tokenize_user_data) {
   std::vector<std::vector<uint8_t>> tokens;
   tokens.reserve(BYTE_VOCAB_SIZE);
   for (uint32_t i = 0; i < 256; i++) {
@@ -44,8 +45,8 @@ LlgTokenizer *create_byte_tokenizer() {
   tok_init.token_lens = token_lens.data();
   tok_init.token_bytes = token_bytes.data();
   tok_init.tokenize_assumes_string = false;
-  tok_init.tokenize_user_data = nullptr;
-  tok_init.tokenize_fn = byte_tokenize_callback;
+  tok_init.tokenize_user_data = tokenize_user_data;
+  tok_init.tokenize_fn = tokenize_fn;
 
   char error_buf[256];
   auto tok = llg_new_tokenizer(&tok_init, error_buf, sizeof(error_buf));

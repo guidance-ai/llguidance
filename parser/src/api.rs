@@ -235,6 +235,8 @@ pub enum StopReason {
     LexerTooComplex,
     /// The parser is too complex
     ParserTooComplex,
+    /// The matcher observed a cancellation request.
+    Cancelled,
 }
 
 impl Display for StopReason {
@@ -274,6 +276,7 @@ pub struct ParserLimits {
     pub initial_lexer_fuel: u64,
 
     /// Maximum lexer fuel for computation of the whole token mask.
+    /// Includes integer-range matcher visits and decimal-prefix arithmetic.
     /// Default: 200_000
     /// Speed: 14k/ms
     pub step_lexer_fuel: u64,
@@ -284,6 +287,8 @@ pub struct ParserLimits {
     pub step_max_items: usize,
 
     /// Maximum number of lexer states.
+    /// Integer-range matcher caches additionally consume one state-budget unit
+    /// per KiB of estimated storage for positions and their lookup tables.
     /// Affects memory consumption, but not the speed for the most part.
     /// Default: 250_000
     /// Speed: ~1-2kB of memory per state
