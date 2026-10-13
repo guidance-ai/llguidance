@@ -1438,7 +1438,14 @@ if term_set.is_empty() {
         {
             let pda_engaged = self.pda.as_ref().map(|p| p.is_deterministic()).unwrap_or(false)
                 && self.pda_bridge_memo.as_ref().map(|m| m.exact).unwrap_or(false);
-            if pda_engaged {
+            // The PDA bypass is only safe when EVERY byte of the token advances the DFA to a
+            // mid-lexeme State (the lexer_stack grows by exactly one per byte, matching the
+            // bytes growth). If any byte completes a lexeme (Lexeme), is a special token, or
+            // is rejected (Error), the lexer_stack/rows bookkeeping that the bypass skips
+            // (the advance_parser) is required to keep the lexer invariant intact, so we fall
+            // back to the legacy Earley path for the whole token.
+            let bypass_safe = pda_engaged && self.pda_bypass_byte_safe(tok_bytes);
+            if bypass_safe {
                 return self.apply_token_pda_bypass(tok_bytes, tok_id);
             }
         }
@@ -1727,6 +1734,49 @@ if term_set.is_empty() {
     ///
     /// Returns Ok(0) on success (the the no backtrack), or Err (the the PDA rejected the token,
     /// the the illegal at every live config).
+    #[cfg(feature = "dpda")]
+    /// Pre-scan a token's bytes through the DFA (the no mutation) and report whether the PDA
+    /// commit-bypass is SAFE for this token. The bypass only maintains the lexer_stack
+    /// invariant correctly when every byte advances the DFA to a mid-lexeme State (the
+    /// lexer_stack grows by exactly one per byte, matching the bytes growth). If any byte
+    /// completes a lexeme (Lexeme), is a special token (SpecialToken), or is rejected
+    /// (Error), the bypass would desync the lexer_stack from the rows/bytes, so the caller
+    /// must fall back to the legacy Earley commit path (which handles all cases correctly).
+    /// This pre-scan is cheap (DFA transitions only, the no item-set work).
+    fn pda_bypass_byte_safe(&mut self, tok_bytes: &[u8]) -> bool {
+        if tok_bytes.is_empty() {
+            return true;
+        }
+        let mut curr = self.lexer_state();
+        for &b in tok_bytes {
+            // The DFA advance is a pure (state, byte) -> result query; the &mut is only
+            // for the idempotent memoization cache, so pre-scanning is safe (the real
+            // consumption re-queries the same transitions to the same results).
+            let res = self
+                .shared_box
+                .lexer_mut()
+                .advance(curr.lexer_state, b, false, &self.cancellation);
+            match res {
+                LexerResult::State(next_state, _) => {
+                    // The mid-lexeme advance: the lexer_stack grows by one (the safe case).
+                    // Track the next state for the following byte (the State result stays
+                    // on the same row).
+                    curr = LexerState {
+                        row_idx: curr.row_idx,
+                        lexer_state: next_state,
+                        byte: Some(b),
+                    };
+                }
+                // A lexeme completed / a special token / an error: the bypass cannot safely
+                // maintain the lexer invariant without the legacy row/lexeme bookkeeping.
+                LexerResult::Lexeme(_) | LexerResult::SpecialToken(_) | LexerResult::Error => {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
     #[cfg(feature = "dpda")]
     fn apply_token_pda_bypass(&mut self, tok_bytes: &[u8], tok_id: TokenId) -> Result<usize> {
         // The cheap bookkeeping (the the parser state consistency, the the no the item-set walk).

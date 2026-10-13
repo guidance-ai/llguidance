@@ -573,8 +573,13 @@ mod tests {
         );
         let grm = cgrammar_of(&f, &g);
         let pda = llguidance::dpda_adapter::compile_pda(&grm).expect("the compile");
-        // The sequence grammar "a" "b" "c" has 3 terminals + 1 epsilon = 4 inputs.
-        assert_eq!(pda.num_inputs, 4, "the sequence grammar has 4 PDA inputs");
+        // The sequence grammar "a" "b" "c" has exactly 3 matchable terminals (a, b, c).
+        // The PDA's input alphabet is those 3 terminals (num_inputs == 3). Epsilon is NOT
+        // a counted input: it is the transition label for internal moves, addressed by the
+        // sentinel input ID == num_inputs (== 3). The NULL grammar sentinel (CSymIdx(0)) is
+        // excluded from the terminal alphabet because it has no lexeme + no token ranges, so
+        // it can never match input. Hence num_inputs == 3, not 4.
+        assert_eq!(pda.num_inputs, 3, "the sequence grammar has 3 PDA terminal inputs (epsilon is the num_inputs sentinel, not a counted input)");
         assert!(pda.is_deterministic(), "the sequence grammar is deterministic");
         assert!(pda.num_states > 3, "the PDA has more than 3 states (the RTN expansion)");
         println!(
