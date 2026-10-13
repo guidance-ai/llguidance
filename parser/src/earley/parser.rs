@@ -2041,35 +2041,68 @@ if term_set.is_empty() {
         &mut self,
         drafts: &[u32],
     ) -> (usize, u32, Vec<u32>) {
-        use pushdown_rs::simd_pipeline::SimdPipeline;
-        let Some(pda) = self.pda.as_ref() else {
-            let (cq, cs) = self.pda_configs.first().cloned().unwrap_or((0, vec![]));
-            return (0, cq, cs);
-        };
         let k = drafts.len();
-        if k == 0 {
+        if k == 0 || self.pda.is_none() {
             let (cq, cs) = self.pda_configs.first().cloned().unwrap_or((0, vec![]));
             return (0, cq, cs);
         }
-        // The projection: K+1 masks in one call (the SimdPipeline's project_batch,
-        // the B-lane version, the no per-lane scalar). The final config is the
-        // state after K advances.
-        let pipeline = SimdPipeline::new(pda);
-        let configs = self.pda_configs.clone();
-        let projections = pipeline.project_batch(&configs, &[drafts.to_vec()]);
-        let masks = &projections[0];
-        // The projection returns K+1 masks if all drafts are legal, fewer if
-        // the projection broke. The legal count is masks.len() - 1 (subtract
-        // the initial mask).
-        let legal = masks.len().saturating_sub(1);
-        // Advance the config SET to the legal prefix (the NPDA step, the sequential fallback).
+        // The PDA's input alphabet is the terminal indices (0..num_inputs), NOT the raw
+        // model token IDs. Resolve each draft token to its terminal set via the reverse
+        // bridge (the token -> the terminal RELATION), then advance the config SET on the
+        // resolved terminals (the same logic the validate_tokens PDA path uses). Feeding
+        // raw token IDs directly (the prior bug) made advance_eps_set look up out-of-range
+        // inputs and report 0 legal for a fully-legal draft.
+        // The ensure_pda_bridge is a &mut self borrow; clone the reverse bridge out BEFORE
+        // borrowing self.pda immutably for the loop (the no overlapping borrows).
+        let memo = self.ensure_pda_bridge();
+        let reverse_bridge: Vec<Vec<u32>> = memo.reverse.clone();
+        let pda = self.pda.as_ref().expect("checked is_some above");
         let mut cur = self.pda_configs.clone();
-        for &a in drafts.iter().take(legal) {
-            let next = pda.advance_eps_set(&cur, a);
-            if next.is_empty() {
+        let mut legal = 0;
+        for &tok in drafts.iter().take(k) {
+            // The EOS is accepted iff ANY config reaches an accepting state via eps.
+            if self.tok_env.tok_trie().eos_tokens().contains(&tok) {
+                if cur.iter().any(|(q, stk)| pda.accepts_via_eps(*q, stk)) {
+                    legal += 1;
+                }
                 break;
             }
-            cur = next;
+            // Map the token to the PDA terminal(s) via the reverse bridge.
+            let Some(term_set) = reverse_bridge.get(tok as usize) else {
+                break; // the token is not in any terminal (illegal)
+            };
+            if term_set.is_empty() {
+                break;
+            }
+            // Resolve the relation against the config SET's allowed terminals (the mask_at_cfg union).
+            let allowed: std::collections::HashSet<u32> = cur
+                .iter()
+                .flat_map(|(q, stk)| pda.mask_at_cfg(*q, stk))
+                .collect();
+            let resolved: Vec<u32> = term_set
+                .iter()
+                .copied()
+                .filter(|t| allowed.contains(t))
+                .collect();
+            if resolved.is_empty() {
+                break; // illegal at every live config
+            }
+            // Advance the config SET on each resolved terminal (the NPDA step).
+            let mut new_configs: Vec<(u32, Vec<u32>)> = Vec::new();
+            for &terminal_id in &resolved {
+                if (terminal_id as usize) < pda.num_inputs as usize {
+                    for cfg in pda.advance_eps_set(&cur, terminal_id) {
+                        if !new_configs.contains(&cfg) {
+                            new_configs.push(cfg);
+                        }
+                    }
+                }
+            }
+            if new_configs.is_empty() {
+                break; // the PDA rejected the token at every live config
+            }
+            cur = new_configs;
+            legal += 1;
         }
         self.pda_configs = cur.clone();
         let (cq, cs) = cur.first().cloned().unwrap_or((0, vec![]));

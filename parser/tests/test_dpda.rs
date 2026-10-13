@@ -334,6 +334,12 @@ mod tests {
         }
         // After one step, the PDA should be in a valid state (not necessarily accepting).
         assert!(ctrl < pda.num_states, "the ctrl state is in range after a step");
+        // The stack after the advance is well-formed: non-empty + every entry is a
+        // valid stack symbol (the no out-of-range stack symbol, the PDA stack invariant).
+        assert!(!stack.is_empty(), "the PDA stack is non-empty after a step");
+        for &sym in &stack {
+            assert!(sym < pda.num_stack_syms, "every PDA stack symbol is in range");
+        }
         println!(
             "regex PDA accepts valid string: start_mask has {} inputs, first={} -> to ctrl={}",
             start_mask[0].len(), first_input, ctrl
@@ -510,8 +516,6 @@ mod tests {
     /// which advance_eps succeeds.
     #[test]
     fn pda_mask_consistent_with_advance() {
-        use pushdown_rs::pda::PdaStream;
-
         let env = ApproximateTokEnv::single_byte_env();
         let f = ParserFactory::new(
             &env,
@@ -878,5 +882,74 @@ mod tests {
             "the congruence: the u ++ t1 ~ u ++ t2 (the same displacement)"
         );
         eprintln!("Displacement congruence: the trivial + the u ++ t1 ~ u ++ t2 (the actual PDA)");
+    }
+
+    /// PROOF (the batched draft projection, the R3 independent-oracle property):
+    /// the Matcher::project_drafts (the PDA batched claimant, the SIMD project_batch
+    /// + the config-set advance) must report the SAME legal-prefix length as a
+    /// sequential CPU consume_token walk (the Earley authority) for every draft.
+    /// This is the inclusive property (every legal prefix is accepted by both) +
+    /// the exclusive property (no illegal token is accepted by either). It proves
+    /// proves the pda_commit_batch token->terminal resolution fix: a fully-legal
+    /// draft reports its full length, an illegal draft reports the legal prefix.
+    #[test]
+    fn project_drafts_agrees_with_sequential_cpu_oracle() {
+        let env = ApproximateTokEnv::single_byte_env();
+        let f = ParserFactory::new(
+            &env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        )
+        .expect("the factory");
+
+        // The deterministic sequence grammar: 'a' (97), 'b' (98), 'c' (99).
+        let g = TopLevelGrammar::from_lark(r#"start: "a" "b" "c""#.to_string());
+
+        // The candidate drafts: the legal full sequence, the legal prefixes, the
+        // illegal-first-token (120='x' is not 'a'), the illegal-middle (97 then 99,
+        // skipping 'b'), the over-long (legal 3 + an extra), the empty, + a
+        // repeated-first-token (97, 97 — the second 97 is illegal after 'a').
+        let drafts: Vec<Vec<u32>> = vec![
+            vec![97, 98, 99], // the full -> 3
+            vec![97, 98],      // legal prefix -> 2
+            vec![97],          // legal prefix -> 1
+            vec![120, 98, 99], // illegal first (120 != 97) -> 0
+            vec![97, 99],     // illegal middle (99 != 98) -> 1
+            vec![97, 98, 99, 97], // over-long (legal 3 + extra) -> 3
+            vec![],            // empty -> 0
+            vec![97, 97],     // repeated first (97 != 98 at pos 1) -> 1
+        ];
+
+        for draft in drafts {
+            // The PDA claimant: a fresh Matcher, the batched project_drafts.
+            let claim_parser = f.create_parser(g.clone()).expect("the claim parser");
+            let mut claimant = Matcher::new(Ok(claim_parser));
+            claimant.settle();
+            let (pda_legal, _final_cfg) = claimant.project_drafts(&draft);
+
+            // The CPU oracle: a fresh Matcher, the sequential consume_token walk.
+            // Count how many tokens commit before the first rejection (the legal
+            // prefix length). This is the Earley authority (the no PDA involved).
+            let oracle_parser = f.create_parser(g.clone()).expect("the oracle parser");
+            let mut oracle = Matcher::new(Ok(oracle_parser));
+            oracle.settle();
+            let mut cpu_legal = 0;
+            for &tok in &draft {
+                if oracle.consume_token(tok).is_err() {
+                    break;
+                }
+                cpu_legal += 1;
+            }
+
+            assert_eq!(
+                pda_legal, cpu_legal,
+                "the PDA project_drafts (the {pda_legal}) must agree with the CPU oracle (the {cpu_legal}) on the draft {draft:?}"
+            );
+        }
     }
 }
