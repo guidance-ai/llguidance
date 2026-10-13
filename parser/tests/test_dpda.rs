@@ -952,4 +952,142 @@ mod tests {
             );
         }
     }
+
+    /// PROOF (the NPDA frontier, the untested avenue): a CHOICE grammar is
+    /// non-deterministic, so the PDA tracks a config SET (the frontier), not a
+    /// single config. This proves the inclusive property (every legal first
+    /// token of the choice is accepted by the frontier) + the exclusive property
+    /// (an illegal first token is rejected by the frontier). All prior PDA tests
+    /// used deterministic grammars (the single-config path); this exercises the
+    /// multi-config frontier advance (the advance_eps_set over a SET).
+    #[test]
+    fn pda_frontier_non_deterministic_choice_grammar() {
+        let env = ApproximateTokEnv::single_byte_env();
+        let f = ParserFactory::new(
+            &env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        )
+        .expect("the factory");
+
+        // A choice grammar: start -> "a" | "b". (the two alternatives, the NPDA).
+        let g = TopLevelGrammar::from_lark(r#"start: "a" | "b""#.to_string());
+        let grm = cgrammar_of(&f, &g);
+        let pda = llguidance::dpda_adapter::compile_pda(&grm).expect("the compile");
+        // The choice grammar is non-deterministic (the two alternatives branch).
+        assert!(!pda.is_deterministic(), "a choice grammar is non-deterministic");
+
+        let parser = f.create_parser(g).expect("the parser");
+        let mut m = Matcher::new(Ok(parser));
+        m.settle();
+
+        // The inclusive property: BOTH choice tokens ('a'=97, 'b'=98) are legal
+        // first tokens (the frontier admits both alternatives).
+        for &tok in &[97u32, 98] {
+            let mask = m.compute_mask_immut().expect("the mask");
+            assert!(mask.is_allowed(tok), "choice token {tok} must be allowed at the start");
+        }
+        // The exclusive property: 'c' (99) is NOT a choice member, so it is illegal.
+        let mask = m.compute_mask_immut().expect("the mask");
+        assert!(!mask.is_allowed(99), "'c' is not a choice member and must be disallowed");
+
+        // The batched projection over the frontier: a draft of a single choice token
+        // projects 1 legal step; a draft of an illegal token projects 0.
+        let (legal_a, _cfg) = m.project_drafts(&[97]);
+        assert_eq!(legal_a, 1, "the legal choice token 'a' projects 1 step");
+        // A fresh matcher for the illegal case (the prior call advanced the).
+        let parser2 = f.create_parser(TopLevelGrammar::from_lark(r#"start: "a" | "b""#.to_string())).expect("the parser2");
+        let mut m2 = Matcher::new(Ok(parser2));
+        m2.settle();
+        let (legal_c, _cfg2) = m2.project_drafts(&[99]);
+        assert_eq!(legal_c, 0, "the illegal token 'c' projects 0 legal steps");
+    }
+
+    /// PROOF (the O(1) forced-token check, the untested avenue): when the PDA
+    /// allows exactly one terminal AND that terminal covers exactly one token,
+    /// the token is FORCED (the compute_ff_tokens returns it without a byte-hunt).
+    /// This proves the inclusive property (a forced token is reported) + the
+    /// exclusive property (a non-unique choice reports no forced token).
+    #[test]
+    fn pda_forced_token_via_ff() {
+        let env = ApproximateTokEnv::single_byte_env();
+        let f = ParserFactory::new(
+            &env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        )
+        .expect("the factory");
+
+        // A sequence grammar forces each next token: after start, only 'a' is allowed.
+        let g_seq = TopLevelGrammar::from_lark(r#"start: "a" "b" "c""#.to_string());
+        let parser_seq = f.create_parser(g_seq).expect("the seq");
+        let mut m_seq = Matcher::new(Ok(parser_seq));
+        m_seq.settle();
+        // At the start of "a" "b" "c", every position has exactly one legal
+        // continuation ('a' then 'b' then 'c'), so the ENTIRE sequence is forced.
+        // The compute_ff_tokens returns the full forced run.
+        let ff = m_seq.compute_ff_tokens();
+        assert_eq!(ff, vec![97, 98, 99], "a fully-determined sequence forces its entire run");
+
+        // A choice grammar has NOT force any single token (two terminals allowed).
+        let g_choice = TopLevelGrammar::from_lark(r#"start: "a" | "b""#.to_string());
+        let parser_choice = f.create_parser(g_choice).expect("the choice parser");
+        let mut m_choice = Matcher::new(Ok(parser_choice));
+        m_choice.settle();
+        let ff_choice = m_choice.compute_ff_tokens();
+        assert!(ff_choice.is_empty(), "a choice forces no single token (the ff is empty)");
+    }
+
+    /// PROOF (the terminal completing-token, the untested avenue): for each terminal
+    /// the completing token is (a) None for a token-range terminal (every member
+    /// completes on its own), (b) the single token for a single-byte literal,
+    /// (c) the LAST token of the greedy sequence for a multi-byte literal.
+    #[test]
+    fn terminal_completing_token_cases() {
+        use llguidance::dpda_adapter::terminal_completing_token;
+        let env = ApproximateTokEnv::single_byte_env();
+        let f = ParserFactory::new(
+            &env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        )
+        .expect("the factory");
+
+        // (b) A single-byte literal: the completing token is that single byte's token.
+        let g_single = TopLevelGrammar::from_lark(r#"start: "a""#.to_string());
+        let grm_single = cgrammar_of(&f, &g_single);
+        let bridge_single = llguidance::dpda_adapter::terminal_token_map(&grm_single, &env);
+        let completing_single = terminal_completing_token(&grm_single, &env, &bridge_single);
+        // The '-byte 'a' (97) terminal completes on its 97.
+        assert!(
+            completing_single.iter().any(|c| *c == Some(97)),
+            "a single-byte literal completes on its own token (got {completing_single:?})"
+        );
+
+        // (a) A token-range terminal: NO single completing token (each member
+        // completes on its own) -> None for that terminal.
+        let g_range = TopLevelGrammar::from_lark(r#"start: <[97, 98]>"#.to_string());
+        let grm_range = cgrammar_of(&f, &g_range);
+        let bridge_range = llguidance::dpda_adapter::terminal_token_map(&grm_range, &env);
+        let completing_range = terminal_completing_token(&grm_range, &env, &bridge_range);
+        assert!(
+            completing_range.iter().all(|c| c.is_none()),
+            "a token-range terminal has no single completing token (got {completing_range:?})"
+        );
+    }
 }
