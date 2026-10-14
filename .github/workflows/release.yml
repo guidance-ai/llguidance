@@ -14,7 +14,7 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   PYTHON_VERSION: '3.12'
-  MATURIN_VERSION: 'v1.11.5'
+  MATURIN_VERSION: 'v1.15.0'
 
 # ===========================================================================
 # Phase 1 — Validate
@@ -110,11 +110,17 @@ jobs:
             zig: true
           - version: '3.14t'
             zig: false
+          - version: '3.15t'
+            zig: false
         exclude:
           - platform:
               arch: riscv64
             python:
               version: '3.14t'
+          - platform:
+              arch: riscv64
+            python:
+              version: '3.15t'
     steps:
       - uses: actions/checkout@v6
 
@@ -151,7 +157,7 @@ jobs:
           - runner: windows-11-arm
             target: aarch64
             python-architecture: arm64
-        python-version: ['3.12', '3.14t']
+        python-version: ['3.12', '3.14t', '3.15t']
     steps:
       - uses: actions/checkout@v6
 
@@ -185,7 +191,7 @@ jobs:
             target: x86_64
           - runner: macos-14
             target: aarch64
-        python-version: ['3.12', '3.14t']
+        python-version: ['3.12', '3.14t', '3.15t']
     steps:
       - uses: actions/checkout@v6
 
