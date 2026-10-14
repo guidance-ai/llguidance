@@ -58,9 +58,17 @@ def fill_next_token_bitmask(interp: Union[LLMatcher, LLInterpreter],
     assert bitmask.dtype == torch.int32, "Mask must be int32"
     assert bitmask.is_cpu, "Mask must be on CPU"
     assert bitmask.dim() == 2, "Mask must be 2D"
-    v = bitmask[index, :]
-    assert v.is_contiguous(), "Mask must be contiguous"
-    interp.unsafe_compute_mask_ptr(v.data_ptr(), v.numel() * v.element_size())
+    # Compute the row address directly instead of creating a row view
+    # (bitmask[index, :]) on every call; this helper runs once per sequence
+    # per decoding step in serving loops.
+    rows, words = bitmask.shape
+    if index < 0:
+        index += rows
+    if not 0 <= index < rows:
+        raise IndexError(f"index {index} is out of bounds for mask with {rows} rows")
+    assert words <= 1 or bitmask.stride(1) == 1, "Mask must be contiguous"
+    interp.unsafe_compute_mask_ptr(
+        bitmask.data_ptr() + index * bitmask.stride(0) * 4, words * 4)
 
 
 def fill_next_token_bitmask_par(executor: LLExecutor,
