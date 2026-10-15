@@ -101,7 +101,8 @@ impl ByteTokenizer {
 
         let norm = hft.get_normalizer().cloned();
         if let Some(n) = norm {
-            hft.with_normalizer(remove_prepend_normalizer(n));
+            hft.with_normalizer(remove_prepend_normalizer(n))
+                .map_err(|e| anyhow!("error removing prepend normalizer: {}", e))?;
         }
 
         // fix pre-tokenizers that prepend spaces (e.g., Metaspace with prepend_scheme: First/Always)
