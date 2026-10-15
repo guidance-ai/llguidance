@@ -1419,6 +1419,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "llguidance_c"
+version = "0.1.0"
+dependencies = [
+ "llguidance",
+]
+
+[[package]]
 name = "llguidance_py"
 version = "1.9.1"
 dependencies = [

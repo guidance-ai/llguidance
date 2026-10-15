@@ -1,0 +1,22 @@
+[package]
+name = "llguidance_c"
+version = "0.1.0"
+edition = "2021"
+publish = false
+rust-version.workspace = true
+
+[lib]
+name = "llguidance"
+crate-type = ["staticlib", "cdylib"]
+
+[features]
+default = ["rayon"]
+rayon = ["llguidance/rayon"]
+
+[dependencies]
+llguidance = { workspace = true, default-features = false, features = [
+    "lark",
+    "referencing",
+    "ahash",
+    # Explicitly not "no-ffi-no-mangle"!
+] }

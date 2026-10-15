@@ -27,6 +27,11 @@ include_version = false
 [export]
 exclude = ["NodeRef"]
 
+[parse.expand]
+crates = ["llguidance"]
+default_features = false
+features = ["rayon"]
+
 [fn]
 must_use = "LLGUIDANCE_NODISCARD"
 
