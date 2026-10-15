@@ -1,8 +1,8 @@
 use std::ffi::c_void;
 use std::panic::AssertUnwindSafe;
 
-use crate::ffi::{LlgCallback, LlgConstraintStep};
-use crate::panic_utils;
+use crate::{LlgCallback, LlgConstraintStep};
+use llguidance::panic_utils;
 
 /// A `*const c_void` wrapper that is `Send`.
 ///
