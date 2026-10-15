@@ -486,6 +486,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
+name = "daachorse"
+version = "3.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5614204febbc33cc07a2806aa6440b904ac012b68eecc37f4493ea4a76455a3d"
+
+[[package]]
 name = "darling"
 version = "0.20.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -675,6 +681,17 @@ name = "fancy-regex"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e24cb5a94bcae1e5408b0effca5cd7172ea3c5755049c5f3af4cd283a165298"
+dependencies = [
+ "bit-set 0.8.0",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
+name = "fancy-regex"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72cf461f865c862bb7dc573f643dd6a2b6842f7c30b07882b56bd148cc2761b8"
 dependencies = [
  "bit-set 0.8.0",
  "regex-automata",
@@ -2620,17 +2637,17 @@ dependencies = [
 
 [[package]]
 name = "tokenizers"
-version = "0.21.2"
+version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c3846d8588abed0daba25a0e47edd58ea15e450a6088b2575f5116fdb0b27ca"
+checksum = "7afbf6e88718afcc138bad01d6ccc3051dbbc3b2ce9793d8b8a3aeb610969cfc"
 dependencies = [
  "ahash",
- "aho-corasick",
  "compact_str",
+ "daachorse",
  "dary_heap",
  "derive_builder",
  "esaxx-rs",
- "fancy-regex 0.14.0",
+ "fancy-regex 0.17.0",
  "getrandom 0.3.3",
  "itertools 0.14.0",
  "log",
