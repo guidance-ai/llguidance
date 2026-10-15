@@ -408,7 +408,7 @@ pub fn rx_float_range(
                     right
                 ));
             }
-            if left == right {
+            let rx = if left == right {
                 if left_inclusive && right_inclusive {
                     Ok(format!("({})", escape(&float_to_str(left))))
                 } else {
@@ -506,6 +506,12 @@ pub fn rx_float_range(
 
                     Ok(mk_or(parts))
                 }
+            }?;
+            if left == 0.0 && left_inclusive {
+                // zero is in range, so accept it as -0 (or 0.0) too
+                Ok(mk_or(vec![rx, "-?0(\\.0+)?".to_string()]))
+            } else {
+                Ok(rx)
             }
         }
     }
@@ -775,6 +781,13 @@ mod test_ranges {
                 }
             }
         }
+
+        // -0 equals 0, so it matches exactly when zero is in range
+        let zero_in_range = left.is_none_or(|l| l < 0.0 || (l == 0.0 && left_inclusive))
+            && right.is_none_or(|r| r > 0.0 || (r == 0.0 && right_inclusive));
+        for zero in ["0", "0.0", "-0", "-0.0", "-0.00"] {
+            assert_eq!(re.is_match(zero), zero_in_range, "{zero} vs {rx:?}");
+        }
     }
 
     #[test]
@@ -782,6 +795,9 @@ mod test_ranges {
         let cases = vec![
             (Some(0.0), Some(10.0)),
             (Some(-10.0), Some(0.0)),
+            (Some(-0.5), Some(0.5)),
+            (Some(-1.5), Some(0.0)),
+            (Some(0.0), Some(2.5)),
             (Some(0.5), Some(0.72)),
             (Some(0.5), Some(1.72)),
             (Some(0.5), Some(1.32)),
