@@ -230,7 +230,7 @@ impl Token {
         (Token::Number, r#"[+-]?[0-9]+(\.[0-9]*)?([eE][+-]?[0-9]+)?"#),
         (Token::HexNumber, r#"0[xX][0-9a-fA-F]+"#),
         (Token::Newline, r"(\r?\n)+[ \t]*"),
-        (Token::SpecialToken, r"<[^<>\s]+>"),
+        (Token::SpecialToken, r"<[^<>]+>"),
         (Token::GrammarRef, r"@[a-zA-Z0-9_\-]+"),
     ];
 }

@@ -1208,6 +1208,66 @@ impl CGrammar {
         &self.sym_data(sym).rules
     }
 
+    // ---- DPDA construction accessors (the thedown-rs adapter needs these) ----
+    pub fn num_symbols(&self) -> usize {
+        self.symbols.len()
+    }
+    pub fn is_terminal(&self, sym: CSymIdx) -> bool {
+        self.sym_data(sym).is_terminal
+    }
+    pub fn rhs_symbols(&self, rule: RhsPtr) -> &[CSymIdx] {
+        self.rule_rhs(rule).0
+    }
+    pub fn rhs_len(&self, rule: RhsPtr) -> usize {
+        self.rule_rhs(rule).0.len()
+    }
+    pub fn is_nullable(&self, sym: CSymIdx) -> bool {
+        self.sym_data(sym).is_nullable
+    }
+    /// The symbols after the dot position within the same rule (the the beta of an
+    /// LR item). Empty for a complete item (the dot at the NULL terminator).
+    pub fn rhs_after_dot(&self, dot_ptr: RhsPtr) -> &[CSymIdx] {
+        let idx = dot_ptr.as_index();
+        if self.rhs_elements[idx] == CSymIdx::NULL {
+            return &[];
+        }
+        let mut stop = idx + 1;
+        while self.rhs_elements[stop] != CSymIdx::NULL {
+            stop += 1;
+        }
+        &self.rhs_elements[idx + 1..stop]
+    }
+    /// The (lhs, rhs_len) for the rule containing dot_ptr.
+    pub fn rule_info_at_dot(&self, dot_ptr: RhsPtr) -> (CSymIdx, usize) {
+        let idx = dot_ptr.as_index();
+        let lhs = self.sym_idx_lhs(dot_ptr);
+        let mut start = idx;
+        while start > 0 && self.rhs_elements[start - 1] != CSymIdx::NULL {
+            start -= 1;
+        }
+        (lhs, idx - start)
+    }
+    /// The terminal's precomputed token ranges (the the codebook source, the the
+    /// LexemeSpec.token_ranges). Reuses the CGrammar's own extracted data.
+    pub fn terminal_token_ranges(&self, terminal: CSymIdx) -> &[std::ops::RangeInclusive<toktrie::TokenId>] {
+        let Some(lex) = self.sym_data(terminal).lexeme else {
+            return &[];
+        };
+        &self.lexer_spec().lexeme_spec(lex).token_ranges
+    }
+    /// The terminal symbols whose lexeme is the given LexemeIdx (the the
+    /// lexeme -> terminal mapping, the the token spanner bridge).
+    pub fn terminal_csymbols_of_lexeme(&self, lexeme_idx: LexemeIdx) -> Vec<CSymIdx> {
+        let mut out = Vec::new();
+        for i in 0..self.num_symbols() {
+            let s = CSymIdx::new_checked(i);
+            if self.is_terminal(s) && self.sym_data(s).lexeme == Some(lexeme_idx) {
+                out.push(s);
+            }
+        }
+        out
+    }
+
     fn add_symbol(&mut self, mut sym: CSymbol) -> CSymIdx {
         let idx = CSymIdx::new_checked(self.symbols.len());
         sym.idx = idx;
