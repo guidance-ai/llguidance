@@ -63,7 +63,7 @@ Number features (for both integer and number):
 ## Departures from JSON schema semantics
 
 - order of object properties is fixed, see below
-- string `format` is enforced by default, with unrecognized or unimplemented formats returning errors
+- string `format` is enforced by default; unrecognized or unimplemented formats return errors on all types, while recognized string formats are ignored on non-string types
 - for properties specified with `additionalProperties` or `patternProperties`, the grammar does not enforce unique keys;
   the ones listed in `properties` are enforced uniquely, in given order
 

@@ -72,7 +72,11 @@ pub(crate) const META_AND_ANNOTATIONS: [&str; 15] = [
 fn limited_str(node: &Value) -> String {
     let s = node.to_string();
     if s.len() > 100 {
-        format!("{}...", &s[..100])
+        let mut end = 100;
+        while !s.is_char_boundary(end) {
+            end -= 1;
+        }
+        format!("{}...", &s[..end])
     } else {
         s
     }
@@ -705,6 +709,21 @@ fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Re
 }
 
 fn compile_contents_simple(ctx: &Context, schemadict: HashMap<&str, &Value>) -> Result<Schema> {
+    if let Some(format) = schemadict.get("format") {
+        let key = format
+            .as_str()
+            .ok_or_else(|| anyhow!("Expected string for 'format', got {}", limited_str(format)))?;
+        // Unknown formats may apply to any type, not just strings.
+        if lookup_format(key).is_none() {
+            let msg = format!("Unknown format: {key}");
+            if ctx.options.lenient {
+                ctx.record_warning(msg);
+            } else {
+                bail!(msg);
+            }
+        }
+    }
+
     if schemadict.is_empty() {
         Ok(Schema::Any)
     } else {
@@ -891,7 +910,7 @@ fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Resu
         "null" => Ok(Schema::Null),
         "boolean" => Ok(Schema::Boolean(None)),
         "number" | "integer" => compile_numeric(schema, tp == "integer"),
-        "string" => compile_string(ctx, schema),
+        "string" => compile_string(schema),
         "array" => compile_array(ctx, schema),
         "object" => compile_object(ctx, schema),
         _ => bail!("Invalid type: {}", tp),
@@ -964,9 +983,8 @@ fn compile_numeric(schema: &HashMap<&str, &Value>, integer: bool) -> Result<Sche
     }))
 }
 
-fn compile_string(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schema> {
+fn compile_string(schema: &HashMap<&str, &Value>) -> Result<Schema> {
     let pattern = schema.get("pattern").copied();
-    let format = schema.get("format").copied();
 
     let min_length = get_usize(schema, "minLength")?.unwrap_or(0);
     let max_length = get_usize(schema, "maxLength")?;
@@ -981,27 +999,11 @@ fn compile_string(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schem
             RegexAst::SearchRegex(regex_to_lark(&s, "dw"))
         }),
     };
-    let format_rx = match format {
-        None => None,
-        Some(val) => {
-            let key = val
-                .as_str()
-                .ok_or_else(|| anyhow!("Expected string for 'format', got {}", limited_str(val)))?
-                .to_string();
-
-            if let Some(fmt) = lookup_format(&key) {
-                Some(RegexAst::Regex(fmt.to_string()))
-            } else {
-                let msg = format!("Unknown format: {key}");
-                if ctx.options.lenient {
-                    ctx.record_warning(msg);
-                    None
-                } else {
-                    bail!(msg);
-                }
-            }
-        }
-    };
+    let format_rx = schema
+        .get("format")
+        .and_then(|val| val.as_str())
+        .and_then(lookup_format)
+        .map(|fmt| RegexAst::Regex(fmt.to_string()));
     let regex = match (pattern_rx, format_rx) {
         (None, None) => None,
         (None, Some(fmt)) => Some(fmt),
@@ -1282,7 +1284,160 @@ mod test_retriever {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
     use serde_json::json;
+
+    #[rstest]
+    #[case(json!({"type": "string"}))]
+    #[case(json!({"type": "number"}))]
+    #[case(json!({"type": "integer"}))]
+    #[case(json!({"type": "null"}))]
+    #[case(json!({"type": "boolean"}))]
+    #[case(json!({"type": "array"}))]
+    #[case(json!({"type": "object"}))]
+    #[case(json!({"type": ["number", "null"]}))]
+    #[case(json!({"type": ["number", "string"]}))]
+    #[case(json!({}))]
+    fn unknown_format_on_all_types(
+        #[case] mut schema: Value,
+        #[values("unsupported", "int32", "int64", "double")] format: &str,
+        #[values(false, true)] lenient: bool,
+    ) {
+        let options = JsonCompileOptions {
+            lenient,
+            ..Default::default()
+        };
+        let without_format = build_schema(
+            if schema.get("type").is_some() {
+                schema.clone()
+            } else {
+                json!({"type": TYPES})
+            },
+            &options,
+        )
+        .unwrap();
+        schema["format"] = json!(format);
+        let result = build_schema(schema, &options);
+        let message = format!("Unknown format: {format}");
+        if lenient {
+            let built = result.unwrap();
+            assert_eq!(built.warnings, vec![message]);
+            assert_eq!(
+                format!("{:?}", built.schema),
+                format!("{:?}", without_format.schema)
+            );
+        } else {
+            assert_eq!(
+                result.err().expect("unknown format must fail").to_string(),
+                message
+            );
+        }
+    }
+
+    #[rstest]
+    fn known_string_format_ignored_on_other_types(
+        #[values("null", "boolean", "number", "integer", "array", "object")] tp: &str,
+    ) {
+        let options = JsonCompileOptions::default();
+        let without_format = build_schema(json!({"type": tp}), &options).unwrap();
+        let built = build_schema(json!({"type": tp, "format": "date-time"}), &options).unwrap();
+        assert!(built.warnings.is_empty());
+        assert_eq!(
+            format!("{:?}", built.schema),
+            format!("{:?}", without_format.schema)
+        );
+    }
+
+    #[rstest]
+    #[case(json!({"type": "object", "properties": {"value": {"type": "integer", "format": "int32"}}}))]
+    #[case(json!({"type": "array", "items": {"type": "integer", "format": "int32"}}))]
+    #[case(json!({"anyOf": [{"type": "integer", "format": "int32"}, {"type": "null"}]}))]
+    #[case(json!({"$defs": {"value": {"type": "integer", "format": "int32"}}, "$ref": "#/$defs/value"}))]
+    #[case(json!({"format": "int32", "allOf": [{"type": "integer"}]}))]
+    #[case(json!({"allOf": [{"type": "integer"}], "format": "int32"}))]
+    #[case(json!({"$defs": {"value": {"type": "integer"}}, "format": "int32", "$ref": "#/$defs/value"}))]
+    #[case(json!({"$defs": {"value": {"type": "integer"}}, "$ref": "#/$defs/value", "format": "int32"}))]
+    fn unknown_format_with_applicators(
+        #[case] schema: Value,
+        #[values(false, true)] lenient: bool,
+    ) {
+        let options = JsonCompileOptions {
+            lenient,
+            ..Default::default()
+        };
+        let result = build_schema(schema, &options);
+        if lenient {
+            assert_eq!(result.unwrap().warnings, vec!["Unknown format: int32"]);
+        } else {
+            let error = result.err().expect("unknown format in schema must fail");
+            assert_eq!(error.to_string(), "Unknown format: int32");
+        }
+    }
+
+    #[rstest]
+    fn format_must_be_string(
+        #[values("string", "integer", "null")] tp: &str,
+        #[values(json!(null), json!(42), json!([]), json!(["✨".repeat(40)]))] format: Value,
+        #[values(false, true)] lenient: bool,
+    ) {
+        let options = JsonCompileOptions {
+            lenient,
+            ..Default::default()
+        };
+        let error = build_schema(json!({"type": tp, "format": format}), &options)
+            .err()
+            .expect("format must be a string");
+        assert_eq!(
+            error.to_string(),
+            format!("Expected string for 'format', got {}", limited_str(&format))
+        );
+    }
+
+    #[test]
+    fn known_format_only_constrains_strings_in_union() {
+        let built = build_schema(
+            json!({"type": ["string", "integer"], "format": "date"}),
+            &JsonCompileOptions::default(),
+        )
+        .unwrap();
+        assert!(built.warnings.is_empty());
+        let Schema::AnyOf(options) = built.schema else {
+            panic!("expected union schema");
+        };
+        assert!(matches!(
+            options.as_slice(),
+            [
+                Schema::String(StringSchema { regex: Some(_), .. }),
+                Schema::Number(NumberSchema {
+                    integer: true,
+                    minimum: None,
+                    maximum: None,
+                    ..
+                })
+            ]
+        ));
+    }
+
+    #[test]
+    fn known_format_preserves_string_constraints() {
+        let built = build_schema(
+            json!({"type": "string", "format": "date", "pattern": "^2026-", "minLength": 10, "maxLength": 10}),
+            &JsonCompileOptions::default(),
+        )
+        .unwrap();
+        assert!(built.warnings.is_empty());
+        let Schema::String(schema) = built.schema else {
+            panic!("expected string schema");
+        };
+        assert_eq!(schema.min_length, 10);
+        assert_eq!(schema.max_length, Some(10));
+        let mut builder = derivre::RegexBuilder::new();
+        let regex = builder.mk(&schema.regex.unwrap()).unwrap();
+        let mut regex = builder.to_regex_limited(regex, 10_000).unwrap();
+        assert!(regex.is_match("2026-10-04"));
+        assert!(!regex.is_match("2025-10-04"));
+        assert!(!regex.is_match("2026-13-04"));
+    }
 
     #[test]
     fn test_problem_child() {
