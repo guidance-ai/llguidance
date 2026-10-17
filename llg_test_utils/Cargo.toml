@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-llguidance = { workspace = true }
+llguidance = { workspace = true, default-features = true }
 toktrie_hf_downloader = { workspace = true }
 lazy_static = "1.5.0"
 serde_json = { version = "1.0.138", features = ["preserve_order"] }
