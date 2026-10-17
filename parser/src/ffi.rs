@@ -763,7 +763,7 @@ impl LlgConstraint {
 /// Disables fast-forward tokens and backtracking, enables warnings on stderr,
 /// and sets all logging to the buffer (retrieve with [`llg_flush_logs()`]).
 /// You still need to set the `tokenizer` field manually.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_constraint_init_set_defaults(
     init: &mut LlgConstraintInit,
     tokenizer: *const LlgTokenizer,
@@ -798,7 +798,7 @@ pub fn constraint_to_llg(c: Result<Constraint>) -> *mut LlgConstraint {
 ///
 /// Always returns a non-null value. Call [`llg_get_error()`] on the result to
 /// check for errors.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_new_constraint(
     init: &LlgConstraintInit,
     llguidance: *const c_char,
@@ -810,7 +810,7 @@ pub extern "C" fn llg_new_constraint(
 ///
 /// Always returns a non-null value. Call [`llg_get_error()`] on the result to
 /// check for errors.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_new_constraint_regex(
     init: &LlgConstraintInit,
     regex: *const c_char,
@@ -822,7 +822,7 @@ pub extern "C" fn llg_new_constraint_regex(
 ///
 /// Always returns a non-null value. Call [`llg_get_error()`] on the result to
 /// check for errors.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_new_constraint_json(
     init: &LlgConstraintInit,
     json_schema: *const c_char,
@@ -834,7 +834,7 @@ pub extern "C" fn llg_new_constraint_json(
 ///
 /// Always returns a non-null value. Call [`llg_get_error()`] on the result to
 /// check for errors.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_new_constraint_lark(
     init: &LlgConstraintInit,
     lark: *const c_char,
@@ -849,7 +849,7 @@ pub extern "C" fn llg_new_constraint_lark(
 ///
 /// Always returns a non-null value. Call [`llg_get_error()`] on the result to
 /// check for errors.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_new_constraint_any(
     init: &LlgConstraintInit,
     constraint_type: *const c_char,
@@ -865,7 +865,7 @@ pub extern "C" fn llg_new_constraint_any(
 /// After it returns a non-null value, it will always return that same pointer
 /// until the constraint is freed with [`llg_free_constraint()`] (at which
 /// point the pointer becomes invalid).
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_get_error(cc: &LlgConstraint) -> *const c_char {
     cc.get_error()
 }
@@ -873,13 +873,13 @@ pub extern "C" fn llg_get_error(cc: &LlgConstraint) -> *const c_char {
 /// Get the current temperature of the constraint.
 ///
 /// Updated by [`llg_compute_mask()`].
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_get_temperature(cc: &LlgConstraint) -> f32 {
     cc.constraint.as_ref().map_or(0.0, |c| c.temperature)
 }
 
 /// Check whether the constraint is stopped (cannot be extended further).
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_is_stopped(cc: &LlgConstraint) -> bool {
     if let Some(c) = &cc.constraint {
         c.step_result().is_stop()
@@ -895,7 +895,7 @@ pub extern "C" fn llg_is_stopped(cc: &LlgConstraint) -> bool {
 /// be called on a background thread. Returns 0 on success and −1 on error
 /// (use [`llg_get_error()`] to get the exact error). When 0 is returned, the
 /// result is written to `*res_p`.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub extern "C" fn llg_compute_mask(cc: &mut LlgConstraint, res_p: &mut LlgMaskResult) -> i32 {
     if let Some(constraint) = &mut cc.constraint {
@@ -922,7 +922,7 @@ pub extern "C" fn llg_compute_mask(cc: &mut LlgConstraint, res_p: &mut LlgMaskRe
 /// Can be run on the critical path of sampling (it is fast). Returns 0 on
 /// success and −1 on error (use [`llg_get_error()`] to get the exact error).
 /// When 0 is returned, the result is written to `*res_p`.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub extern "C" fn llg_commit_token(
     cc: &mut LlgConstraint,
@@ -979,7 +979,7 @@ pub extern "C" fn llg_commit_token(
 /// - When `done_cb` is non-null, it will be invoked on a Rayon worker thread
 ///   (not the calling thread). The callback and any state it accesses through
 ///   `user_data` must be safe for cross-thread invocation.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_par_compute_mask(
     steps: *const LlgConstraintStep,
     n_steps: usize,
@@ -1061,7 +1061,7 @@ pub unsafe extern "C" fn llg_par_compute_mask(
 }
 
 /// Clone the constraint.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_clone_constraint(cc: &LlgConstraint) -> *mut LlgConstraint {
     Box::into_raw(Box::new(cc.clone()))
 }
@@ -1077,7 +1077,7 @@ pub extern "C" fn llg_clone_constraint(cc: &LlgConstraint) -> *mut LlgConstraint
 ///   satisfy the documented requirements (see struct docs).
 /// - `error_string` must point to a buffer of at least `error_string_len` bytes
 ///   (or be null).
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_new_tokenizer(
     tok_init: &LlgTokenizerInit,
     error_string: *mut c_char,
@@ -1111,7 +1111,7 @@ pub unsafe extern "C" fn llg_new_tokenizer(
 /// initialized memory, and `struct_size` must be at least
 /// `offset_of!(LlgTokenizerInitV2, token_lens)` (i.e., it must include
 /// `struct_size`, `vocab_size`, and the complete `tok_eos` field).
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_new_tokenizer_v2(
     tok_init: *const LlgTokenizerInitV2,
     error_string: *mut c_char,
@@ -1171,7 +1171,7 @@ pub unsafe extern "C" fn llg_new_tokenizer_v2(
 /// Clone a tokenizer.
 ///
 /// This increments a reference count and performs a small allocation.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_clone_tokenizer(tok: &LlgTokenizer) -> *mut LlgTokenizer {
     Box::into_raw(Box::new(tok.clone()))
 }
@@ -1185,7 +1185,7 @@ pub extern "C" fn llg_clone_tokenizer(tok: &LlgTokenizer) -> *mut LlgTokenizer {
 /// - If `bytes_len > 0`, `bytes` must point to `bytes_len` valid bytes.
 /// - If `output_tokens` is non-null, it must point to a buffer of at least
 ///   `output_tokens_len` elements.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_tokenize_bytes(
     tok: &LlgTokenizer,
     bytes: *const u8,
@@ -1218,7 +1218,7 @@ pub unsafe extern "C" fn llg_tokenize_bytes(
 /// - If `bytes_len > 0`, `bytes` must point to `bytes_len` valid bytes.
 /// - If `output_tokens` is non-null, it must point to a buffer of at least
 ///   `output_tokens_len` elements.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_tokenize_bytes_marker(
     tok: &LlgTokenizer,
     bytes: *const u8,
@@ -1251,7 +1251,7 @@ pub unsafe extern "C" fn llg_tokenize_bytes_marker(
 /// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
 /// - If `output` is non-null, it must point to a buffer of at least
 ///   `output_len` bytes.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_stringify_tokens(
     tok: &LlgTokenizer,
     tokens: *const u32,
@@ -1296,7 +1296,7 @@ pub const LLG_DECODE_VALID_UTF8: u32 = 2;
 /// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
 /// - If `output` is non-null, it must point to a buffer of at least
 ///   `output_len` bytes.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_decode_tokens(
     tok: &LlgTokenizer,
     tokens: *const u32,
@@ -1335,7 +1335,7 @@ pub unsafe extern "C" fn llg_decode_tokens(
 ///   [`llg_new_tokenizer_v2()`] (or [`llg_clone_tokenizer()`]), or null.
 /// - `tok` must not have been freed already (double-free is UB).
 /// - No other thread may access `tok` concurrently with this call.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_free_tokenizer(tok: *mut LlgTokenizer) {
     if !tok.is_null() {
         unsafe {
@@ -1354,7 +1354,7 @@ pub unsafe extern "C" fn llg_free_tokenizer(tok: *mut LlgTokenizer) {
 ///   or null.
 /// - `cc` must not have been freed already (double-free is UB).
 /// - No other thread may access `cc` concurrently with this call.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_free_constraint(cc: *mut LlgConstraint) {
     if !cc.is_null() {
         unsafe {
@@ -1367,7 +1367,7 @@ pub unsafe extern "C" fn llg_free_constraint(cc: *mut LlgConstraint) {
 ///
 /// The returned string is NUL-terminated and remains valid until the next
 /// call to this function or until the constraint is freed.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_flush_logs(cc: &mut LlgConstraint) -> *const c_char {
     if let Some(constraint) = &mut cc.constraint {
         cc.last_logs = make_c_string(constraint.flush_logs());
@@ -1421,7 +1421,7 @@ pub unsafe fn save_error_string(
 /// - `stop_rx`, if non-null, must be a valid NUL-terminated UTF-8 C string.
 /// - `error_string`, if non-null, must point to a buffer of at least
 ///   `error_string_len` bytes.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_new_stop_controller(
     tokenizer: &LlgTokenizer,
     stop_tokens: *const u32,
@@ -1455,7 +1455,7 @@ pub unsafe extern "C" fn llg_new_stop_controller(
 /// may be empty) and sets `*is_stopped_p` to indicate whether the sequence
 /// should then be finished. The returned string is valid until the next call
 /// to this function or until the controller is freed.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_stop_commit_token(
     stop_ctrl: &mut LlgStopController,
     token: u32,
@@ -1473,7 +1473,7 @@ pub extern "C" fn llg_stop_commit_token(
 ///
 /// The cloned controller shares (under a mutex) regex caches, if any, so
 /// cloning is cheap.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_clone_stop_controller(
     stop_ctrl: &LlgStopController,
 ) -> *mut LlgStopController {
@@ -1490,7 +1490,7 @@ pub extern "C" fn llg_clone_stop_controller(
 ///   or null.
 /// - `stop_ctrl` must not have been freed already.
 /// - No other thread may access `stop_ctrl` concurrently with this call.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_free_stop_controller(stop_ctrl: *mut LlgStopController) {
     if !stop_ctrl.is_null() {
         unsafe {
@@ -1566,7 +1566,7 @@ impl LlgMatcher {
 ///
 /// # Safety
 /// - `constraint_type` and `data` must be valid NUL-terminated UTF-8 C strings.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_new_matcher(
     init: &LlgConstraintInit,
     constraint_type: *const c_char,
@@ -1633,7 +1633,7 @@ fn validate_grammar(
 /// # Safety
 /// - `constraint_type` and `data` must be valid NUL-terminated UTF-8 C strings.
 /// - `message` must point to a buffer of at least `message_len` bytes.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub unsafe extern "C" fn llg_validate_grammar(
     init: &LlgConstraintInit,
@@ -1676,7 +1676,7 @@ pub unsafe extern "C" fn llg_validate_grammar(
 /// # Safety
 /// - `mask_dest` must point to a buffer of at least `mask_byte_len` bytes,
 ///   where `mask_byte_len` equals [`llg_matcher_get_mask_byte_size()`].
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub unsafe extern "C" fn llg_matcher_compute_mask_into(
     matcher: &mut LlgMatcher,
@@ -1708,7 +1708,7 @@ pub unsafe extern "C" fn llg_matcher_compute_mask_into(
 ///
 /// Use [`llg_matcher_get_mask()`] to retrieve the result.
 /// Returns 0 on success and −1 on error.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub extern "C" fn llg_matcher_compute_mask(matcher: &mut LlgMatcher) -> i32 {
     matcher.clear_mask();
@@ -1727,7 +1727,7 @@ pub extern "C" fn llg_matcher_compute_mask(matcher: &mut LlgMatcher) -> i32 {
 ///
 /// The pointer becomes invalid after the next matcher operation or after
 /// [`llg_free_matcher()`].
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_matcher_get_mask(matcher: &mut LlgMatcher) -> *const u32 {
     if matcher.matcher.is_error() {
         matcher.clear_mask();
@@ -1740,7 +1740,7 @@ pub extern "C" fn llg_matcher_get_mask(matcher: &mut LlgMatcher) -> *const u32 {
 }
 
 /// Return the size of the mask in bytes.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_matcher_get_mask_byte_size(matcher: &LlgMatcher) -> usize {
     matcher.mask_elts() * 4
 }
@@ -1752,7 +1752,7 @@ pub extern "C" fn llg_matcher_get_mask_byte_size(matcher: &LlgMatcher) -> usize 
 /// becomes enabled for the matcher before the handle is returned. Cancellation
 /// handle operations may run while a worker mutates the matcher. Join the
 /// worker before accessing or freeing the matcher.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_matcher_get_cancellation_handle(
     matcher: &mut LlgMatcher,
 ) -> *mut LlgCancellationHandle {
@@ -1770,7 +1770,7 @@ pub extern "C" fn llg_matcher_get_cancellation_handle(
 /// Each clone is a new allocation. Free each returned handle separately with
 /// [`llg_free_cancellation_handle()`]. `handle` must remain valid during this
 /// call.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_clone_cancellation_handle(
     handle: &LlgCancellationHandle,
 ) -> *mut LlgCancellationHandle {
@@ -1784,7 +1784,7 @@ pub extern "C" fn llg_clone_cancellation_handle(
 /// This call does not access the matcher or wait for a worker. It is safe to
 /// call after the matcher is freed, if `handle` remains valid. Do not free the
 /// same handle allocation during this call.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_cancel(handle: &LlgCancellationHandle) {
     handle.handle.cancel();
 }
@@ -1799,7 +1799,7 @@ pub extern "C" fn llg_cancel(handle: &LlgCancellationHandle) {
 ///   [`llg_clone_cancellation_handle()`], or null.
 /// - `handle` must not have been freed already.
 /// - No other thread may access `handle` during this call.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_free_cancellation_handle(handle: *mut LlgCancellationHandle) {
     if !handle.is_null() {
         unsafe {
@@ -1812,7 +1812,7 @@ pub unsafe extern "C" fn llg_free_cancellation_handle(handle: *mut LlgCancellati
 ///
 /// Call this while `matcher` is idle. This returns false if an earlier
 /// non-cancellation error already stopped the matcher.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_matcher_is_cancelled(matcher: &LlgMatcher) -> bool {
     matcher.matcher.is_cancelled()
 }
@@ -1820,7 +1820,7 @@ pub extern "C" fn llg_matcher_is_cancelled(matcher: &LlgMatcher) -> bool {
 /// Advance the matcher by one token.
 ///
 /// Returns 0 on success and −1 on error.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub extern "C" fn llg_matcher_consume_token(matcher: &mut LlgMatcher, token: u32) -> i32 {
     matcher.clear_mask();
@@ -1836,7 +1836,7 @@ pub extern "C" fn llg_matcher_consume_token(matcher: &mut LlgMatcher, token: u32
 ///
 /// # Safety
 /// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub unsafe extern "C" fn llg_matcher_consume_tokens(
     matcher: &mut LlgMatcher,
@@ -1856,7 +1856,7 @@ pub unsafe extern "C" fn llg_matcher_consume_tokens(
 /// After it returns a non-null value, it will always return that same pointer
 /// until the matcher is freed with [`llg_free_matcher()`] (at which point the
 /// pointer becomes invalid).
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_matcher_get_error(matcher: &mut LlgMatcher) -> *const c_char {
     if !matcher.matcher.is_error() {
         return std::ptr::null();
@@ -1876,7 +1876,7 @@ pub extern "C" fn llg_matcher_get_error(matcher: &mut LlgMatcher) -> *const c_ch
 }
 
 /// Check whether the matcher is in an error state.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_matcher_is_error(matcher: &LlgMatcher) -> bool {
     matcher.matcher.is_error()
 }
@@ -1890,7 +1890,7 @@ pub extern "C" fn llg_matcher_is_error(matcher: &LlgMatcher) -> bool {
 ///   (or [`llg_clone_matcher()`]), or null.
 /// - `matcher` must not have been freed already.
 /// - No other thread may access `matcher` concurrently with this call.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub unsafe extern "C" fn llg_free_matcher(matcher: *mut LlgMatcher) {
     if !matcher.is_null() {
         unsafe {
@@ -1902,7 +1902,7 @@ pub unsafe extern "C" fn llg_free_matcher(matcher: *mut LlgMatcher) {
 /// Roll back the matcher state by `num_tokens`.
 ///
 /// Returns 0 on success and −1 on error.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub extern "C" fn llg_matcher_rollback(matcher: &mut LlgMatcher, num_tokens: usize) -> i32 {
     matcher.clear_mask();
@@ -1916,7 +1916,7 @@ pub extern "C" fn llg_matcher_rollback(matcher: &mut LlgMatcher, num_tokens: usi
 ///
 /// A matcher in an error state cannot be reset.
 /// Returns 0 on success and −1 on error.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub extern "C" fn llg_matcher_reset(matcher: &mut LlgMatcher) -> i32 {
     matcher.clear_mask();
@@ -1927,7 +1927,7 @@ pub extern "C" fn llg_matcher_reset(matcher: &mut LlgMatcher) -> i32 {
 }
 
 /// Check whether the grammar can fully accept the input so far.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_matcher_is_accepting(matcher: &mut LlgMatcher) -> bool {
     matcher.matcher.is_accepting().unwrap_or(false)
 }
@@ -1937,7 +1937,7 @@ pub extern "C" fn llg_matcher_is_accepting(matcher: &mut LlgMatcher) -> bool {
 /// Returns true after normal completion, an error, or cancellation.
 /// Use [`llg_matcher_is_error()`] and [`llg_matcher_is_cancelled()`] to
 /// distinguish unsuccessful termination.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_matcher_is_stopped(matcher: &LlgMatcher) -> bool {
     matcher.matcher.is_stopped()
 }
@@ -1948,7 +1948,7 @@ pub extern "C" fn llg_matcher_is_stopped(matcher: &LlgMatcher) -> bool {
 ///
 /// # Safety
 /// - If `n_tokens > 0`, `tokens` must point to `n_tokens` valid `u32` values.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub unsafe extern "C" fn llg_matcher_validate_tokens(
     matcher: &mut LlgMatcher,
@@ -1970,7 +1970,7 @@ pub unsafe extern "C" fn llg_matcher_validate_tokens(
 ///
 /// # Safety
 /// - `output` must point to a buffer of at least `output_len` elements.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 #[must_use]
 pub unsafe extern "C" fn llg_matcher_compute_ff_tokens(
     matcher: &mut LlgMatcher,
@@ -1996,7 +1996,7 @@ pub unsafe extern "C" fn llg_matcher_compute_ff_tokens(
 }
 
 /// Clone the matcher.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_clone_matcher(matcher: &LlgMatcher) -> *mut LlgMatcher {
     Box::into_raw(Box::new(LlgMatcher {
         matcher: matcher.matcher.deep_clone(),
@@ -2012,7 +2012,7 @@ pub extern "C" fn llg_clone_matcher(matcher: &LlgMatcher) -> *mut LlgMatcher {
 ///
 /// The returned pointer is valid for the lifetime of the process and must not
 /// be freed by the caller.
-#[cfg_attr(not(feature = "no-ffi-no-mangle"), no_mangle)]
+#[cfg_attr(feature = "ffi-export-symbols", no_mangle)]
 pub extern "C" fn llg_get_version() -> *const c_char {
     // Both version tags are compile-time literals so they're findable via `strings`.
     static LLG_VERSION: &str = concat!("llguidance@", env!("CARGO_PKG_VERSION"));

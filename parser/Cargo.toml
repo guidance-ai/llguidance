@@ -31,19 +31,18 @@ instant = { version = "0.1.13", optional = true }
 cbindgen = { version = "0.29", optional = true }
 
 [features]
-default = ["lark", "rayon", "referencing", "ahash", "no-ffi-no-mangle"]
-logging = []                                                            # this is extensive debug logging
-lark = []                                                               # ~115k (binary)
-jsonschema_validation = ["dep:jsonschema", "dep:lazy_static"]           # ~2.5M (binary)
+default = ["lark", "rayon", "referencing", "ahash"]
+logging = []                                                  # this is extensive debug logging
+lark = []                                                     # ~115k (binary)
+jsonschema_validation = ["dep:jsonschema", "dep:lazy_static"] # ~2.5M (binary)
 rayon = ["dep:rayon"]
 wasm = ["dep:instant"]
 referencing = ["dep:referencing"]
 ahash = ["derivre/ahash"]
 # Regenerate parser/llguidance.h: cargo check -p llguidance --features generate-header
 generate-header = ["dep:cbindgen"]
-# Remove the `#[no_mangle]` attribute from FFI bindings.
-# Enabled by default, to disable this you have to use `default-features = false`.
-no-ffi-no-mangle = []
+# Add `#[no_mangle]` attribute to FFI bindings.
+ffi-export-symbols = []
 
 [dev-dependencies]
 criterion = "0.8.1"

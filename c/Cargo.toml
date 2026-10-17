@@ -18,5 +18,5 @@ llguidance = { workspace = true, default-features = false, features = [
     "lark",
     "referencing",
     "ahash",
-    # Explicitly not "no-ffi-no-mangle"!
+    "ffi-export-symbols",
 ] }
