@@ -12,6 +12,8 @@ crate-type = ["staticlib", "cdylib"]
 [features]
 default = ["rayon"]
 rayon = ["llguidance/rayon"]
+# Regenerate c/llguidance.h: cargo check -p llguidance_c --features generate-header
+generate-header = ["dep:cbindgen"]
 
 [dependencies]
 llguidance = { workspace = true, default-features = false, features = [
@@ -20,3 +22,6 @@ llguidance = { workspace = true, default-features = false, features = [
     "ahash",
     "ffi-export-symbols",
 ] }
+
+[build-dependencies]
+cbindgen = { version = "0.29", optional = true }

@@ -1397,7 +1397,6 @@ name = "llguidance"
 version = "1.9.1"
 dependencies = [
  "anyhow",
- "cbindgen",
  "criterion",
  "derivre",
  "indexmap",
@@ -1422,6 +1421,7 @@ dependencies = [
 name = "llguidance_c"
 version = "0.1.0"
 dependencies = [
+ "cbindgen",
  "llguidance",
 ]
 
