@@ -1,6 +1,6 @@
 use crate::{regex_to_lark, HashMap, JsonCompileOptions};
 use anyhow::{anyhow, bail, ensure, Result};
-use derivre::RegexAst;
+use derivre::{RegexAst, RegexBuilder};
 use indexmap::{IndexMap, IndexSet};
 use serde_json::Value;
 use std::mem;
@@ -9,6 +9,8 @@ use super::context::{Context, Draft, PreContext, ResourceRef};
 use super::formats::lookup_format;
 use super::numeric::Decimal;
 use super::shared_context::BuiltSchema;
+
+const LITERAL_CHECK_FUEL: u64 = 10_000;
 
 const TYPES: [&str; 6] = ["null", "boolean", "number", "string", "array", "object"];
 
@@ -333,15 +335,39 @@ impl Schema {
                 },
             }),
 
-            (Schema::String(s1), Schema::String(s2)) => Schema::String(StringSchema {
-                min_length: s1.min_length.max(s2.min_length),
-                max_length: opt_min(s1.max_length, s2.max_length),
-                regex: match (s1.regex, s2.regex) {
-                    (None, None) => None,
-                    (None, Some(r)) | (Some(r), None) => Some(r),
-                    (Some(r1), Some(r2)) => Some(RegexAst::And(vec![r1, r2])),
-                },
-            }),
+            (Schema::String(s1), Schema::String(s2)) => {
+                let min_length = s1.min_length.max(s2.min_length);
+                let max_length = opt_min(s1.max_length, s2.max_length);
+                match (s1.regex, s2.regex) {
+                    (Some(RegexAst::Literal(lit)), Some(r))
+                    | (Some(r), Some(RegexAst::Literal(lit)))
+                        if !matches!(r, RegexAst::Literal(_)) =>
+                    {
+                        match literal_matches(&lit, &r) {
+                            Some(true) => Schema::String(StringSchema {
+                                min_length,
+                                max_length,
+                                regex: Some(RegexAst::Literal(lit)),
+                            }),
+                            Some(false) => Schema::unsat("literal does not match regex"),
+                            None => Schema::String(StringSchema {
+                                min_length,
+                                max_length,
+                                regex: Some(RegexAst::And(vec![RegexAst::Literal(lit), r])),
+                            }),
+                        }
+                    }
+                    (r1, r2) => Schema::String(StringSchema {
+                        min_length,
+                        max_length,
+                        regex: match (r1, r2) {
+                            (None, None) => None,
+                            (None, Some(r)) | (Some(r), None) => Some(r),
+                            (Some(r1), Some(r2)) => Some(RegexAst::And(vec![r1, r2])),
+                        },
+                    }),
+                }
+            }
 
             (Schema::Array(mut a1), Schema::Array(mut a2)) => Schema::Array(ArraySchema {
                 min_items: a1.min_items.max(a2.min_items),
@@ -1171,6 +1197,18 @@ fn mk_object_schema(obj: ObjectSchema) -> Schema {
     }
 
     Schema::Object(obj)
+}
+
+fn literal_matches(lit: &str, rx: &RegexAst) -> Option<bool> {
+    let mut builder = RegexBuilder::new();
+    let e = builder
+        .mk(&RegexAst::And(vec![
+            RegexAst::Literal(lit.to_string()),
+            rx.clone(),
+        ]))
+        .ok()?;
+    let mut regex = builder.to_regex_limited(e, LITERAL_CHECK_FUEL).ok()?;
+    Some(!regex.always_empty())
 }
 
 fn opt_max<T: PartialOrd>(a: Option<T>, b: Option<T>) -> Option<T> {
