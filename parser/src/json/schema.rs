@@ -8,9 +8,7 @@ use std::mem;
 use super::context::{Context, Draft, PreContext, ResourceRef};
 use super::formats::lookup_format;
 use super::numeric::Decimal;
-use super::shared_context::BuiltSchema;
-
-const LITERAL_CHECK_FUEL: u64 = 10_000;
+use super::shared_context::{BuiltSchema, CHECK_LIMIT};
 
 const TYPES: [&str; 6] = ["null", "boolean", "number", "string", "array", "object"];
 
@@ -1207,7 +1205,7 @@ fn literal_matches(lit: &str, rx: &RegexAst) -> Option<bool> {
             rx.clone(),
         ]))
         .ok()?;
-    let mut regex = builder.to_regex_limited(e, LITERAL_CHECK_FUEL).ok()?;
+    let mut regex = builder.to_regex_limited(e, CHECK_LIMIT).ok()?;
     Some(!regex.always_empty())
 }
 

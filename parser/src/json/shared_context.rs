@@ -20,7 +20,7 @@ pub struct PatternPropertyCache {
     inner: HashMap<String, Regex>,
 }
 
-const CHECK_LIMIT: u64 = 10_000;
+pub(super) const CHECK_LIMIT: u64 = 10_000;
 
 impl PatternPropertyCache {
     pub fn is_match(&mut self, regex: &str, value: &str) -> Result<bool> {
