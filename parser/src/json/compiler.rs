@@ -3,6 +3,7 @@ use crate::grammar_builder::GrammarResult;
 use crate::json::schema::{NumberSchema, StringSchema};
 use crate::{regex_to_lark, HashMap};
 use anyhow::{anyhow, bail, Context, Result};
+use derivre::raw::{DerivCache, ExprSet};
 use derivre::{ExprRef, JsonQuoteOptions, RegexAst};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
@@ -56,6 +57,8 @@ impl std::fmt::Display for UnsatisfiableSchemaError {
 
 // Keep both JSON string paths aligned with Derivre's regular escape policy.
 const DEFAULT_JSON_ALLOWED_ESCAPES: &str = "nrbtf\\\"u";
+
+const REGEX_CHECK_COST_LIMIT: u64 = 10_000;
 
 // Match one Unicode scalar: a non-surrogate BMP escape or a high surrogate
 // immediately followed by a low surrogate. Keeping each pair in one alternative
@@ -759,8 +762,27 @@ impl Compiler {
                 rx_repr
             }
 
-            // special-case literals - the length is easy to check
-            if let RegexAst::Literal(s) = &ast {
+            // A mandatory literal leaves at most one string to check.
+            if let Some(s) = mandatory_literal(&ast) {
+                if !matches!(&ast, RegexAst::Literal(_)) {
+                    let mut builder = derivre::RegexBuilder::new();
+                    let expr = builder.mk(&ast)?;
+                    if !builder.exprset().is_positive(expr)
+                        && !fixed_string_is_satisfiable(builder.into_exprset(), expr, s).map_err(
+                            |_| {
+                                anyhow!(
+                                    "Unable to determine if regex is empty: {}",
+                                    mk_rx_repr(&ast)
+                                )
+                            },
+                        )?
+                    {
+                        return Err(anyhow!(UnsatisfiableSchemaError {
+                            message: format!("Regex is empty: {}", mk_rx_repr(&ast))
+                        }));
+                    }
+                }
+
                 let l = s.chars().count();
 
                 if l < min_length || l > max_length.unwrap_or(usize::MAX) {
@@ -769,7 +791,7 @@ impl Compiler {
                     }));
                 }
 
-                positive = true;
+                return Ok(self.json_quote(RegexAst::Literal(s.to_string())));
             } else if min_length != 0 || max_length.is_some() {
                 ast = RegexAst::And(vec![
                     ast,
@@ -797,12 +819,14 @@ impl Compiler {
                     // "minLength": 6,
                     //
                     // (excluding two handwritten examples with minLength:10000)
-                    let mut regex = builder.to_regex_limited(expr, 10_000).map_err(|_| {
-                        anyhow!(
-                            "Unable to determine if regex is empty: {}",
-                            mk_rx_repr(&ast)
-                        )
-                    })?;
+                    let mut regex = builder
+                        .to_regex_limited(expr, REGEX_CHECK_COST_LIMIT)
+                        .map_err(|_| {
+                            anyhow!(
+                                "Unable to determine if regex is empty: {}",
+                                mk_rx_repr(&ast)
+                            )
+                        })?;
                     if regex.always_empty() {
                         return Err(anyhow!(UnsatisfiableSchemaError {
                             message: format!("Regex is empty: {}", mk_rx_repr(&ast))
@@ -1035,6 +1059,34 @@ fn signed_multiple_of_ast(coef: u32, exp: u32) -> RegexAst {
     ])
 }
 
+fn mandatory_literal(ast: &RegexAst) -> Option<&str> {
+    match ast {
+        RegexAst::Literal(s) => Some(s),
+        RegexAst::And(asts) => asts.iter().find_map(mandatory_literal),
+        _ => None,
+    }
+}
+
+// The caller has proven that the expression's language is contained in {input}.
+fn fixed_string_is_satisfiable(mut exprs: ExprSet, mut expr: ExprRef, input: &str) -> Result<bool> {
+    let initial_cost = exprs.cost();
+    let mut deriv = DerivCache::new();
+    for (index, byte) in input.bytes().enumerate() {
+        expr = deriv.derivative(&mut exprs, expr, byte);
+        // Cached derivatives still consume work for every input byte.
+        if exprs.cost() - initial_cost + index as u64 + 1 > REGEX_CHECK_COST_LIMIT {
+            bail!("regex matching cost limit exceeded");
+        }
+        if expr == ExprRef::NO_MATCH {
+            return Ok(false);
+        }
+        if exprs.is_positive(expr) {
+            return Ok(true);
+        }
+    }
+    Ok(exprs.is_nullable(expr))
+}
+
 fn always_non_empty(ast: &RegexAst) -> bool {
     match ast {
         RegexAst::Or(asts) => asts.iter().any(always_non_empty),
@@ -1068,6 +1120,22 @@ mod tests {
     fn compile_schema(schema: Value) -> Result<GrammarResult> {
         JsonCompileOptions::default()
             .json_to_llg(GrammarBuilder::new(None, ParserLimits::default()), schema)
+    }
+
+    #[test]
+    fn fixed_string_matching_exhausts_budget() {
+        let error = compile_schema(json!({
+            "const": "A".repeat(10_001),
+            "pattern": "^A*$"
+        }))
+        .err()
+        .expect("fixed-string matching should exhaust its work budget");
+        assert!(
+            error
+                .to_string()
+                .contains("Unable to determine if regex is empty"),
+            "{error}"
+        );
     }
 
     #[test]
