@@ -52,6 +52,10 @@ used as formatting padding. String constraints apply after removing this padding
 A string value that itself starts or ends with LF needs an additional LF at that
 edge. Raw strings cannot contain their closing `</parameter>` delimiter.
 
+Boolean and null parameter values allow at most one LF before and after the
+literal, with no other surrounding whitespace. Number parameter values allow
+surrounding JSON whitespace.
+
 The tool helper returns Lark text; construct a matcher with a tokenizer to use it.
 Its `special_tokens` option selects protocol markers that additionally accept
 special-token forms. `None` uses the format defaults, while `[]` uses ordinary

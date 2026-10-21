@@ -144,6 +144,43 @@ fn string_constraints_apply_after_one_edge_newline(#[case] value_schema: Value) 
 }
 
 #[rstest]
+#[case::bare("", "", true)]
+#[case::leading_newline("\n", "", true)]
+#[case::trailing_newline("", "\n", true)]
+#[case::both_newlines("\n", "\n", true)]
+#[case::leading_space(" ", "", false)]
+#[case::trailing_space("", " ", false)]
+#[case::leading_tab("\t", "", false)]
+#[case::trailing_tab("", "\t", false)]
+#[case::leading_cr("\r", "", false)]
+#[case::trailing_cr("", "\r", false)]
+#[case::crlf("\r\n", "\r\n", false)]
+#[case::extra_leading_newline("\n\n", "\n", false)]
+#[case::extra_trailing_newline("\n", "\n\n", false)]
+#[case::extra_both_newlines("\n\n", "\n\n", false)]
+#[case::tab_and_cr("\t", "\r", false)]
+fn booleans_and_null_allow_only_one_edge_newline(
+    #[values(("boolean", "true"), ("boolean", "false"), ("null", "null"))] scalar: (&str, &str),
+    #[case] leading: &str,
+    #[case] trailing: &str,
+    #[case] accepted: bool,
+) {
+    let (kind, literal) = scalar;
+    let schema = json!({
+        "type": "object",
+        "properties": {"value": {"type": kind}},
+        "required": ["value"],
+        "additionalProperties": false
+    });
+    let text = format!("<parameter=value>{leading}{literal}{trailing}</parameter>");
+    if accepted {
+        xml_test(schema, &[&text], &[]);
+    } else {
+        xml_test(schema, &[], &[&text]);
+    }
+}
+
+#[rstest]
 #[case::omitted(None, true)]
 #[case::open(Some(json!(true)), true)]
 #[case::closed(Some(json!(false)), false)]

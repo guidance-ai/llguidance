@@ -225,7 +225,12 @@ impl Compiler {
                 let raw = self.gen_string(options.clone())?;
                 without_closing_tag(padded_string(raw))
             }
-            Schema::Null | Schema::Boolean(_) | Schema::Number(_) => RegexAst::Concat(vec![
+            Schema::Null | Schema::Boolean(_) => RegexAst::Concat(vec![
+                rx("\n?"),
+                self.regex_compile(schema)?.unwrap(),
+                rx("\n?"),
+            ]),
+            Schema::Number(_) => RegexAst::Concat(vec![
                 rx("[ \\t\\r\\n]*"),
                 self.regex_compile(schema)?.unwrap(),
                 rx("[ \\t\\r\\n]*"),
