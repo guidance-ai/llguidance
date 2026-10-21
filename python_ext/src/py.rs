@@ -9,10 +9,7 @@ use llguidance::toktrie::{
     TokenId, TokenizerEnv,
 };
 use llguidance::{HashMap, JsonCompileOptions, ParserFactory};
-use pyo3::{
-    exceptions::{PyNotImplementedError, PyValueError},
-    prelude::*,
-};
+use pyo3::{exceptions::PyValueError, prelude::*};
 use serde_json::Value;
 use toktrie_hf_tokenizers::ByteTokenizer;
 use toktrie_tiktoken::TikTokenBPE;
@@ -496,7 +493,7 @@ fn grammar_from_tools(
 ) -> PyResult<String> {
     let tools = crate::pyjson::to_json_value(tools)?;
     llguidance::grammar_from_tools(&tools, format, initial_reasoning, special_tokens.as_deref())
-        .map_err(|e| PyNotImplementedError::new_err(e.to_string()))
+        .map_err(|e| PyValueError::new_err(format!("{e:#}")))
 }
 
 #[pyfunction]

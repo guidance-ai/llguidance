@@ -723,7 +723,7 @@ def grammar_from_tools(
     """
     Build a Lark grammar from OpenAI function tool definitions.
 
-    Planned format: "qwen3_coder". Only function.strict=True enables schema constraints.
+    Supported format: "qwen3_coder". Only function.strict=True enables schema constraints.
     initial_reasoning=True starts inside a prompt-prefilled reasoning region.
 
     The helper supplies the call envelope and embeds strict argument schemas using
@@ -738,7 +738,8 @@ def grammar_from_tools(
     the format are invalid. The listed markers must exist as special tokens in
     the tokenizer used to construct an LLMatcher.
 
-    This interface is a placeholder and currently raises NotImplementedError.
+    Raises ValueError for invalid tool definitions, unsupported strict schemas,
+    or invalid format options.
     """
 
 

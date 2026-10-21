@@ -15,6 +15,9 @@ use super::RetrieveWrapper;
 
 use crate::{GrammarBuilder, NodeRef};
 
+mod qwen_xml;
+pub(crate) use qwen_xml::prepare_tool_schema;
+
 // TODO: grammar size limit
 // TODO: array maxItems etc limits
 // TODO: schemastore/src/schemas/json/BizTalkServerApplicationSchema.json - this breaks 1M fuel on lexer, why?!
@@ -181,13 +184,6 @@ impl Compiler {
     }
 
     pub fn execute(mut self, schema: Value) -> Result<GrammarResult> {
-        match self.options.style {
-            JsonSchemaStyle::Json => {}
-            JsonSchemaStyle::QwenXml => {
-                bail!("Qwen XML parameter compilation is not implemented")
-            }
-        }
-
         let skip = if let Some(pattern) = &self.options.whitespace_pattern {
             RegexAst::Regex(pattern.clone())
         } else if self.options.whitespace_flexible {
@@ -206,7 +202,10 @@ impl Compiler {
             self.builder.add_warning(w);
         }
 
-        let root = self.gen_json(&built.schema)?;
+        let root = match self.options.style {
+            JsonSchemaStyle::Json => self.gen_json(&built.schema)?,
+            JsonSchemaStyle::QwenXml => self.gen_xml_object(&built.schema, &built.definitions)?,
+        };
         self.builder.set_start_node(root);
 
         while let Some((path, pl)) = self.pending_definitions.pop() {
@@ -760,6 +759,18 @@ impl Compiler {
     }
 
     fn gen_json_string(&mut self, opts: StringSchema) -> Result<RegexAst> {
+        let general_unicode =
+            opts.regex.is_none() && self.options.json_allow_general_unicode_escapes;
+        let (min_length, max_length) = (opts.min_length, opts.max_length);
+        let ast = self.gen_string(opts)?;
+        if general_unicode {
+            self.json_general_unicode_string(min_length, max_length)
+        } else {
+            Ok(self.json_quote(ast))
+        }
+    }
+
+    fn gen_string(&mut self, opts: StringSchema) -> Result<RegexAst> {
         let min_length = opts.min_length;
         let max_length = opts.max_length;
         if let Some(max_length) = max_length {
@@ -771,11 +782,8 @@ impl Compiler {
                 }));
             }
         }
-        if opts.regex.is_none() && self.options.json_allow_general_unicode_escapes {
-            return self.json_general_unicode_string(min_length, max_length);
-        }
         if min_length == 0 && max_length.is_none() && opts.regex.is_none() {
-            return Ok(self.json_quote(RegexAst::Regex("(?s:.*)".to_string())));
+            return Ok(RegexAst::Regex("(?s:.*)".to_string()));
         }
         if let Some(mut ast) = opts.regex {
             let mut positive = false;
@@ -838,15 +846,13 @@ impl Compiler {
                 }
             }
 
-            ast = self.json_quote(ast);
-
             Ok(ast)
         } else {
-            Ok(self.json_quote(RegexAst::Regex(format!(
+            Ok(RegexAst::Regex(format!(
                 "(?s:.{{{},{}}})",
                 min_length,
                 max_length.map_or("".to_string(), |v| v.to_string())
-            ))))
+            )))
         }
     }
 
