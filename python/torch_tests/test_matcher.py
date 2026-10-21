@@ -166,6 +166,31 @@ def mask_has(mask: NDArray[np.int32], t: int) -> bool:
     return bool(v & (np.int32(1) << (t % 32)) != 0)
 
 
+@pytest.mark.parametrize(("vocab_size", "mask_bytes"), [(255, 32), (256, 32), (257, 36)])
+@pytest.mark.parametrize("consumed", ["", "a"], ids=["initial", "eos-only"])
+def test_compute_bitmask_size_and_contents(vocab_size: int, mask_bytes: int, consumed: str) -> None:
+    class ByteTokenizer:
+        tokens = [bytes([i]) for i in range(vocab_size - 1)] + [b"<eos>"]
+        eos_token_id = len(tokens) - 1
+        bos_token_id = None
+        special_token_ids = [eos_token_id]
+
+        def __call__(self, text: bytes) -> List[int]:
+            return list(text)
+
+    t = LLTokenizer(llguidance.TokenizerWrapper(ByteTokenizer()), slices=[])
+    m = LLMatcher(t, 'start: "a" | "x"')
+    check_err(m)
+    allowed = t.tokenize_str("ax")
+    if consumed:
+        assert m.consume_tokens(t.tokenize_str(consumed))
+        allowed = [t.eos_token]
+
+    mask = m.compute_bitmask()
+    assert len(mask) == mask_bytes
+    assert int.from_bytes(mask, "little") == sum(1 << token for token in allowed)
+
+
 def test_par_errors() -> None:
     t = tokenizer()
     exec = llguidance.LLExecutor()
