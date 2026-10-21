@@ -11,6 +11,9 @@ However, we've successfully processed schemas up to 4 MB in size.
 For features that are not fully supported, we provide percentages of support among
 the 11k [maskbench](https://github.com/guidance-ai/jsonschemabench/tree/main/maskbench) schemas.
 
+For offline structural preflight, see the [versioned authoring profile](json_schema_preflight.md).
+Compilation remains necessary to check semantic support and resource limits.
+
 ## Supported JSON schema features
 
 Following JSON schema features are supported.

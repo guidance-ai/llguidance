@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:llguidance:json-schema:2020-12:structural:v1",
+  "title": "llguidance Draft 2020-12 strict structural authoring profile, version 1",
+  "description": "Offline structural preflight only. Passing does not establish compilation, satisfiability, reference resolution, regex support, or resource limits. Unknown annotations are allowed. Known unsupported and out-of-dialect keywords are rejected even with lenient enabled.",
+  "$ref": "#/$defs/rootSchema",
+  "$defs": {
+    "rootSchema": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/schema"
+        }
+      ],
+      "properties": {
+        "x-guidance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "item_separator": {
+              "type": "string"
+            },
+            "key_separator": {
+              "type": "string"
+            },
+            "whitespace_flexible": {
+              "type": "boolean"
+            },
+            "whitespace_pattern": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "coerce_one_of": {
+              "type": "boolean"
+            },
+            "lenient": {
+              "type": "boolean"
+            },
+            "json_allowed_escapes": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "json_allow_general_unicode_escapes": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "nestedSchema": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/schema"
+        },
+        {
+          "not": {
+            "type": "object",
+            "required": [
+              "x-guidance"
+            ]
+          }
+        }
+      ]
+    },
+    "schema": {
+      "type": [
+        "object",
+        "boolean"
+      ],
+      "properties": {
+        "$schema": {
+          "enum": [
+            "https://json-schema.org/draft/2020-12/schema",
+            "https://json-schema.org/draft/2020-12/schema#"
+          ]
+        },
+        "$id": {
+          "type": "string"
+        },
+        "$anchor": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][-A-Za-z0-9._]*$"
+        },
+        "$ref": {
+          "type": "string",
+          "pattern": "^(#|$)"
+        },
+        "$defs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/nestedSchema"
+          }
+        },
+        "definitions": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/nestedSchema"
+          }
+        },
+        "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "null",
+                "boolean",
+                "number",
+                "integer",
+                "string",
+                "array",
+                "object"
+              ]
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "null",
+                  "boolean",
+                  "number",
+                  "integer",
+                  "string",
+                  "array",
+                  "object"
+                ]
+              }
+            }
+          ]
+        },
+        "const": true,
+        "enum": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allOf": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nestedSchema"
+          }
+        },
+        "anyOf": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nestedSchema"
+          }
+        },
+        "oneOf": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nestedSchema"
+          }
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/nestedSchema"
+          }
+        },
+        "patternProperties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/nestedSchema"
+          }
+        },
+        "additionalProperties": {
+          "$ref": "#/$defs/nestedSchema"
+        },
+        "required": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "items": {
+          "$ref": "#/$defs/nestedSchema"
+        },
+        "prefixItems": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/nestedSchema"
+          }
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "date-time",
+            "time",
+            "date",
+            "duration",
+            "email",
+            "hostname",
+            "ipv4",
+            "ipv6",
+            "uuid",
+            "uri",
+            "unknown"
+          ]
+        },
+        "multipleOf": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "$comment": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "default": true,
+        "examples": {
+          "type": "array"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "writeOnly": {
+          "type": "boolean"
+        },
+        "deprecated": {
+          "type": "boolean"
+        },
+        "contentMediaType": {
+          "type": "string"
+        },
+        "contentEncoding": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "minItems": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minProperties": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxProperties": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "exclusiveMinimum": {
+          "type": "number"
+        },
+        "exclusiveMaximum": {
+          "type": "number"
+        },
+        "not": false,
+        "if": false,
+        "then": false,
+        "else": false,
+        "contains": false,
+        "minContains": false,
+        "maxContains": false,
+        "uniqueItems": false,
+        "dependentRequired": false,
+        "dependentSchemas": false,
+        "dependencies": false,
+        "propertyNames": false,
+        "unevaluatedItems": false,
+        "unevaluatedProperties": false,
+        "$dynamicRef": false,
+        "$dynamicAnchor": false,
+        "$recursiveRef": false,
+        "$recursiveAnchor": false,
+        "additionalItems": false,
+        "contentSchema": false
+      },
+      "additionalProperties": true
+    }
+  }
+}
