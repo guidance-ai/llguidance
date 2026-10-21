@@ -19,9 +19,28 @@ use crate::{GrammarBuilder, NodeRef};
 // TODO: array maxItems etc limits
 // TODO: schemastore/src/schemas/json/BizTalkServerApplicationSchema.json - this breaks 1M fuel on lexer, why?!
 
+/// Encoding of the root value described by a JSON schema.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JsonSchemaStyle {
+    #[default]
+    Json,
+    /// Qwen XML parameter lists, with raw strings and nested JSON values.
+    /// Inspired by XGrammar: <https://github.com/mlc-ai/xgrammar>.
+    QwenXml,
+}
+
+impl JsonSchemaStyle {
+    fn is_json(&self) -> bool {
+        matches!(self, Self::Json)
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct JsonCompileOptions {
+    #[serde(skip_serializing_if = "JsonSchemaStyle::is_json")]
+    pub style: JsonSchemaStyle,
     pub item_separator: String,
     pub key_separator: String,
     pub whitespace_flexible: bool,
@@ -86,6 +105,7 @@ struct Compiler {
 impl Default for JsonCompileOptions {
     fn default() -> Self {
         Self {
+            style: JsonSchemaStyle::default(),
             item_separator: ",".to_string(),
             key_separator: ":".to_string(),
             whitespace_pattern: None,
@@ -161,6 +181,13 @@ impl Compiler {
     }
 
     pub fn execute(mut self, schema: Value) -> Result<GrammarResult> {
+        match self.options.style {
+            JsonSchemaStyle::Json => {}
+            JsonSchemaStyle::QwenXml => {
+                bail!("Qwen XML parameter compilation is not implemented")
+            }
+        }
+
         let skip = if let Some(pattern) = &self.options.whitespace_pattern {
             RegexAst::Regex(pattern.clone())
         } else if self.options.whitespace_flexible {

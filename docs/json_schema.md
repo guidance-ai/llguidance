@@ -11,6 +11,37 @@ However, we've successfully processed schemas up to 4 MB in size.
 For features that are not fully supported, we provide percentages of support among
 the 11k [maskbench](https://github.com/guidance-ai/jsonschemabench/tree/main/maskbench) schemas.
 
+## Output encoding
+
+`JsonCompileOptions.style` selects the root encoding: `json` (the default), or
+`qwen_xml` for Qwen XML parameter lists. The option also works through `x-guidance`
+in a schema embedded with `%json`:
+
+```lark
+start: "<call>" arguments "</call>"
+arguments: %json {
+    "x-guidance": {"style": "qwen_xml"},
+    "type": "object",
+    "properties": {"name": {"type": "string"}},
+    "required": ["name"],
+    "additionalProperties": false
+}
+```
+
+The planned `qwen_xml` encoding uses `<parameter=name>value</parameter>` for the
+root object's properties. String values are raw text; other values use JSON,
+including objects and arrays nested in parameter values. It preserves schema
+defaults, including allowing extra properties when `additionalProperties` is
+omitted. Schema-valued top-level `additionalProperties` is unsupported initially.
+
+`grammar_from_tools(..., format="qwen3_coder")` supplies the surrounding Lark
+grammar for calls, thinking, and markers. Its strict-tool policy treats omitted
+top-level `additionalProperties` as false before using the parameter encoder.
+These policies are separate from the encoding option.
+
+The Qwen XML encoder and tool helper are currently placeholders; requesting
+either reports that compilation is not implemented.
+
 ## Supported JSON schema features
 
 Following JSON schema features are supported.

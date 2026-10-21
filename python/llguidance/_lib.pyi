@@ -1,4 +1,4 @@
-from typing import List, Tuple, Mapping, Optional, Sequence, Union, TypedDict, Dict, Any
+from typing import List, Tuple, Mapping, Optional, Sequence, Union, TypedDict, Dict, Any, Literal
 from ._util import TokenId, StopReason
 from ._tokenizer import TokenizerWrapper
 
@@ -610,6 +610,8 @@ class LLExecutor:
         """
 
 class JsonCompileOptions(TypedDict, total=False):
+    # root encoding; defaults to "json"; nested containers remain JSON
+    style: Literal["json", "qwen_xml"]
     # defaults to ","
     item_separator: Optional[str]
     # defaults to ":"
@@ -709,6 +711,35 @@ class LLParserLimits:
     @property
     def verbose_errors(self) -> bool:
         """Include parser state and grammar in errors. Default: True"""
+
+
+def grammar_from_tools(
+    tools: List[Dict[str, Any]],
+    *,
+    format: str,
+    initial_reasoning: bool = False,
+    special_tokens: Optional[Sequence[str]] = None,
+) -> str:
+    """
+    Build a Lark grammar from OpenAI function tool definitions.
+
+    Planned format: "qwen3_coder". Only function.strict=True enables schema constraints.
+    initial_reasoning=True starts inside a prompt-prefilled reasoning region.
+
+    The helper supplies the call envelope and embeds strict argument schemas using
+    %json with x-guidance.style="qwen_xml". For strict tools, omitted top-level
+    additionalProperties is treated as false. The reusable encoding option itself
+    retains JSON Schema's permissive default.
+
+    special_tokens lists protocol markers that also accept a special-token form.
+    Ordinary text forms remain accepted. None uses the format defaults; an explicit
+    list replaces them, and [] uses only ordinary text forms. For "qwen3_coder", the
+    defaults are ["<tool_call>", "</tool_call>", "<think>", "</think>"]. Names outside
+    the format are invalid. The listed markers must exist as special tokens in
+    the tokenizer used to construct an LLMatcher.
+
+    This interface is a placeholder and currently raises NotImplementedError.
+    """
 
 
 def regex_to_lark(regex: str, use_ascii: str = "d") -> str:
