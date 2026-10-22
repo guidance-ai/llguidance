@@ -308,6 +308,28 @@ class LLMatcher:
         """
 
     @staticmethod
+    def inspect_json_schema(
+        schema: Union[str, Dict[str, Any]],
+        defaults: Optional[JsonCompileOptions] = None,
+        overrides: Optional[JsonCompileOptions] = None,
+        *,
+        limits: Optional[LLParserLimits] = None,
+    ) -> str:
+        """
+        Return a JSON-encoded, versioned diagnostic envelope for JSON Schema
+        normalization and lowering before tokenization and optimization.
+
+        Includes normalized root and reference definitions, effective options,
+        warnings, and paired grammar/lexer debug text from one lowering.
+        Text formatting is unstable and may be truncated; it is neither
+        executable Lark nor round-trip JSON Schema. Raises ValueError without
+        partial output if normalization or lowering fails.
+
+        Option precedence matches grammar_from_json_schema:
+        defaults -> schema["x-guidance"] -> overrides. Inputs are not mutated.
+        """
+
+    @staticmethod
     def grammar_from_lark(lark: str) -> str:
         """
         Create a grammar from a Lark grammar.
