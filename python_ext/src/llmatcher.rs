@@ -6,8 +6,8 @@ use anyhow::Result;
 use llguidance::api::GrammarInit;
 use llguidance::api::TopLevelGrammar;
 use llguidance::toktrie::{InferenceCapabilities, SimpleVob, TokEnv, TokenId};
-use llguidance::{json_merge, Logger, Matcher, ParserFactory};
-use pyo3::types::{PyList, PyTuple};
+use llguidance::{json_merge, FastForwardStatus, Logger, Matcher, ParserFactory};
+use pyo3::types::{PyBytes, PyDict, PyList, PyTuple};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use serde_json::json;
 
@@ -540,6 +540,35 @@ impl LLMatcher {
 
     fn compute_ff_tokens(&mut self) -> Vec<TokenId> {
         self.inner.compute_ff_tokens()
+    }
+
+    fn observe_ff_tokens<'py>(&mut self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let (status, tokens, token_bytes) = match py.detach(|| self.inner.observe_ff_tokens()) {
+            Ok(observation) => {
+                let status = match observation.status {
+                    FastForwardStatus::Ready => "ready",
+                    FastForwardStatus::NonCanonical => "noncanonical",
+                    FastForwardStatus::Stopped => "stopped",
+                };
+                (status, observation.tokens, observation.token_bytes)
+            }
+            Err(_) => (
+                if self.inner.is_cancelled() {
+                    "cancelled"
+                } else {
+                    "error"
+                },
+                Vec::new(),
+                Vec::new(),
+            ),
+        };
+        let result = PyDict::new(py);
+        result.set_item("status", status)?;
+        result.set_item("token_count", tokens.len())?;
+        result.set_item("byte_count", token_bytes.len())?;
+        result.set_item("tokens", tokens)?;
+        result.set_item("token_bytes", PyBytes::new(py, &token_bytes))?;
+        Ok(result)
     }
 
     fn compute_ff_bytes(&mut self) -> Cow<'_, [u8]> {

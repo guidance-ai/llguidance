@@ -448,6 +448,30 @@ mod tests {
     }
 
     #[test]
+    fn cancellation_during_observation_does_not_publish_a_span() {
+        fn observe(matcher: &mut Matcher) -> anyhow::Result<()> {
+            matcher.observe_ff_tokens().map(|_| ())
+        }
+        let grammar = format!("start: {:?} /[xy]/", "a".repeat(1024));
+        let original = matcher(&grammar, &[], true);
+        let (full_work, _) = interrupt(original.deep_clone(), "forced", 16, false, observe);
+        let (cancelled_work, cancelled) = interrupt(original, "forced", 16, true, observe);
+        assert!(cancelled_work < full_work / 2);
+        assert_eq!(cancelled.stop_reason(), StopReason::Cancelled);
+    }
+
+    #[test]
+    fn cancellation_at_observation_publication_discards_the_complete_span() {
+        fn observe(matcher: &mut Matcher) -> anyhow::Result<()> {
+            matcher.observe_ff_tokens().map(|_| ())
+        }
+        let original = matcher(r#"start: "abcdef" /[xy]/"#, &[], true);
+        interrupt(original.deep_clone(), "publication", 1, false, observe);
+        let (_, cancelled) = interrupt(original, "publication", 1, true, observe);
+        assert_eq!(cancelled.stop_reason(), StopReason::Cancelled);
+    }
+
+    #[test]
     fn cancellation_inside_earley_prediction() {
         let alternatives = (0..1000)
             .map(|i| format!("r{i}"))

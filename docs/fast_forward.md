@@ -159,3 +159,124 @@ assert ll.decode_str(new_tok) == "name_of_the_person"
 
 You can also pass a few recent tokens to `tokenize_partial()` to help with joint tokenization.
 It's only needed in some specific cases of punctuation following spaces.
+
+## Observing available fast-forward spans
+
+`LLMatcher.observe_ff_tokens()` returns a snapshot of the tokens currently available
+to fast-forward. It does **not consume those tokens**, run a model, or count sampling
+operations. The Rust `Matcher` and `TokenParser` expose the same method, returning
+`Result<FastForwardObservation>`.
+
+```python
+from llguidance import LLMatcher, LLTokenizer
+
+tokenizer = LLTokenizer("byte")
+matcher = LLMatcher(tokenizer, 'start: "é🙂" /[xy]/')
+span = matcher.observe_ff_tokens()
+assert span["status"] == "ready"
+assert span["token_bytes"] == "é🙂".encode("utf-8")
+assert span["token_count"] == 6
+assert span["byte_count"] == 6  # bytes, not the two Unicode characters
+assert matcher.observe_ff_tokens() == span  # still the same unconsumed span
+assert matcher.consume_tokens(span["tokens"])
+assert matcher.observe_ff_tokens()["token_count"] == 0
+```
+
+The Python result has these fields:
+
+| Field | Meaning |
+| --- | --- |
+| `status` | `ready`, `noncanonical`, `stopped`, `error`, or `cancelled` |
+| `tokens` | The available token IDs, using the existing canonical fast-forward computation |
+| `token_bytes` | Exactly `tokenizer.decode_bytes(tokens)`, including special-token spellings |
+| `token_count` | `len(tokens)` for this observation |
+| `byte_count` | `len(token_bytes)` for this observation |
+
+A `ready` observation can have an empty span. In particular, token healing can retain
+forced bytes because a safe complete token is not yet available. This does not identify
+an application-level semantic choice point. `noncanonical` means the tokenizer cannot
+supply canonical fast-forward tokens. `stopped` means the parser stopped normally.
+The Rust status enum represents these three successful outcomes; errors and cancellation
+use `Err`. Python returns `error` or `cancelled` and retains the cause in
+`get_error()` / `stop_reason()`, following `LLMatcher`'s existing non-raising convention.
+Every non-ready result has empty token and byte payloads and zero counts.
+
+Byte accounting excludes both the already consumed prefix used during tokenization and
+the suffix retained for token healing. `token_bytes` can contain an incomplete UTF-8
+code point; observation does not decode it to a string or replace invalid bytes.
+`compute_ff_bytes()` remains the separate API for raw bytes forced by the parser.
+Those bytes can include a retained healing suffix and internal special-token markers,
+so their length is not interchangeable with `byte_count` and should not be subtracted
+from it to infer a residual count. Special tokens use the same decoded spelling as
+`LLTokenizer.decode_bytes`; an engine that omits special tokens has a different output
+byte accounting policy.
+
+Observation may perform the same speculative byte forcing and cache population as
+`compute_ff_tokens()`. It leaves committed token history unchanged. Clones observe their
+own state, successful rollback/reset changes the next observation to match that restored
+state, and validation of speculative drafts does not count as consumption. Errors and
+cancellation remain terminal: observation, reset, and rollback do not recover an errored
+or cancelled matcher. Rust matcher clones keep the existing independent cancellation
+ownership rules.
+
+### Counting observations, successful consumption, and sampling separately
+
+The library cannot tell whether a token passed to `consume_token()` came from a model,
+an accepted draft, replay, a prompt, or a prior fast-forward observation. Keep provenance
+and request totals at the integration boundary. For example, this loop counts an actual
+sampling call separately from successful matcher consumption:
+
+```python
+totals = dict(
+    ff_observation_calls=0,
+    ff_observed_tokens=0,
+    ff_consumed_tokens=0,
+    ff_consumed_bytes=0,
+    sampled_tokens=0,
+)
+
+while not matcher.is_stopped():
+    span = matcher.observe_ff_tokens()
+    totals["ff_observation_calls"] += 1
+    totals["ff_observed_tokens"] += span["token_count"]
+    if span["status"] in ("error", "cancelled"):
+        raise RuntimeError(matcher.get_error())
+    if span["status"] == "stopped":
+        break
+
+    if span["tokens"]:
+        for token in span["tokens"]:
+            if not matcher.consume_token(token):
+                raise RuntimeError(matcher.get_error())
+            # Count only successful calls, including a successful prefix if a
+            # later token fails. Append each accepted token in the engine here.
+            totals["ff_consumed_tokens"] += 1
+            totals["ff_consumed_bytes"] += len(tokenizer.decode_bytes([token]))
+    else:
+        mask = matcher.compute_bitmask()
+        if matcher.is_error():
+            raise RuntimeError(matcher.get_error())
+        token = sample_from_model(mask)  # integration-owned
+        totals["sampled_tokens"] += 1
+        if not matcher.consume_token(token):
+            raise RuntimeError(matcher.get_error())
+        # Append the accepted sampled token in the engine here.
+
+if matcher.is_error():
+    raise RuntimeError(matcher.get_error())
+```
+
+`ff_observed_tokens` counts returned tokens across calls, so observing the same three-token
+span twice adds six even if nothing has been consumed. It is not a count of unique tokens
+or realized model work avoided. `ff_consumed_tokens` and `ff_consumed_bytes` above count
+successful matcher consumption calls; coordinate them with the engine's actual append
+boundary if reporting engine commits. `sampled_tokens` counts sampling operations even
+if a sampled token is later rejected. Track draft attempts and accepted drafts separately
+when using speculative decoding.
+
+These example totals are request-level event counts, not the current sequence length.
+They are not reduced by rollback. If an integration needs counts for the surviving
+sequence, it must retain token provenance and undo the appropriate entries on rollback;
+start new request totals on reset as appropriate. The observation API itself keeps no
+cumulative ledger. An available span indicates a fast-forward opportunity, not a measured
+latency improvement, accuracy improvement, or guaranteed number of model calls saved.
