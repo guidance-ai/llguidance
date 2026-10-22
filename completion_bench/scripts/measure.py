@@ -8,7 +8,10 @@ from pathlib import Path
 import platform
 import subprocess
 import sys
+import tempfile
 import time
+
+from compare import validate_names, validate_result
 
 
 def main():
@@ -25,18 +28,20 @@ def main():
         parser.error("iterations and samples must be positive")
     # Refuse to overwrite evidence from another invocation.
     with args.output.open("x") as output:
+        names = subprocess.check_output([str(binary), "--list"], text=True).splitlines()
+        validate_names(names)
         output.write(json.dumps({"kind": "metadata", "platform": platform.platform(),
                                  "machine": platform.machine(), "python": sys.version,
                                  "binary": str(binary),
                                  "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                                  "rss_scope": "whole child process",
-                                 "rss_source": "wait4.ru_maxrss", "pid": os.getpid()}) + "\n")
-        names = subprocess.check_output([str(binary), "--list"], text=True).splitlines()
+                                 "rss_source": "wait4.ru_maxrss", "pid": os.getpid(),
+                                 "expected_cases": names, "iterations": args.iterations,
+                                 "samples": args.samples}) + "\n")
         for name in names:
             command = [str(binary), name, str(args.iterations), str(args.samples)]
             # A temporary file avoids stdout-pipe backpressure while wait4 reaps
             # this exact child; no cumulative RUSAGE_CHILDREN attribution.
-            import tempfile
             with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
                 start = time.perf_counter_ns()
                 child = subprocess.Popen(command, stdout=stdout, stderr=stderr)
@@ -45,20 +50,28 @@ def main():
                 wall_ns = time.perf_counter_ns() - start
                 stdout.seek(0)
                 stderr.seek(0)
-                text = stdout.read().decode()
-                errors = stderr.read().decode()
+                text = stdout.read().decode(errors="replace")
+                errors = stderr.read().decode(errors="replace")
             record = {"kind": "measurement", "command": command,
                       "exit_code": child.returncode, "process_wall_ns": wall_ns,
                       "peak_rss_bytes": usage.ru_maxrss * (1 if sys.platform == "darwin" else 1024),
                       "stderr": errors}
             if child.returncode == 0:
-                record["result"] = json.loads(text)
+                try:
+                    result = json.loads(text)
+                    validate_result(result, name, args.iterations, args.samples)
+                    record["result"] = result
+                except ValueError as error:
+                    record["stdout"] = text
+                    record["validation_error"] = str(error)
             else:
                 record["stdout"] = text
             output.write(json.dumps(record) + "\n")
             output.flush()
             if child.returncode:
                 raise SystemExit(f"{name} failed with exit {child.returncode}; see {args.output}")
+            if "validation_error" in record:
+                raise SystemExit(f"{name} returned invalid controls; see {args.output}")
 
 
 if __name__ == "__main__":
