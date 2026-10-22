@@ -77,6 +77,20 @@ language equivalence. Unit tests also use hand-written accepted/rejected inputs
 for a smaller generated grammar. They exercise counter relationships, saved
 stats compatibility, deltas and maxima.
 
+The runner records the complete workload list and requested replay/sample
+counts in metadata. It rejects empty or duplicate workload lists and checks
+each successful child's case, acceptance, checksum format, limits and counts
+before continuing. Invalid output is retained with a validation error. The
+comparison script checks these controls and requires every declared workload
+to be present exactly once, so a partial run cannot pass. Older saved runs
+without a workload manifest remain readable; the comparison emits an explicit
+warning that their workload completeness is unverified. Run the stdlib-only
+script regressions without building Rust:
+
+```sh
+python3 -B -m unittest discover -s completion_bench/scripts -p test_scripts.py -v
+```
+
 ## Counters
 
 `llguidance/completion-stats` is opt-in. Default library builds contain no counter
