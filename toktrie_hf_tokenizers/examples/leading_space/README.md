@@ -65,7 +65,7 @@ For each tokenizer and input the JSON records three paths separately:
 
 1. Original HF `encode(input, add_special_tokens=false)` and HF decoding.
 2. HF encoding/decoding after the existing `ByteTokenizer` adaptations.
-3. Actual `TokenizerEnv::tokenize(input)` output and its concatenated trie bytes.
+3. Actual `TokenizerEnv::tokenize(input)` output and its parser-input bytes.
 
 Source and adapted HF paths include token spellings and grammar-visible bytes.
 The environment path includes a `preserves_input_bytes` flag; acceptance is
@@ -73,6 +73,13 @@ always evaluated on the emitted token bytes, so preprocessing cannot silently
 change the string being tested. The report also includes original/adapted
 normalizers, pre-tokenizers, decoders, and post-processors. Automatic special
 token insertion is disabled for every input.
+
+The byte fields use `TokTrie::decode_raw`, matching `TokenParser` input.
+Ordinary tokens contribute their literal trie bytes. Special tokens use the
+numeric `0xff[id]` representation, preserving their distinction from ordinary
+text even when the HF decoder displays the same spelling. The associated text
+fields are lossy UTF-8 views; use the byte arrays for exact comparisons.
+`preserves_input_bytes` compares these raw bytes with the original input.
 
 The grammar comparison records initial mask cardinalities and newly allowed
 token IDs/bytes (up to 64 examples, with the uncapped count). Each of the three
@@ -86,7 +93,9 @@ The tests additionally check literal input tokenizations and every non-special
 fixture token alone, after a space, and after `hello`, against an independent
 byte-language oracle. They check identical masks for identical vocabulary bytes
 across all preprocessing settings, and explicitly check EOS rejection at the
-empty prefix.
+empty prefix. A separate special-token regression checks that reports retain
+the parser-input representation and cannot claim literal input preservation
+from a special token's display spelling.
 
 ## Observed results
 

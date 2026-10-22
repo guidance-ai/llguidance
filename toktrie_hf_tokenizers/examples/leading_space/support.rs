@@ -113,12 +113,13 @@ fn encoding(tokenizer: &Tokenizer, env: &TokEnv, text: &str) -> Result<(Vec<Toke
     let decoded = tokenizer
         .decode(&ids, false)
         .map_err(|e| anyhow!(e.to_string()))?;
+    let llguidance_bytes = env.tok_trie().decode_raw(&ids);
     let observation = json!({
         "ids": ids,
         "token_spellings": encoded.get_tokens(),
         "hf_decoded_text": decoded,
-        "llguidance_bytes": env.tok_trie().decode(&ids),
-        "llguidance_text": env.tok_trie().decode_str(&ids),
+        "llguidance_bytes": llguidance_bytes,
+        "llguidance_text": String::from_utf8_lossy(&llguidance_bytes),
     });
     Ok((ids, observation))
 }
@@ -159,7 +160,7 @@ pub fn analyze(name: &str, bytes: &[u8]) -> Result<Value> {
         let (source_ids, source_encoding) = encoding(&source, &env, &text)?;
         let (adapter_ids, adapter_encoding) = encoding(&adapted, &env, &text)?;
         let env_ids = env.tokenize(&text);
-        let env_bytes = trie.decode(&env_ids);
+        let env_bytes = trie.decode_raw(&env_ids);
         let paths = [
             ("source_hf", source_ids.as_slice()),
             ("adapter_hf", adapter_ids.as_slice()),
@@ -182,7 +183,7 @@ pub fn analyze(name: &str, bytes: &[u8]) -> Result<Value> {
             "llguidance_env": {
                 "ids": env_ids,
                 "bytes": env_bytes,
-                "text": trie.decode_str(&env_ids),
+                "text": String::from_utf8_lossy(&env_bytes),
                 "preserves_input_bytes": env_bytes == text.as_bytes(),
             },
             "validity": validity,

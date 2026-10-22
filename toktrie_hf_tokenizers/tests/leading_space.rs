@@ -181,3 +181,47 @@ fn report_records_observations_without_inference_claims() {
         }
     }
 }
+
+#[test]
+fn report_keeps_special_token_bytes_distinct_from_literal_text() {
+    let mut config: serde_json::Value = serde_json::from_slice(support::FIXTURES[0].1).unwrap();
+    config["added_tokens"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({
+            "id": 14,
+            "content": "hello",
+            "single_word": false,
+            "lstrip": false,
+            "rstrip": false,
+            "normalized": false,
+            "special": true,
+        }));
+    let bytes = serde_json::to_vec(&config).unwrap();
+    let (_, _, env) = load(&bytes).unwrap();
+    assert_eq!(env.tok_trie().token(14), b"\xffhello");
+
+    let report = support::analyze("special-hello", &bytes).unwrap();
+    let row = report["samples"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["input"] == "hello")
+        .unwrap();
+    // TokenParser consumes the numeric special-token representation, not the
+    // display decoder's ordinary-looking "hello" string.
+    let raw_bytes = serde_json::json!([255, 91, 49, 52, 93]);
+    for path in ["source_hf", "adapter_hf"] {
+        assert_eq!(row[path]["ids"], serde_json::json!([14]));
+        assert_eq!(row[path]["hf_decoded_text"], "hello");
+        assert_eq!(row[path]["llguidance_bytes"], raw_bytes);
+        assert_eq!(row[path]["llguidance_text"], "\u{fffd}[14]");
+    }
+    assert_eq!(row["llguidance_env"]["bytes"], raw_bytes);
+    assert_eq!(row["llguidance_env"]["text"], "\u{fffd}[14]");
+    assert_eq!(row["llguidance_env"]["preserves_input_bytes"], false);
+    for validity in row["validity"].as_array().unwrap() {
+        assert_eq!(validity["result"]["accepted"], false);
+        assert_eq!(validity["result"]["rejected_token_index"], 0);
+    }
+}
