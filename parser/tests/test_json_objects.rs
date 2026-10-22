@@ -143,6 +143,22 @@ fn object_unsatisfiable_schema(#[case] schema: &Value) {
     json_err_test(schema, "Unsatisfiable schema");
 }
 
+#[rstest]
+#[case::lower_bound(&json!({"a": 1}), true)]
+#[case::upper_bound(&json!({"a": 1, "b": 2}), true)]
+#[case::empty(&json!({}), false)]
+#[case::too_many(&json!({"a": 1, "b": 2, "c": 3}), false)]
+fn object_property_count_decimal_bounds(#[case] obj: &Value, #[case] expect_valid: bool) {
+    // A number with a zero fractional part is an integer in JSON Schema
+    let schema = &json!({
+        "type": "object",
+        "additionalProperties": {"type": "integer"},
+        "minProperties": 1.0,
+        "maxProperties": 2.0,
+    });
+    json_schema_check(schema, obj, expect_valid);
+}
+
 lazy_static! {
     static ref LINKED_LIST: Value = json!({
         "$defs": {
