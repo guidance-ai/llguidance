@@ -2740,6 +2740,7 @@ name = "toktrie_hf_tokenizers"
 version = "1.9.1"
 dependencies = [
  "anyhow",
+ "llguidance",
  "log",
  "rstest",
  "serde",
