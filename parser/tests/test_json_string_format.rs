@@ -281,6 +281,13 @@ pub fn bad_ipv4(#[case] s: &str) {
 #[case("2001:0db8:85a3:0000:0000:8a2e:0370:7334")] // RFC 4291 §2.2: full uncompressed
 #[case("fe80::1")] // RFC 4291 §2.5.6: link-local
 #[case("2001:db8::1")] // Boundary: common compressed form
+#[case("1::d6:192.168.0.1")] // Test Suite: "mixed format with the ipv4 section as decimal octets"
+#[case("1:2::192.168.0.1")] // Test Suite: "mixed format with double colons between the sections"
+#[case("::ffff:192.168.0.1")] // Test Suite: "mixed format with leading double colons (ipv4-mapped ipv6 address)"
+#[case("1000:1000:1000:1000:1000:1000:255.255.255.255")] // Test Suite: "a long valid ipv6"
+#[case("0:0:0:0:0:FFFF:129.144.52.38")] // RFC 4291 §2.2 example (mixed, full form)
+#[case("::13.1.68.3")] // RFC 4291 §2.2 example (mixed, compressed)
+#[case("1:2:3:4:5::1.2.3.4")] // RFC 3986 §3.2.2: "::" between 5 groups and ls32
 pub fn valid_ipv6(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"ipv6"});
     json_schema_check(&schema, &json!(s), true);
@@ -298,8 +305,16 @@ pub fn valid_ipv6(#[case] s: &str) {
 #[case("1:2:3:4:5:6:7")] // Test Suite: "insufficient octets without double colons"
 #[case("1")] // Test Suite: "no colons is invalid"
 #[case("1:2:3:4:5:6:7:\u{09ea}")] // Python tests: non-ASCII Bengali ৪ in last group
-                                  // Note: IPv4-mapped tests (e.g., ::ffff:192.168.0.1) are NOT ported — the
-                                  // standalone ipv6 regex does not support RFC 4291 §2.5.5 mixed notation.
+#[case("1::2:192.168.256.1")] // Test Suite: "mixed format with ipv4 section with octet out of range"
+#[case("1::2:192.168.ff.1")] // Test Suite: "mixed format with ipv4 section with a hex octet"
+#[case("1:2:3:4:1.2.3")] // Test Suite: "ipv4 segment must have 4 octets"
+#[case("100:100:100:100:100:100:255.255.255.255.255")] // Test Suite: "a long invalid ipv6, below length limit, first"
+#[case("100:100:100:100:100:100:100:255.255.255.255")] // Test Suite: "a long invalid ipv6, below length limit, second"
+#[case("1:2::192.16\u{09ea}.0.1")] // Test Suite: non-ASCII Bengali ৪ in the IPv4 portion
+#[case("127.0.0.1")] // Test Suite: "ipv4 is not ipv6"
+#[case("1:2:3:4:5:6::1.2.3.4")] // RFC 4291 §2.2: too many groups around "::" with an IPv4 tail
+#[case("::1.2.3.4:5")] // RFC 3986 §3.2.2: IPv4address only as the last 32 bits
+#[case("::01.2.3.4")] // RFC 3986 §3.2.2: dec-octet has no leading zeros
 pub fn bad_ipv6(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"ipv6"});
     json_schema_check(&schema, &json!(s), false);
