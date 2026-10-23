@@ -508,6 +508,21 @@ def test_fast_forward() -> None:
     assert not m.is_error()
 
 
+def test_fast_forward_after_error_returns_empty() -> None:
+    m = LLMatcher(tokenizer(), "start: /(foo[12]23|bar)/")
+    tokens = tokenizer().tokenize_str("foo723")
+    consume_tokens(m, tokens[0:3])
+    assert not m.consume_token(tokens[3])
+    error = m.get_error()
+    assert error
+
+    assert m.compute_ff_bytes() == b""
+    assert m.compute_ff_tokens() == []
+    assert m.is_error()
+    assert m.get_error() == error
+    assert m.stop_reason() == "InternalError"
+
+
 def test_try_consume_tokens() -> None:
     m = LLMatcher(tokenizer(), "start: /(foo[12]23|bar)/")
     tokens = tokenizer().tokenize_str("foo723")

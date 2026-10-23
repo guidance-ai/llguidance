@@ -5,6 +5,9 @@
 #include <cstring>
 #include <iterator>
 #include <memory>
+#include <atomic>
+#include <string>
+#include <thread>
 #include <vector>
 
 #include "llguidance.h"
@@ -28,8 +31,35 @@ struct MatcherDeleter {
   }
 };
 
+struct CancellationHandleDeleter {
+  void operator()(LlgCancellationHandle *handle) const {
+    if (handle != nullptr) {
+      llg_free_cancellation_handle(handle);
+    }
+  }
+};
+
+struct CancelOnTokenize {
+  LlgCancellationHandle *handle = nullptr;
+  std::atomic<bool> cancelled{false};
+};
+
+size_t cancel_on_tokenize(const void *user_data, const uint8_t *bytes,
+                          size_t bytes_len, uint32_t *output_tokens,
+                          size_t output_tokens_len) {
+  auto *state = const_cast<CancelOnTokenize *>(
+      static_cast<const CancelOnTokenize *>(user_data));
+  if (state->handle != nullptr && !state->cancelled.exchange(true)) {
+    llg_cancel(state->handle);
+  }
+  return byte_tokenize_callback(nullptr, bytes, bytes_len, output_tokens,
+                                 output_tokens_len);
+}
+
 using TokenizerPtr = std::unique_ptr<LlgTokenizer, TokenizerDeleter>;
 using MatcherPtr = std::unique_ptr<LlgMatcher, MatcherDeleter>;
+using CancellationHandlePtr =
+    std::unique_ptr<LlgCancellationHandle, CancellationHandleDeleter>;
 
 struct MatcherContext {
   TokenizerPtr tok;
@@ -114,6 +144,169 @@ BOOST_AUTO_TEST_CASE(compute_mask_into) {
   BOOST_CHECK(mask_has_token(mask.data(), 97));
   BOOST_CHECK(mask_has_token(mask.data(), 98));
   BOOST_CHECK(mask_has_token(mask.data(), 99));
+}
+
+BOOST_AUTO_TEST_CASE(cancellation_handle_cancels_matcher) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[abc]+");
+  BOOST_CHECK(!llg_matcher_is_cancelled(matcher.get()));
+  CancellationHandlePtr handle(
+      llg_matcher_get_cancellation_handle(matcher.get()));
+
+  BOOST_REQUIRE(handle != nullptr);
+  BOOST_CHECK(!llg_matcher_is_cancelled(matcher.get()));
+  llg_cancel(handle.get());
+  BOOST_CHECK(llg_matcher_is_cancelled(matcher.get()));
+  BOOST_CHECK_EQUAL(llg_matcher_compute_mask(matcher.get()), -1);
+  BOOST_CHECK(llg_matcher_get_mask(matcher.get()) == nullptr);
+  BOOST_CHECK(llg_matcher_is_error(matcher.get()));
+
+  const char *error = llg_matcher_get_error(matcher.get());
+  BOOST_REQUIRE(error != nullptr);
+  BOOST_CHECK_EQUAL(std::string(error), "operation cancelled");
+  BOOST_CHECK(!llg_matcher_is_accepting(matcher.get()));
+}
+
+BOOST_AUTO_TEST_CASE(cancellation_clears_saved_mask_and_preserves_output) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[abc]+");
+  const size_t mask_byte_size = llg_matcher_get_mask_byte_size(matcher.get());
+  std::vector<uint32_t> output(mask_byte_size / sizeof(uint32_t), 0xA5A5A5A5);
+
+  BOOST_REQUIRE_EQUAL(llg_matcher_compute_mask(matcher.get()), 0);
+  BOOST_REQUIRE(llg_matcher_get_mask(matcher.get()) != nullptr);
+
+  CancellationHandlePtr handle(
+      llg_matcher_get_cancellation_handle(matcher.get()));
+  BOOST_REQUIRE(handle != nullptr);
+  llg_cancel(handle.get());
+
+  BOOST_CHECK(llg_matcher_get_mask(matcher.get()) == nullptr);
+
+  BOOST_CHECK_EQUAL(
+      llg_matcher_compute_mask_into(matcher.get(), output.data(), mask_byte_size),
+      -1);
+  BOOST_CHECK(llg_matcher_get_mask(matcher.get()) == nullptr);
+  for (uint32_t value : output) {
+    BOOST_CHECK_EQUAL(value, 0xA5A5A5A5);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(recoverable_mask_buffer_error_does_not_mask_cancellation) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[abc]+");
+  const size_t mask_byte_size = llg_matcher_get_mask_byte_size(matcher.get());
+  std::vector<uint32_t> output(mask_byte_size / sizeof(uint32_t));
+
+  BOOST_CHECK_EQUAL(
+      llg_matcher_compute_mask_into(matcher.get(), output.data(),
+                                    mask_byte_size - sizeof(uint32_t)),
+      -1);
+  BOOST_CHECK(!llg_matcher_is_error(matcher.get()));
+
+  CancellationHandlePtr handle(
+      llg_matcher_get_cancellation_handle(matcher.get()));
+  BOOST_REQUIRE(handle != nullptr);
+  llg_cancel(handle.get());
+  BOOST_CHECK_EQUAL(llg_matcher_compute_mask(matcher.get()), -1);
+
+  const char *error = llg_matcher_get_error(matcher.get());
+  BOOST_REQUIRE(error != nullptr);
+  BOOST_CHECK_EQUAL(std::string(error), "operation cancelled");
+}
+
+BOOST_AUTO_TEST_CASE(cancellation_handle_clone_has_independent_lifetime) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[abc]+");
+  CancellationHandlePtr first(
+      llg_matcher_get_cancellation_handle(matcher.get()));
+  BOOST_REQUIRE(first != nullptr);
+  CancellationHandlePtr second(llg_clone_cancellation_handle(first.get()));
+  BOOST_REQUIRE(second != nullptr);
+  BOOST_CHECK(first.get() != second.get());
+
+  first.reset();
+  llg_cancel(second.get());
+  BOOST_CHECK(llg_matcher_is_cancelled(matcher.get()));
+  uint32_t forced_token = 0xA5A5A5A5;
+  BOOST_CHECK_EQUAL(
+      llg_matcher_compute_ff_tokens(matcher.get(), &forced_token, 1), -1);
+  BOOST_CHECK_EQUAL(forced_token, 0xA5A5A5A5);
+  BOOST_CHECK(llg_matcher_is_error(matcher.get()));
+  BOOST_CHECK(llg_matcher_is_cancelled(matcher.get()));
+  const char *error = llg_matcher_get_error(matcher.get());
+  BOOST_REQUIRE(error != nullptr);
+  BOOST_CHECK_EQUAL(std::string(error), "operation cancelled");
+
+  matcher.reset();
+  llg_cancel(second.get());
+  second.reset();
+}
+
+BOOST_AUTO_TEST_CASE(cancellation_during_ff_tokenization_does_not_write_output) {
+  CancelOnTokenize state;
+  TokenizerPtr tok(create_byte_tokenizer(cancel_on_tokenize, &state));
+  LlgConstraintInit init;
+  llg_constraint_init_set_defaults(&init, tok.get());
+  init.log_stderr_level = 0;
+  MatcherPtr matcher(llg_new_matcher(&init, "regex", "hello"));
+  check_matcher_has_no_error(matcher.get());
+  CancellationHandlePtr handle(
+      llg_matcher_get_cancellation_handle(matcher.get()));
+  BOOST_REQUIRE(handle != nullptr);
+  state.handle = handle.get();
+
+  uint32_t output = 0xA5A5A5A5;
+  BOOST_CHECK_EQUAL(llg_matcher_compute_ff_tokens(matcher.get(), &output, 1), -1);
+  BOOST_CHECK_EQUAL(output, 0xA5A5A5A5);
+  BOOST_CHECK(state.cancelled.load());
+  BOOST_CHECK(llg_matcher_is_error(matcher.get()));
+  BOOST_CHECK(llg_matcher_is_cancelled(matcher.get()));
+  const char *error = llg_matcher_get_error(matcher.get());
+  BOOST_REQUIRE(error != nullptr);
+  BOOST_CHECK_EQUAL(std::string(error), "operation cancelled");
+}
+
+BOOST_AUTO_TEST_CASE(cancellation_handle_is_safe_with_worker_thread) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[abc]+");
+  CancellationHandlePtr handle(
+      llg_matcher_get_cancellation_handle(matcher.get()));
+  BOOST_REQUIRE(handle != nullptr);
+
+  std::atomic<bool> run_worker{false};
+  std::atomic<int32_t> result{0};
+  std::thread worker([&] {
+    while (!run_worker.load(std::memory_order_acquire)) {
+      std::this_thread::yield();
+    }
+    result.store(llg_matcher_compute_mask(matcher.get()),
+                 std::memory_order_release);
+  });
+
+  llg_cancel(handle.get());
+  run_worker.store(true, std::memory_order_release);
+  worker.join();
+
+  // This synchronization tests ABI ownership. Rust checkpoints test progress
+  // inside mask computation.
+  BOOST_CHECK_EQUAL(result.load(std::memory_order_acquire), -1);
+  BOOST_CHECK(llg_matcher_is_cancelled(matcher.get()));
+}
+
+BOOST_AUTO_TEST_CASE(cancellation_does_not_affect_deep_matcher_clone) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[abc]+");
+  MatcherPtr clone(llg_clone_matcher(matcher.get()));
+  CancellationHandlePtr handle(
+      llg_matcher_get_cancellation_handle(matcher.get()));
+
+  BOOST_REQUIRE(clone != nullptr);
+  BOOST_REQUIRE(handle != nullptr);
+  llg_cancel(handle.get());
+
+  BOOST_CHECK_EQUAL(llg_matcher_compute_mask(matcher.get()), -1);
+  BOOST_CHECK_EQUAL(llg_matcher_compute_mask(clone.get()), 0);
 }
 
 BOOST_AUTO_TEST_CASE(consume_token_single) {
@@ -307,6 +500,19 @@ BOOST_AUTO_TEST_CASE(ff_tokens_zero_length_buffer) {
   BOOST_CHECK_EQUAL(dummy, 0xDEADBEEF);
 }
 
+BOOST_AUTO_TEST_CASE(ff_tokens_healthy_empty_result) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+  uint32_t output = 0xDEADBEEF;
+
+  check_matcher_has_no_error(matcher.get());
+  BOOST_CHECK_EQUAL(llg_matcher_compute_ff_tokens(matcher.get(), &output, 1), 0);
+  BOOST_CHECK_EQUAL(output, 0xDEADBEEF);
+  BOOST_CHECK(!llg_matcher_is_error(matcher.get()));
+  BOOST_CHECK(!llg_matcher_is_cancelled(matcher.get()));
+  BOOST_CHECK(llg_matcher_get_error(matcher.get()) == nullptr);
+}
+
 BOOST_AUTO_TEST_CASE(compute_mask_into_wrong_size) {
   MatcherContext ctx;
   auto matcher = ctx.make_matcher("regex", "[a-z]+");
@@ -430,6 +636,11 @@ BOOST_AUTO_TEST_CASE(matcher_get_mask_byte_size_before_compute) {
 
 BOOST_AUTO_TEST_CASE(free_matcher_null) {
   llg_free_matcher(nullptr);
+  BOOST_TEST(true);
+}
+
+BOOST_AUTO_TEST_CASE(free_cancellation_handle_null) {
+  llg_free_cancellation_handle(nullptr);
   BOOST_TEST(true);
 }
 

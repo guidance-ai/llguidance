@@ -101,6 +101,31 @@ def test_par_grammar() -> None:
     print(f"Parallel: {par_time} us, Sequential: {seq_time} us")
 
 
+def test_fill_bitmask_row_addressing() -> None:
+    t = tokenizer()
+    interp = lark_matcher(r"start: /[A-Z ]*/")
+    ref = allocate_token_bitmask(1, t.vocab_size)
+    fill_next_token_bitmask(interp, ref)
+    assert ref.ne(0).any() and ref.ne(-1).any()
+
+    base = torch.zeros((9, ref.shape[1]), dtype=torch.int32)
+    # plain rows, negative index, a view with a storage offset, a row-strided view
+    for mask, idx in [(base, 0), (base, 8), (base, -1), (base[3:], 2),
+                      (base[1::2], 1)]:
+        base.zero_()
+        fill_next_token_bitmask(interp, mask, idx)
+        assert torch.equal(mask[idx], ref[0])
+        assert int(base.ne(0).any(dim=1).sum()) == 1  # no other row written
+
+    with pytest.raises(IndexError):
+        fill_next_token_bitmask(interp, base, 9)
+    with pytest.raises(IndexError):
+        fill_next_token_bitmask(interp, base, -10)
+    wide = torch.zeros((2, ref.shape[1] * 2), dtype=torch.int32)
+    with pytest.raises(AssertionError):
+        fill_next_token_bitmask(interp, wide[:, ::2], 0)
+
+
 @pytest.mark.parametrize("recent_tokens", [[], [1000, 3003]])
 def test_tokenize_partial_basic(recent_tokens: List[int]) -> None:
     """Test tokenize_partial with a simple sentence."""

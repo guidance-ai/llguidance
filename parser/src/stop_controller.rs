@@ -73,6 +73,7 @@ impl StopController {
                     priority: 0,
                 }],
                 None,
+                None,
                 &mut ParserLimits::default(),
             )?;
             let initial_state = dfa.initial_state(&all_regex);

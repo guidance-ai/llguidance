@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file. Dates are d
 
 If a release doesn't introduce any interesting changes (build fixes etc.), it's skipped.
 
+#### [v1.9.1](https://github.com/guidance-ai/llguidance/compare/v1.9.0...v1.9.1) 2026-09-30
+
+- Expose cooperative cancellation on TokenParser [`#387`](https://github.com/guidance-ai/llguidance/pull/387)
+
+#### [v1.9.0](https://github.com/guidance-ai/llguidance/compare/v1.8.0...v1.9.0) 2026-09-29
+
+- Add opt-in cancellation for abandoned matcher computations [`#382`](https://github.com/guidance-ai/llguidance/pull/382); fixes [`#261`](https://github.com/guidance-ai/llguidance/issues/261)
+  - Thanks [@RanaPriyansh](https://github.com/RanaPriyansh)!
+- Compile bounded JSON array tails compactly [`#376`](https://github.com/guidance-ai/llguidance/pull/376)
+  - Thanks [@arvindg-openai](https://github.com/arvindg-openai)!
+- Parse compact Lark tilde repeat ranges [`#378`](https://github.com/guidance-ai/llguidance/pull/378); fixes [`#226`](https://github.com/guidance-ai/llguidance/issues/226)
+  - Thanks [@SiluPanda](https://github.com/SiluPanda)!
+- Report empty integer intervals as unsatisfiable [`#372`](https://github.com/guidance-ai/llguidance/pull/372); fixes [`#206`](https://github.com/guidance-ai/llguidance/issues/206)
+  - Thanks [@bryanwhl](https://github.com/bryanwhl)!
+- Bump Derivre to 0.3.13 [`#379`](https://github.com/guidance-ai/llguidance/pull/379)
+
 #### [v1.8.0](https://github.com/guidance-ai/llguidance/compare/v1.7.6...v1.8.0) 2026-08-10
 
 - Allow general Unicode escapes in JSON strings and object keys [`#374`](https://github.com/guidance-ai/llguidance/pull/374)

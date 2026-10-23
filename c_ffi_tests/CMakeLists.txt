@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
-project(c_ffi_tests CXX)
+project(c_ffi_tests C CXX)
 
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -40,6 +42,9 @@ set(TEST_SOURCES
 )
 
 add_executable(llg_ffi_tests ${TEST_SOURCES})
+
+add_library(llg_c_header_compile OBJECT src/test_c_header_compile.c)
+target_include_directories(llg_c_header_compile PRIVATE ${LLG_INCLUDE_DIR})
 
 target_include_directories(llg_ffi_tests PRIVATE
     ${LLG_INCLUDE_DIR}

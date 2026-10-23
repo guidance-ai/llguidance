@@ -543,8 +543,7 @@ impl LLMatcher {
     }
 
     fn compute_ff_bytes(&mut self) -> Cow<'_, [u8]> {
-        let bytes = self.inner.compute_ff_bytes();
-        Cow::Owned(bytes)
+        Cow::Owned(self.inner.compute_ff_bytes())
     }
 
     fn try_consume_tokens(&mut self, tokens: Vec<TokenId>) -> usize {

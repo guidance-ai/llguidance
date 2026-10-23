@@ -17,7 +17,9 @@ extern "C" size_t byte_tokenize_callback(const void *user_data,
 
 // Create a byte-level tokenizer using the v1 API.
 // Vocab: tokens 0..255 are single bytes, token 256 is <EOS>.
-LlgTokenizer *create_byte_tokenizer();
+LlgTokenizer *create_byte_tokenizer(
+    LlgTokenizeFn tokenize_fn = byte_tokenize_callback,
+    const void *tokenize_user_data = nullptr);
 
 // Create a byte-level tokenizer using the v2 API with two EOS tokens.
 // Vocab: tokens 0..255 are single bytes, token 256 is <EOS>, token 257 is <EOS2>.

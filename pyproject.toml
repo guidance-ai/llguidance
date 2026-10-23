@@ -1,8 +1,8 @@
 [project]
 name = "llguidance"
-version = "1.8.0"
+version = "1.9.1"
 description = "Bindings for the Low-level Guidance (llguidance) Rust library for use within Guidance"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 authors = [{name = "Michal Moskal"}]
 dependencies = []
