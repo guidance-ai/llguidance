@@ -1,7 +1,7 @@
 use rstest::*;
 use serde_json::{json, Value};
 
-use llg_test_utils::{json_err_test, json_schema_check, NumericBounds};
+use llg_test_utils::{json_err_test, json_schema_check, lark_str_test, NumericBounds};
 
 #[test]
 fn null_schema() {
@@ -402,6 +402,31 @@ fn number_limits_negative_zero(#[case] bounds: Value, #[case] zero_in_range: boo
     schema["type"] = json!("number");
     json_schema_check(&schema, &json!(-0.0), zero_in_range);
     json_schema_check(&schema, &json!(0.0), zero_in_range);
+}
+
+#[rstest]
+#[case(r#"{"minimum": -0}"#, true)]
+#[case(r#"{"minimum": -0.0, "maximum": 0.5}"#, true)]
+#[case(r#"{"maximum": -0}"#, true)]
+#[case(r#"{"minimum": -0.5, "maximum": -0.0}"#, true)]
+#[case(r#"{"minimum": -0, "maximum": 0}"#, true)]
+#[case(r#"{"minimum": 0, "maximum": -0}"#, true)]
+#[case(r#"{"minimum": -0.0, "maximum": -0}"#, true)]
+#[case(r#"{"exclusiveMinimum": -0, "maximum": 0.5}"#, false)]
+#[case(r#"{"minimum": -0.5, "exclusiveMaximum": -0.0}"#, false)]
+fn number_limits_negative_zero_bound(#[case] bounds: &str, #[case] zero_in_range: bool) {
+    // Parse schema text so the bound is actually written as -0 or -0.0.
+    let mut schema: Value = bounds.parse().unwrap();
+    schema["type"] = json!("number");
+    if zero_in_range {
+        // Also compile the original spelling, before serde_json normalizes -0.
+        let grammar = format!("start: %json {{\"type\":\"number\",{}", &bounds[1..]);
+        lark_str_test(&grammar, true, "-0", true);
+    }
+    for zero in ["0", "0.0", "-0", "-0.0"] {
+        let value: Value = zero.parse().unwrap();
+        json_schema_check(&schema, &value, zero_in_range);
+    }
 }
 
 #[rstest]
