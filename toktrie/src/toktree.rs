@@ -190,7 +190,7 @@ impl TrieNode {
 }
 
 impl TokTrie {
-    // see https://github.com/microsoft/llguidance/blob/main/docs/special_tokens.md
+    // see https://github.com/guidance-ai/llguidance/blob/main/docs/special_tokens.md
     pub const SPECIAL_TOKEN_MARKER: u8 = 0xff;
 
     pub fn from(info: &TokRxInfo, words: &[Vec<u8>]) -> Self {
