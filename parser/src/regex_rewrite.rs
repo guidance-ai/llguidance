@@ -12,7 +12,7 @@ fn class_for(c: char) -> Option<&'static str> {
 /// Similarly for `\w`/`\W` (`[0-9a-zA-Z_]`) and `\s`/`\S` (`[ \t\n\r\f\v]`).
 /// For standard Unicode Python3 or Rust regex crate semantics `use_ascii = ""`
 /// For JavaScript or JSON Schema semantics `use_ascii = "dw"`
-/// For Python2 or byte patters in Python3 semantics `use_ascii = "dws"`
+/// For Python2 or byte patterns in Python3 semantics `use_ascii = "dws"`
 /// More flags may be added in future.
 pub fn regex_to_lark(rx: &str, use_ascii: &str) -> String {
     let mut is_q = false;

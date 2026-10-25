@@ -759,7 +759,7 @@ impl GrammarBuilder {
     fn at_least(&mut self, elt: NodeRef, n: usize) -> NodeRef {
         let z = self.zero_or_more(elt);
         if n == 0 {
-            // If n==0, atleast() is equivalent to zero_or_more().
+            // If n==0, at_least() is equivalent to zero_or_more().
             z
         } else {
             // If n>0, first sequence is a factored repetition of

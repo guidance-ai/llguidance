@@ -634,12 +634,12 @@ impl Compiler {
 
         let node = match (prefixed, required) {
             (true, true) => {
-                // If we know we have preceeding elements, we can safely just add a (',' + e)
+                // If we know we have preceding elements, we can safely just add a (',' + e)
                 let rest_seq = self.ordered_sequence(rest, true, cache)?;
                 self.builder.join(&[comma, item, rest_seq])
             }
             (true, false) => {
-                // If we know we have preceeding elements, we can safely just add an optional(',' + e)
+                // If we know we have preceding elements, we can safely just add an optional(',' + e)
                 // TODO optimization: if the rest is all optional, we can nest the rest in the optional
                 let comma_item = self.builder.join(&[comma, item]);
                 let optional_comma_item = self.builder.optional(comma_item);

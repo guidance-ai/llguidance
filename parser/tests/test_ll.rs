@@ -665,7 +665,7 @@ fn test_ll_stop_quote_comma() {
         &["{‧ \"‧items‧\":‧ [\"", "a‧\",", "\n‧  ‧ \"", "b‧\"]", " }"],
     );
 
-    // and as seprate tokens
+    // and as separate tokens
     check_lark_grammar(
         grm,
         &[

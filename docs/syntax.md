@@ -417,7 +417,7 @@ there is less need now for using multiple grammars, but it is still supported.
 We may add nested lark grammars in future.
 
 Inside of Lark grammar, you can reference other grammars using syntax like `@my_grammar`,
-refering to grammar with `"name": "my_grammar"` (numeric reference like `@17` are **no longer supported**).
+referring to grammar with `"name": "my_grammar"` (numeric references like `@17` are **no longer supported**).
 The top-level grammar is at index 0.
 
 You can specify temperature for subgrammar by referencing it via

@@ -52,7 +52,7 @@ Additionally, `_` can be used to refer to `[0:64]`.
 - `decr([x:y]) => p[x:y] == 0 ? p : p - (1 << x)` - saturating decrement of bits in the range `[x:y]`
 
 The following functions are available in rule conditions (`c` is a condition expression).
-All comparisons treat intergers as unsigned.
+All comparisons treat integers as unsigned.
 
 - `true` and `true()` (always true)
 - `bit_clear(k) => p[k:k+1] == 0` (checks if the k-th bit is clear)
