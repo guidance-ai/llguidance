@@ -31,7 +31,7 @@ You can also inline JSON schema in the lark grammar, using `%json { ... }` synta
 (it behaves like a non-terminal).
 
 For example, this defines a JSON function calling schema for Meta Llama 3.1,
-according to [their website](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_1/#json-based-tool-calling):
+according to [their documentation](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/prompt_format.md#json-based-tool-calling):
 
 ```lark
 start: TEXT | fun_call
