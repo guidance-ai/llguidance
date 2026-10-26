@@ -373,7 +373,10 @@ pub fn bad_uuid(#[case] s: &str) {
 #[case("http://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]/")] // Full IPv6
 #[case("http://[2001:db8:85a3::8a2e:370:7334]/")]
 // Compressed IPv6
-// #[case("http://[::ffff:192.0.2.1]/")]                      // IPv4-mapped IPv6 style - TODO: not yet supported
+#[case("http://[::ffff:192.0.2.1]/")] // IPv4-mapped IPv6
+#[case("http://[::ffff:192.0.2.1]:8080/path")] // IPv4-mapped IPv6 with port
+#[case("http://[2001:db8::192.0.2.1]/")] // RFC 3986 §3.2.2: ls32 as IPv4address after "::"
+#[case("http://[1:2:3:4:5:6:192.0.2.1]/")] // six groups and an IPv4 tail
 #[case("http://[::1]/")] // Loopback
 #[case("http://[::]/")]
 // All zeros
@@ -434,6 +437,10 @@ pub fn valid_uri(#[case] s: &str) {
 #[case("http://[:::]/")] // Too many colons
 #[case("http://2001:db8::1/")] // IPv6 without brackets
 #[case("http://[2001:db8:85a3:0000:0000:8a2e:0370:7334:extra]/")] // Too many groups
+#[case("http://[::ffff:192.0.2.256]/")] // IPv4 tail octet above 255
+#[case("http://[::ffff:192.0.2]/")] // IPv4 tail with three octets
+#[case("http://[::ffff:192.0.02.1]/")] // IPv4 tail octet with a leading zero
+#[case("http://[1:2:3:4:5:6:7:192.0.2.1]/")] // seven groups and an IPv4 tail
 // JSON Schema Test Suite invalid cases (draft2020-12)
 #[case("\\\\WINDOWS\\fileshare")] // Windows path
 #[case("abc")] // Just a string, no scheme
