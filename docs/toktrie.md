@@ -99,7 +99,7 @@ See `add_bias_inner` in [toktree.rs](../toktrie/src/toktree.rs).
 - it calls `pop_bytes()` at the beginning with a variable stored in previous iteration
 
 The following is a breakdown of all memory reads and writes,
-when used with [llguidance](https://github.com/microsoft/llguidance),
+when used with [llguidance](https://github.com/guidance-ai/llguidance),
 see `try_push_byte()` in [parser.rs](../parser/src/earley/parser.rs).
 This only considers the fast lexer path.
 

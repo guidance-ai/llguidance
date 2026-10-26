@@ -482,7 +482,7 @@ Following features of Lark syntax are currently not supported:
 - templates
 - imports (other than built-in `%import common`)
 - regexes use Rust `regex` crate [syntax](https://docs.rs/regex/latest/regex/#syntax), not Python's `re` (though they are similar)
-- certain string syntax, see [issue](https://github.com/microsoft/llguidance/issues/54)
+- certain string syntax, see [issue](https://github.com/guidance-ai/llguidance/issues/54)
 
 ## Performance tips
 
