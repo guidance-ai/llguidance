@@ -288,6 +288,9 @@ pub fn bad_ipv4(#[case] s: &str) {
 #[case("0:0:0:0:0:FFFF:129.144.52.38")] // RFC 4291 §2.2 example (mixed, full form)
 #[case("::13.1.68.3")] // RFC 4291 §2.2 example (mixed, compressed)
 #[case("1:2:3:4:5::1.2.3.4")] // RFC 3986 §3.2.2: "::" between 5 groups and ls32
+#[case("::ffff:192.0.2.1")] // IPv4-mapped IPv6 (also in valid_uri)
+#[case("2001:db8::192.0.2.1")] // ls32 as IPv4address after "::" (also in valid_uri)
+#[case("1:2:3:4:5:6:192.0.2.1")] // six groups and an IPv4 tail (also in valid_uri)
 pub fn valid_ipv6(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"ipv6"});
     json_schema_check(&schema, &json!(s), true);
@@ -315,6 +318,10 @@ pub fn valid_ipv6(#[case] s: &str) {
 #[case("1:2:3:4:5:6::1.2.3.4")] // RFC 4291 §2.2: too many groups around "::" with an IPv4 tail
 #[case("::1.2.3.4:5")] // RFC 3986 §3.2.2: IPv4address only as the last 32 bits
 #[case("::01.2.3.4")] // RFC 3986 §3.2.2: dec-octet has no leading zeros
+#[case("::ffff:192.0.2.256")] // IPv4 tail octet above 255 (also in bad_uri)
+#[case("::ffff:192.0.2")] // IPv4 tail with three octets (also in bad_uri)
+#[case("::ffff:192.0.02.1")] // IPv4 tail octet with a leading zero (also in bad_uri)
+#[case("1:2:3:4:5:6:7:192.0.2.1")] // seven groups and an IPv4 tail (also in bad_uri)
 pub fn bad_ipv6(#[case] s: &str) {
     let schema = json!({"type":"string", "format":"ipv6"});
     json_schema_check(&schema, &json!(s), false);
