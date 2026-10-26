@@ -1,3 +1,25 @@
+// RFC 3986 section 3.2.2 IPv6address: the first seven forms end in
+// ls32 = ( h16 ":" h16 ) / IPv4address, the last two do not
+macro_rules! ipv6_address {
+    () => {
+        concat!(
+            r"(?:(?:",
+            r"(?:[0-9a-fA-F]{1,4}:){6}|",
+            r"::(?:[0-9a-fA-F]{1,4}:){0,5}|",
+            r"(?:[0-9a-fA-F]{1,4})?::(?:[0-9a-fA-F]{1,4}:){0,4}|",
+            r"(?:(?:[0-9a-fA-F]{1,4}:){0,1}[0-9a-fA-F]{1,4})?::(?:[0-9a-fA-F]{1,4}:){0,3}|",
+            r"(?:(?:[0-9a-fA-F]{1,4}:){0,2}[0-9a-fA-F]{1,4})?::(?:[0-9a-fA-F]{1,4}:){0,2}|",
+            r"(?:(?:[0-9a-fA-F]{1,4}:){0,3}[0-9a-fA-F]{1,4})?::[0-9a-fA-F]{1,4}:|",
+            r"(?:(?:[0-9a-fA-F]{1,4}:){0,4}[0-9a-fA-F]{1,4})?::",
+            r")(?P<ls32>[0-9a-fA-F]{1,4}:[0-9a-fA-F]{1,4}|",
+            r"(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])",
+            r"))|",
+            r"(?:((?:[0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4})?::(?P<h16_2>[0-9a-fA-F]{1,4}))|",
+            r"(?:((?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4})?::)",
+        )
+    };
+}
+
 pub fn lookup_format(name: &str) -> Option<&str> {
     let r = match name {
         "date-time" => concat!(
@@ -42,23 +64,7 @@ pub fn lookup_format(name: &str) -> Option<&str> {
         "ipv4" => {
             r"((([0-9])|(([1-9])[0-9]|(25[0-5]|(2[0-4]|(1)[0-9])[0-9])))\.){3}(([0-9])|(([1-9])[0-9]|(25[0-5]|(2[0-4]|(1)[0-9])[0-9])))"
         }
-        // RFC 3986 section 3.2.2 IPv6address: the first seven forms end in
-        // ls32 = ( h16 ":" h16 ) / IPv4address, the last two do not
-        "ipv6" => concat!(
-            r"(?:(?:",
-            r"(?:[0-9a-fA-F]{1,4}:){6}|",
-            r"::(?:[0-9a-fA-F]{1,4}:){0,5}|",
-            r"(?:[0-9a-fA-F]{1,4})?::(?:[0-9a-fA-F]{1,4}:){0,4}|",
-            r"(?:(?:[0-9a-fA-F]{1,4}:){0,1}[0-9a-fA-F]{1,4})?::(?:[0-9a-fA-F]{1,4}:){0,3}|",
-            r"(?:(?:[0-9a-fA-F]{1,4}:){0,2}[0-9a-fA-F]{1,4})?::(?:[0-9a-fA-F]{1,4}:){0,2}|",
-            r"(?:(?:[0-9a-fA-F]{1,4}:){0,3}[0-9a-fA-F]{1,4})?::[0-9a-fA-F]{1,4}:|",
-            r"(?:(?:[0-9a-fA-F]{1,4}:){0,4}[0-9a-fA-F]{1,4})?::",
-            r")(?P<ls32>[0-9a-fA-F]{1,4}:[0-9a-fA-F]{1,4}|",
-            r"(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])",
-            r"))|",
-            r"(?:((?:[0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4})?::(?P<h16_2>[0-9a-fA-F]{1,4}))|",
-            r"(?:((?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4})?::)",
-        ),
+        "ipv6" => ipv6_address!(),
         "uuid" => {
             r"(?P<time_low>[0-9a-fA-F]{8})-(?P<time_mid>[0-9a-fA-F]{4})-(?P<time_high_and_version>[0-9a-fA-F]{4})-(?P<clock_seq_and_reserved>[0-9a-fA-F]{2})(?P<clock_seq_low>[0-9a-fA-F]{2})-(?P<node>[0-9a-fA-F]{12})"
         }
@@ -83,17 +89,8 @@ pub fn lookup_format(name: &str) -> Option<&str> {
             // IP-literal = "[" ( IPv6address / IPvFuture ) "]"
             r"\[",
             r"(?:",
-            // IPv6address (simplified - covers common forms)
-            r"(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|", // full
-            r"(?:[0-9a-fA-F]{1,4}:){1,7}:|",              // with trailing ::
-            r"(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|", // :: with 1 group after
-            r"(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|", // :: with 2 groups after
-            r"(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|", // :: with 3 groups after
-            r"(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|", // :: with 4 groups after
-            r"(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|", // :: with 5 groups after
-            r"[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|", // :: with 6 groups after
-            r":(?::[0-9a-fA-F]{1,4}){1,7}|",              // ::x:x:x:x:x:x:x
-            r"::|",                                       // :: alone
+            ipv6_address!(),
+            r"|",
             // IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
             r"v[0-9a-fA-F]+\.[a-zA-Z0-9\-._~!$&'()*+,;=:]+",
             r")",
