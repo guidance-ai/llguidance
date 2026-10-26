@@ -1163,11 +1163,17 @@ fn compile_object(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schem
 fn mk_object_schema(obj: ObjectSchema) -> Schema {
     if let Some(max) = obj.max_properties {
         if obj.min_properties > max {
-            return Schema::unsat("minProperties > maxProperties");
+            return Schema::unsat(&format!(
+                "minProperties ({}) is greater than maxProperties ({max})",
+                obj.min_properties
+            ));
         }
-    }
-    if obj.required.len() > obj.max_properties.unwrap_or(usize::MAX) {
-        return Schema::unsat("required > maxProperties");
+        if obj.required.len() > max {
+            return Schema::unsat(&format!(
+                "number of required properties ({}) is greater than maxProperties ({max})",
+                obj.required.len()
+            ));
+        }
     }
 
     Schema::Object(obj)
