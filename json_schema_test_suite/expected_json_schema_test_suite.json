@@ -918,8 +918,8 @@
         "too long is invalid": "pass"
       },
       "maxItems validation with a decimal": {
-        "shorter is valid": "compile_error_valid",
-        "too long is invalid": "compile_error_valid"
+        "shorter is valid": "pass",
+        "too long is invalid": "pass"
       }
     },
     "maxLength": {
@@ -931,8 +931,8 @@
         "two graphemes is long enough": "pass"
       },
       "maxLength validation with a decimal": {
-        "shorter is valid": "compile_error_valid",
-        "too long is invalid": "compile_error_valid"
+        "shorter is valid": "pass",
+        "too long is invalid": "pass"
       }
     },
     "maxProperties": {
@@ -949,8 +949,8 @@
         "too long is invalid": "pass"
       },
       "maxProperties validation with a decimal": {
-        "shorter is valid": "compile_error_valid",
-        "too long is invalid": "compile_error_valid"
+        "shorter is valid": "pass",
+        "too long is invalid": "pass"
       }
     },
     "maximum": {
@@ -1021,8 +1021,8 @@
         "too short is invalid": "pass"
       },
       "minItems validation with a decimal": {
-        "longer is valid": "compile_error_valid",
-        "too short is invalid": "compile_error_valid"
+        "longer is valid": "pass",
+        "too short is invalid": "pass"
       }
     },
     "minLength": {
@@ -1034,8 +1034,8 @@
         "too short is invalid": "pass"
       },
       "minLength validation with a decimal": {
-        "longer is valid": "compile_error_valid",
-        "too short is invalid": "compile_error_valid"
+        "longer is valid": "pass",
+        "too short is invalid": "pass"
       }
     },
     "minProperties": {
@@ -1048,8 +1048,8 @@
         "too short is invalid": "pass"
       },
       "minProperties validation with a decimal": {
-        "longer is valid": "compile_error_valid",
-        "too short is invalid": "compile_error_valid"
+        "longer is valid": "pass",
+        "too short is invalid": "pass"
       }
     },
     "minimum": {

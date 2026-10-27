@@ -1078,7 +1078,14 @@ fn compile_prop_map(
 
 fn get_usize(schema: &HashMap<&str, &Value>, name: &str) -> Result<Option<usize>> {
     if let Some(val) = schema.get(name) {
-        if let Some(val) = val.as_u64() {
+        // JSON Schema treats a number with a zero fractional part (e.g. 2.0) as an integer.
+        let int_val = val.as_u64().or_else(|| {
+            val.as_f64()
+                // `u64::MAX as f64` rounds up to 2^64, so `<` keeps the cast exact.
+                .filter(|f| *f >= 0.0 && *f < u64::MAX as f64 && f.fract() == 0.0)
+                .map(|f| f as u64)
+        });
+        if let Some(val) = int_val {
             ensure!(
                 val <= usize::MAX as u64,
                 "Value {val} for '{name}' is too large"
