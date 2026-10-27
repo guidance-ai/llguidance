@@ -20,3 +20,4 @@ log = "0.4.25"
 
 [dev-dependencies]
 rstest = "0.25.0"
+llguidance = { workspace = true }

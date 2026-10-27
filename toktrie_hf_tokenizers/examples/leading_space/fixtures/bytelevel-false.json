@@ -1,0 +1,105 @@
+{
+  "version": "1.0",
+  "truncation": null,
+  "padding": null,
+  "added_tokens": [
+    {
+      "id": 21,
+      "content": "<eos>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    }
+  ],
+  "normalizer": null,
+  "pre_tokenizer": {
+    "type": "ByteLevel",
+    "add_prefix_space": false,
+    "trim_offsets": true,
+    "use_regex": true
+  },
+  "post_processor": null,
+  "decoder": {
+    "type": "ByteLevel",
+    "add_prefix_space": false,
+    "trim_offsets": true,
+    "use_regex": true
+  },
+  "model": {
+    "type": "BPE",
+    "dropout": null,
+    "unk_token": null,
+    "continuing_subword_prefix": "",
+    "end_of_word_suffix": "",
+    "fuse_unk": false,
+    "byte_fallback": false,
+    "vocab": {
+      "h": 0,
+      "e": 1,
+      "l": 2,
+      "o": 3,
+      "w": 4,
+      "r": 5,
+      "d": 6,
+      "!": 7,
+      "1": 8,
+      "_": 9,
+      "Ġ": 10,
+      "he": 11,
+      "hel": 12,
+      "hell": 13,
+      "hello": 14,
+      "wo": 15,
+      "wor": 16,
+      "worl": 17,
+      "world": 18,
+      "Ġhello": 19,
+      "Ġworld": 20,
+      "<eos>": 21
+    },
+    "merges": [
+      [
+        "h",
+        "e"
+      ],
+      [
+        "he",
+        "l"
+      ],
+      [
+        "hel",
+        "l"
+      ],
+      [
+        "hell",
+        "o"
+      ],
+      [
+        "w",
+        "o"
+      ],
+      [
+        "wo",
+        "r"
+      ],
+      [
+        "wor",
+        "l"
+      ],
+      [
+        "worl",
+        "d"
+      ],
+      [
+        "Ġ",
+        "hello"
+      ],
+      [
+        "Ġ",
+        "world"
+      ]
+    ]
+  }
+}
