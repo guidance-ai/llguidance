@@ -918,8 +918,8 @@
         "too long is invalid": "pass"
       },
       "maxItems validation with a decimal": {
-        "shorter is valid": "compile_error_valid",
-        "too long is invalid": "compile_error_valid"
+        "shorter is valid": "pass",
+        "too long is invalid": "pass"
       }
     },
     "maxLength": {
@@ -931,8 +931,8 @@
         "two graphemes is long enough": "pass"
       },
       "maxLength validation with a decimal": {
-        "shorter is valid": "compile_error_valid",
-        "too long is invalid": "compile_error_valid"
+        "shorter is valid": "pass",
+        "too long is invalid": "pass"
       }
     },
     "maxProperties": {
@@ -949,8 +949,8 @@
         "too long is invalid": "pass"
       },
       "maxProperties validation with a decimal": {
-        "shorter is valid": "compile_error_valid",
-        "too long is invalid": "compile_error_valid"
+        "shorter is valid": "pass",
+        "too long is invalid": "pass"
       }
     },
     "maximum": {
@@ -1021,8 +1021,8 @@
         "too short is invalid": "pass"
       },
       "minItems validation with a decimal": {
-        "longer is valid": "compile_error_valid",
-        "too short is invalid": "compile_error_valid"
+        "longer is valid": "pass",
+        "too short is invalid": "pass"
       }
     },
     "minLength": {
@@ -1034,8 +1034,8 @@
         "too short is invalid": "pass"
       },
       "minLength validation with a decimal": {
-        "longer is valid": "compile_error_valid",
-        "too short is invalid": "compile_error_valid"
+        "longer is valid": "pass",
+        "too short is invalid": "pass"
       }
     },
     "minProperties": {
@@ -1048,8 +1048,8 @@
         "too short is invalid": "pass"
       },
       "minProperties validation with a decimal": {
-        "longer is valid": "compile_error_valid",
-        "too short is invalid": "compile_error_valid"
+        "longer is valid": "pass",
+        "too short is invalid": "pass"
       }
     },
     "minimum": {
@@ -1575,7 +1575,7 @@
         "8 octets": "pass",
         "a long invalid ipv6, below length limit, first": "pass",
         "a long invalid ipv6, below length limit, second": "pass",
-        "a long valid ipv6": "false_negative",
+        "a long valid ipv6": "pass",
         "a valid IPv6 address": "pass",
         "all string formats ignore arrays": "pass",
         "all string formats ignore booleans": "pass",
@@ -1596,11 +1596,11 @@
         "missing leading octet is invalid": "pass",
         "missing leading octet with omitted octets later": "pass",
         "missing trailing octet is invalid": "pass",
-        "mixed format with double colons between the sections": "false_negative",
+        "mixed format with double colons between the sections": "pass",
         "mixed format with ipv4 section with a hex octet": "pass",
         "mixed format with ipv4 section with octet out of range": "pass",
-        "mixed format with leading double colons (ipv4-mapped ipv6 address)": "false_negative",
-        "mixed format with the ipv4 section as decimal octets": "false_negative",
+        "mixed format with leading double colons (ipv4-mapped ipv6 address)": "pass",
+        "mixed format with the ipv4 section as decimal octets": "pass",
         "netmask is not a part of ipv6 address": "pass",
         "no colons is invalid": "pass",
         "no digits is valid": "pass",

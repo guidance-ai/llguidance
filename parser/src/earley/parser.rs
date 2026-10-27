@@ -1073,6 +1073,8 @@ impl ParserState {
         self.last_force_bytes_len = usize::MAX;
         self.lexer_stack_top_eos = false;
         self.rows_valid_end = self.num_rows();
+        // A different branch can reuse the same lexer state and row index.
+        self.bias_cache = None;
 
         self.assert_definitive();
 
@@ -2800,9 +2802,9 @@ pub trait BiasComputer: Send + Sync {
 // Processing of the parser and the lexer is heavily interlocked.
 // The 'Recognizer' trait is used as the interface for this.
 // See the documentation for TokTrie in README.md and toktrie.md:
-// https://github.com/microsoft/llguidance/blob/main/toktrie/README.md
+// https://github.com/guidance-ai/llguidance/blob/main/toktrie/README.md
 // and
-// https://github.com/microsoft/llguidance/blob/main/docs/toktrie.md .
+// https://github.com/guidance-ai/llguidance/blob/main/docs/toktrie.md .
 impl Recognizer for ParserRecognizer<'_> {
     fn cancellation_enabled(&self) -> bool {
         self.state.cancellation.is_some()

@@ -31,7 +31,7 @@ You can also inline JSON schema in the lark grammar, using `%json { ... }` synta
 (it behaves like a non-terminal).
 
 For example, this defines a JSON function calling schema for Meta Llama 3.1,
-according to [their website](https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_1/#json-based-tool-calling):
+according to [their documentation](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/prompt_format.md#json-based-tool-calling):
 
 ```lark
 start: TEXT | fun_call
@@ -482,7 +482,7 @@ Following features of Lark syntax are currently not supported:
 - templates
 - imports (other than built-in `%import common`)
 - regexes use Rust `regex` crate [syntax](https://docs.rs/regex/latest/regex/#syntax), not Python's `re` (though they are similar)
-- certain string syntax, see [issue](https://github.com/microsoft/llguidance/issues/54)
+- certain string syntax, see [issue](https://github.com/guidance-ai/llguidance/issues/54)
 
 ## Performance tips
 

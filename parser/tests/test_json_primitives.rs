@@ -655,3 +655,30 @@ fn string_length_unsatisfiable() {
         "Unsatisfiable schema: minLength (2) is greater than maxLength (1)",
     );
 }
+
+#[rstest]
+#[case::lower_bound(&json!("ab"), true)]
+#[case::upper_bound(&json!("abc"), true)]
+#[case::too_short(&json!("a"), false)]
+#[case::too_long(&json!("abcd"), false)]
+fn string_length_decimal_bounds(#[case] sample_value: &Value, #[case] expect_valid: bool) {
+    // A number with a zero fractional part is an integer in JSON Schema
+    let schema = &json!({"type":"string", "minLength": 2.0, "maxLength": 3.0});
+    json_schema_check(schema, sample_value, expect_valid);
+}
+
+#[rstest]
+#[case::min_length_fraction("minLength", 1.5)]
+#[case::max_length_negative("maxLength", -1.0)]
+#[case::min_items_fraction("minItems", 1.5)]
+#[case::max_items_negative("maxItems", -1.0)]
+#[case::min_properties_fraction("minProperties", 1.5)]
+#[case::max_properties_negative("maxProperties", -1.0)]
+fn non_integer_length_bounds(#[case] keyword: &str, #[case] value: f64) {
+    let mut schema = json!({});
+    schema[keyword] = json!(value);
+    json_err_test(
+        &schema,
+        &format!("Expected positive integer for '{keyword}', got {value:?}"),
+    );
+}

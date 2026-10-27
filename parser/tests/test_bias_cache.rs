@@ -287,3 +287,55 @@ fn test_cache_with_max_tokens() {
         assert_cache_consistent(&mut m);
     }
 }
+
+// Rollback can revisit the same lexer state and row index with a different
+// grammar history. Use a byte vocabulary so this regression is self-contained.
+#[rstest::rstest]
+fn test_cache_after_rewind_and_branch_change(
+    #[values(false, true)] reset: bool,
+    #[values(false, true)] clone: bool,
+    #[values("", "p")] prefix: &str,
+) {
+    use llguidance::toktrie::{ApproximateTokEnv, TokEnv, TokRxInfo, TokTrie};
+    use std::sync::Arc;
+
+    let mut words: Vec<_> = (0..=255).map(|byte| vec![byte]).collect();
+    words.push(b"\xff<eos>".to_vec());
+    let info = TokRxInfo::new(words.len() as u32, words.len() as u32 - 1);
+    let env: TokEnv = Arc::new(ApproximateTokEnv::new(TokTrie::from(&info, &words)));
+    let mut factory = ParserFactory::new(&env, InferenceCapabilities::default(), &[]).unwrap();
+    factory.quiet();
+    let grammar = format!("start: {prefix:?} branch\nbranch: \"a\" middle \"b\" | \"x\" middle \"c\"\nmiddle: /[0-9]+/");
+    let fresh = || Matcher::new(factory.create_parser(TopLevelGrammar::from_lark(grammar.clone())));
+    let tokens = |s: &str| s.bytes().map(u32::from).collect::<Vec<_>>();
+
+    let mut matcher = fresh();
+    matcher
+        .consume_tokens(&tokens(&format!("{prefix}a1")))
+        .unwrap();
+    let mask = matcher.compute_mask().unwrap();
+    assert!(mask.is_allowed(b'b' as u32));
+    assert!(!mask.is_allowed(b'c' as u32));
+    if clone {
+        matcher = matcher.deep_clone();
+    }
+    if reset {
+        matcher.reset().unwrap();
+        matcher.consume_tokens(&tokens(prefix)).unwrap();
+    } else {
+        matcher.rollback(2).unwrap();
+    }
+    matcher.consume_tokens(&tokens("x1")).unwrap();
+    let mask = matcher.compute_mask().unwrap();
+    let mut expected = fresh();
+    expected
+        .consume_tokens(&tokens(&format!("{prefix}x1")))
+        .unwrap();
+    let expected_mask = expected.compute_mask().unwrap();
+    assert!(masks_equal(&mask, &expected_mask));
+    assert!(!mask.is_allowed(b'b' as u32));
+    assert!(mask.is_allowed(b'c' as u32));
+    assert!(mask.is_allowed(b'2' as u32));
+    matcher.consume_token(b'c' as u32).unwrap();
+    assert!(matcher.is_accepting().unwrap());
+}

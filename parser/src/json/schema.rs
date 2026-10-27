@@ -1078,7 +1078,14 @@ fn compile_prop_map(
 
 fn get_usize(schema: &HashMap<&str, &Value>, name: &str) -> Result<Option<usize>> {
     if let Some(val) = schema.get(name) {
-        if let Some(val) = val.as_u64() {
+        // JSON Schema treats a number with a zero fractional part (e.g. 2.0) as an integer.
+        let int_val = val.as_u64().or_else(|| {
+            val.as_f64()
+                // `u64::MAX as f64` rounds up to 2^64, so `<` keeps the cast exact.
+                .filter(|f| *f >= 0.0 && *f < u64::MAX as f64 && f.fract() == 0.0)
+                .map(|f| f as u64)
+        });
+        if let Some(val) = int_val {
             ensure!(
                 val <= usize::MAX as u64,
                 "Value {val} for '{name}' is too large"
@@ -1163,11 +1170,17 @@ fn compile_object(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schem
 fn mk_object_schema(obj: ObjectSchema) -> Schema {
     if let Some(max) = obj.max_properties {
         if obj.min_properties > max {
-            return Schema::unsat("minProperties > maxProperties");
+            return Schema::unsat(&format!(
+                "minProperties ({}) is greater than maxProperties ({max})",
+                obj.min_properties
+            ));
         }
-    }
-    if obj.required.len() > obj.max_properties.unwrap_or(usize::MAX) {
-        return Schema::unsat("required > maxProperties");
+        if obj.required.len() > max {
+            return Schema::unsat(&format!(
+                "number of required properties ({}) is greater than maxProperties ({max})",
+                obj.required.len()
+            ));
+        }
     }
 
     Schema::Object(obj)

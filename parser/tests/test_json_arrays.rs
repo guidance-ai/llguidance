@@ -64,6 +64,18 @@ fn array_length_failures(#[case] sample_array: &Value) {
     json_schema_check(&LENGTH_CONSTRAINED_ARRAY, sample_array, false);
 }
 
+#[rstest]
+#[case::lower_bound(&json!([1,2]), true)]
+#[case::upper_bound(&json!([1,2,3,4]), true)]
+#[case::single_item(&json!([1]), false)]
+#[case::too_long(&json!([1,2,3,4,5]), false)]
+fn array_length_decimal_bounds(#[case] sample_array: &Value, #[case] expect_valid: bool) {
+    // A number with a zero fractional part is an integer in JSON Schema
+    let schema =
+        &json!({"type":"array", "items": {"type":"integer"}, "minItems": 2.0, "maxItems": 4.0});
+    json_schema_check(schema, sample_array, expect_valid);
+}
+
 #[test]
 fn array_length_bad_constraints() {
     json_err_test(
