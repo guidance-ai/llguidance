@@ -1280,7 +1280,7 @@ fn test_json_min_max_properties() {
             "minProperties": 7,
             "maxProperties": 1,
         }),
-        "minProperties > maxProperties",
+        "minProperties (7) is greater than maxProperties (1)",
     );
 
     json_err_test(
@@ -1289,7 +1289,7 @@ fn test_json_min_max_properties() {
             "required": ["foo", "bar"],
             "maxProperties": 1,
         }),
-        "required > maxProperties",
+        "number of required properties (2) is greater than maxProperties (1)",
     );
 
     json_test_many(
