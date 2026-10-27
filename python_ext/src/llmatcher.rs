@@ -6,7 +6,7 @@ use anyhow::Result;
 use llguidance::api::GrammarInit;
 use llguidance::api::TopLevelGrammar;
 use llguidance::toktrie::{InferenceCapabilities, SimpleVob, TokEnv, TokenId};
-use llguidance::{json_merge, Logger, Matcher, ParserFactory};
+use llguidance::{json_merge, JsonCompileOptions, Logger, Matcher, ParserFactory};
 use pyo3::types::{PyList, PyTuple};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use serde_json::json;
@@ -431,6 +431,40 @@ impl LLMatcher {
                 stringify_if_needed(schema)?
             ))
         }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (schema, defaults=None, overrides=None, *, limits=None))]
+    fn inspect_json_schema(
+        schema: Bound<'_, PyAny>,
+        defaults: Option<Bound<'_, PyAny>>,
+        overrides: Option<Bound<'_, PyAny>>,
+        limits: Option<&LLParserLimits>,
+        py: Python<'_>,
+    ) -> PyResult<String> {
+        // Reuse the established Python option merging without changing the
+        // existing wrapper API. Parse unwrapped input directly when no merge
+        // is requested, including serialized boolean schemas.
+        let schema = if defaults.is_none() && overrides.is_none() {
+            str_or_dict_to_value(schema)?
+        } else {
+            let wrapped = Self::grammar_from_json_schema(schema, defaults, overrides)?;
+            let grammar: TopLevelGrammar = serde_json::from_str(&wrapped).map_err(val_error)?;
+            grammar
+                .grammars
+                .into_iter()
+                .next()
+                .and_then(|g| g.json_schema)
+                .ok_or_else(|| {
+                    PyValueError::new_err("Expected JSON Schema in the generated grammar")
+                })?
+        };
+        let limits = LLParserLimits::from_option(limits);
+        py.detach(|| -> Result<String> {
+            let inspection = JsonCompileOptions::default().inspect_json_schema(schema, limits)?;
+            Ok(serde_json::to_string(&inspection)?)
+        })
+        .map_err(val_error)
     }
 
     #[staticmethod]
