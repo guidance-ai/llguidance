@@ -47,8 +47,10 @@ pub mod panic_utils;
 mod constraint;
 mod stop_controller;
 mod tokenizer_json;
+mod tool_grammar;
 pub use constraint::{CommitResult, Constraint};
 pub use matcher::Matcher;
+pub use tool_grammar::grammar_from_tools;
 
 mod factory;
 pub use factory::ParserFactory;

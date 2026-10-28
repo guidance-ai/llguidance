@@ -724,3 +724,26 @@ def regex_to_lark(regex: str, use_ascii: str = "d") -> str:
 
 def get_version() -> str:
     """Returns the version string of llguidance and its key dependencies."""
+
+
+def grammar_from_tools(
+    tools: List[Dict[str, Any]],
+    *,
+    format: str,
+    initial_reasoning: bool = False,
+    special_tokens: Optional[List[str]] = None,
+) -> str:
+    """Generate Lark for OpenAI function tools; format must be 'qwen3_coder'.
+
+    Only strict=True tools are constrained. Parameters follow schema order,
+    with optional ones skippable. Missing top-level additionalProperties means
+    false. Strings are raw text; other values are JSON. The reference parser
+    strips one leading and one trailing LF from each parameter value.
+
+    initial_reasoning starts inside an already-open think region. None for
+    special_tokens uses <tool_call>, </tool_call>, <think>, </think>; an empty
+    list uses ordinary text only. A list replaces those defaults. Listed
+    markers must exist in the matcher tokenizer; text forms remain accepted.
+
+    Unsupported schemas and invalid options raise ValueError.
+    """
