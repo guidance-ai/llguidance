@@ -103,6 +103,16 @@ fn fixed_string_with_pattern_and_length_limits() {
 }
 
 #[test]
+fn impossible_fixed_string_length_preserves_other_any_of_options() {
+    let schema = json!({"anyOf": [
+        {"const": "A".repeat(10_001), "pattern": "^A*$", "maxLength": 1},
+        {"const": "ok"}
+    ]});
+    json_schema_check(&schema, &json!("ok"), true);
+    json_schema_check(&schema, &json!("A"), false);
+}
+
+#[test]
 fn fixed_unicode_string_with_nested_patterns() {
     let value = "é🦀".repeat(44);
     let schema = json!({

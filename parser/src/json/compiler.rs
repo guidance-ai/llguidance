@@ -8,6 +8,7 @@ use derivre::{ExprRef, JsonQuoteOptions, RegexAst};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use toktrie::bytes::limit_str;
 
 use super::numeric::{check_number_bounds, normalize_integer_bounds, rx_float_range, rx_int_range};
 use super::schema::{build_schema, ArraySchema, ObjectSchema, OptSchemaExt, Schema};
@@ -764,9 +765,22 @@ impl Compiler {
 
             // A mandatory literal leaves at most one string to check.
             if let Some(s) = mandatory_literal(&ast) {
-                if !matches!(&ast, RegexAst::Literal(_)) {
+                // Parse compound constraints before discarding an impossible alternative.
+                let compound = if matches!(&ast, RegexAst::Literal(_)) {
+                    None
+                } else {
                     let mut builder = derivre::RegexBuilder::new();
                     let expr = builder.mk(&ast)?;
+                    Some((builder, expr))
+                };
+                let length = s.chars().count();
+                if length < min_length || length > max_length.unwrap_or(usize::MAX) {
+                    let preview = limit_str(s, 200);
+                    return Err(anyhow!(UnsatisfiableSchemaError {
+                        message: format!("Constant {preview:?} doesn't match length constraints")
+                    }));
+                }
+                if let Some((builder, expr)) = compound {
                     if !builder.exprset().is_positive(expr)
                         && !fixed_string_is_satisfiable(builder.into_exprset(), expr, s).map_err(
                             |_| {
@@ -781,17 +795,13 @@ impl Compiler {
                             message: format!("Regex is empty: {}", mk_rx_repr(&ast))
                         }));
                     }
+                    // Count surviving constraints against the grammar's shared lexer budget.
+                    let literal = RegexAst::Literal(s.to_owned());
+                    self.builder.regex.add_ast(ast)?;
+                    self.builder.check_limits()?;
+                    ast = literal;
                 }
-
-                let l = s.chars().count();
-
-                if l < min_length || l > max_length.unwrap_or(usize::MAX) {
-                    return Err(anyhow!(UnsatisfiableSchemaError {
-                        message: format!("Constant {s:?} doesn't match length constraints")
-                    }));
-                }
-
-                return Ok(self.json_quote(RegexAst::Literal(s.to_string())));
+                return Ok(self.json_quote(ast));
             } else if min_length != 0 || max_length.is_some() {
                 ast = RegexAst::And(vec![
                     ast,
@@ -1124,6 +1134,7 @@ mod tests {
 
     #[test]
     fn fixed_string_matching_exhausts_budget() {
+        // Even a single possible string can be too expensive to check against its pattern.
         let error = compile_schema(json!({
             "const": "A".repeat(10_001),
             "pattern": "^A*$"
@@ -1134,6 +1145,43 @@ mod tests {
             error
                 .to_string()
                 .contains("Unable to determine if regex is empty"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn fixed_string_length_error_abbreviates_long_literals() {
+        let value = "A".repeat(10_001);
+        let error = compile_schema(json!({"const": value, "pattern": "^A*$", "maxLength": 1}))
+            .err()
+            .expect("the fixed string is too long")
+            .to_string();
+        assert!(error.contains("length constraints"));
+        assert!(!error.contains(&value));
+    }
+
+    #[test]
+    fn fixed_string_patterns_share_the_initial_lexer_budget() {
+        let mut properties = serde_json::Map::new();
+        for digit in 0..8 {
+            properties.insert(
+                digit.to_string(),
+                json!({"const": "A", "pattern": format!(r"^[^\p{{Ll}}{digit}]$")}),
+            );
+        }
+        let limits = ParserLimits {
+            initial_lexer_fuel: 25_000,
+            ..ParserLimits::default()
+        };
+        let error = JsonCompileOptions::default()
+            .json_to_llg(
+                GrammarBuilder::new(None, limits),
+                json!({"type": "object", "properties": properties}),
+            )
+            .err()
+            .expect("the combined patterns should exceed the grammar's fuel limit");
+        assert!(
+            error.to_string().contains("initial lexer configuration"),
             "{error}"
         );
     }
