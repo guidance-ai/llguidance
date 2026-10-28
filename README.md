@@ -95,7 +95,7 @@ the mask computation times can run to tens or hundreds of milliseconds.
 
 In llguidance, the full mask computation for a typical JSON schema takes about 1.5ms (for 128k tokenizer).
 However, very often the ["slicer" optimization](./docs/optimizations.md#slicer-optimization) applies,
-and thus the avarage mask computation in [JSON Schema Bench](https://github.com/guidance-ai/jsonschemabench)
+and thus the average mask computation in [JSON Schema Bench](https://github.com/guidance-ai/jsonschemabench)
 (2.5M tokens, 10k schemas) is under 50μs,
 with less than 1% of masks taking longer than 1ms,
 and 0.001% taking longer than 10ms (but still shorter than 30ms).

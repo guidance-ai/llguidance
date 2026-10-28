@@ -149,7 +149,7 @@ pub fn lark_str_test_many_ext(quiet: bool, lark: &str, passing: &[&str], failing
 pub fn json_schema_check(schema: &Value, json_obj: &Value, expect_valid: bool) {
     /*
        This is a modification of the lark_str_test function, which makes the
-       assumption that the input Value completely satifies the schema.
+       assumption that the input Value completely satisfies the schema.
 
        The subtlety is that a string of tokens might not match a grammar _yet_
        but could with the addition of more tokens. For example, if we're trying

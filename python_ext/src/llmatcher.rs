@@ -255,7 +255,7 @@ impl LLMatcher {
             let token = draft_tokens[token_idx];
 
             match self.inner.try_consume_tokens(&[token]) {
-                Ok(cosumed) if cosumed > 0 => state_advancements += 1,
+                Ok(consumed) if consumed > 0 => state_advancements += 1,
                 _ => break,
             }
         }
