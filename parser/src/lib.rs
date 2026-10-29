@@ -38,6 +38,7 @@ mod hashcons;
 pub use cancellation::{CancellationHandle, Cancelled};
 mod matcher;
 mod tokenparser;
+mod tool_grammar;
 pub use tokenparser::TokenParser;
 pub mod api;
 pub mod output;
@@ -70,10 +71,11 @@ mod json_validation;
 mod regex_rewrite;
 pub mod substring;
 pub use grammar_builder::{GrammarBuilder, NodeRef};
-pub use json::compiler::JsonCompileOptions;
+pub use json::compiler::{JsonCompileOptions, JsonSchemaStyle};
 pub use json::json_merge;
 pub use stop_controller::StopController;
 pub use tokenizer_json::token_bytes_from_tokenizer_json;
+pub use tool_grammar::grammar_from_tools;
 
 #[cfg(feature = "lark")]
 mod lark;

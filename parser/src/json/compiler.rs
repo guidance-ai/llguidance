@@ -15,13 +15,35 @@ use super::RetrieveWrapper;
 
 use crate::{GrammarBuilder, NodeRef};
 
+mod qwen_xml;
+pub(crate) use qwen_xml::prepare_tool_schema;
+
 // TODO: grammar size limit
 // TODO: array maxItems etc limits
 // TODO: schemastore/src/schemas/json/BizTalkServerApplicationSchema.json - this breaks 1M fuel on lexer, why?!
 
+/// Encoding of the root value described by a JSON schema.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JsonSchemaStyle {
+    #[default]
+    Json,
+    /// Qwen XML parameter lists, with raw strings and nested JSON values.
+    /// Inspired by XGrammar: <https://github.com/mlc-ai/xgrammar>.
+    QwenXml,
+}
+
+impl JsonSchemaStyle {
+    fn is_json(&self) -> bool {
+        matches!(self, Self::Json)
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct JsonCompileOptions {
+    #[serde(skip_serializing_if = "JsonSchemaStyle::is_json")]
+    pub style: JsonSchemaStyle,
     pub item_separator: String,
     pub key_separator: String,
     pub whitespace_flexible: bool,
@@ -86,6 +108,7 @@ struct Compiler {
 impl Default for JsonCompileOptions {
     fn default() -> Self {
         Self {
+            style: JsonSchemaStyle::default(),
             item_separator: ",".to_string(),
             key_separator: ":".to_string(),
             whitespace_pattern: None,
@@ -179,7 +202,10 @@ impl Compiler {
             self.builder.add_warning(w);
         }
 
-        let root = self.gen_json(&built.schema)?;
+        let root = match self.options.style {
+            JsonSchemaStyle::Json => self.gen_json(&built.schema)?,
+            JsonSchemaStyle::QwenXml => self.gen_xml_object(&built.schema, &built.definitions)?,
+        };
         self.builder.set_start_node(root);
 
         while let Some((path, pl)) = self.pending_definitions.pop() {
@@ -733,6 +759,18 @@ impl Compiler {
     }
 
     fn gen_json_string(&mut self, opts: StringSchema) -> Result<RegexAst> {
+        let general_unicode =
+            opts.regex.is_none() && self.options.json_allow_general_unicode_escapes;
+        let (min_length, max_length) = (opts.min_length, opts.max_length);
+        let ast = self.gen_string(opts)?;
+        if general_unicode {
+            self.json_general_unicode_string(min_length, max_length)
+        } else {
+            Ok(self.json_quote(ast))
+        }
+    }
+
+    fn gen_string(&mut self, opts: StringSchema) -> Result<RegexAst> {
         let min_length = opts.min_length;
         let max_length = opts.max_length;
         if let Some(max_length) = max_length {
@@ -744,11 +782,8 @@ impl Compiler {
                 }));
             }
         }
-        if opts.regex.is_none() && self.options.json_allow_general_unicode_escapes {
-            return self.json_general_unicode_string(min_length, max_length);
-        }
         if min_length == 0 && max_length.is_none() && opts.regex.is_none() {
-            return Ok(self.json_quote(RegexAst::Regex("(?s:.*)".to_string())));
+            return Ok(RegexAst::Regex("(?s:.*)".to_string()));
         }
         if let Some(mut ast) = opts.regex {
             let mut positive = false;
@@ -811,15 +846,13 @@ impl Compiler {
                 }
             }
 
-            ast = self.json_quote(ast);
-
             Ok(ast)
         } else {
-            Ok(self.json_quote(RegexAst::Regex(format!(
+            Ok(RegexAst::Regex(format!(
                 "(?s:.{{{},{}}})",
                 min_length,
                 max_length.map_or("".to_string(), |v| v.to_string())
-            ))))
+            )))
         }
     }
 
