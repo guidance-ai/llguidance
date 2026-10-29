@@ -1,7 +1,7 @@
 pub mod compiler;
-mod formats;
-mod numeric;
-mod schema;
+pub(crate) mod formats;
+pub(crate) mod numeric;
+pub(crate) mod schema;
 mod shared_context;
 
 #[cfg(feature = "referencing")]
