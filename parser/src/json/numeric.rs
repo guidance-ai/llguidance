@@ -48,19 +48,31 @@ impl TryFrom<f64> for Decimal {
         if value < 0.0 {
             return Err(anyhow!("Value for 'multipleOf' must be non-negative"));
         }
-        let mut value = value;
-        let mut exp = 0;
-        while value.fract() != 0.0 {
-            value *= 10.0;
-            exp += 1;
-        }
-        if value > u32::MAX as f64 {
-            return Err(anyhow!(
-                "Value for 'multipleOf' has too many digits: {}",
+        // Take the digits from the shortest representation that round-trips;
+        // multiplying by 10 adds rounding error (0.07 * 10 * 10 is not 7.0).
+        // Display for f64 never uses an exponent, and abs() turns -0.0 into 0.
+        let repr = value.abs().to_string();
+        let (int_part, frac_part) = repr.split_once('.').unwrap_or((&repr, ""));
+        let decimal = format!("{int_part}{frac_part}")
+            .parse::<u32>()
+            .ok()
+            .map(|coef| Decimal::new(coef, frac_part.len() as u32));
+        // derivre's MultipleOf computes remainder * 10 + digit * 10^exp in u32,
+        // with remainder up to coef, so reject values where that can overflow.
+        let fits = |d: &Decimal| {
+            10u32
+                .checked_pow(d.exp)
+                .and_then(|p| p.checked_mul(9))
+                .and_then(|p| d.coef.checked_mul(10)?.checked_add(p))
+                .is_some()
+        };
+        match decimal {
+            Some(d) if fits(&d) => Ok(d),
+            _ => Err(anyhow!(
+                "Value for 'multipleOf' has too many digits: {:?}",
                 value
-            ));
+            )),
         }
-        Ok(Decimal::new(value as u32, exp))
     }
 }
 
@@ -973,9 +985,45 @@ mod test_decimal {
                     exp: 2,
                 },
             ),
+            (0.07, Decimal { coef: 7, exp: 2 }),
+            (0.14, Decimal { coef: 14, exp: 2 }),
+            (0.57, Decimal { coef: 57, exp: 2 }),
+            (0.0003, Decimal { coef: 3, exp: 4 }),
+            (1.23, Decimal { coef: 123, exp: 2 }),
+            // largest values that keep derivre's u32 arithmetic in range
+            (
+                3.39496729,
+                Decimal {
+                    coef: 339496729,
+                    exp: 8,
+                },
+            ),
+            (
+                429496728.0,
+                Decimal {
+                    coef: 429496728,
+                    exp: 0,
+                },
+            ),
         ];
         for (f, d) in cases {
             assert_eq!(Decimal::try_from(f).unwrap(), d);
+        }
+    }
+
+    #[test]
+    fn test_from_f64_too_many_digits() {
+        for f in [
+            4294967296.0,
+            1e20,
+            429496729.0,
+            3.39496731,
+            0.123456789,
+            1e-9,
+            1e-12,
+            5e-324,
+        ] {
+            assert!(Decimal::try_from(f).is_err(), "{f}");
         }
     }
 
