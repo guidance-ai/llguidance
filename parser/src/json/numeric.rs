@@ -312,13 +312,18 @@ fn lexi_range(ld: &str, rd: &str, ld_incl: bool, rd_incl: bool) -> Result<String
         if l0 == r0 {
             let ld_rest = &ld[1..];
             let rd_rest = &rd[1..];
-            Ok(format!(
-                "{}{}",
-                ld.chars()
-                    .next()
-                    .ok_or_else(|| anyhow!("ld is unexpectedly empty"))?,
-                lexi_range(ld_rest, rd_rest, ld_incl, rd_incl)?
-            ))
+            let first = ld
+                .chars()
+                .next()
+                .ok_or_else(|| anyhow!("ld is unexpectedly empty"))?;
+            let rest = lexi_range(ld_rest, rd_rest, ld_incl, rd_incl)?;
+            if ld_incl && ld_rest.chars().all(|c| c == '0') {
+                // ld may be zero-padded to the length of rd; the remaining
+                // digits are then optional, since stopping here equals ld
+                Ok(format!("{first}({rest})?"))
+            } else {
+                Ok(format!("{first}{rest}"))
+            }
         } else {
             if l0 >= r0 {
                 return Err(anyhow!("l0 must be less than r0"));
@@ -413,7 +418,7 @@ pub fn rx_float_range(
                     right
                 ));
             }
-            if left == right {
+            let rx = if left == right {
                 if left_inclusive && right_inclusive {
                     Ok(format!("({})", escape(&float_to_str(left))))
                 } else {
@@ -478,7 +483,7 @@ pub fn rx_float_range(
                         "\\.{}",
                         lexi_range(&ld, &rd, left_inclusive, right_inclusive)?
                     );
-                    if ld.parse::<i64>().unwrap_or(0) == 0 {
+                    if left_inclusive && ld.chars().all(|c| c == '0') {
                         Ok(format!("({left_rec}({suff})?)"))
                     } else {
                         Ok(format!("({left_rec}{suff})"))
@@ -511,6 +516,12 @@ pub fn rx_float_range(
 
                     Ok(mk_or(parts))
                 }
+            }?;
+            if left == 0.0 && left_inclusive {
+                // zero is in range, so accept it as -0 (or 0.0) too
+                Ok(mk_or(vec![rx, "-?0(\\.0+)?".to_string()]))
+            } else {
+                Ok(rx)
             }
         }
     }
@@ -790,6 +801,13 @@ mod test_ranges {
                 }
             }
         }
+
+        // -0 equals 0, so it matches exactly when zero is in range
+        let zero_in_range = left.is_none_or(|l| l < 0.0 || (l == 0.0 && left_inclusive))
+            && right.is_none_or(|r| r > 0.0 || (r == 0.0 && right_inclusive));
+        for zero in ["0", "0.0", "-0", "-0.0", "-0.00"] {
+            assert_eq!(re.is_match(zero), zero_in_range, "{zero} vs {rx:?}");
+        }
     }
 
     #[test]
@@ -797,12 +815,23 @@ mod test_ranges {
         let cases = vec![
             (Some(0.0), Some(10.0)),
             (Some(-10.0), Some(0.0)),
+            (Some(-0.5), Some(0.5)),
+            (Some(-1.5), Some(0.0)),
+            (Some(0.0), Some(2.5)),
             (Some(0.5), Some(0.72)),
             (Some(0.5), Some(1.72)),
             (Some(0.5), Some(1.32)),
             (Some(0.45), Some(0.5)),
             (Some(0.3245), Some(0.325)),
             (Some(0.443245), Some(0.44325)),
+            (Some(0.0), Some(0.05)),
+            (Some(0.1), Some(0.15)),
+            (Some(1.2), Some(1.25)),
+            (Some(10.5), Some(10.5501)),
+            (Some(0.0), Some(2.3e-7)),
+            (Some(-1.25), Some(-1.2)),
+            (Some(-0.05), Some(0.05)),
+            (None, Some(0.05)),
             (Some(1.0), Some(2.34)),
             (Some(1.33), Some(2.0)),
             (Some(1.0), Some(10.34)),

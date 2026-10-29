@@ -1,7 +1,7 @@
 use rstest::*;
 use serde_json::{json, Value};
 
-use llg_test_utils::{json_err_test, json_schema_check, NumericBounds};
+use llg_test_utils::{json_err_test, json_schema_check, lark_str_test, NumericBounds};
 
 #[test]
 fn null_schema() {
@@ -357,6 +357,76 @@ fn number_upper_bound(
 fn number_upper_bound_negative_zero() {
     let schema = &json!({"type":"number", "maximum": 0.0});
     json_schema_check(schema, &json!(-0.0), true);
+}
+
+#[rstest]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.1), true)]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.12), true)]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.15), true)]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.09), false)]
+#[case(json!({"minimum": 0.1, "maximum": 0.15}), json!(0.16), false)]
+#[case(json!({"minimum": 1.2, "maximum": 1.25}), json!(1.2), true)]
+#[case(json!({"minimum": -0.15, "maximum": -0.1}), json!(-0.1), true)]
+#[case(json!({"maximum": 0.05}), json!(0.0), true)]
+#[case(json!({"maximum": 0.05}), json!(0), true)]
+#[case(json!({"minimum": -0.05, "maximum": 0.05}), json!(0.0), true)]
+#[case(json!({"exclusiveMinimum": 0.1, "maximum": 0.15}), json!(0.1), false)]
+#[case(json!({"exclusiveMinimum": 0, "maximum": 0.05}), json!(0), false)]
+#[case(json!({"exclusiveMinimum": 1, "maximum": 1.5}), json!(1), false)]
+#[case(json!({"exclusiveMinimum": 1, "maximum": 1.5}), json!(1.0), false)]
+#[case(json!({"exclusiveMinimum": 1, "maximum": 1.5}), json!(1.25), true)]
+fn number_limits_same_integer_part(
+    #[case] bounds: Value,
+    #[case] sample_value: Value,
+    #[case] expected_pass: bool,
+) {
+    // Bounds that share their integer part, with fewer fractional digits on the left
+    let mut schema = bounds;
+    schema["type"] = json!("number");
+    json_schema_check(&schema, &sample_value, expected_pass);
+}
+
+#[rstest]
+#[case(json!({"minimum": -0.5, "maximum": 0.5}), true)]
+#[case(json!({"minimum": -1.5, "maximum": 0}), true)]
+#[case(json!({"minimum": 0, "maximum": 2.5}), true)]
+#[case(json!({"minimum": -0.5}), true)]
+#[case(json!({"minimum": 0}), true)]
+#[case(json!({"maximum": 0.5}), true)]
+#[case(json!({"exclusiveMinimum": 0, "maximum": 2.5}), false)]
+#[case(json!({"minimum": -1.5, "exclusiveMaximum": 0}), false)]
+#[case(json!({"exclusiveMinimum": 0}), false)]
+fn number_limits_negative_zero(#[case] bounds: Value, #[case] zero_in_range: bool) {
+    // -0 equals 0, so it is valid exactly when zero is in range
+    let mut schema = bounds;
+    schema["type"] = json!("number");
+    json_schema_check(&schema, &json!(-0.0), zero_in_range);
+    json_schema_check(&schema, &json!(0.0), zero_in_range);
+}
+
+#[rstest]
+#[case(r#"{"minimum": -0}"#, true)]
+#[case(r#"{"minimum": -0.0, "maximum": 0.5}"#, true)]
+#[case(r#"{"maximum": -0}"#, true)]
+#[case(r#"{"minimum": -0.5, "maximum": -0.0}"#, true)]
+#[case(r#"{"minimum": -0, "maximum": 0}"#, true)]
+#[case(r#"{"minimum": 0, "maximum": -0}"#, true)]
+#[case(r#"{"minimum": -0.0, "maximum": -0}"#, true)]
+#[case(r#"{"exclusiveMinimum": -0, "maximum": 0.5}"#, false)]
+#[case(r#"{"minimum": -0.5, "exclusiveMaximum": -0.0}"#, false)]
+fn number_limits_negative_zero_bound(#[case] bounds: &str, #[case] zero_in_range: bool) {
+    // Parse schema text so the bound is actually written as -0 or -0.0.
+    let mut schema: Value = bounds.parse().unwrap();
+    schema["type"] = json!("number");
+    if zero_in_range {
+        // Also compile the original spelling, before serde_json normalizes -0.
+        let grammar = format!("start: %json {{\"type\":\"number\",{}", &bounds[1..]);
+        lark_str_test(&grammar, true, "-0", true);
+    }
+    for zero in ["0", "0.0", "-0", "-0.0"] {
+        let value: Value = zero.parse().unwrap();
+        json_schema_check(&schema, &value, zero_in_range);
+    }
 }
 
 #[rstest]
