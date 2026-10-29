@@ -489,6 +489,33 @@ fn number_limits_inc_excl_failures(#[case] sample_value: &Value) {
 }
 
 #[rstest]
+#[case(json!({"maximum": 0.25}), json!(0.2), true)]
+#[case(json!({"maximum": 0.25}), json!(0.25), true)]
+#[case(json!({"maximum": 0.25}), json!(0.26), false)]
+#[case(json!({"maximum": 0.25}), json!(0.3), false)]
+#[case(json!({"exclusiveMaximum": 0.25}), json!(0.2), true)]
+#[case(json!({"exclusiveMaximum": 0.25}), json!(0.25), false)]
+#[case(json!({"maximum": 0.205}), json!(0.2), true)]
+#[case(json!({"maximum": 12.34}), json!(12.3), true)]
+#[case(json!({"maximum": 12.34}), json!(12.4), false)]
+#[case(json!({"maximum": 99.99}), json!(99.9), true)]
+#[case(json!({"minimum": 0.1, "maximum": 0.25}), json!(0.2), true)]
+#[case(json!({"minimum": 0, "maximum": 1.25}), json!(1.2), true)]
+#[case(json!({"minimum": -12.34}), json!(-12.3), true)]
+#[case(json!({"minimum": -12.34}), json!(-12.4), false)]
+#[case(json!({"exclusiveMinimum": -12.34}), json!(-12.3), true)]
+fn number_bound_with_more_fractional_digits(
+    #[case] bounds: Value,
+    #[case] sample_value: Value,
+    #[case] expected_pass: bool,
+) {
+    // A value that is a prefix of the bound, like 0.2 for 0.25, is still in range
+    let mut schema = bounds;
+    schema["type"] = json!("number");
+    json_schema_check(&schema, &sample_value, expected_pass);
+}
+
+#[rstest]
 fn number_limits_incompatible(
     #[values("minimum", "exclusiveMinimum")] min_type: &str,
     #[values("maximum", "exclusiveMaximum")] max_type: &str,
