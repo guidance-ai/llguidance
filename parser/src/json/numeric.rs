@@ -265,12 +265,17 @@ fn lexi_0_to_x(x: &str, incl: bool) -> Result<String> {
             return Ok(format!("[0-{}][0-9]*", x0 - 1));
         }
 
+        let mut rest = lexi_0_to_x(x_rest, incl)?;
+        if x_rest.chars().any(|c| c != '0') {
+            // stopping right after x0 gives a number below x, e.g. "2" for "25"
+            rest = format!("({rest})?");
+        }
         let mut parts = vec![format!(
             "{}{}",
             x.chars()
                 .next()
                 .ok_or_else(|| anyhow!("String x is unexpectedly empty"))?,
-            lexi_0_to_x(x_rest, incl)?
+            rest
         )];
         if x0 > 0 {
             parts.push(format!("[0-{}][0-9]*", x0 - 1));
@@ -331,12 +336,17 @@ fn lexi_range(ld: &str, rd: &str, ld_incl: bool, rd_incl: bool) -> Result<String
             }
             let rd_rest = rd[1..].trim_end_matches('0');
             if !rd_rest.is_empty() || rd_incl {
+                let mut rest = lexi_0_to_x(rd_rest, rd_incl)?;
+                if !rd_rest.is_empty() {
+                    // rd_rest has no trailing zeros, so stopping at r0 is below rd
+                    rest = format!("({rest})?");
+                }
                 parts.push(format!(
                     "{}{}",
                     rd.chars()
                         .next()
                         .ok_or_else(|| anyhow!("rd is unexpectedly empty"))?,
-                    lexi_0_to_x(rd_rest, rd_incl)?
+                    rest
                 ));
             }
             Ok(mk_or(parts))
@@ -736,13 +746,23 @@ mod test_ranges {
 
         let eps1 = 0.0000001;
         let eps2 = 0.01;
-        let test_cases = vec![
+        let mut test_cases = vec![
             left.unwrap_or(-1000.0),
             right.unwrap_or(1000.0),
             0.0,
             left_int.unwrap_or(-1000) as f64,
             right_int.unwrap_or(1000) as f64,
         ];
+        // The offsets below keep the number of fractional digits, so also
+        // try each bound cut short, e.g. 0.2 and 0.25 for a bound of 0.253
+        for bound in [left, right].into_iter().flatten() {
+            let s = bound.to_string();
+            if let Some(dot) = s.find('.') {
+                for end in dot + 2..s.len() {
+                    test_cases.push(s[..end].parse().unwrap());
+                }
+            }
+        }
         for x in test_cases {
             for offset in [0.0, -eps1, eps1, -eps2, eps2, 1.0, -1.0].iter() {
                 let n = x + offset;
@@ -791,6 +811,9 @@ mod test_ranges {
             (Some(-17.23), Some(-1.33)),
             (Some(-1.23), Some(-1.221)),
             (Some(-10.2), Some(45293.9)),
+            (Some(0.1), Some(0.25)),
+            (Some(0.0), Some(1.25)),
+            (Some(0.21), Some(0.253)),
             (None, Some(0.0)),
             (None, Some(1.0)),
             (None, Some(1.5)),
@@ -800,6 +823,10 @@ mod test_ranges {
             (None, Some(-1.23)),
             (None, Some(103.74)),
             (None, Some(100.0)),
+            (None, Some(0.25)),
+            (None, Some(0.205)),
+            (None, Some(12.34)),
+            (None, Some(99.99)),
             (Some(0.0), None),
             (Some(1.0), None),
             (Some(1.5), None),
@@ -809,6 +836,8 @@ mod test_ranges {
             (Some(-1.23), None),
             (Some(103.74), None),
             (Some(100.0), None),
+            (Some(-0.25), None),
+            (Some(-12.34), None),
             (None, None),
             (Some(-103.4), Some(-103.4)),
             (Some(-27.0), Some(-27.0)),
