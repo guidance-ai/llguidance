@@ -1,0 +1,27 @@
+[package]
+name = "llguidance_c"
+version = "0.1.0"
+edition = "2021"
+publish = false
+rust-version.workspace = true
+
+[lib]
+name = "llguidance"
+crate-type = ["staticlib", "cdylib"]
+
+[features]
+default = ["rayon"]
+rayon = ["llguidance/rayon"]
+# Regenerate c/llguidance.h: cargo check -p llguidance_c --features generate-header
+generate-header = ["dep:cbindgen"]
+
+[dependencies]
+llguidance = { workspace = true, default-features = false, features = [
+    "lark",
+    "referencing",
+    "ahash",
+    "ffi-export-symbols",
+] }
+
+[build-dependencies]
+cbindgen = { version = "0.29", optional = true }
