@@ -1,7 +1,7 @@
 use rstest::*;
 use serde_json::{json, Value};
 
-use llg_test_utils::json_schema_check;
+use llg_test_utils::{json_err_test, json_schema_check};
 
 #[rstest]
 fn const_null() {
@@ -88,4 +88,64 @@ fn enum_check(#[case] sample: &Value, #[case] expected_pass: bool) {
     let schema = json!({"enum": [6, 9, 13]});
 
     json_schema_check(&schema, sample, expected_pass);
+}
+
+#[test]
+fn fixed_string_with_pattern_and_length_limits() {
+    let value = "A".repeat(88);
+    let schema = json!({
+        "enum": [value],
+        "pattern": r"\S",
+        "minLength": 1,
+        "maxLength": 1000
+    });
+    json_schema_check(&schema, &json!(value), true);
+}
+
+#[test]
+fn impossible_fixed_string_length_preserves_other_any_of_options() {
+    let schema = json!({"anyOf": [
+        {"const": "A".repeat(10_001), "pattern": "^A*$", "maxLength": 1},
+        {"const": "ok"}
+    ]});
+    json_schema_check(&schema, &json!("ok"), true);
+    json_schema_check(&schema, &json!("A"), false);
+}
+
+#[test]
+fn fixed_unicode_string_with_nested_patterns() {
+    let value = "é🦀".repeat(44);
+    let schema = json!({
+        "allOf": [
+            {"pattern": r"\S+", "minLength": 88, "maxLength": 88},
+            {"allOf": [{"const": value}, {"pattern": "^é"}]},
+            {"pattern": "🦀$"}
+        ]
+    });
+    json_schema_check(&schema, &json!(value), true);
+}
+
+#[test]
+fn fixed_string_with_long_matching_pattern() {
+    let suffix = "A".repeat(10_000);
+    let value = format!("A{suffix}");
+    let schema = json!({
+        "const": value,
+        "pattern": format!("^[AB]{suffix}$")
+    });
+    json_schema_check(&schema, &json!(value), true);
+    json_schema_check(&schema, &json!(format!("B{suffix}")), false);
+}
+
+#[rstest]
+#[case::pattern(json!({"const": "A B", "pattern": r"^\S+$"}), "Regex is empty")]
+#[case::nested_pattern(json!({
+    "allOf": [{"const": "é🦀"}, {"allOf": [{"pattern": "^é"}, {"pattern": "A$"}]}]
+}), "Regex is empty")]
+#[case::literals(json!({"allOf": [{"const": "A"}, {"const": "B"}]}), "Regex is empty")]
+#[case::minimum(json!({"const": "é🦀", "pattern": r"\S+", "minLength": 3}), "doesn't match length constraints")]
+#[case::maximum(json!({"const": "é🦀", "pattern": r"\S+", "maxLength": 1}), "doesn't match length constraints")]
+#[case::malformed_pattern_before_length(json!({"const": "A", "pattern": "(", "minLength": 2}), "unclosed group")]
+fn fixed_string_with_conflicting_constraints(#[case] schema: Value, #[case] error: &str) {
+    json_err_test(&schema, error);
 }
