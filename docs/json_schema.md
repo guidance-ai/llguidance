@@ -11,6 +11,78 @@ However, we've successfully processed schemas up to 4 MB in size.
 For features that are not fully supported, we provide percentages of support among
 the 11k [maskbench](https://github.com/guidance-ai/jsonschemabench/tree/main/maskbench) schemas.
 
+## Output encoding
+
+`JsonCompileOptions.style` selects the root encoding: `json` (the default), or
+`qwen_xml` for Qwen XML parameter lists. The option also works through `x-guidance`
+in a schema embedded with `%json`:
+
+```lark
+start: "<call>" arguments "</call>"
+arguments: %json {
+    "x-guidance": {"style": "qwen_xml"},
+    "type": "object",
+    "properties": {"name": {"type": "string"}},
+    "required": ["name"],
+    "additionalProperties": false
+}
+```
+
+The `qwen_xml` encoding uses `<parameter=name>value</parameter>` for the
+root object's properties. String values are raw text; other values use JSON,
+including objects and arrays nested in parameter values. It preserves schema
+defaults, including allowing extra properties when `additionalProperties` is
+omitted. Top-level `additionalProperties` supports `true` and `false`, including
+schemas that simplify to them. Constraints on extra parameter values are
+currently unsupported.
+
+`grammar_from_tools(..., format="qwen3_coder")` supplies the surrounding Lark
+grammar for calls, thinking, and markers. Its strict-tool policy treats omitted
+top-level `additionalProperties` as false before using the parameter encoder.
+These policies are separate from the encoding option.
+
+Declared parameters follow schema order, with optional parameters skippable and
+no repeated declared names. Additional parameters follow the declared ones;
+their names may repeat. Top-level `patternProperties` and `minProperties` or
+`maxProperties` with optional declared parameters are currently unsupported.
+Nested JSON values use the existing JSON compiler and its supported features.
+
+Raw strings preserve whitespace, except for one leading and one trailing LF
+used as formatting padding. String constraints apply after removing this padding.
+A string value that itself starts or ends with LF needs an additional LF at that
+edge. Raw strings cannot contain their closing `</parameter>` delimiter.
+
+Boolean and null parameter values allow at most one LF before and after the
+literal, with no other surrounding whitespace. Number parameter values allow
+surrounding JSON whitespace.
+
+The tool helper returns Lark text; construct a matcher with a tokenizer to use it.
+Its `special_tokens` option selects protocol markers that additionally accept
+special-token forms. `None` uses the format defaults, while `[]` uses ordinary
+text markers only. The helper validates tool definitions and schema structure;
+constructing the matcher performs the final grammar and tokenizer checks.
+
+For text-heavy tool calls, configure the tokenizer's existing
+[slicer optimization](optimizations.md#slicer-optimization) once at initialization.
+The default slices target JSON strings. These additional slices let the tool
+grammar skip most vocabulary traversal inside ordinary text, reasoning,
+unconstrained raw parameters, and function names:
+
+```python
+slices = [
+    rf"{chars}{bound}"
+    for chars in [r"[^<>\s]", r"[^<]"]
+    for bound in ["{1,10}", "{1,30}", "+"]
+] + llguidance.LLTokenizer.general_slices()
+tokenizer = tokenizer.with_slices(slices)
+matcher = llguidance.LLMatcher(tokenizer, grammar)
+```
+
+Reuse the configured tokenizer across requests. Slices change performance, not
+accepted text; constrained strings and positions near delimiters may still need
+vocabulary traversal. The grammar uses the existing matcher, including its
+speculative mask computation, copying, and rollback APIs.
+
 ## Supported JSON schema features
 
 Following JSON schema features are supported.
