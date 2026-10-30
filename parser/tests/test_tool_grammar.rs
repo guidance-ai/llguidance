@@ -760,3 +760,111 @@ fn rollback_and_copy_preserve_value_masks_and_incomplete_call_eos() {
     assert!(copy.is_accepting().unwrap());
     assert_eq!(matcher.compute_mask().unwrap(), before);
 }
+
+const OBJECT_A: &str = r###"{"type": "object", "properties": {"a": {"type": "integer"}}, "required": ["a"], "additionalProperties": false}"###;
+const OBJECT_B: &str = r###"{"type": "object", "properties": {"b": {"type": "string"}}, "required": ["b"], "additionalProperties": false}"###;
+
+fn check_value_schema(value: Value, root: Value, valid: &[&str], invalid: &[&str]) {
+    let mut parameters =
+        json!({"type": "object", "properties": {"value": value}, "required": ["value"]});
+    parameters
+        .as_object_mut()
+        .unwrap()
+        .extend(root.as_object().unwrap().clone());
+    let mut definition = tool("sample", true);
+    definition["function"]["parameters"] = parameters;
+    let grammar =
+        grammar_from_tools(&json!([definition]), "qwen3_coder", false, Some(&[])).unwrap();
+    let factory = factory(&[]);
+    for (texts, expected) in [(valid, true), (invalid, false)] {
+        for text in texts {
+            assert_eq!(
+                accepts(
+                    &factory,
+                    &grammar,
+                    &value_call(&format!("\n{text}\n")),
+                    false
+                ),
+                expected,
+                "{text:?}"
+            );
+        }
+    }
+}
+
+fn object(text: &str) -> Value {
+    serde_json::from_str(text).unwrap()
+}
+
+#[rstest]
+#[case::ref_number(json!({"$ref": "#/$defs/n"}), json!({"$defs": {"n": {"type": "integer", "minimum": 1, "maximum": 5}}}), &["1", "5"], &["0", "6", "1.5", "\"3\""])]
+#[case::ref_boolean(json!({"$ref": "#/$defs/b"}), json!({"$defs": {"b": {"type": "boolean"}}}), &["true", "false"], &["yes", "\"true\""])]
+#[case::ref_object(json!({"$ref": "#/$defs/o"}), json!({"$defs": {"o": object(OBJECT_A)}}), &[r#"{"a":1}"#], &[r#"{"a":"x"}"#, "{}", r#"{"a":1,"b":2}"#])]
+#[case::ref_array(json!({"$ref": "#/$defs/l"}), json!({"$defs": {"l": {"type": "array", "items": {"enum": ["x", "y"]}, "minItems": 1}}}), &[r#"["x"]"#, r#"["x","y"]"#], &["[]", r#"["z"]"#])]
+#[case::ref_chain(json!({"$ref": "#/$defs/a"}), json!({"$defs": {"a": {"$ref": "#/$defs/b"}, "b": {"type": "string", "enum": ["ok"]}}}), &["ok"], &["no"])]
+#[case::definitions_keyword(json!({"$ref": "#/definitions/s"}), json!({"definitions": {"s": {"type": "string", "pattern": "^[0-9]+$"}}}), &["123"], &["12a"])]
+#[case::ref_with_sibling(json!({"$ref": "#/$defs/s", "maxLength": 3}), json!({"$defs": {"s": {"type": "string", "pattern": "^[a-z]+$"}}}), &["abc"], &["abcd", "ab1"])]
+#[case::anyof_refs(json!({"anyOf": [{"$ref": "#/$defs/auto"}, {"$ref": "#/$defs/count"}]}), json!({"$defs": {"auto": {"const": "auto"}, "count": {"type": "integer", "minimum": 0}}}), &["auto", "0", "7"], &["-1", "manual"])]
+#[case::anyof_object_array(json!({"anyOf": [object(OBJECT_A), {"type": "array", "items": {"type": "integer"}}]}), json!({}), &[r#"{"a":1}"#, "[1,2]"], &[r#"{"a":"x"}"#, r#"["x"]"#, "1"])]
+#[case::anyof_integer_array(json!({"anyOf": [{"type": "integer"}, {"type": "array", "items": {"type": "integer"}}]}), json!({}), &["3", "[3]"], &["x", r#"["3"]"#])]
+#[case::anyof_two_objects(json!({"anyOf": [object(OBJECT_A), object(OBJECT_B)]}), json!({}), &[r#"{"a":1}"#, r#"{"b":"x"}"#], &[r#"{"c":1}"#, r#"{"a":"x"}"#])]
+#[case::oneof_containers(json!({"oneOf": [{"type": "array", "items": {"type": "integer"}}, {"type": "object"}]}), json!({}), &["[1]", "{}"], &["1"])]
+#[case::nullable_object(json!({"type": ["object", "null"], "properties": {"a": {"type": "integer"}}, "required": ["a"], "additionalProperties": false}), json!({}), &[r#"{"a":1}"#, "null"], &["{}", "\"null\""])]
+#[case::nullable_array(json!({"anyOf": [{"type": "array", "items": {"type": "integer"}}, {"type": "null"}]}), json!({}), &["[1]", "null"], &[r#"["a"]"#])]
+#[case::nullable_ref_object(json!({"anyOf": [{"$ref": "#/$defs/o"}, {"type": "null"}]}), json!({"$defs": {"o": object(OBJECT_A)}}), &[r#"{"a":1}"#, "null"], &[r#"{"a":"x"}"#])]
+#[case::allof_objects(json!({"allOf": [{"type": "object", "properties": {"a": {"type": "integer"}}, "required": ["a"]}, {"properties": {"a": {"maximum": 3}}}]}), json!({}), &[r#"{"a":3}"#], &[r#"{"a":4}"#, "{}"])]
+#[case::const_object(json!({"const": {"a": 1}}), json!({}), &[r#"{"a":1}"#], &[r#"{"a":2}"#])]
+#[case::enum_arrays(json!({"enum": [[1, 2], [3]]}), json!({}), &["[1,2]", "[3]"], &["[2,1]"])]
+fn structural_value_schemas(
+    #[case] value: Value,
+    #[case] root: Value,
+    #[case] valid: &[&str],
+    #[case] invalid: &[&str],
+) {
+    check_value_schema(value, root, valid, invalid);
+}
+
+#[rstest]
+#[case::decimal_string_lengths(json!({"type": "string", "minLength": 2.0, "maxLength": 3.0}), &["ab", "abc"], &["a", "abcd"])]
+#[case::decimal_item_counts(json!({"type": "array", "items": {"type": "integer"}, "minItems": 1.0, "maxItems": 2.0}), &["[1]", "[1,2]"], &["[]", "[1,2,3]"])]
+#[case::nested_pattern_properties(json!({"type": "object", "patternProperties": {"^a": {"type": "integer"}}, "additionalProperties": false}), &[r#"{"ab":1}"#], &[r#"{"ab":"x"}"#, r#"{"b":1}"#])]
+#[case::nested_id_annotation(json!({"type": "object", "$id": "urn:example:object", "properties": {"a": {"type": "integer"}}, "required": ["a"], "additionalProperties": false}), &[r#"{"a":1}"#], &[r#"{"a":"x"}"#])]
+#[case::string_or_object(json!({"anyOf": [{"type": "string"}, object(OBJECT_A)]}), &["hello", r#"{"a":1}"#, "{ not json"], &["a </parameter> b"])]
+#[case::enum_or_object(json!({"anyOf": [{"type": "string", "enum": ["auto"]}, object(OBJECT_A)]}), &["auto", r#"{"a":1}"#], &["manual", r#"{"a":"x"}"#])]
+fn matches_json_compiler_support(
+    #[case] value: Value,
+    #[case] valid: &[&str],
+    #[case] invalid: &[&str],
+) {
+    check_value_schema(value, json!({}), valid, invalid);
+}
+
+#[test]
+fn decimal_property_counts() {
+    let mut definition = tool("sample", true);
+    definition["function"]["parameters"] = json!({
+        "type": "object", "properties": {"count": {"type": "integer"}}, "required": ["count"],
+        "additionalProperties": true, "minProperties": 2.0, "maxProperties": 2.0
+    });
+    let grammar =
+        grammar_from_tools(&json!([definition]), "qwen3_coder", false, Some(&[])).unwrap();
+    let factory = factory(&[]);
+    let count = "<parameter=count>1</parameter>";
+    let extra = "<parameter=extra>x</parameter>";
+    assert!(accepts(
+        &factory,
+        &grammar,
+        &call("sample", &format!("{count}{extra}")),
+        false
+    ));
+    assert!(!accepts(&factory, &grammar, &call("sample", count), false));
+    assert!(!accepts(
+        &factory,
+        &grammar,
+        &call(
+            "sample",
+            &format!("{count}{extra}<parameter=more>y</parameter>")
+        ),
+        false
+    ));
+}
