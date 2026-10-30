@@ -1198,6 +1198,7 @@ fn mk_object_schema(obj: ObjectSchema) -> Schema {
 }
 
 fn literal_matches(lit: &str, rx: &RegexAst) -> Option<bool> {
+    // Check intersection emptiness to bound the work; is_match() has no fuel limit.
     let mut builder = RegexBuilder::new();
     let e = builder
         .mk(&RegexAst::And(vec![
