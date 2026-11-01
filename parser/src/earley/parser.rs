@@ -98,6 +98,50 @@ pub struct ParserStats {
     pub lexer_ops: usize,
     pub num_lex_errors: usize,
     pub num_lexemes: usize,
+
+    /// Optional research counters, including speculative work and cache misses.
+    #[cfg(feature = "completion-stats")]
+    #[serde(default)]
+    pub completion: CompletionStats,
+}
+
+/// Work performed by the main (non-nullable) completion inference loop.
+/// Counts include repeated/speculative work, not just the final accepted chart.
+#[cfg(feature = "completion-stats")]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct CompletionStats {
+    pub searches: u64,
+    /// Candidates actually visited, including candidates that do not match.
+    pub candidates: u64,
+    /// Matching candidates before item deduplication.
+    pub matches: u64,
+    pub max_origin_row_items: usize,
+    /// Largest row passed to just_push_row, including speculative rows.
+    pub max_row_items: usize,
+}
+
+#[cfg(feature = "completion-stats")]
+impl CompletionStats {
+    fn delta(&self, previous: &Self) -> Self {
+        Self {
+            searches: self.searches.saturating_sub(previous.searches),
+            candidates: self.candidates.saturating_sub(previous.candidates),
+            matches: self.matches.saturating_sub(previous.matches),
+            // High-water marks cannot be subtracted to obtain interval maxima.
+            max_origin_row_items: self.max_origin_row_items,
+            max_row_items: self.max_row_items,
+        }
+    }
+
+    fn max(&self, other: &Self) -> Self {
+        Self {
+            searches: self.searches.max(other.searches),
+            candidates: self.candidates.max(other.candidates),
+            matches: self.matches.max(other.matches),
+            max_origin_row_items: self.max_origin_row_items.max(other.max_origin_row_items),
+            max_row_items: self.max_row_items.max(other.max_row_items),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -126,6 +170,8 @@ impl ParserStats {
             trie_nodes_walked: self
                 .trie_nodes_walked
                 .saturating_sub(previous.trie_nodes_walked),
+            #[cfg(feature = "completion-stats")]
+            completion: self.completion.delta(&previous.completion),
         }
     }
 
@@ -142,6 +188,8 @@ impl ParserStats {
             compute_time_us: self.compute_time_us.max(other.compute_time_us),
             slices_applied: self.slices_applied.max(other.slices_applied),
             trie_nodes_walked: self.trie_nodes_walked.max(other.trie_nodes_walked),
+            #[cfg(feature = "completion-stats")]
+            completion: self.completion.max(&other.completion),
         }
     }
 }
@@ -2059,12 +2107,29 @@ impl ParserState {
                     // if item.start_pos() == curr_idx, then we handled it below in the nullable check
 
                     // The main completion inference rule (slide 21 in Kallmeyer 2018)
+                    #[cfg(feature = "completion-stats")]
+                    {
+                        self.stats.completion.searches += 1;
+                        self.stats.completion.max_origin_row_items = self
+                            .stats
+                            .completion
+                            .max_origin_row_items
+                            .max(self.rows[item.start_pos()].item_indices().len());
+                    }
                     for i in self.rows[item.start_pos()].item_indices() {
                         if self.is_cancelled() {
                             return;
                         }
                         let item = self.scratch.items[i];
+                        #[cfg(feature = "completion-stats")]
+                        {
+                            self.stats.completion.candidates += 1;
+                        }
                         if self.grammar.sym_idx_dot(item.rhs_ptr()) == lhs {
+                            #[cfg(feature = "completion-stats")]
+                            {
+                                self.stats.completion.matches += 1;
+                            }
                             self.scratch.add_unique(item.advance_dot(), i, "complete");
                         }
                         #[cfg(test)]
@@ -2156,6 +2221,11 @@ impl ParserState {
             return false;
         }
         let row_len = self.scratch.row_len();
+
+        #[cfg(feature = "completion-stats")]
+        {
+            self.stats.completion.max_row_items = self.stats.completion.max_row_items.max(row_len);
+        }
 
         self.stats.rows += 1;
 

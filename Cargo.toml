@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "completion_bench",
     "python_ext",
     "parser",
     "sample_parser",
