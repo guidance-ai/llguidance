@@ -483,19 +483,6 @@ impl RegexCompiler {
 }
 
 #[pyfunction]
-#[pyo3(signature = (tools, *, format, initial_reasoning = false, special_tokens = None))]
-fn grammar_from_tools(
-    tools: Bound<'_, PyAny>,
-    format: &str,
-    initial_reasoning: bool,
-    special_tokens: Option<Vec<String>>,
-) -> PyResult<String> {
-    let tools = crate::pyjson::to_json_value(tools)?;
-    llguidance::grammar_from_tools(&tools, format, initial_reasoning, special_tokens.as_deref())
-        .map_err(|e| PyValueError::new_err(format!("{e:#}")))
-}
-
-#[pyfunction]
 #[pyo3(signature = (regex, use_ascii = None))]
 fn regex_to_lark(regex: &str, use_ascii: Option<&str>) -> String {
     llguidance::regex_to_lark(regex, use_ascii.unwrap_or(""))
@@ -516,7 +503,6 @@ pub(crate) fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<JsonCompiler>()?;
     m.add_class::<LarkCompiler>()?;
     m.add_class::<RegexCompiler>()?;
-    m.add_function(wrap_pyfunction!(grammar_from_tools, m)?)?;
     m.add_function(wrap_pyfunction!(regex_to_lark, m)?)?;
     m.add_function(wrap_pyfunction!(get_version, m)?)?;
     Ok(())

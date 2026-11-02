@@ -1,33 +1,18 @@
-//! The Qwen3-Coder tool-call format:
+//! Qwen3-Coder parameter encoding: `<parameter=NAME>VALUE</parameter>`.
 //!
-//! ```text
-//! <tool_call>
-//! <function=NAME>
-//! <parameter=NAME>
-//! VALUE
-//! </parameter>
-//! </function>
-//! </tool_call>
-//! ```
+//! Raw strings are Lark terminals; JSON values use ordinary `%json`. Scalar
+//! alternatives to raw strings share a terminal with the closing tag so greedy
+//! lexing cannot discard a shorter scalar match.
 //!
-//! The helper supplies the call envelope, reasoning regions, and marker handling.
-//! Parameter tags and raw strings are Lark rules; JSON values use ordinary `%json`.
-//! Scalar alternatives to raw strings share a Lark terminal with the closing tag
-//! so greedy lexing cannot discard a shorter scalar match.
-//! An unrestricted string alternative, from `anyOf` or a type list, covers the
-//! others without JSON rules. `oneOf` with overlapping string/container encodings
-//! is unsupported.
-//! Constrained string/numeric `multipleOf` and constrained strings overlapping a
-//! JSON container's opening prefix are unsupported. Standalone JSON retains its
-//! usual constraints.
-//! For strict tools, omitted top-level `additionalProperties` is treated as
-//! `false`. Parameters follow schema order, with optional ones skippable. The
-//! reference Qwen3-Coder parser strips one leading and one trailing LF from each
-//! parameter value; other whitespace remains part of a string. Strings cannot
-//! contain their closing `</parameter>` delimiter.
+//! Parameters follow schema order, with optional ones skippable and additional
+//! parameters allowed by default. The reference Qwen3-Coder parser strips one
+//! leading and one trailing LF from each value; other whitespace belongs to the
+//! string. Strings cannot contain their closing `</parameter>` delimiter.
 //!
-//! The default special-token markers are `<tool_call>`, `</tool_call>`, `<think>`,
-//! and `</think>`.
+//! An unrestricted string alternative covers other `anyOf` alternatives without
+//! JSON rules. Overlapping raw string/container `oneOf` encodings, constrained
+//! strings overlapping container prefixes, and constrained string/numeric
+//! `multipleOf` are unsupported. Standalone JSON retains its usual constraints.
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use indexmap::IndexSet;
@@ -41,140 +26,9 @@ use super::{
 use crate::{json::schema::build_schema, HashMap};
 use derivre::RegexAst;
 
-pub(super) fn grammar_from_tools(
-    tools: &Value,
-    initial_reasoning: bool,
-    special_tokens: Option<&[String]>,
-) -> Result<String> {
-    const MARKERS: [&str; 4] = ["<tool_call>", "</tool_call>", "<think>", "</think>"];
-    let special: IndexSet<&str> = match special_tokens {
-        None => MARKERS.into_iter().collect(),
-        Some(names) => {
-            for name in names {
-                ensure!(
-                    MARKERS.contains(&name.as_str()),
-                    "Unknown special token marker: {name}"
-                );
-            }
-            names.iter().map(String::as_str).collect()
-        }
-    };
-    let tools = tools
-        .as_array()
-        .ok_or_else(|| anyhow!("tools must be an array"))?;
-    let mut names = IndexSet::new();
-    let mut strict = Vec::new();
-    for tool in tools {
-        ensure!(
-            tool.get("type").and_then(Value::as_str) == Some("function"),
-            "Expected a function tool"
-        );
-        let function = tool
-            .get("function")
-            .and_then(Value::as_object)
-            .ok_or_else(|| anyhow!("Missing function definition"))?;
-        let name = function
-            .get("name")
-            .and_then(Value::as_str)
-            .ok_or_else(|| anyhow!("Missing function name"))?;
-        ensure!(
-            !name.is_empty()
-                && !name
-                    .chars()
-                    .any(|ch| ch.is_whitespace() || ch == '<' || ch == '>'),
-            "Invalid function name: {name:?}"
-        );
-        ensure!(names.insert(name), "Duplicate function name: {name}");
-        if function.get("strict") == Some(&Value::Bool(true)) {
-            let schema = function
-                .get("parameters")
-                .cloned()
-                .unwrap_or_else(|| json!({"type": "object", "additionalProperties": false}));
-            strict.push((name, schema));
-        }
-    }
-    if strict.is_empty() {
-        return Ok("start: <[*]>*\n".to_string());
-    }
-
-    let mut grammar = String::from("%llguidance {\"ignore_once\":true}\n");
-    writeln!(
-        grammar,
-        "start: {} response",
-        if initial_reasoning { "thought" } else { "" }
-    )?;
-    // Separate safe-text lexemes let the slicer skip ordinary text tokens.
-    // Delimiter-aware lexemes handle the remaining tokens without lazy matching.
-    grammar.push_str(
-        r#"
-response: (tool_head function | think_head thought)* (TEXT | SAFE)
-TEXT: /(?s:.*)/ & ~/(?s:.*)(<tool_call>|<think>)(?s:.*)/
-SAFE: /[^<]*/
-THOUGHT_TEXT: /(?s:.*)/ & ~/(?s:.*)<\/think>(?s:.*)/
-LOOSE_TEXT: /(?s:.*)/ & ~/(?s:.*)<\/function>(?s:.*)/
-WS: /[ \t\r\n]*/
-tool_head_text: TOOL_HEAD | SAFE_TOOL_HEAD
-TOOL_HEAD: TEXT "<tool_call>"
-SAFE_TOOL_HEAD: SAFE "<tool_call>"
-think_head_text: THINK_HEAD | SAFE_THINK_HEAD
-THINK_HEAD: TEXT "<think>"
-SAFE_THINK_HEAD: SAFE "<think>"
-thought_end: THOUGHT_END | SAFE_THOUGHT_END
-THOUGHT_END: THOUGHT_TEXT "</think>"
-SAFE_THOUGHT_END: SAFE "</think>"
-function: WS "<function=" dispatch WS tool_end
-loose_body: LOOSE_BODY | SAFE_LOOSE_BODY
-LOOSE_BODY: LOOSE_TEXT "</function>"
-SAFE_LOOSE_BODY: SAFE "</function>"
-"#,
-    );
-    for (rule, text, marker) in [
-        ("tool_head", "tool_head_text", "<tool_call>"),
-        ("think_head", "think_head_text", "<think>"),
-        ("tool_end", "\"</tool_call>\"", "</tool_call>"),
-    ] {
-        writeln!(
-            grammar,
-            "{rule}: {text}{}",
-            if special.contains(marker) {
-                format!(
-                    " | {}{marker}",
-                    if rule == "tool_end" {
-                        ""
-                    } else {
-                        "(TEXT | SAFE) "
-                    }
-                )
-            } else {
-                String::new()
-            }
-        )?;
-    }
-    let mut thought = vec!["thought_end".to_string()];
-    if special.contains("</think>") {
-        thought.push("(THOUGHT_TEXT | SAFE) </think>".to_string());
-    }
-    for marker in special.iter().filter(|&&name| name != "</think>") {
-        thought.push(format!("(THOUGHT_TEXT | SAFE) {marker} thought"));
-    }
-    writeln!(grammar, "thought: {}", thought.join(" | "))?;
-    let excluded = strict
-        .iter()
-        .map(|(name, _)| serde_json::to_string(name).unwrap())
-        .collect::<Vec<_>>()
-        .join(" | ");
-    writeln!(grammar, "UNKNOWN_NAME: /[^\\s<>]+/ & ~({excluded})")?;
-    let mut dispatch = vec!["UNKNOWN_NAME \">\" loose_body".to_string()];
-    let mut values = HashMap::default();
-    for (idx, (name, schema)) in strict.iter().enumerate() {
-        dispatch.push(format!(
-            "{} WS arguments_{idx} WS \"</function>\"",
-            serde_json::to_string(&format!("{name}>")).unwrap()
-        ));
-        parameters(&mut grammar, &mut values, idx, schema)
-            .with_context(|| format!("tool {name:?}"))?;
-    }
-    writeln!(grammar, "dispatch: {}", dispatch.join(" | "))?;
+pub(super) fn schema_to_lark(schema: &Value) -> Result<String> {
+    let mut grammar = String::from("WS: /[ \\t\\r\\n]*/\n");
+    parameters(&mut grammar, &mut HashMap::default(), schema)?;
     Ok(grammar)
 }
 
@@ -188,7 +42,6 @@ fn name_is_valid(name: &str) -> bool {
 fn parameters(
     grammar: &mut String,
     values: &mut HashMap<String, String>,
-    index: usize,
     root: &Value,
 ) -> Result<()> {
     let mut schema = root;
@@ -207,7 +60,7 @@ fn parameters(
     }
     ensure!(
         schema.get("type").and_then(Value::as_str) == Some("object"),
-        "Tool parameters require an object schema with type: object"
+        "XML parameters require an object schema with type: object"
     );
     validate_keywords(schema, false)?;
     for key in ["allOf", "anyOf", "oneOf", "const", "enum"] {
@@ -240,8 +93,8 @@ fn parameters(
             .collect::<Result<_>>()?,
     };
     let extra = match schema.get("additionalProperties") {
-        None | Some(Value::Bool(false)) => false,
-        Some(Value::Bool(true)) => true,
+        Some(Value::Bool(false)) => false,
+        None | Some(Value::Bool(true)) => true,
         _ => bail!("Schema-valued top-level additionalProperties is unsupported"),
     };
     let min = bound(schema, "minProperties")?.unwrap_or(0);
@@ -276,7 +129,7 @@ fn parameters(
             Ok(None) => bail!("parameter {name:?}: Unsatisfiable schema"),
             Err(error) => return Err(error),
         };
-        let parameter = format!("parameter_{index}_{i}");
+        let parameter = format!("parameter_{i}");
         writeln!(
             grammar,
             "{parameter}: {} {rule} WS",
@@ -295,7 +148,7 @@ fn parameters(
             .join(" | ");
         writeln!(
             grammar,
-            "EXTRA_NAME_{index}: /[^\\s<>]+/{}",
+            "EXTRA_NAME: /[^\\s<>]+/{}",
             if excluded.is_empty() {
                 String::new()
             } else {
@@ -307,18 +160,18 @@ fn parameters(
         let free = format!("({plain} | \"\\n\" {padded})");
         writeln!(
             grammar,
-            "EXTRA_HEAD_{index}: \"<parameter=\" EXTRA_NAME_{index} \">\"\nextra_{index}: EXTRA_HEAD_{index} {free} WS"
+            "EXTRA_HEAD: \"<parameter=\" EXTRA_NAME \">\"\nextra: EXTRA_HEAD {free} WS"
         )?;
         let min_extra = min.saturating_sub(required.len() as u32);
         let max_extra = max.map(|n| n.saturating_sub(required.len() as u32));
         sequence.push(format!(
-            "extra_{index}{{{min_extra},{}}}",
+            "extra{{{min_extra},{}}}",
             max_extra.map_or(String::new(), |n| n.to_string())
         ));
     }
     writeln!(
         grammar,
-        "arguments_{index}: {}",
+        "start: {}",
         if sequence.is_empty() {
             "\"\"".to_string()
         } else {

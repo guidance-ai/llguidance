@@ -9,7 +9,6 @@ from ._lib import (
     LLParserLimits,
     regex_to_lark,
     get_version,
-    grammar_from_tools,
 )
 from ._tokenizer import TokenizerWrapper
 from ._grammar_from import GrammarFormat, grammar_from
@@ -30,7 +29,6 @@ __all__ = [
     "RegexCompiler",
     "TokenizerWrapper",
     "grammar_from",
-    "grammar_from_tools",
     "GrammarFormat",
     "StructTag",
     "regex_to_lark",

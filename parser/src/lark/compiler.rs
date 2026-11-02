@@ -66,6 +66,7 @@ impl Default for Grammar {
 
 enum PendingGrammar {
     Json(serde_json::Value),
+    Xml(serde_json::Value),
     Lark(Vec<Item>),
 }
 
@@ -192,6 +193,9 @@ impl Compiler {
                 Value::Json(_) => {
                     bail!("%json literals cannot be used in terminals");
                 }
+                Value::Xml(_) => {
+                    bail!("%xml literals cannot be used in terminals");
+                }
                 Value::IntRanges(_) => {
                     bail!("%int_ranges cannot be used in terminals; use a rule instead");
                 }
@@ -289,7 +293,8 @@ impl Compiler {
         let inner = match v {
             Value::NestedLark(items) => PendingGrammar::Lark(items),
             Value::Json(json) => PendingGrammar::Json(json),
-            _ => bail!("expected %lark or %json, got {:?}", v),
+            Value::Xml(schema) => PendingGrammar::Xml(schema),
+            _ => bail!("expected %lark, %json or %xml, got {:?}", v),
         };
         let name = format!("%nested---{}", self.builder.num_nodes());
         let gg = self.builder.gen_grammar(
@@ -379,7 +384,7 @@ impl Compiler {
                             .context("invalid %int_ranges configuration")?;
                         return self.builder.int_ranges(config);
                     }
-                    Value::NestedLark(_) | Value::Json(_) => {
+                    Value::NestedLark(_) | Value::Json(_) | Value::Xml(_) => {
                         return self.do_nested(loc, value, None, NodeProps::default());
                     }
                     // special case "" literal, so it doesn't pollute grammar with epsilon regex
@@ -590,7 +595,7 @@ impl Compiler {
                     Some(Atom::Value(Value::GrammarRef(g))) => {
                         return self.gen_grammar(g, rule.temperature, props);
                     }
-                    Some(Atom::Value(Value::Json(_) | Value::NestedLark(_))) => {
+                    Some(Atom::Value(Value::Json(_) | Value::Xml(_) | Value::NestedLark(_))) => {
                         if let Some(Atom::Value(x)) = rule.expansions.take_single_atom() {
                             return self.do_nested(&rule.expansions.0, x, rule.temperature, props);
                         } else {
@@ -692,6 +697,9 @@ impl Compiler {
                 PendingGrammar::Json(json_schema) => JsonCompileOptions::default()
                     .json_to_llg_with_overrides(builder, json_schema)
                     .map_err(|e| loc.augment(anyhow!("failed to compile JSON schema: {}", e)))?,
+                PendingGrammar::Xml(schema) => crate::xml::schema_to_lark(schema)
+                    .and_then(|lark| lark_to_llguidance(builder, &lark))
+                    .map_err(|e| loc.augment(format!("failed to compile XML schema: {e:#}")))?,
                 PendingGrammar::Lark(items) => compile_lark(builder, ParsedLark { items })?,
             };
             builder = res.builder;

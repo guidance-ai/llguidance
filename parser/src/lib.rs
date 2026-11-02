@@ -47,10 +47,8 @@ pub mod panic_utils;
 mod constraint;
 mod stop_controller;
 mod tokenizer_json;
-mod tool_grammar;
 pub use constraint::{CommitResult, Constraint};
 pub use matcher::Matcher;
-pub use tool_grammar::grammar_from_tools;
 
 mod factory;
 pub use factory::ParserFactory;
@@ -79,6 +77,8 @@ pub use tokenizer_json::token_bytes_from_tokenizer_json;
 
 #[cfg(feature = "lark")]
 mod lark;
+#[cfg(feature = "lark")]
+mod xml;
 
 pub use regex_rewrite::regex_to_lark;
 

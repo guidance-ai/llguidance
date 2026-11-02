@@ -1,7 +1,7 @@
-//! Tool-call grammar generation, inspired by XGrammar: <https://github.com/mlc-ai/xgrammar>.
+//! XML grammar compilation, inspired by XGrammar: <https://github.com/mlc-ai/xgrammar>.
 //!
 //! This module holds the format-independent part: checking parameter value
-//! schemas and turning their string constraints into Lark regexes. Each format
+//! schemas and turning their string constraints into Lark regexes. Each style
 //! lives in its own submodule.
 
 mod qwen3_coder;
@@ -21,28 +21,23 @@ use derivre::{RegexAst, RegexBuilder};
 use regex_syntax::hir::{Hir, HirKind, Look};
 use serde_json::Value;
 
-/// Builds a Lark grammar from OpenAI function tool definitions.
-///
-/// `format` selects the tool-call syntax; only `qwen3_coder` is supported, and
-/// its rules are described in that submodule. Only `function.strict = true` enables schema constraints;
-/// other calls and ordinary text stay free.
-///
-/// `special_tokens` lists protocol markers that also accept a special-token form.
-/// Ordinary text forms remain accepted. `None` uses the format defaults; an explicit
-/// list replaces them, and an empty list uses only ordinary text forms.
-/// Names outside the format are invalid. The listed markers must exist as special
-/// tokens in the tokenizer used to construct a matcher.
-///
-/// Unsupported strict schemas and invalid format options return an error.
-pub fn grammar_from_tools(
-    tools: &Value,
-    format: &str,
-    initial_reasoning: bool,
-    special_tokens: Option<&[String]>,
-) -> Result<String> {
-    match format {
-        "qwen3_coder" => qwen3_coder::grammar_from_tools(tools, initial_reasoning, special_tokens),
-        _ => bail!("Unsupported tool-call format: {format}"),
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct XmlOptions {
+    // Style can become optional once there is a suitable default.
+    style: String,
+}
+
+pub(crate) fn schema_to_lark(mut schema: Value) -> Result<String> {
+    let options = schema
+        .as_object_mut()
+        .ok_or_else(|| anyhow!("XML schema must be an object"))?
+        .remove("x-guidance")
+        .unwrap_or_else(|| serde_json::json!({}));
+    let options: XmlOptions = serde_json::from_value(options).context("Invalid %xml options")?;
+    match options.style.as_str() {
+        "qwen3_coder" => qwen3_coder::schema_to_lark(&schema),
+        style => bail!("Unsupported XML style: {style}"),
     }
 }
 
