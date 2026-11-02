@@ -24,12 +24,16 @@ fn accepts(factory: &ParserFactory, grammar: &str, text: &str) -> bool {
         .unwrap();
     let mut matcher = Matcher::new(Ok(parser));
     for token in env.tokenize(text) {
-        if !matcher.compute_mask().unwrap().is_allowed(token) {
+        if !matcher.compute_mask_or_eos().unwrap().is_allowed(token) {
             return false;
         }
         matcher.consume_token(token).unwrap();
     }
-    matcher.is_accepting().unwrap() && matcher.compute_mask().unwrap().is_allowed(env.eos_token())
+    matcher.is_accepting().unwrap()
+        && matcher
+            .compute_mask_or_eos()
+            .unwrap()
+            .is_allowed(env.eos_token())
 }
 
 fn compile_error(grammar: &str) -> String {

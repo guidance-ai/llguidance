@@ -894,6 +894,7 @@ def test_speculative_masks_inside_parameter_lists(tokenizer: llg.LLTokenizer, sc
                         "label": {"type": "string"},
                     },
                     "required": ["count", "label"],
+                    "additionalProperties": False,
                 }
             )
         ]
