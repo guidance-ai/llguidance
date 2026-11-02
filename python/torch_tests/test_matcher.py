@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple
 import llguidance
 import numpy as np
 import pytest
-from llguidance import LLMatcher, LLParserLimits, LLTokenizer, StructTag
+from llguidance import LLMatcher, LLParserLimits, LLTokenizer, StructTag, grammar_from
 from llguidance.numpy import (
     allocate_token_bitmask,
     consume_token_par,
@@ -85,6 +85,25 @@ def check_grammar(grm: str, passing: List[str], failing: List[str]) -> None:
         check_one_grammar(grm, s, True)
     for s in failing:
         check_one_grammar(grm, s, False)
+
+
+@pytest.mark.parametrize("character_class", [False, True], ids=["literal", "class"])
+@pytest.mark.parametrize(
+    "spelling, expected",
+    [
+        (r"\u0041", "A"),
+        (r"\u00e9", "é"),
+        (r"\u0000", "\0"),
+        (r"\u03A9", "Ω"),
+        (r"\U00000041", "A"),
+        (r"\U0000005D", "]"),
+        (r"\U0001F600", "😀"),
+    ],
+)
+def test_gbnf_unicode_escapes(spelling: str, expected: str, character_class: bool) -> None:
+    expression = f"[{spelling}]" if character_class else f'"{spelling}"'
+    grammar = grammar_from("gbnf", f"root ::= {expression}")
+    check_grammar(grammar, [expected], ["Z"])
 
 
 def test_json() -> None:
