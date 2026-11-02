@@ -23,8 +23,12 @@ use serde_json::Value;
 /// Parameter tags and raw strings are Lark rules; JSON values use ordinary `%json`.
 /// Scalar alternatives to raw strings share a Lark terminal with the closing tag
 /// so greedy lexing cannot discard a shorter scalar match.
-/// Mixed string/numeric `multipleOf` and strings overlapping a JSON container's
-/// opening prefix are unsupported. Standalone JSON retains its usual constraints.
+/// An unrestricted string alternative, from `anyOf` or a type list, covers the
+/// others without JSON rules. `oneOf` with overlapping string/container encodings
+/// is unsupported.
+/// Constrained string/numeric `multipleOf` and constrained strings overlapping a
+/// JSON container's opening prefix are unsupported. Standalone JSON retains its
+/// usual constraints.
 /// Only `function.strict = true` enables schema constraints. For those tools,
 /// omitted top-level `additionalProperties` is treated as `false`. Parameters
 /// follow schema order, with optional ones skippable. The reference Qwen3-Coder
@@ -223,6 +227,11 @@ fn bound(schema: &Value, key: &str) -> Result<Option<u32>> {
         .map(|v| {
             v.as_u64()
                 .and_then(|n| u32::try_from(n).ok())
+                .or_else(|| {
+                    v.as_f64()
+                        .filter(|n| *n >= 0.0 && *n <= u32::MAX as f64 && n.fract() == 0.0)
+                        .map(|n| n as u32)
+                })
                 .ok_or_else(|| anyhow!("{key} must be a nonnegative 32-bit integer"))
         })
         .transpose()
@@ -252,7 +261,7 @@ fn parameters(
         schema.get("type").and_then(Value::as_str) == Some("object"),
         "Tool parameters require an object schema with type: object"
     );
-    validate_keywords(schema)?;
+    validate_keywords(schema, false)?;
     for key in ["allOf", "anyOf", "oneOf", "const", "enum"] {
         ensure!(
             schema.get(key).is_none(),
@@ -371,7 +380,7 @@ fn parameters(
     Ok(())
 }
 
-fn validate_keywords(schema: &Value) -> Result<()> {
+fn validate_keywords(schema: &Value, allow_json_keywords: bool) -> Result<()> {
     let Some(object) = schema.as_object() else {
         ensure!(schema.is_boolean(), "Schema must be an object or boolean");
         return Ok(());
@@ -419,7 +428,7 @@ fn validate_keywords(schema: &Value) -> Result<()> {
                     | "exclusiveMinimum"
                     | "exclusiveMaximum"
                     | "multipleOf"
-            ),
+            ) || (allow_json_keywords && matches!(key.as_str(), "patternProperties" | "$id")),
             "Unsupported schema keyword: {key}"
         );
     }
@@ -429,14 +438,19 @@ fn validate_keywords(schema: &Value) -> Result<()> {
 fn validate_schema(
     root: &Value,
     schema: &Value,
-    seen: &mut IndexSet<String>,
+    seen: &mut IndexSet<(*const Value, String)>,
     depth: usize,
 ) -> Result<()> {
     ensure!(depth <= MAX_DEPTH, "Schema nesting limit exceeded");
-    validate_keywords(schema)?;
+    validate_keywords(schema, true)?;
+    let root = if schema.get("$id").is_some() {
+        schema
+    } else {
+        root
+    };
     if let Some(reference) = schema.get("$ref") {
         let target = local_ref(root, reference)?;
-        if seen.insert(reference.to_string()) {
+        if seen.insert((root as *const Value, reference.to_string())) {
             validate_schema(root, target, seen, depth + 1)?;
         }
     }
@@ -464,13 +478,15 @@ fn validate_schema(
             }
         }
     }
-    if let Some(children) = schema.get("properties") {
-        for child in children
-            .as_object()
-            .ok_or_else(|| anyhow!("properties must be an object"))?
-            .values()
-        {
-            validate_schema(root, child, seen, depth + 1)?;
+    for key in ["properties", "patternProperties"] {
+        if let Some(children) = schema.get(key) {
+            for child in children
+                .as_object()
+                .ok_or_else(|| anyhow!("{key} must be an object"))?
+                .values()
+            {
+                validate_schema(root, child, seen, depth + 1)?;
+            }
         }
     }
     for key in ["items", "additionalItems", "additionalProperties"] {
@@ -522,6 +538,11 @@ fn value_shape(root: &Value, schema: &Value, depth: usize) -> Result<ValueShape>
         depth <= MAX_DEPTH,
         "Cyclic or excessively nested parameter $ref"
     );
+    let root = if schema.get("$id").is_some() {
+        schema
+    } else {
+        root
+    };
     if schema == &Value::Bool(false) {
         return Ok(ValueShape {
             string: RegexAst::NoMatch,
@@ -601,6 +622,24 @@ fn value_shape(root: &Value, schema: &Value, depth: usize) -> Result<ValueShape>
                 .iter()
                 .map(|option| value_shape(root, option, depth + 1))
                 .collect::<Result<Vec<_>>>()?;
+            if key == "oneOf" {
+                for (i, option) in options.iter().enumerate() {
+                    let containers = options
+                        .iter()
+                        .enumerate()
+                        .filter(|(j, _)| *j != i)
+                        .fold(0, |types, (_, other)| types | (other.json_types & 24));
+                    if containers != 0 {
+                        ensure!(
+                            !nonempty(&RegexAst::And(vec![
+                                option.string.clone(),
+                                container_prefix(containers),
+                            ]))?,
+                            "oneOf with overlapping raw string and JSON container encodings is unsupported"
+                        );
+                    }
+                }
+            }
             if key == "allOf" {
                 for option in options {
                     shape.intersect(option);
@@ -611,6 +650,15 @@ fn value_shape(root: &Value, schema: &Value, depth: usize) -> Result<ValueShape>
         }
     }
     Ok(shape)
+}
+
+fn container_prefix(types: u8) -> RegexAst {
+    let opening = match types & 24 {
+        8 => r"\{",
+        16 => r"\[",
+        _ => r"[\{\[]",
+    };
+    rx(&format!(r"[ \t\r\n]*{opening}{ANY}"))
 }
 
 fn string_intersection(left: RegexAst, right: RegexAst) -> RegexAst {
@@ -863,6 +911,11 @@ fn value_rule(
 ) -> Result<Option<String>> {
     validate_schema(root, schema, &mut IndexSet::new(), 0)?;
     let shape = value_shape(root, schema, 0)?;
+    let json_types = if matches!(&shape.string, RegexAst::Regex(pattern) if pattern == ANY) {
+        0
+    } else {
+        shape.json_types
+    };
     let mut string = RegexAst::And(vec![
         shape.string,
         RegexAst::Not(Box::new(rx("(?s:.*)</parameter>(?s:.*)"))),
@@ -876,22 +929,17 @@ fn value_rule(
         let types: Vec<_> = JSON_TYPES
             .iter()
             .enumerate()
-            .filter(|(i, _)| shape.json_types & mask & (1 << i) != 0)
+            .filter(|(i, _)| json_types & mask & (1 << i) != 0)
             .map(|(_, kind)| *kind)
             .collect();
         if types.is_empty() {
             continue;
         }
         if mask == 24 && has_string {
-            let opening = match shape.json_types & 24 {
-                8 => r"\{",
-                16 => r"\[",
-                _ => r"[\{\[]",
-            };
             ensure!(
                 !nonempty(&RegexAst::And(vec![
                     string.clone(),
-                    rx(&format!(r"[ \t\r\n]*{opening}{ANY}")),
+                    container_prefix(json_types),
                 ]))?,
                 "Raw strings overlapping JSON object/array prefixes are unsupported"
             );

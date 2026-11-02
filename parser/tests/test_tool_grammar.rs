@@ -536,9 +536,9 @@ fn boolean_null_padding(
     r###"{"type": "object", "unevaluatedProperties": false}"###,
     "unevaluatedProperties"
 )]
-#[case::pattern_properties(
-    r###"{"type": "object", "patternProperties": {"^a": {"type": "integer"}}}"###,
-    "patternProperties"
+#[case::string_or_object_oneof(
+    r###"{"oneOf": [{"type": "string"}, {"type": "object", "properties": {"a": {"type": "integer"}}, "required": ["a"], "additionalProperties": false}]}"###,
+    "oneOf"
 )]
 #[case::invalid_pattern(r###"{"type": "string", "pattern": "["}"###, "regex")]
 #[case::lookaround_pattern(r###"{"type": "string", "pattern": "(?=a)b"}"###, "regex")]
@@ -829,6 +829,8 @@ fn structural_value_schemas(
 #[case::decimal_item_counts(json!({"type": "array", "items": {"type": "integer"}, "minItems": 1.0, "maxItems": 2.0}), &["[1]", "[1,2]"], &["[]", "[1,2,3]"])]
 #[case::nested_pattern_properties(json!({"type": "object", "patternProperties": {"^a": {"type": "integer"}}, "additionalProperties": false}), &[r#"{"ab":1}"#], &[r#"{"ab":"x"}"#, r#"{"b":1}"#])]
 #[case::nested_id_annotation(json!({"type": "object", "$id": "urn:example:object", "properties": {"a": {"type": "integer"}}, "required": ["a"], "additionalProperties": false}), &[r#"{"a":1}"#], &[r#"{"a":"x"}"#])]
+#[case::nested_id_ref_object(json!({"$id": "urn:example:item", "$defs": {"n": {"type": "integer"}}, "type": "object", "properties": {"x": {"$ref": "#/$defs/n"}}, "required": ["x"], "additionalProperties": false}), &[r#"{"x":1}"#], &[r#"{"x":"a"}"#])]
+#[case::nested_id_ref_scalar(json!({"$id": "urn:example:item", "$defs": {"n": {"type": "integer"}}, "$ref": "#/$defs/n"}), &["1"], &["a"])]
 #[case::string_or_object(json!({"anyOf": [{"type": "string"}, object(OBJECT_A)]}), &["hello", r#"{"a":1}"#, "{ not json"], &["a </parameter> b"])]
 #[case::enum_or_object(json!({"anyOf": [{"type": "string", "enum": ["auto"]}, object(OBJECT_A)]}), &["auto", r#"{"a":1}"#], &["manual", r#"{"a":"x"}"#])]
 fn matches_json_compiler_support(
