@@ -59,6 +59,63 @@ If the string starts with `{`, it will be forced to follow the given JSON schema
 If you have more functions, you can use either `%json { "anyOf": [ ... ] }`,
 or `fun_call1 | fun_call2` where each `fun_callX` is defined as `%json { ... }`.
 
+### Inline XML parameter lists
+
+Some models write tool arguments as XML-like tags instead of JSON.
+`%xml { ... }` takes a JSON schema for the arguments, like `%json`,
+and matches them in that tag format.
+The format is chosen with `"x-guidance": { "style": ... }`.
+For now `style` is required, and the only style is `qwen3_coder`;
+it can become optional once there is a good default.
+
+For example, this constrains a Qwen3-Coder tool call:
+
+```lark
+start: TEXT | tool_call
+TEXT: /[^<](.|\n)*/
+tool_call: "<tool_call>\n<function=get_weather>\n" %xml {
+  "x-guidance": { "style": "qwen3_coder" },
+  "type": "object",
+  "properties": {
+    "city": { "type": "string" },
+    "days": { "type": "integer", "minimum": 1, "maximum": 7 }
+  },
+  "required": ["city"],
+  "additionalProperties": false
+} "</function>\n</tool_call>"
+```
+
+This accepts plain text, or a call like:
+
+```
+<tool_call>
+<function=get_weather>
+<parameter=city>
+Seattle
+</parameter>
+<parameter=days>
+3
+</parameter>
+</function>
+</tool_call>
+```
+
+With the `qwen3_coder` style:
+
+- Parameters come in schema order. Optional ones can be skipped, and declared ones can't repeat.
+- Strings are plain text, not quoted JSON. One newline right after `<parameter=...>`
+  and one right before `</parameter>` are ignored, as Qwen's parser does.
+  `pattern`, `minLength`, `maxLength`, `format`, `enum` and `const` apply to that text,
+  and a string can't contain `</parameter>`.
+- Numbers, booleans, `null`, objects and arrays are JSON, with the same rules as `%json`.
+- As in `%json`, extra parameters are allowed unless `"additionalProperties": false`.
+  They come after the declared ones. A schema as the top-level `additionalProperties` value
+  isn't supported.
+- Whitespace after each parameter belongs to `%xml`; whitespace before the first one
+  is up to the surrounding grammar.
+- Schemas that can't be expressed in this format fail with an error, for example `oneOf`
+  where a plain string could also be read as an object.
+
 ### Special tokens
 
 Special tokens can referenced via `<token_name>` syntax (i.e., any string between `<` and `>`),
