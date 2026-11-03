@@ -105,6 +105,9 @@ impl LLGuidanceOptions {
 pub struct GrammarWithLexer {
     /// The name of this grammar, can be used in GenGrammar nodes.
     pub name: Option<String>,
+    /// A request-bindable JSON-string lexeme; this grammar supplies its fallback.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub string_slot: Option<String>,
 
     /// The JSON schema that the grammar should generate.
     /// When this is set, nodes and rx_nodes must be empty.

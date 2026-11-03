@@ -50,6 +50,10 @@ mod tokenizer_json;
 pub use constraint::{CommitResult, Constraint};
 pub use matcher::Matcher;
 
+mod prepared;
+mod template;
+pub use template::{GrammarTemplate, StringSlotLimits};
+
 mod factory;
 pub use factory::ParserFactory;
 

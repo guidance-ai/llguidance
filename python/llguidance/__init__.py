@@ -6,6 +6,7 @@ from ._lib import (
     RegexCompiler,
     LLExecutor,
     LLMatcher,
+    LLGrammarTemplate,
     LLParserLimits,
     regex_to_lark,
     get_version,
@@ -21,6 +22,7 @@ __version__ = _pkg_version("llguidance")
 __all__ = [
     "LLTokenizer",
     "LLMatcher",
+    "LLGrammarTemplate",
     "LLInterpreter",
     "LLExecutor",
     "LLParserLimits",
