@@ -22,7 +22,7 @@ struct LLMatcher {
     tok_env: TokEnv,
 }
 
-/// Prepared grammar with immutable named string slots and asset-owned fallbacks.
+/// Prepared grammar with immutable named string slots and declared fallbacks.
 #[pyclass(frozen)]
 struct LLGrammarTemplate {
     inner: llguidance::GrammarTemplate,

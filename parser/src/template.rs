@@ -29,7 +29,7 @@ impl Default for StringSlotLimits {
 /// An immutable grammar prepared for one tokenizer and parser configuration.
 ///
 /// Bindings replace declared `string_slot` lexemes with finite JSON-string
-/// languages. Omitted slots retain their asset-defined fallback. Empty lists
+/// languages. Omitted slots retain their declared fallback. Empty lists
 /// are rejected; they never silently select the fallback. Each parser owns
 /// its specialized lexer, so a template can be used concurrently.
 pub struct GrammarTemplate {
