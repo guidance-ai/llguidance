@@ -60,6 +60,11 @@ Number features (for both integer and number):
 - `exclusiveMaximum`
 - `multipleOf`
 
+For `integer` schemas, decimal bounds are retained exactly, including values
+outside signed 64-bit range. Integer-bound compilation supports up to 38 integer
+digits; larger bounds return an error instead of being rounded or clamped.
+Unbounded integer schemas do not impose a digit limit on generated values.
+
 ## Departures from JSON schema semantics
 
 - order of object properties is fixed, see below

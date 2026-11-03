@@ -7,7 +7,7 @@ use std::mem;
 
 use super::context::{Context, Draft, PreContext, ResourceRef};
 use super::formats::lookup_format;
-use super::numeric::Decimal;
+use super::numeric::{Decimal, NumberBound};
 use super::shared_context::BuiltSchema;
 
 const TYPES: [&str; 6] = ["null", "boolean", "number", "string", "array", "object"];
@@ -95,17 +95,17 @@ pub enum Schema {
 
 #[derive(Debug, Clone, Default)]
 pub struct NumberSchema {
-    pub minimum: Option<f64>,
-    pub maximum: Option<f64>,
-    pub exclusive_minimum: Option<f64>,
-    pub exclusive_maximum: Option<f64>,
+    pub minimum: Option<NumberBound>,
+    pub maximum: Option<NumberBound>,
+    pub exclusive_minimum: Option<NumberBound>,
+    pub exclusive_maximum: Option<NumberBound>,
     pub integer: bool,
     pub multiple_of: Option<Decimal>,
 }
 
 impl NumberSchema {
-    pub fn get_minimum(&self) -> (Option<f64>, bool) {
-        match (self.minimum, self.exclusive_minimum) {
+    pub fn get_minimum(&self) -> (Option<&NumberBound>, bool) {
+        match (self.minimum.as_ref(), self.exclusive_minimum.as_ref()) {
             (Some(min), Some(xmin)) => {
                 if xmin >= min {
                     (Some(xmin), true)
@@ -119,8 +119,8 @@ impl NumberSchema {
         }
     }
 
-    pub fn get_maximum(&self) -> (Option<f64>, bool) {
-        match (self.maximum, self.exclusive_maximum) {
+    pub fn get_maximum(&self) -> (Option<&NumberBound>, bool) {
+        match (self.maximum.as_ref(), self.exclusive_maximum.as_ref()) {
             (Some(max), Some(xmax)) => {
                 if xmax <= max {
                     (Some(xmax), true)
@@ -817,18 +817,13 @@ fn compile_const(instance: &Value) -> Result<Schema> {
         Value::Null => Ok(Schema::Null),
         Value::Bool(b) => Ok(Schema::Boolean(Some(*b))),
         Value::Number(n) => {
-            let value = n.as_f64().ok_or_else(|| {
-                anyhow!(
-                    "Expected f64 for numeric const, got {}",
-                    limited_str(instance)
-                )
-            })?;
+            let value = NumberBound::new(n.clone())?;
             Ok(Schema::Number(NumberSchema {
-                minimum: Some(value),
+                minimum: Some(value.clone()),
                 maximum: Some(value),
                 exclusive_minimum: None,
                 exclusive_maximum: None,
-                integer: n.is_i64(),
+                integer: !n.to_string().contains(['.', 'e', 'E']),
                 multiple_of: None,
             }))
         }
@@ -905,44 +900,24 @@ fn compile_numeric(schema: &HashMap<&str, &Value>, integer: bool) -> Result<Sche
     let exclusive_maximum = schema.get("exclusiveMaximum").copied();
     let multiple_of = schema.get("multipleOf").copied();
 
-    let minimum = match minimum {
-        None => None,
-        Some(val) => Some(
-            val.as_f64()
-                .ok_or_else(|| anyhow!("Expected f64 for 'minimum', got {}", limited_str(val)))?,
-        ),
+    let bound = |value: &Value, name: &str| -> Result<NumberBound> {
+        let number = value
+            .as_number()
+            .ok_or_else(|| anyhow!("Expected number for '{name}', got {}", limited_str(value)))?;
+        NumberBound::new(number.clone())
     };
-    let maximum = match maximum {
-        None => None,
-        Some(val) => Some(
-            val.as_f64()
-                .ok_or_else(|| anyhow!("Expected f64 for 'maximum', got {}", limited_str(val)))?,
-        ),
-    };
-    // TODO: actually use ctx.draft to determine which style of exclusiveMinimum/Maximum to use
+    let minimum = minimum.map(|v| bound(v, "minimum")).transpose()?;
+    let maximum = maximum.map(|v| bound(v, "maximum")).transpose()?;
+    // TODO: use ctx.draft to determine which exclusive bound syntax to accept.
     let exclusive_minimum = match exclusive_minimum {
-        // Draft4-style boolean values
         None | Some(Value::Bool(false)) => None,
-        Some(Value::Bool(true)) => minimum,
-        // Draft2020-12-style numeric values
-        Some(value) => Some(value.as_f64().ok_or_else(|| {
-            anyhow!(
-                "Expected f64 for 'exclusiveMinimum', got {}",
-                limited_str(value)
-            )
-        })?),
+        Some(Value::Bool(true)) => minimum.clone(),
+        Some(value) => Some(bound(value, "exclusiveMinimum")?),
     };
     let exclusive_maximum = match exclusive_maximum {
-        // Draft4-style boolean values
         None | Some(Value::Bool(false)) => None,
-        Some(Value::Bool(true)) => maximum,
-        // Draft2020-12-style numeric values
-        Some(value) => Some(value.as_f64().ok_or_else(|| {
-            anyhow!(
-                "Expected f64 for 'exclusiveMaximum', got {}",
-                limited_str(value)
-            )
-        })?),
+        Some(Value::Bool(true)) => maximum.clone(),
+        Some(value) => Some(bound(value, "exclusiveMaximum")?),
     };
     let multiple_of = match multiple_of {
         None => None,
