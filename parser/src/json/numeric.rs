@@ -1,7 +1,147 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, ensure, Result};
 use regex_syntax::escape;
+use serde_json::Number;
+use std::{cmp::Ordering, fmt};
 
 use super::schema::NumberSchema;
+
+/// A JSON bound retained as decimal digits, including values outside i64.
+/// Only the non-integer compiler converts these bounds to binary floating point.
+#[derive(Debug, Clone)]
+pub struct NumberBound {
+    number: Number,
+    negative: bool,
+    digits: String,
+    exponent: i64,
+}
+
+impl NumberBound {
+    pub fn new(number: Number) -> Result<Self> {
+        ensure!(
+            number.as_f64().is_some(),
+            "Numeric bound is outside the supported finite range"
+        );
+        let text = number.to_string();
+        let (mantissa, exponent) = match text.split_once(['e', 'E']) {
+            Some((mantissa, exponent)) => (mantissa, exponent.parse::<i64>()?),
+            None => (text.as_str(), 0),
+        };
+        let negative = mantissa.starts_with('-');
+        let mantissa = mantissa.trim_start_matches('-');
+        let fractional_digits = mantissa.split_once('.').map_or(0, |(_, rest)| rest.len());
+        let digits = mantissa.replace('.', "");
+        let digits = digits.trim_start_matches('0');
+        let trailing_zeros = digits.len() - digits.trim_end_matches('0').len();
+        let (negative, digits, exponent) = if digits.is_empty() {
+            (false, "0".to_string(), 0)
+        } else {
+            (
+                negative,
+                digits[..digits.len() - trailing_zeros].to_string(),
+                exponent
+                    .checked_sub(fractional_digits as i64)
+                    .and_then(|v| v.checked_add(trailing_zeros as i64))
+                    .ok_or_else(|| {
+                        anyhow!("Numeric bound exponent is outside the supported range")
+                    })?,
+            )
+        };
+        Ok(Self {
+            number,
+            negative,
+            digits,
+            exponent,
+        })
+    }
+
+    pub fn as_f64(&self) -> f64 {
+        self.number.as_f64().expect("validated finite JSON bound")
+    }
+
+    /// Round in decimal arithmetic, with an explicit supported-size error.
+    /// A 38-digit budget leaves room for +/-1 and decimal breakpoints in i128.
+    fn round_integer(&self, up: bool) -> Result<i128> {
+        let point = self.digits.len() as i64 + self.exponent;
+        ensure!(
+            point <= 38,
+            "Integer bounds with more than 38 digits are not supported"
+        );
+        let point = point.max(0) as usize;
+        let end = point.min(self.digits.len());
+        let magnitude = if end == 0 {
+            0
+        } else {
+            self.digits[..end].parse::<i128>()? * 10_i128.pow((point - end) as u32)
+        };
+        let value = if self.negative { -magnitude } else { magnitude };
+        let fractional = self.digits != "0" && point < self.digits.len();
+        Ok(if fractional && up && !self.negative {
+            value + 1
+        } else if fractional && !up && self.negative {
+            value - 1
+        } else {
+            value
+        })
+    }
+}
+
+impl fmt::Display for NumberBound {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let text = self.number.to_string();
+        // Keep diagnostics such as "maximum (-1)" stable for bounds supplied
+        // as -1.0, without rounding large bounds through f64 for display.
+        if text.contains('.') && !text.contains(['e', 'E']) {
+            f.write_str(text.trim_end_matches('0').trim_end_matches('.'))
+        } else {
+            f.write_str(&text)
+        }
+    }
+}
+
+impl PartialEq for NumberBound {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl Eq for NumberBound {}
+
+impl PartialOrd for NumberBound {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for NumberBound {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.negative != other.negative {
+            return other.negative.cmp(&self.negative);
+        }
+        let ordering = if self.digits == "0" || other.digits == "0" {
+            (self.digits != "0").cmp(&(other.digits != "0"))
+        } else {
+            let left_point = self.digits.len() as i64 + self.exponent;
+            let right_point = other.digits.len() as i64 + other.exponent;
+            left_point.cmp(&right_point).then_with(|| {
+                let width = self.digits.len().max(other.digits.len());
+                let left = self
+                    .digits
+                    .bytes()
+                    .chain(std::iter::repeat_n(b'0', width - self.digits.len()));
+                let right = other
+                    .digits
+                    .bytes()
+                    .chain(std::iter::repeat_n(b'0', width - other.digits.len()));
+                left.cmp(right)
+            })
+        };
+        if self.negative {
+            ordering.reverse()
+        } else {
+            ordering
+        }
+    }
+}
 
 /// coef * 10^-exp
 #[cfg_attr(test, derive(PartialEq))]
@@ -80,26 +220,36 @@ fn mk_or(parts: Vec<String>) -> String {
     }
 }
 
-fn num_digits(n: i64) -> usize {
+pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
+    rx_int_range_wide(left.map(i128::from), right.map(i128::from))
+}
+
+fn num_digits(n: i128) -> usize {
     n.abs().to_string().len()
 }
 
-pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
+pub fn rx_int_range_wide(left: Option<i128>, right: Option<i128>) -> Result<String> {
+    for bound in [left, right].into_iter().flatten() {
+        ensure!(
+            bound > -10_i128.pow(38) && bound < 10_i128.pow(38),
+            "Integer bounds with more than 38 digits are not supported"
+        );
+    }
     match (left, right) {
         (None, None) => Ok("-?(0|[1-9][0-9]*)".to_string()),
         (Some(left), None) => {
             if left < 0 {
                 Ok(mk_or(vec![
-                    rx_int_range(Some(left), Some(-1))?,
-                    rx_int_range(Some(0), None)?,
+                    rx_int_range_wide(Some(left), Some(-1))?,
+                    rx_int_range_wide(Some(0), None)?,
                 ]))
             } else {
                 let max_value = "9"
                     .repeat(num_digits(left))
-                    .parse::<i64>()
+                    .parse::<i128>()
                     .map_err(|e| anyhow!("Failed to parse max value for left {}: {}", left, e))?;
                 Ok(mk_or(vec![
-                    rx_int_range(Some(left), Some(max_value))?,
+                    rx_int_range_wide(Some(left), Some(max_value))?,
                     format!("[1-9][0-9]{{{},}}", num_digits(left)),
                 ]))
             }
@@ -107,11 +257,11 @@ pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
         (None, Some(right)) => {
             if right >= 0 {
                 Ok(mk_or(vec![
-                    rx_int_range(Some(0), Some(right))?,
-                    rx_int_range(None, Some(-1))?,
+                    rx_int_range_wide(Some(0), Some(right))?,
+                    rx_int_range_wide(None, Some(-1))?,
                 ]))
             } else {
-                Ok(format!("-{}", rx_int_range(Some(-right), None)?))
+                Ok(format!("-{}", rx_int_range_wide(Some(-right), None)?))
             }
         }
         (Some(left), Some(right)) => {
@@ -124,12 +274,15 @@ pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
             }
             if left < 0 {
                 if right < 0 {
-                    Ok(format!("(-{})", rx_int_range(Some(-right), Some(-left))?))
+                    Ok(format!(
+                        "(-{})",
+                        rx_int_range_wide(Some(-right), Some(-left))?
+                    ))
                 } else {
                     Ok(format!(
                         "(-{}|{})",
-                        rx_int_range(Some(0), Some(-left))?,
-                        rx_int_range(Some(0), Some(right))?
+                        rx_int_range_wide(Some(0), Some(-left))?,
+                        rx_int_range_wide(Some(0), Some(right))?
                     ))
                 }
             } else if num_digits(left) == num_digits(right) {
@@ -148,8 +301,8 @@ pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
                     return Ok(format!("({lpref}[{lx}-{rx}])"));
                 }
 
-                let mut left_rec = lpref.parse::<i64>().unwrap_or(0);
-                let mut right_rec = rpref.parse::<i64>().unwrap_or(0);
+                let mut left_rec = lpref.parse::<i128>().unwrap_or(0);
+                let mut right_rec = rpref.parse::<i128>().unwrap_or(0);
                 if left_rec >= right_rec {
                     return Err(anyhow!(
                         "Invalid recursive range: left_rec ({}) must be less than right_rec ({})",
@@ -171,19 +324,19 @@ pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
                 }
 
                 if left_rec <= right_rec {
-                    let inner = rx_int_range(Some(left_rec), Some(right_rec))?;
+                    let inner = rx_int_range_wide(Some(left_rec), Some(right_rec))?;
                     parts.push(format!("{inner}[0-9]"));
                 }
 
                 Ok(mk_or(parts))
             } else {
-                let break_point = 10_i64
+                let break_point = 10_i128
                     .checked_pow(num_digits(left) as u32)
                     .ok_or_else(|| anyhow!("Overflow when calculating break point"))?
                     - 1;
                 Ok(mk_or(vec![
-                    rx_int_range(Some(left), Some(break_point))?,
-                    rx_int_range(Some(break_point + 1), Some(right))?,
+                    rx_int_range_wide(Some(left), Some(break_point))?,
+                    rx_int_range_wide(Some(break_point + 1), Some(right))?,
                 ]))
             }
         }
@@ -382,11 +535,14 @@ pub fn rx_float_range(
                 Ok(mk_or(vec![
                     rx_float_range(
                         Some(left),
-                        Some(10f64.powi(num_digits(left_int_part) as i32)),
+                        Some(10f64.powi(num_digits(i128::from(left_int_part)) as i32)),
                         left_inclusive,
                         false,
                     )?,
-                    format!("[1-9][0-9]{{{},}}(\\.[0-9]+)?", num_digits(left_int_part)),
+                    format!(
+                        "[1-9][0-9]{{{},}}(\\.[0-9]+)?",
+                        num_digits(i128::from(left_int_part))
+                    ),
                 ]))
             }
         }
@@ -527,32 +683,18 @@ pub fn rx_float_range(
     }
 }
 
-pub(super) fn normalize_integer_bounds(num: &NumberSchema) -> (Option<i64>, Option<i64>) {
+pub(super) fn normalize_integer_bounds(num: &NumberSchema) -> Result<(Option<i128>, Option<i128>)> {
     let minimum = match num.get_minimum() {
-        (Some(min_val), true) => {
-            if min_val.fract() != 0.0 {
-                Some(min_val.ceil())
-            } else {
-                Some(min_val + 1.0)
-            }
-        }
-        (Some(min_val), false) => Some(min_val.ceil()),
+        (Some(value), true) => Some(value.round_integer(false)? + 1),
+        (Some(value), false) => Some(value.round_integer(true)?),
         _ => None,
-    }
-    .map(|val| val as i64);
+    };
     let maximum = match num.get_maximum() {
-        (Some(max_val), true) => {
-            if max_val.fract() != 0.0 {
-                Some(max_val.floor())
-            } else {
-                Some(max_val - 1.0)
-            }
-        }
-        (Some(max_val), false) => Some(max_val.floor()),
+        (Some(value), true) => Some(value.round_integer(true)? - 1),
+        (Some(value), false) => Some(value.round_integer(false)?),
         _ => None,
-    }
-    .map(|val| val as i64);
-    (minimum, maximum)
+    };
+    Ok((minimum, maximum))
 }
 
 pub fn check_number_bounds(num: &NumberSchema) -> Result<(), String> {
@@ -580,7 +722,8 @@ pub fn check_number_bounds(num: &NumberSchema) -> Result<(), String> {
             ));
         }
         if num.integer {
-            let (integer_minimum, integer_maximum) = normalize_integer_bounds(num);
+            let (integer_minimum, integer_maximum) =
+                normalize_integer_bounds(num).map_err(|e| e.to_string())?;
             if matches!(
                 (integer_minimum, integer_maximum),
                 (Some(integer_min), Some(integer_max)) if integer_min > integer_max
@@ -593,6 +736,37 @@ pub fn check_number_bounds(num: &NumberSchema) -> Result<(), String> {
             }
         }
     }
+    if num.integer {
+        if let Some(d) = num.multiple_of.as_ref() {
+            let (minimum, maximum) = normalize_integer_bounds(num).map_err(|e| e.to_string())?;
+            if d.coef == 0 {
+                if minimum.is_some_and(|v| v > 0) || maximum.is_some_and(|v| v < 0) {
+                    return Err("integer interval does not contain a multiple of 0".to_string());
+                }
+            } else if let (Some(min), Some(max)) = (minimum, maximum) {
+                // An integer multiple of p/10^e is a multiple of p/gcd(p,10^e).
+                let mut step = d.coef;
+                for factor in [2, 5] {
+                    let mut exp = d.exp;
+                    while exp > 0 && step.is_multiple_of(factor) {
+                        step /= factor;
+                        exp -= 1;
+                    }
+                }
+                let step = i128::from(step);
+                let first = min + (step - min.rem_euclid(step)) % step;
+                if first > max {
+                    return Err(format!(
+                        "integer interval [{min}, {max}] does not contain a multiple of {}",
+                        d.to_f64()
+                    ));
+                }
+            }
+        }
+        return Ok(());
+    }
+    let minimum = minimum.map(NumberBound::as_f64);
+    let maximum = maximum.map(NumberBound::as_f64);
     if let Some(d) = num.multiple_of.as_ref() {
         if d.coef == 0 {
             if let Some(min) = minimum {
@@ -658,8 +832,78 @@ pub fn check_number_bounds(num: &NumberSchema) -> Result<(), String> {
 
 #[cfg(test)]
 mod test_ranges {
-    use super::{rx_float_range, rx_int_range};
+    use super::{rx_float_range, rx_int_range, rx_int_range_wide, NumberBound};
     use regex::Regex;
+
+    #[test]
+    fn decimal_bounds_round_and_compare_exactly() {
+        let bound = |s: &str| NumberBound::new(s.parse().unwrap()).unwrap();
+        for (text, floor, ceil) in [
+            ("0", 0, 0),
+            ("-0.0", 0, 0),
+            ("1e-300", 0, 1),
+            ("-1e-300", -1, 0),
+            ("123.45", 123, 124),
+            ("-123.45", -124, -123),
+            ("9.007199254740993e15", 9007199254740993, 9007199254740993),
+            (
+                "9223372036854776000.5",
+                9223372036854776000,
+                9223372036854776001,
+            ),
+            (
+                "-9223372036854776000.5",
+                -9223372036854776001,
+                -9223372036854776000,
+            ),
+        ] {
+            assert_eq!(bound(text).round_integer(false).unwrap(), floor, "{text}");
+            assert_eq!(bound(text).round_integer(true).unwrap(), ceil, "{text}");
+        }
+        for (left, right) in [
+            ("0", "1e-300"),
+            ("-1e-300", "0"),
+            ("9007199254740992.5", "9007199254740993"),
+            ("-9223372036854776001", "-9223372036854776000.5"),
+            ("1.001", "1.01"),
+        ] {
+            assert!(bound(left) < bound(right), "{left} < {right}");
+        }
+        assert_eq!(bound("10.00"), bound("1e1"));
+        assert_eq!(bound("-0.0"), bound("0"));
+        assert!(bound("1e38").round_integer(false).is_err());
+        assert!(NumberBound::new("1.5e-9223372036854775808".parse().unwrap()).is_err());
+    }
+
+    #[test]
+    fn wide_integer_range_boundaries() {
+        let values = [
+            i64::MIN as i128,
+            i64::MAX as i128,
+            -9223372036854776000,
+            9223372036854776000,
+        ];
+        for value in values {
+            for (lo, hi) in [
+                (Some(value), Some(value)),
+                (Some(value), None),
+                (None, Some(value)),
+            ] {
+                let rx = rx_int_range_wide(lo, hi).unwrap();
+                let regex = Regex::new(&format!("^{rx}$")).unwrap();
+                for test in [value - 1, value, value + 1] {
+                    let expected = lo.is_none_or(|lo| test >= lo) && hi.is_none_or(|hi| test <= hi);
+                    assert_eq!(
+                        regex.is_match(&test.to_string()),
+                        expected,
+                        "{test} in {lo:?}..{hi:?}"
+                    );
+                }
+            }
+        }
+        assert!(rx_int_range_wide(Some(i128::MIN), None).is_err());
+        assert!(rx_int_range_wide(None, Some(i128::MAX)).is_err());
+    }
 
     fn do_test_int_range(rx: &str, left: Option<i64>, right: Option<i64>) {
         let re = Regex::new(&format!("^{rx}$")).unwrap();
@@ -1043,19 +1287,27 @@ mod test_number_bounds {
                     None
                 } else {
                     self.minimum
+                        .and_then(serde_json::Number::from_f64)
+                        .map(|n| super::NumberBound::new(n).unwrap())
                 },
                 maximum: if self.exclusive_maximum {
                     None
                 } else {
                     self.maximum
+                        .and_then(serde_json::Number::from_f64)
+                        .map(|n| super::NumberBound::new(n).unwrap())
                 },
                 exclusive_minimum: if self.exclusive_minimum {
                     self.minimum
+                        .and_then(serde_json::Number::from_f64)
+                        .map(|n| super::NumberBound::new(n).unwrap())
                 } else {
                     None
                 },
                 exclusive_maximum: if self.exclusive_maximum {
                     self.maximum
+                        .and_then(serde_json::Number::from_f64)
+                        .map(|n| super::NumberBound::new(n).unwrap())
                 } else {
                     None
                 },

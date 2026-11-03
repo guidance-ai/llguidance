@@ -8,7 +8,9 @@ use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::numeric::{check_number_bounds, normalize_integer_bounds, rx_float_range, rx_int_range};
+use super::numeric::{
+    check_number_bounds, normalize_integer_bounds, rx_float_range, rx_int_range_wide, NumberBound,
+};
 use super::schema::{build_schema, ArraySchema, ObjectSchema, OptSchemaExt, Schema};
 use super::shared_context::PatternPropertyCache;
 use super::RetrieveWrapper;
@@ -279,13 +281,13 @@ impl Compiler {
     }
 
     fn json_int(&mut self, num: &NumberSchema) -> Result<RegexAst> {
+        let (minimum, maximum) = normalize_integer_bounds(num)?;
         check_number_bounds(num).map_err(|e| {
             anyhow!(UnsatisfiableSchemaError {
                 message: e.to_string(),
             })
         })?;
-        let (minimum, maximum) = normalize_integer_bounds(num);
-        let rx = rx_int_range(minimum, maximum).with_context(|| {
+        let rx = rx_int_range_wide(minimum, maximum).with_context(|| {
             format!("Failed to generate regex for integer range: min={minimum:?}, max={maximum:?}")
         })?;
         let mut ast = RegexAst::Regex(rx);
@@ -303,12 +305,15 @@ impl Compiler {
         })?;
         let (minimum, exclusive_minimum) = num.get_minimum();
         let (maximum, exclusive_maximum) = num.get_maximum();
-        let rx = rx_float_range(minimum, maximum, !exclusive_minimum, !exclusive_maximum)
-            .with_context(|| {
-                format!(
-                    "Failed to generate regex for float range: min={minimum:?}, max={maximum:?}"
-                )
-            })?;
+        let rx = rx_float_range(
+            minimum.map(NumberBound::as_f64),
+            maximum.map(NumberBound::as_f64),
+            !exclusive_minimum,
+            !exclusive_maximum,
+        )
+        .with_context(|| {
+            format!("Failed to generate regex for float range: min={minimum:?}, max={maximum:?}")
+        })?;
         let mut ast = RegexAst::Regex(rx);
         if let Some(d) = num.multiple_of.as_ref() {
             ast = RegexAst::And(vec![ast, signed_multiple_of_ast(d.coef, d.exp)]);

@@ -11,7 +11,7 @@ rust-version.workspace = true
 toktrie = { workspace = true }
 derivre = { version = "=0.3.13", default-features = false, features = ["compress"] }
 serde = { version = "1.0.217", features = ["derive"] }
-serde_json = { version = "1.0.138", features = ["preserve_order"] }
+serde_json = { version = "1.0.138", features = ["preserve_order", "arbitrary_precision"] }
 anyhow = "1.0.95"
 regex-syntax = "0.8.5"
 indexmap = "2.7.1"
