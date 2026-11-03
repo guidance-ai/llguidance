@@ -16,6 +16,7 @@ use super::{
 
 #[derive(Clone)]
 pub struct LexerSpec {
+    pub(crate) string_slots: HashMap<String, LexemeIdx>,
     pub lexemes: Vec<LexemeSpec>,
     /// Interval configurations, indexed by lexeme ID.
     int_ranges: Option<Box<HashMap<LexemeIdx, IntRanges>>>,
@@ -138,6 +139,7 @@ impl Debug for LexemeSpec {
 impl LexerSpec {
     pub fn new() -> Result<Self> {
         Ok(LexerSpec {
+            string_slots: HashMap::default(),
             lexemes: Vec::new(),
             int_ranges: None,
             special_token_rx: None,
@@ -354,6 +356,7 @@ impl LexerSpec {
 
         if let Some(idx) = self.lexemes.iter().position(|lex| {
             lex.compiled_rx == compiled
+                && !self.string_slots.values().any(|idx| *idx == lex.idx)
                 && lex.class == spec.class
                 && lex.max_tokens == spec.max_tokens
                 && lex.token_ranges == spec.token_ranges
@@ -407,6 +410,91 @@ impl LexerSpec {
             max_tokens: usize::MAX,
             token_ranges: vec![],
         }
+    }
+
+    pub(crate) fn declare_string_slot(
+        &mut self,
+        name: String,
+        original: LexemeIdx,
+    ) -> Result<LexemeIdx> {
+        ensure!(
+            !name.is_empty()
+                && name.len() <= 128
+                && name.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_'),
+            "string slot names must contain 1..128 ASCII letters, digits or underscores"
+        );
+        ensure!(
+            !self.string_slots.contains_key(&name),
+            "duplicate string slot {name}"
+        );
+        let mut spec = self.lexemes[original.as_usize()].clone();
+        ensure!(
+            !self.is_nullable(original)
+                && self
+                    .int_ranges
+                    .as_ref()
+                    .and_then(|ranges| ranges.get(&original))
+                    .is_none()
+                && !spec.lazy
+                && !spec.is_skip
+                && !spec.is_extra
+                && !spec.is_suffix
+                && !spec.ends_at_eos
+                && spec.token_ranges.is_empty()
+                && spec.max_tokens == usize::MAX
+                && spec.json_options.is_none(),
+            "string slot fallback must be a non-nullable plain lexeme"
+        );
+        let idx = LexemeIdx::new(self.lexemes.len());
+        spec.idx = idx;
+        spec.single_set = MatchingLexemes::One(idx);
+        spec.name = format!("slot:{name}");
+        self.lexemes.push(spec);
+        self.string_slots.insert(name, idx);
+        Ok(idx)
+    }
+
+    pub(crate) fn bind_string_slots(
+        &mut self,
+        bindings: &HashMap<String, Vec<String>>,
+        limits: &ParserLimits,
+    ) -> Result<()> {
+        let mut ordered: Vec<_> = bindings.iter().collect();
+        ordered.sort_by_key(|(name, _)| *name);
+        for (name, values) in ordered {
+            let idx = *self
+                .string_slots
+                .get(name)
+                .ok_or_else(|| anyhow::anyhow!("unknown string slot {name}"))?;
+            ensure!(
+                !values.is_empty(),
+                "empty string slot bindings are not supported"
+            );
+            ensure!(
+                values.len() <= limits.max_grammar_size,
+                "too many string slot values"
+            );
+            let values: std::collections::BTreeSet<_> = values.iter().collect();
+            let rx = RegexAst::Or(
+                values
+                    .into_iter()
+                    .map(|value| {
+                        RegexAst::Literal(
+                            serde_json::to_string(value).expect("string serialization"),
+                        )
+                    })
+                    .collect(),
+            );
+            let compiled = self.regex_builder.mk(&rx)?;
+            ensure!(
+                self.cost() <= limits.initial_lexer_fuel,
+                "string slot binding exceeds lexer budget"
+            );
+            let spec = &mut self.lexemes[idx.as_usize()];
+            spec.rx = rx;
+            spec.compiled_rx = compiled;
+        }
+        Ok(())
     }
 
     /// Registers a dynamic interval lexeme. Its placeholder regex is never
