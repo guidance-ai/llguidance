@@ -39,7 +39,7 @@ own generation state. No public compiled variant is added to `GrammarInit`.
 The template retains its tokenizer factory and parser limits. Request binding
 reuses compiled structural tables, clones the grammar/regex arena, compiles
 only supplied slot expressions and initializes a fresh lexer/parser. Compiled
-vectors are currently copied, and DFA state is not shared between households.
+vectors are currently copied, and DFA state is not shared between matchers.
 Templates are immutable and may be shared between threads. Specialized
 matchers can be cached and copied with the existing `deep_copy()` API.
 
