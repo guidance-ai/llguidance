@@ -154,7 +154,7 @@ pub enum Value {
     /// Configuration for the specialized ordered-interval matcher.
     IntRanges(serde_json::Value),
     NestedLark(Vec<Item>),
-    RegexExt(RegexExt),
+    RegexExt(Box<RegexExt>),
     #[allow(dead_code)]
     TemplateUsage {
         name: String,
