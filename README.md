@@ -12,7 +12,7 @@
     <em>Performance results from <a href ="https://github.com/guidance-ai/jsonschemabench/tree/main/maskbench">MaskBench</a></em>
 </p>
 
---- 
+---
 
 * 2025-06-23 llguidance is now deemed v1.0.0
 * 2025-06-11 [Making Structured Outputs Go Brrr](https://guidance-ai.github.io/llguidance/llg-go-brrr) blog post released
@@ -49,7 +49,7 @@ The internal format is most powerful (though Lark-like format is catching up, an
 
 The library can be used from:
 - [Rust](./parser/README.md), [sample](./sample_parser/src/minimal.rs)
-- [C and C++](./parser/llguidance.h), [sample](./c_sample/c_sample.cpp)
+- [C and C++](./c/llguidance.h), [sample](./c_sample/c_sample.cpp)
 - [Python](./python/llguidance/_lib.pyi)
 
 ## Integrations
@@ -57,7 +57,7 @@ The library can be used from:
 The library is currently integrated in:
 - [Guidance](https://github.com/guidance-ai/guidance) - library for interacting with LLMs
 - [OpenAI models](https://x.com/OpenAIDevs/status/1924915343677653014) - LLGuidance powers [Structured Output](https://platform.openai.com/docs/guides/structured-outputs) (JSON Schema only)
-- [llama.cpp](https://github.com/ggerganov/llama.cpp/pull/10224) - 
+- [llama.cpp](https://github.com/ggerganov/llama.cpp/pull/10224) -
   available via `-DLLAMA_LLGUIDANCE=ON` option for `cmake`;
   llama.cpp can be also used Guidance Python package
 - **Chromium** - [merged](https://github.com/chromium/chromium/commit/07ca6337c2f714ba0477202414bd2b1692e70594),
@@ -90,7 +90,7 @@ See [MaskBench](https://github.com/guidance-ai/jsonschemabench/tree/main/maskben
 
 [Outlines](https://github.com/dottxt-ai/outlines) builds an automaton from constraints and then pre-computes token masks for all automaton states, potentially making sampling fast but inherently limiting constraint complexity and introducing significant startup cost and memory overhead. Llguidance computes token masks on the fly and has essentially no startup cost. The lexer’s automata in llguidance are built lazily and are typically much smaller, as the context-free grammar imposes the top-level structure.
 
-[XGrammar](https://github.com/mlc-ai/xgrammar) follows an approach similar to llama.cpp (explicit stack-based, character-level parser) with additional pre-computation of certain token masks, similar to Outlines. The pre-computation often runs into seconds, and sometimes minutes. If the pre-computation works well for a given input, the masks are computed quickly (under 8μs in half of masks we tested), however if it doesn't fit the particular input, 
+[XGrammar](https://github.com/mlc-ai/xgrammar) follows an approach similar to llama.cpp (explicit stack-based, character-level parser) with additional pre-computation of certain token masks, similar to Outlines. The pre-computation often runs into seconds, and sometimes minutes. If the pre-computation works well for a given input, the masks are computed quickly (under 8μs in half of masks we tested), however if it doesn't fit the particular input,
 the mask computation times can run to tens or hundreds of milliseconds.
 
 In llguidance, the full mask computation for a typical JSON schema takes about 1.5ms (for 128k tokenizer).
@@ -107,7 +107,7 @@ Thus, with 16 cores and a 10ms forward pass, llguidance can handle batch sizes u
 
 - [install rust](https://www.rust-lang.org/tools/install); 1.87 or later
 
-If you just need the C or Rust library (`llguidance`), 
+If you just need the C or Rust library (`llguidance`),
 check the [parser](./parser/README.md) directory.
 
 For Python bindings:
