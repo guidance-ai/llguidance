@@ -1,4 +1,5 @@
 use llg_test_utils::{lark_err_test, lark_str_test_many_quiet};
+use llguidance::api::RegexExt;
 use rstest::rstest;
 use serde_json::{json, Value};
 
@@ -38,24 +39,20 @@ fn number_errors_match_json(#[case] schema: Value, #[case] error: &str) {
     }
 }
 
-#[test]
-fn numbers_are_terminals() {
-    lark_str_test_many_quiet(
-        r#"
-            start: DAY
-            DAY: %regex {"type": "integer", "minimum": 1, "maximum": 7} & ~/7/
-        "#,
-        &["1", "6"],
-        &["7", "0"],
-    );
-    lark_str_test_many_quiet(
-        r#"
-            start: VALUE
-            VALUE: "(" %regex {"type": "number", "maximum": 1} ")"
-        "#,
-        &["(0.5)", "(-3)"],
-        &["(2)", "FINAL_REJECT:(0.5"],
-    );
+#[rstest]
+#[case::excluded(r#"%regex {"type": "integer", "minimum": 1, "maximum": 7} & ~/7/"#, &["1", "6"], &["7", "0"])]
+#[case::concatenated(r#""(" %regex {"type": "number", "maximum": 1} ")""#, &["(0.5)", "(-3)"], &["(2)", "FINAL_REJECT:(0.5"])]
+fn numbers_are_terminals(#[case] terminal: &str, #[case] valid: &[&str], #[case] invalid: &[&str]) {
+    lark_str_test_many_quiet(&format!("start: VALUE\nVALUE: {terminal}"), valid, invalid);
+}
+
+#[rstest]
+#[case::substring(json!({"substring_words": "a b"}), &["a b"])]
+#[case::number(json!({"type": "integer", "maximum": 7}), &["7"])]
+fn serialized_regexes_compile_again(#[case] regex: Value, #[case] valid: &[&str]) {
+    let regex: RegexExt = serde_json::from_value(regex).unwrap();
+    let serialized = serde_json::to_value(&regex).unwrap();
+    lark_str_test_many_quiet(&grammar("%regex", &serialized), valid, &[]);
 }
 
 #[rstest]
