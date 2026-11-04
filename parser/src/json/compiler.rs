@@ -1,4 +1,4 @@
-use crate::api::{LLGuidanceOptions, SkipSpec};
+use crate::api::{LLGuidanceOptions, ParserLimits, SkipSpec};
 use crate::grammar_builder::GrammarResult;
 use crate::json::schema::{NumberSchema, StringSchema};
 use crate::{regex_to_lark, HashMap};
@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 
 use super::numeric::{check_number_bounds, normalize_integer_bounds, rx_float_range, rx_int_range};
 use super::schema::{build_schema, ArraySchema, ObjectSchema, OptSchemaExt, Schema};
-use super::shared_context::PatternPropertyCache;
+use super::shared_context::{BuiltSchema, PatternPropertyCache};
 use super::RetrieveWrapper;
 
 use crate::{GrammarBuilder, NodeRef};
@@ -100,6 +100,58 @@ impl Default for JsonCompileOptions {
 }
 
 impl JsonCompileOptions {
+    /// Inspect normalization and JSON lowering before tokenizer-specific processing.
+    ///
+    /// The versioned envelope contains unstable debug text, not executable Lark
+    /// or round-trip JSON Schema. Lexer debug expressions may be truncated by
+    /// the existing renderer. Errors return no partial inspection.
+    ///
+    /// Embedded x-guidance replaces these defaults, matching
+    /// json_to_llg_with_overrides. Python applies its usual option merge first.
+    pub fn inspect_json_schema(&self, mut schema: Value, limits: ParserLimits) -> Result<Value> {
+        let options = if let Some(embedded) = schema.get("x-guidance") {
+            let options: Self = serde_json::from_value(embedded.clone())?;
+            schema.as_object_mut().unwrap().remove("x-guidance");
+            options
+        } else {
+            self.clone()
+        };
+        #[cfg(feature = "jsonschema_validation")]
+        crate::json_validation::validate_schema(&schema)?;
+
+        let mut normalized = Value::Null;
+        let result = Compiler::new(options.clone(), GrammarBuilder::new(None, limits))
+            .execute_inspected(schema, |built| {
+                let definitions: std::collections::BTreeMap<_, _> = built
+                    .definitions
+                    .iter()
+                    .map(|(name, schema)| (name.clone(), format!("{schema:#?}")))
+                    .collect();
+                normalized = json!({
+                    "root": format!("{:#?}", built.schema),
+                    "definitions": definitions,
+                });
+            })?;
+        let builder = result.builder;
+        let warnings = builder
+            .get_warnings()
+            .into_iter()
+            .map(|(message, count)| json!({"message": message, "count": count}))
+            .collect::<Vec<_>>();
+        Ok(json!({
+            "version": 1,
+            "stage": "json-lowering-before-tokenization-and-optimization",
+            "text_format": "unstable-debug",
+            "debug_text_may_be_truncated": true,
+            "lexer_expression_character_limit": 512,
+            "normalized": normalized,
+            "effective_options": options,
+            "warnings": warnings,
+            "grammar": builder.grammar.to_string(Some(&builder.regex.spec)),
+            "lexer": format!("{:?}", builder.regex.spec),
+        }))
+    }
+
     pub fn json_to_llg_with_overrides(
         &self,
         builder: GrammarBuilder,
@@ -160,7 +212,15 @@ impl Compiler {
         }
     }
 
-    pub fn execute(mut self, schema: Value) -> Result<GrammarResult> {
+    pub fn execute(self, schema: Value) -> Result<GrammarResult> {
+        self.execute_inspected(schema, |_| {})
+    }
+
+    fn execute_inspected(
+        mut self,
+        schema: Value,
+        inspect: impl FnOnce(&BuiltSchema),
+    ) -> Result<GrammarResult> {
         let skip = if let Some(pattern) = &self.options.whitespace_pattern {
             RegexAst::Regex(pattern.clone())
         } else if self.options.whitespace_flexible {
@@ -173,6 +233,7 @@ impl Compiler {
             .add_grammar_with_skip(LLGuidanceOptions::default(), SkipSpec::once(skip))?;
 
         let built = build_schema(schema, &self.options)?;
+        inspect(&built);
         self.pattern_cache = built.pattern_cache;
 
         for w in built.warnings {
