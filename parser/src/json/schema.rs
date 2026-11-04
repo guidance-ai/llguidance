@@ -890,7 +890,7 @@ fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Resu
     match tp {
         "null" => Ok(Schema::Null),
         "boolean" => Ok(Schema::Boolean(None)),
-        "number" | "integer" => compile_numeric(schema, tp == "integer"),
+        "number" | "integer" => compile_numeric(schema, tp == "integer").map(Schema::Number),
         "string" => compile_string(ctx, schema),
         "array" => compile_array(ctx, schema),
         "object" => compile_object(ctx, schema),
@@ -898,7 +898,10 @@ fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Resu
     }
 }
 
-fn compile_numeric(schema: &HashMap<&str, &Value>, integer: bool) -> Result<Schema> {
+pub(crate) fn compile_numeric(
+    schema: &HashMap<&str, &Value>,
+    integer: bool,
+) -> Result<NumberSchema> {
     let minimum = schema.get("minimum").copied();
     let maximum = schema.get("maximum").copied();
     let exclusive_minimum = schema.get("exclusiveMinimum").copied();
@@ -954,14 +957,14 @@ fn compile_numeric(schema: &HashMap<&str, &Value>, integer: bool) -> Result<Sche
             Some(Decimal::try_from(f.abs())?)
         }
     };
-    Ok(Schema::Number(NumberSchema {
+    Ok(NumberSchema {
         minimum,
         maximum,
         exclusive_minimum,
         exclusive_maximum,
         integer,
         multiple_of,
-    }))
+    })
 }
 
 fn compile_string(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schema> {
