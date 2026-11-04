@@ -31,6 +31,23 @@ impl std::fmt::Display for UnsatisfiableSchemaError {
     }
 }
 
+#[cfg(feature = "lark")]
+pub(crate) fn numeric_regex(
+    keywords: &serde_json::Map<String, Value>,
+    integer: bool,
+) -> anyhow::Result<derivre::RegexAst> {
+    let keywords = keywords
+        .iter()
+        .map(|(key, value)| (key.as_str(), value))
+        .collect();
+    let number = schema::compile_numeric(&keywords, integer)?;
+    if integer {
+        numeric::json_int(&number)
+    } else {
+        numeric::json_number(&number)
+    }
+}
+
 pub fn json_merge(a: &mut Value, b: &Value) {
     match (a, b) {
         (Value::Object(a), Value::Object(b)) => {

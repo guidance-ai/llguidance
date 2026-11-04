@@ -205,7 +205,6 @@ impl Display for GrammarId {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct RegexExt {
     /// The lexeme should accept any (possibly empty) contiguous sequence of these chunks.
     pub substring_chunks: Option<Vec<String>>,
@@ -213,6 +212,9 @@ pub struct RegexExt {
     pub substring_words: Option<String>,
     /// Similar to `substring_chunks: s.split('')`
     pub substring_chars: Option<String>,
+    /// Numeric keywords, validated during compilation; retain explicit nulls.
+    #[serde(flatten)]
+    pub numeric: serde_json::Map<String, Value>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

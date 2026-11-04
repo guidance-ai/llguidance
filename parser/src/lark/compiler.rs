@@ -807,11 +807,45 @@ fn compile_lark_regex(builder: &mut GrammarBuilder, l: RegexExt) -> Result<Regex
     if l.substring_chars.is_some() {
         fields_set.push("substring_chars");
     }
+    let numeric = if l.numeric.is_empty() {
+        None
+    } else {
+        for key in l.numeric.keys() {
+            ensure!(
+                matches!(
+                    key.as_str(),
+                    "type"
+                        | "minimum"
+                        | "maximum"
+                        | "exclusiveMinimum"
+                        | "exclusiveMaximum"
+                        | "multipleOf"
+                ),
+                "unknown field `{key}` in %regex"
+            );
+        }
+        let kind = l
+            .numeric
+            .get("type")
+            .ok_or_else(|| anyhow!("numeric %regex requires \"type\""))?;
+        let integer = match kind.as_str() {
+            Some("integer") => true,
+            Some("number") => false,
+            _ => bail!("unsupported %regex type: {kind}"),
+        };
+        fields_set.push("type");
+        Some(integer)
+    };
     if fields_set.is_empty() {
         bail!("no fields set on %regex");
     }
     if fields_set.len() > 1 {
         bail!("only one field can be set on %regex; got {:?}", fields_set);
+    }
+
+    if let Some(integer) = numeric {
+        let ast = crate::json::numeric_regex(&l.numeric, integer)?;
+        return builder.regex.add_ast(ast);
     }
 
     let bld = &mut builder.regex.spec.regex_builder;
