@@ -81,6 +81,23 @@ The library implements a context-free grammar parser using Earley’s algorithm 
 
 Grammars can be also used to speed up decode via [fast-forward tokens](./docs/fast_forward.md).
 
+### GPU Offload (PDA)
+
+For inference runtimes with GPU sampling (e.g. xinfer, vLLM, TensorRT-LLM),
+llguidance can export a **pushdown automaton (PDA)** table that runs entirely
+on the GPU, eliminating the CPU round-trip for grammar masking.
+
+- **Per-token sampling:** the PDA mask is fused into the GPU sampling kernel
+  (one launch: mask + sample + advance). No CPU involvement during generation.
+- **Drafting (MTP/DFlash):** the PDA projects K+1 masks ahead in one kernel
+  launch, constraining the speculative draft on-device.
+- **Optional dispatch:** if no grammar is active, the PDA path is skipped
+  entirely (zero overhead). The existing unmasked sampling/drafting runs.
+
+Enable with `--features dpda`. See [docs/pda_gpu_integration.md](./docs/pda_gpu_integration.md)
+for the full integration guide and [docs/pda_theoretical_foundation.md](./docs/pda_theoretical_foundation.md)
+for the correctness proofs.
+
 ### Comparison and performance
 
 See [MaskBench](https://github.com/guidance-ai/jsonschemabench/tree/main/maskbench) in
