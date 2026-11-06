@@ -155,7 +155,7 @@ mod tests {
         let f = factory();
         let g = TopLevelGrammar::from_regex("[a-z]+");
         let grm = cgrammar_of(&f, &g);
-        let pkg = llguidance::dpda_adapter::export_pda_package(&grm).expect("the export");
+        let pkg = llguidance::dpda_adapter::export_pda_package(&grm, f.tok_env()).expect("the export");
 
         assert!(!pkg.bitvec.is_empty(), "the bitvec is non-empty");
         assert!(pkg.upload_bytes() > 0, "the upload size is positive");

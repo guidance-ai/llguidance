@@ -437,11 +437,50 @@ pub fn bridge_is_exact_from_map(
 
 /// Compile the CGrammar's PDA as a CUDA package (the bitvec + the source
 /// primitives). This is the H2D payload for the attention-rs kernels.
-pub fn export_pda_package(grm: &CGrammar) -> Result<pushdown_rs::cuda::CudaPackage, CfgError> {
+pub fn export_pda_package(grm: &CGrammar, tok_env: &crate::toktrie::TokEnv) -> Result<pushdown_rs::cuda::CudaPackage, CfgError> {
     let machine = compile_pda(grm)?;
-    pushdown_rs::cuda::CudaPackage::from_machine(&machine).map_err(|e| {
+    let mut pkg = pushdown_rs::cuda::CudaPackage::from_machine(&machine).map_err(|e| {
         CfgError::Other(format!("the CUDA package export failed: {e}"))
-    })
+    })?;
+    // The terminal → token bridge (the lift from the PDA's abstract terminal IDs to
+    // the model's token IDs). The kernel masks over token IDs (0..vocab_size), but
+    // the PDA's `scan_mask` produces a terminal-level VOB (0..num_inputs). The
+    // bridge lifts it: for each allowed terminal, OR its token set into the token
+    // VOB. Without this, the mask is in the wrong index space (the inversion bug:
+    // forbidden tokens allowed, allowed tokens forbidden).
+    let bridge = terminal_token_map(grm, tok_env);
+    let vocab_size = tok_env.tok_trie().vocab_size() as u32;
+    let max_bridge_len = bridge.iter().map(|b| b.len()).max().unwrap_or(0);
+    if max_bridge_len > 0 {
+        let mut bridge_flat = Vec::with_capacity(bridge.len() * max_bridge_len);
+        let mut bridge_lens = Vec::with_capacity(bridge.len());
+        for b in &bridge {
+            bridge_lens.push(b.len() as u32);
+            bridge_flat.extend_from_slice(b);
+            for _ in b.len()..max_bridge_len {
+                bridge_flat.push(u32::MAX); // the sentinel (the padding, the no valid token)
+            }
+        }
+        pkg.vocab_size = vocab_size;
+        pkg.bridge_flat = Some(bridge_flat);
+        pkg.bridge_lens = Some(bridge_lens);
+        pkg.max_bridge_len = max_bridge_len as u32;
+        // The reverse bridge (token → terminal ID). The PDA's input alphabet is
+        // terminals (0..num_inputs), but the kernel samples a token (0..vocab).
+        // The advance_pda needs the terminal ID, so the kernel maps the sampled
+        // token back via this reverse bridge. The bridge is a partition (each
+        // token belongs to exactly one terminal), so the mapping is total.
+        let mut token_to_terminal = vec![0u32; vocab_size as usize];
+        for (t, tokens) in bridge.iter().enumerate() {
+            for &tok in tokens {
+                if (tok as usize) < (vocab_size as usize) {
+                    token_to_terminal[tok as usize] = t as u32;
+                }
+            }
+        }
+        pkg.token_to_terminal = Some(token_to_terminal);
+    }
+    Ok(pkg)
 }
 
 /// The displacement-based bridge (the CFGzip Theorem 2, the pure functional atom):
@@ -819,5 +858,34 @@ mod tests {
         let bridge = terminal_token_map(&cgrm, &env);
         let completing = terminal_completing_token(&cgrm, &env, &bridge);
         assert_eq!(completing[0], None, "a token-range terminal has no single completing token");
+    }
+
+    /// A negated token range (the <[^...]> form) bridges to the COMPLEMENT of the
+    /// excluded range: every token in the vocab except the excluded ones. This is
+    /// the terminal that was broken (the PDA mask was in terminal-ID space, not
+    /// token-ID space, so the excluded tokens leaked through). The bridge must
+    /// exclude them.
+    #[test]
+    fn negated_token_range_bridge_excludes_the_range() {
+        // The single-byte env has vocab 262 (the 256 bytes 0..=255 + the 6 special
+        // tokens <|tool|>, <|/tool|>, <|user|>, <|system|>, <|assistant|>, <|end|>).
+        // The negated range <[^97,98,99]> (the "not a, b, c") must bridge to every
+        // token EXCEPT 97, 98, 99 (the 262 - 3 = 259 tokens).
+        let env = ApproximateTokEnv::single_byte_env();
+        let cgrm = cgrammar_of(&env, r#"start: <[^97,98,99]>"#);
+        let bridge = terminal_token_map(&cgrm, &env);
+        // The single terminal (the <[^97,98,99]> class) is bridge[0].
+        let term = &bridge[0];
+        // The excluded tokens must NOT be in the bridge set.
+        assert!(!term.contains(&97), "token 97 (excluded) must not be in the bridge set");
+        assert!(!term.contains(&98), "token 98 (excluded) must not be in the bridge set");
+        assert!(!term.contains(&99), "token 99 (excluded) must not be in the bridge set");
+        // The included tokens MUST be in the bridge set.
+        assert!(term.contains(&0), "token 0 (not excluded) must be in the bridge set");
+        assert!(term.contains(&96), "token 96 (not excluded) must be in the bridge set");
+        assert!(term.contains(&100), "token 100 (not excluded) must be in the bridge set");
+        assert!(term.contains(&261), "token 261 (the last special, not excluded) must be in the bridge set");
+        // The bridge set size is vocab - 3 (the 262-token vocab minus the 3 excluded).
+        assert_eq!(term.len(), 262 - 3, "the bridge set is the vocab minus the excluded range");
     }
 }
