@@ -85,7 +85,27 @@ fn num_digits(n: i64) -> usize {
     n.abs().to_string().len()
 }
 
-pub(crate) fn json_int(num: &NumberSchema) -> Result<RegexAst> {
+pub(crate) fn number_regex(num: &NumberSchema) -> Result<RegexAst> {
+    if num.integer {
+        json_int(num)
+    } else {
+        json_number(num)
+    }
+}
+
+#[cfg(feature = "lark")]
+pub(crate) fn numeric_regex(
+    keywords: &serde_json::Map<String, serde_json::Value>,
+    integer: bool,
+) -> Result<RegexAst> {
+    let keywords = keywords
+        .iter()
+        .map(|(key, value)| (key.as_str(), value))
+        .collect();
+    number_regex(&super::schema::compile_numeric(&keywords, integer)?)
+}
+
+fn json_int(num: &NumberSchema) -> Result<RegexAst> {
     check_number_bounds(num).map_err(|e| {
         anyhow!(UnsatisfiableSchemaError {
             message: e.to_string(),
@@ -102,7 +122,7 @@ pub(crate) fn json_int(num: &NumberSchema) -> Result<RegexAst> {
     Ok(ast)
 }
 
-pub(crate) fn json_number(num: &NumberSchema) -> Result<RegexAst> {
+fn json_number(num: &NumberSchema) -> Result<RegexAst> {
     check_number_bounds(num).map_err(|e| {
         anyhow!(UnsatisfiableSchemaError {
             message: e.to_string(),

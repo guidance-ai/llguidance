@@ -8,7 +8,7 @@ use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::numeric::{json_int, json_number};
+use super::numeric::number_regex;
 use super::schema::{build_schema, ArraySchema, ObjectSchema, OptSchemaExt, Schema};
 use super::shared_context::PatternPropertyCache;
 use super::{RetrieveWrapper, UnsatisfiableSchemaError};
@@ -324,7 +324,7 @@ impl Compiler {
 
         let json_any = self.builder.new_node("json_any");
         self.any_cache = Some(json_any); // avoid infinite recursion
-        let num = json_number(&NumberSchema::default())?;
+        let num = number_regex(&NumberSchema::default())?;
         let tf = self.builder.regex.regex("true|false")?;
         let options = vec![
             self.builder.string("null"),
@@ -664,11 +664,7 @@ impl Compiler {
             Schema::Boolean(None) => Some(RegexAst::Regex("true|false".to_string())),
             Schema::Boolean(Some(value)) => literal_regex(if *value { "true" } else { "false" }),
 
-            Schema::Number(num) => Some(if num.integer {
-                json_int(num)?
-            } else {
-                json_number(num)?
-            }),
+            Schema::Number(num) => Some(number_regex(num)?),
 
             Schema::String(opts) => return self.gen_json_string(opts.clone()).map(Some),
 
