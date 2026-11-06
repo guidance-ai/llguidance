@@ -831,6 +831,74 @@ fn test_json_additional_property_keys_validate_unicode_scalars() {
     );
 }
 
+/// Rejects additional-property keys that are escaped spellings of declared property names.
+#[test]
+fn test_json_additional_property_keys_exclude_escaped_property_names() {
+    lark_str_test_many(
+        r#"start: %json {
+            "type": "object",
+            "properties": {
+                "a": { "type": "integer" },
+                "a\nb": { "type": "integer" }
+            },
+            "additionalProperties": { "type": "string" }
+        }"#,
+        &[
+            r#"{"a":1}"#,
+            r#"{"a":1,"b":"x"}"#,
+            r#"{"a\nb":1}"#,
+            r#"{"A":"x"}"#,
+            r#"{"\u001e":"x"}"#,
+        ],
+        &[
+            r#"{"\u0041":"x"}"#,
+            r#"{"a\u0062":"x"}"#,
+            r#"{"\u0061":"x"}"#,
+            r#"{"a":1,"\u0061":"x"}"#,
+            r#"{"a\u000ab":"x"}"#,
+            r#"{"a\u000Ab":"x"}"#,
+        ],
+    );
+
+    lark_str_test_many(
+        r#"start: %json {
+            "type": "object",
+            "properties": { "é": { "type": "integer" }, "😀": { "type": "integer" } },
+            "additionalProperties": { "type": "string" }
+        }"#,
+        &[r#"{"é":1}"#, r#"{"\u00e8":"x"}"#],
+        &[
+            r#"{"\u00e9":"x"}"#,
+            r#"{"\u00E9":"x"}"#,
+            r#"{"\ud83d\ude00":"x"}"#,
+        ],
+    );
+
+    lark_str_test_many(
+        r#"start: %json {
+            "type": "object",
+            "properties": {
+                "é": { "type": "integer" },
+                "😀": { "type": "integer" }
+            },
+            "additionalProperties": { "type": "string" },
+            "x-guidance": { "json_allow_general_unicode_escapes": true }
+        }"#,
+        &[
+            r#"{"é":1}"#,
+            r#"{"😀":1}"#,
+            r#"{"\u00e8":"x"}"#,
+            r#"{"\uD83D\uDE01":"x"}"#,
+        ],
+        &[
+            r#"{"\u00e9":"x"}"#,
+            r#"{"\u00E9":"x"}"#,
+            r#"{"\uD83D\uDE00":"x"}"#,
+            r#"{"\ud83d\ude00":"x"}"#,
+        ],
+    );
+}
+
 /// Keeps Unicode and short escapes subject to the configured allowed-escape policy.
 #[test]
 fn test_json_general_unicode_escapes_respect_allowed_escapes() {
