@@ -77,6 +77,8 @@ pub use tokenizer_json::token_bytes_from_tokenizer_json;
 
 #[cfg(feature = "lark")]
 mod lark;
+#[cfg(feature = "lark")]
+mod xml;
 
 pub use regex_rewrite::regex_to_lark;
 

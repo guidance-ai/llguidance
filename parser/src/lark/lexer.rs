@@ -30,6 +30,7 @@ pub enum Token {
     KwOverride,
     KwDeclare,
     KwJson,
+    KwXml,
     /// An ordered sequence of bounded integer intervals.
     KwIntRanges,
     KwRegex,
@@ -198,6 +199,7 @@ impl Token {
         (Token::KwImport, "%import"),
         (Token::KwOverride, "%override"),
         (Token::KwJson, "%json"),
+        (Token::KwXml, "%xml"),
         (Token::KwIntRanges, "%int_ranges"),
         (Token::KwRegex, "%regex"),
         (Token::KwLark, "%lark"),
@@ -326,6 +328,7 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
                 let raw_value = &input[start_idx..end_idx];
 
                 curr_lexeme.value = if token == Token::KwJson
+                    || token == Token::KwXml
                     || token == Token::KwIntRanges
                     || token == Token::KwLLGuidance
                     || token == Token::KwRegex
