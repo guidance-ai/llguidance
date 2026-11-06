@@ -1,7 +1,8 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
+use derivre::RegexAst;
 use regex_syntax::escape;
 
-use super::schema::NumberSchema;
+use super::{schema::NumberSchema, UnsatisfiableSchemaError};
 
 /// coef * 10^-exp
 #[cfg_attr(test, derive(PartialEq))]
@@ -82,6 +83,77 @@ fn mk_or(parts: Vec<String>) -> String {
 
 fn num_digits(n: i64) -> usize {
     n.abs().to_string().len()
+}
+
+pub(crate) fn number_regex(num: &NumberSchema) -> Result<RegexAst> {
+    if num.integer {
+        json_int(num)
+    } else {
+        json_number(num)
+    }
+}
+
+#[cfg(feature = "lark")]
+pub(crate) fn numeric_regex(
+    keywords: &serde_json::Map<String, serde_json::Value>,
+    integer: bool,
+) -> Result<RegexAst> {
+    let keywords = keywords
+        .iter()
+        .map(|(key, value)| (key.as_str(), value))
+        .collect();
+    number_regex(&super::schema::compile_numeric(&keywords, integer)?)
+}
+
+fn json_int(num: &NumberSchema) -> Result<RegexAst> {
+    check_number_bounds(num).map_err(|e| {
+        anyhow!(UnsatisfiableSchemaError {
+            message: e.to_string(),
+        })
+    })?;
+    let (minimum, maximum) = normalize_integer_bounds(num);
+    let rx = rx_int_range(minimum, maximum).with_context(|| {
+        format!("Failed to generate regex for integer range: min={minimum:?}, max={maximum:?}")
+    })?;
+    let mut ast = RegexAst::Regex(rx);
+    if let Some(d) = num.multiple_of.as_ref() {
+        ast = RegexAst::And(vec![ast, signed_multiple_of_ast(d.coef, d.exp)]);
+    }
+    Ok(ast)
+}
+
+fn json_number(num: &NumberSchema) -> Result<RegexAst> {
+    check_number_bounds(num).map_err(|e| {
+        anyhow!(UnsatisfiableSchemaError {
+            message: e.to_string(),
+        })
+    })?;
+    let (minimum, exclusive_minimum) = num.get_minimum();
+    let (maximum, exclusive_maximum) = num.get_maximum();
+    let rx = rx_float_range(minimum, maximum, !exclusive_minimum, !exclusive_maximum)
+        .with_context(|| {
+            format!("Failed to generate regex for float range: min={minimum:?}, max={maximum:?}")
+        })?;
+    let mut ast = RegexAst::Regex(rx);
+    if let Some(d) = num.multiple_of.as_ref() {
+        ast = RegexAst::And(vec![ast, signed_multiple_of_ast(d.coef, d.exp)]);
+    }
+    Ok(ast)
+}
+
+/// Build the `multipleOf` regex constraint with sign handling.
+///
+/// derivre's `RegexAst::MultipleOf` matches only the unsigned numeric literal
+/// (the digits, plus a decimal point for non-integer `multipleOf`); it has no
+/// transition for a leading `-`. Allow an optional sign here, otherwise
+/// negative multiples (e.g. `-6` for `multipleOf 3`) would be rejected.
+/// Divisibility is independent of sign.
+/// https://github.com/guidance-ai/llguidance/issues/222
+fn signed_multiple_of_ast(coef: u32, exp: u32) -> RegexAst {
+    RegexAst::Concat(vec![
+        RegexAst::Regex("-?".to_string()),
+        RegexAst::MultipleOf(coef, exp),
+    ])
 }
 
 pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {

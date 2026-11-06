@@ -301,9 +301,11 @@ ABC: %regex {
 }
 ```
 
-#### Future extensions
+#### Numbers
 
-Following `%regex` syntax is planned (compatible with JSON schema):
+`%regex` accepts `"type": "number"` or `"type": "integer"` with the numeric
+constraints `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, and
+`multipleOf`. These use the same numeric syntax, constraints, and limits as `%json`:
 
 ```lark
 BOUNDED_NUM: %regex {
@@ -318,6 +320,14 @@ MULT_NUM: %regex {
   "multipleOf": 10
 }
 ```
+
+Numeric `%regex` can be used in terminals and combined with other regexes using
+concatenation, `|`, `&`, and `~`. It matches the number itself without surrounding
+whitespace. `type` is required when numeric keywords are present; they cannot be
+combined with substring options. Other types and keywords are rejected.
+
+Exclusive bounds accept both numeric values and the older boolean form: for
+example, `"minimum": 0, "exclusiveMinimum": true` excludes zero.
 
 ### Ordered integer ranges
 

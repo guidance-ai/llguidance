@@ -8,10 +8,10 @@ use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::numeric::{check_number_bounds, normalize_integer_bounds, rx_float_range, rx_int_range};
+use super::numeric::number_regex;
 use super::schema::{build_schema, ArraySchema, ObjectSchema, OptSchemaExt, Schema};
 use super::shared_context::PatternPropertyCache;
-use super::RetrieveWrapper;
+use super::{RetrieveWrapper, UnsatisfiableSchemaError};
 
 use crate::{GrammarBuilder, NodeRef};
 
@@ -41,17 +41,6 @@ pub struct JsonCompileOptions {
 
 fn json_dumps(target: &serde_json::Value) -> String {
     serde_json::to_string(target).unwrap()
-}
-
-#[derive(Debug)]
-struct UnsatisfiableSchemaError {
-    message: String,
-}
-
-impl std::fmt::Display for UnsatisfiableSchemaError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Unsatisfiable schema: {}", self.message)
-    }
 }
 
 // Keep both JSON string paths aligned with Derivre's regular escape policy.
@@ -278,44 +267,6 @@ impl Compiler {
         }
     }
 
-    fn json_int(&mut self, num: &NumberSchema) -> Result<RegexAst> {
-        check_number_bounds(num).map_err(|e| {
-            anyhow!(UnsatisfiableSchemaError {
-                message: e.to_string(),
-            })
-        })?;
-        let (minimum, maximum) = normalize_integer_bounds(num);
-        let rx = rx_int_range(minimum, maximum).with_context(|| {
-            format!("Failed to generate regex for integer range: min={minimum:?}, max={maximum:?}")
-        })?;
-        let mut ast = RegexAst::Regex(rx);
-        if let Some(d) = num.multiple_of.as_ref() {
-            ast = RegexAst::And(vec![ast, signed_multiple_of_ast(d.coef, d.exp)]);
-        }
-        Ok(ast)
-    }
-
-    fn json_number(&mut self, num: &NumberSchema) -> Result<RegexAst> {
-        check_number_bounds(num).map_err(|e| {
-            anyhow!(UnsatisfiableSchemaError {
-                message: e.to_string(),
-            })
-        })?;
-        let (minimum, exclusive_minimum) = num.get_minimum();
-        let (maximum, exclusive_maximum) = num.get_maximum();
-        let rx = rx_float_range(minimum, maximum, !exclusive_minimum, !exclusive_maximum)
-            .with_context(|| {
-                format!(
-                    "Failed to generate regex for float range: min={minimum:?}, max={maximum:?}"
-                )
-            })?;
-        let mut ast = RegexAst::Regex(rx);
-        if let Some(d) = num.multiple_of.as_ref() {
-            ast = RegexAst::And(vec![ast, signed_multiple_of_ast(d.coef, d.exp)]);
-        }
-        Ok(ast)
-    }
-
     fn ast_lexeme(&mut self, ast: RegexAst) -> Result<NodeRef> {
         let id = self.builder.regex.add_ast(ast)?;
         Ok(self.builder.lexeme(id))
@@ -373,7 +324,7 @@ impl Compiler {
 
         let json_any = self.builder.new_node("json_any");
         self.any_cache = Some(json_any); // avoid infinite recursion
-        let num = self.json_number(&NumberSchema::default())?;
+        let num = number_regex(&NumberSchema::default())?;
         let tf = self.builder.regex.regex("true|false")?;
         let options = vec![
             self.builder.string("null"),
@@ -713,11 +664,7 @@ impl Compiler {
             Schema::Boolean(None) => Some(RegexAst::Regex("true|false".to_string())),
             Schema::Boolean(Some(value)) => literal_regex(if *value { "true" } else { "false" }),
 
-            Schema::Number(num) => Some(if num.integer {
-                self.json_int(num)?
-            } else {
-                self.json_number(num)?
-            }),
+            Schema::Number(num) => Some(number_regex(num)?),
 
             Schema::String(opts) => return self.gen_json_string(opts.clone()).map(Some),
 
@@ -1018,21 +965,6 @@ impl Compiler {
         grammars.push(self.builder.string("]"));
         Ok(self.builder.join(&grammars))
     }
-}
-
-/// Build the `multipleOf` regex constraint with sign handling.
-///
-/// derivre's `RegexAst::MultipleOf` matches only the unsigned numeric literal
-/// (the digits, plus a decimal point for non-integer `multipleOf`); it has no
-/// transition for a leading `-`. Allow an optional sign here, otherwise
-/// negative multiples (e.g. `-6` for `multipleOf 3`) would be rejected.
-/// Divisibility is independent of sign.
-/// https://github.com/guidance-ai/llguidance/issues/222
-fn signed_multiple_of_ast(coef: u32, exp: u32) -> RegexAst {
-    RegexAst::Concat(vec![
-        RegexAst::Regex("-?".to_string()),
-        RegexAst::MultipleOf(coef, exp),
-    ])
 }
 
 fn always_non_empty(ast: &RegexAst) -> bool {
