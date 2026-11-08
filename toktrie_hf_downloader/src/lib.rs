@@ -42,7 +42,7 @@ pub fn download_tokenizer_json(name: &str) -> Result<PathBuf> {
         valid_chars
     );
 
-    let builder = ApiBuilder::new();
+    let builder = ApiBuilder::from_env();
     let api = builder.build()?;
     let repo = Repo::with_revision(name2, RepoType::Model, revision);
     let api = api.repo(repo);
@@ -71,4 +71,54 @@ pub fn byte_tokenizer_from_name(name: &str) -> Result<ByteTokenizer> {
 pub fn tok_env_from_name(name: &str) -> Result<TokEnv> {
     let path = maybe_download_tokenizer_json(name)?;
     ByteTokenizer::from_file(path)?.into_tok_env(None)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env, fs, path::PathBuf, process::Command};
+
+    use super::download_tokenizer_json;
+
+    #[test]
+    fn respects_environment_cache() {
+        const CHILD_PATH: &str = "LLGUIDANCE_TEST_CACHED_TOKENIZER";
+        if let Some(path) = env::var_os(CHILD_PATH) {
+            assert_eq!(
+                download_tokenizer_json("llguidance/cache-test@offline").unwrap(),
+                PathBuf::from(path)
+            );
+            return;
+        }
+
+        let home = tempfile::tempdir().unwrap();
+        let repo = home.path().join("hub/models--llguidance--cache-test");
+        let snapshot = repo.join("snapshots/0123456789012345678901234567890123456789");
+        fs::create_dir_all(repo.join("refs")).unwrap();
+        fs::create_dir_all(&snapshot).unwrap();
+        fs::write(
+            repo.join("refs/offline"),
+            "0123456789012345678901234567890123456789",
+        )
+        .unwrap();
+        let cached = snapshot.join("tokenizer.json");
+        fs::write(&cached, "{}").unwrap();
+
+        // Isolate environment overrides from other tokenizer tests.
+        let output = Command::new(env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "tests::respects_environment_cache",
+                "--nocapture",
+            ])
+            .env("HF_HOME", home.path())
+            .env("HF_ENDPOINT", "http://127.0.0.1:9")
+            .env(CHILD_PATH, &cached)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 }
