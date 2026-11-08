@@ -1,7 +1,7 @@
-from typing import List, Tuple, Mapping, Optional, Sequence, Union, TypedDict, Dict, Any
-from ._util import TokenId, StopReason
-from ._tokenizer import TokenizerWrapper
+from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict, Union
 
+from ._tokenizer import TokenizerWrapper
+from ._util import StopReason, TokenId
 
 class LLTokenizer:
     vocab_size: int
@@ -224,6 +224,12 @@ class LLInterpreter:
         If true, next compute_mask() call will return stop
         """
 
+class FastForwardObservation(TypedDict):
+    status: Literal["ready", "noncanonical", "stopped", "error", "cancelled"]
+    tokens: List[TokenId]
+    token_bytes: bytes
+    token_count: int
+    byte_count: int
 
 class LLMatcher:
 
@@ -376,6 +382,24 @@ class LLMatcher:
     def compute_ff_tokens(self) -> List[TokenId]:
         """
         Compute and return the fast-forward tokens available in the current state.
+        """
+
+    def observe_ff_tokens(self) -> FastForwardObservation:
+        """
+        Observe the currently available fast-forward span without consuming tokens.
+
+        token_bytes equals tokenizer.decode_bytes(tokens); byte_count is its byte length,
+        not a Unicode character count. Special-token spellings are included. Already
+        consumed tokens and the suffix retained for token healing are excluded.
+
+        A ready span may be empty even when forced bytes remain. noncanonical indicates
+        unsupported tokenization, stopped a normal stop, and error/cancelled terminal
+        failure (inspect get_error()/stop_reason()). Non-ready spans have empty payloads.
+
+        Repeated calls can describe the same span. No cumulative counters or sampled-token
+        provenance are inferred. Internal speculative forcing and cache population may
+        occur, as with compute_ff_tokens(), without advancing committed token history.
+        This releases the GIL during observation.
         """
 
     def compute_ff_bytes(self) -> bytes:

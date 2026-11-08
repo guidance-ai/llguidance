@@ -38,7 +38,7 @@ mod hashcons;
 pub use cancellation::{CancellationHandle, Cancelled};
 mod matcher;
 mod tokenparser;
-pub use tokenparser::TokenParser;
+pub use tokenparser::{FastForwardObservation, FastForwardStatus, TokenParser};
 pub mod api;
 pub mod output;
 pub use toktrie;

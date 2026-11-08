@@ -2,7 +2,8 @@ use anyhow::{anyhow, bail, ensure, Result};
 use toktrie::{SimpleVob, TokEnv, TokenId};
 
 use crate::{
-    api::StopReason, earley::ParserStats, panic_utils, CancellationHandle, Cancelled, TokenParser,
+    api::StopReason, earley::ParserStats, panic_utils, CancellationHandle, Cancelled,
+    FastForwardObservation, TokenParser,
 };
 
 struct MatcherInner {
@@ -232,6 +233,16 @@ impl Matcher {
     pub fn compute_ff_tokens(&mut self) -> Vec<TokenId> {
         self.with_inner(|inner| Ok(inner.parser.compute_ff_tokens()))
             .unwrap_or_default()
+    }
+
+    /// Observe available fast-forward tokens and their decoded bytes without consuming them.
+    ///
+    /// Internal speculative forcing and cache population may occur. Counts describe
+    /// only the returned span; they do not measure sampling or successful consumption.
+    /// Errors and cancellation remain terminal and are returned as errors, while a
+    /// normal stop or unsupported tokenizer is identified in the observation's status.
+    pub fn observe_ff_tokens(&mut self) -> Result<FastForwardObservation> {
+        self.with_inner(|inner| inner.parser.observe_ff_tokens())
     }
 
     pub fn consume_ff_tokens(&mut self) -> Vec<TokenId> {
