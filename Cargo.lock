@@ -1381,6 +1381,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "241eaef5fd12c88705a01fc1066c48c4b36e0dd4377dcdc7ec3942cea7a69956"
 
 [[package]]
+name = "llg_header_gen"
+version = "0.1.0"
+dependencies = [
+ "cbindgen",
+]
+
+[[package]]
 name = "llg_test_utils"
 version = "0.1.0"
 dependencies = [
@@ -1421,7 +1428,6 @@ dependencies = [
 name = "llguidance_c"
 version = "0.1.0"
 dependencies = [
- "cbindgen",
  "llguidance",
 ]
 

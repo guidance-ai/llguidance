@@ -6,6 +6,7 @@ members = [
     "sample_parser",
     "json_stats",
     "json_schema_test_suite",
+    "llg_header_gen",
     "llg_test_utils",
     "toktrie",
     "toktrie_hf_tokenizers",

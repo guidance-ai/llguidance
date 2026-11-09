@@ -41,7 +41,7 @@ cd "$TOP"
 if [ "$TEST_RUST" = 1 ] ; then
     cd "$TOP"
     cargo fmt --check
-    cargo check -p llguidance_c --features generate-header
+    cargo +nightly run -p llg_header_gen
     git diff --exit-code c/llguidance.h
 
     cargo clippy --workspace --all-targets --all-features -- -D warnings
