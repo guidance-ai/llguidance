@@ -131,6 +131,28 @@ above, and thus just compute once and for all the set of tokens that are not all
 as the last token in forced bytes.
 This drops the proportion of forced tokens in maskbench from `12.7%` to `12.1%`.
 
+## Long forced runs
+
+A grammar can force a long run of bytes.
+For example, a JSON schema with long `const` values and no flexible whitespace
+forces its whole document.
+Inside a forced run, `compute_mask()` returns a mask with one token: the first forced token.
+To find this token, it tokenizes only a window of the forced bytes ahead, not the whole run.
+The window holds `max(1024, 4 * margin)` bytes,
+where `margin` is twice the length of the longest token, plus 16 bytes.
+When the run is longer than the window, the tokens in the last `margin` bytes
+of the window are dropped, because they can merge with the bytes after the window.
+The end of the window moves back to the start of a UTF-8 character (at most 3 bytes).
+This assumes that tokenization is local: the bytes more than `margin` bytes after a token
+do not change that token.
+The chop above makes the same assumption over a shorter distance.
+A run that fits in the window is tokenized in full, as before.
+
+`compute_ff_tokens()` and `compute_ff_bytes()` still return the whole run,
+so their cost is linear in the length of the run.
+The Earley parser also forces the whole run at once, so the first mask of a run,
+and the first mask after a rollback, also take time linear in the length of the run.
+
 ## Using LLTokenizer to convert bytes to tokens
 
 You can use the `llguidance.LLTokenizer` class to convert forced bytes to tokens,
