@@ -280,6 +280,67 @@ impl LexerSpec {
         res
     }
 
+    /// The possible lexemes that are REGEX (no explicit token_ranges): their token
+    /// set is determined by regex matching (the string / the parametric lexemes),
+    /// which the PDA's terminal->token bridge does NOT model. A grammar with any of
+    /// these (or int-ranges) is NOT pure-CFG: its mask must come from the lexer-aware
+    /// Earley path, not the PDA fast-path.
+    pub fn regex_lexemes(&self, possible: &LexemeSet) -> Vec<&LexemeSpec> {
+        let mut res = Vec::new();
+        for idx in possible.iter() {
+            let spec = &self.lexemes[idx.as_usize()];
+            if spec.token_ranges.is_empty() {
+                res.push(spec);
+            }
+        }
+        res
+    }
+
+    /// Whether the grammar's allowed-token set depends on RUNTIME parametric values
+    /// that the PDA's terminal->token bridge does not model. Two such sources:
+    /// (1) int-range lexemes (the JSON numeric bounds, where the allowed digits
+    /// depend on the min/max values); (2) parametric regex lexemes (the bounded
+    /// string / the length-limited parametric rules, where the allowed token set
+    /// depends on the runtime length bound). A base tokenizer's regex lexemes
+    /// (the single-byte matchers, the unbounded max_tokens) do NOT count: they
+    /// determine token *recognition*, and the PDA bridge already maps the
+    /// grammar's terminals to token IDs (the recognition is orthogonal to the
+    /// The grammar's allowed-token set can include tokens the PDA's terminal-to-token
+    /// bridge does not model, in which case the PDA path is unsound and the consumer
+    /// must use the exact Earley mask. The sources:
+    /// (1) int-range lexemes (the JSON numeric bounds, where the allowed digits depend
+    ///     on the runtime min/max);
+    /// (2) ANY regex lexeme with empty token_ranges (the string / the number / the
+    ///     pattern, bounded or unbounded): a ComplexRegex terminal maps to an EMPTY
+    ///     bridge entry (terminal_preterminals returns None for the ComplexRegex
+    ///     kind, not the displacement bucket), so the PDA mask under-allows its
+    ///     tokens. The bound (max_tokens) is irrelevant to the bridge gap — an
+    ///     unbounded regex lexeme (the /[0-9]+/ with no length limit) is just as
+    ///     unbridgeable as a bounded one. The prior `max_tokens < usize::MAX` clause
+    ///     was the bug: it let unbounded regex lexemes through as "pure-CFG",
+    ///     engaging the PDA path on a grammar whose bridge has empty entries (the
+    ///     under-map).
+    /// (3) ANY skip lexeme (the %ignore, the env-default whitespace skip): the
+    ///     sampler may emit skipped tokens (the spaces) that are not PDA terminals,
+    ///     so the PDA frontier desynchronizes when a skip is committed. The
+    ///     env-default SKIP0 counts too — routing such a grammar to the exact CPU
+    ///     mask is the safe (firewall) direction (not a PDA path that desynchronizes
+    ///     on skipped tokens).
+    pub fn has_lexer_augmentation(&self) -> bool {
+        if self.int_ranges.is_some() {
+            return true;
+        }
+        self.lexemes.iter().any(|spec| {
+            if spec.is_skip {
+                return true;
+            }
+            // A regex lexeme (not a token-range lexeme) with a real regex: the
+            // ComplexRegex terminal, the empty bridge entry, the under-map. The bound
+            // (max_tokens) is irrelevant to the bridge gap.
+            spec.token_ranges.is_empty() && !matches!(spec.rx, RegexAst::NoMatch)
+        })
+    }
+
     pub fn is_nullable(&self, idx: LexemeIdx) -> bool {
         if let Some(config) = self.int_ranges.as_ref().and_then(|ranges| ranges.get(&idx)) {
             return config.min_ranges == 0;
@@ -716,5 +777,105 @@ mod tests {
         // Multi-range span is the sum of the individual ranges.
         let multi = spec_with_ranges(vec![10..=12, 20..=21]);
         assert_eq!(multi.token_range_span(), 3 + 2);
+    }
+
+    /// A regex lexeme (no token_ranges, a real rx) — the ComplexRegex
+    /// terminal, the empty PDA bridge entry. Bounded or unbounded, it makes the
+    /// grammar lexer-augmented (the PDA path must stay off; the CPU Earley mask
+    /// is authoritative).
+    fn spec_with_regex(rx: RegexAst, max_tokens: usize) -> LexemeSpec {
+        LexemeSpec {
+            idx: LexemeIdx(0),
+            single_set: MatchingLexemes::None,
+            name: String::new(),
+            rx,
+            class: LexemeClass(0),
+            compiled_rx: ExprRef::INVALID,
+            ends_at_eos: false,
+            lazy: false,
+            contextual: false,
+            max_tokens,
+            is_extra: false,
+            is_suffix: false,
+            is_skip: false,
+            skip_repetition: SkipRepetition::Unbounded,
+            json_options: None,
+            token_ranges: Vec::new(), // the regex lexeme (no token ranges)
+        }
+    }
+
+    fn spec_with_skip() -> LexemeSpec {
+        let mut s = spec_with_ranges(Vec::new());
+        s.is_skip = true;
+        s
+    }
+
+    /// The has_lexer_augmentation decision table (the R8 bridge-coverage gate):
+    /// true iff the grammar has a token set the PDA bridge cannot model exactly.
+    /// The inclusive: a regex lexeme (bounded or unbounded), a skip lexeme, or an
+    /// int-range makes it augmented. The exclusive: a pure token-range grammar
+    /// (no regex/skip/int-range) is NOT augmented (the PDA bridge is exact).
+    #[test]
+    fn has_lexer_augmentation_decision_table() {
+        use crate::earley::lexerspec::LexerSpec;
+
+        // The exclusive: a pure token-range grammar (the <[97]> form) is NOT
+        // augmented — the PDA bridge (the token-range lift) is exact for it.
+        let pure = LexerSpec::new().unwrap();
+        let mut pure_spec = pure;
+        pure_spec.lexemes.push(spec_with_ranges(vec![97..=97]));
+        assert!(
+            !pure_spec.has_lexer_augmentation(),
+            "a pure token-range grammar is not lexer-augmented (the PDA bridge is exact)"
+        );
+
+        // The inclusive: an UNBOUNDED regex lexeme (the /[0-9]+/ with no length
+        // limit, max_tokens == usize::MAX) IS augmented. This is the case the
+        // prior `max_tokens < usize::MAX` clause missed (it let unbounded regexes
+        // through as "pure-CFG", engaging the PDA path on an empty bridge entry).
+        let unbounded_rx = LexerSpec::new().unwrap();
+        let mut unbounded_spec = unbounded_rx;
+        unbounded_spec.lexemes.push(spec_with_regex(
+            RegexAst::Regex("[0-9]+".to_string()),
+            usize::MAX, // the unbounded (no length limit)
+        ));
+        assert!(
+            unbounded_spec.has_lexer_augmentation(),
+            "an unbounded regex lexeme IS lexer-augmented (the bridge entry is empty, so the PDA path is off)"
+        );
+
+        // The inclusive: a BOUNDED regex lexeme (the length-limited string) is
+        // augmented (the prior clause caught this; the regression guard).
+        let bounded_rx = LexerSpec::new().unwrap();
+        let mut bounded_spec = bounded_rx;
+        bounded_spec.lexemes.push(spec_with_regex(
+            RegexAst::Regex("a{1,3}".to_string()),
+            3, // the bounded (the maxLength 3)
+        ));
+        assert!(
+            bounded_spec.has_lexer_augmentation(),
+            "a bounded regex lexeme is lexer-augmented"
+        );
+
+        // The inclusive: a skip lexeme (the %ignore) is augmented (the sampler may
+        // emit the skipped tokens, which are not PDA terminals).
+        let skip_spec = LexerSpec::new().unwrap();
+        let mut with_skip = skip_spec;
+        with_skip.lexemes.push(spec_with_skip());
+        assert!(
+            with_skip.has_lexer_augmentation(),
+            "a skip lexeme is lexer-augmented (the skipped tokens are not PDA terminals)"
+        );
+
+        // The mixed: a pure token-range + a regex lexeme is augmented (the regex
+        // dominates).
+        let mixed = LexerSpec::new().unwrap();
+        let mut mixed_spec = mixed;
+        mixed_spec.lexemes.push(spec_with_ranges(vec![97..=97]));
+        mixed_spec.lexemes.push(spec_with_regex(RegexAst::Regex("x+".to_string()), usize::MAX));
+        assert!(
+            mixed_spec.has_lexer_augmentation(),
+            "a grammar with any regex lexeme is augmented (the PDA path is off)"
+        );
     }
 }

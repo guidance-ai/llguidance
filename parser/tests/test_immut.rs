@@ -80,7 +80,7 @@ fn test_immut_reads_are_non_perturbing() {
     let mut m = create_matcher(GRM, None);
     m.settle();
     let mask_before = m.compute_mask_immut().unwrap();
-    // repeated immut reads (the no observer effect)
+    // repeated immut reads (no observer effect)
     let _ = m.compute_mask_immut().unwrap();
     let _ = m.compute_ff_tokens_immut();
     let _ = m.compute_mask_immut().unwrap();

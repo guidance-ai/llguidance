@@ -45,7 +45,7 @@ impl<'a> PdaGrammar<'a> {
             // real input terminal. It is marked is_terminal=true by the CGrammar
             // constructor but has no lexeme + no token ranges, so it can never match
             // input. Exclude it from the terminal alphabet so the PDA's terminal
-            // indices align with the real matchable terminals (the no spurious empty
+            // indices align with the real matchable terminals (without a spurious empty
             // terminal at local index 0).
             if i != 0 && grm.is_terminal(s) {
                 global_to_local_terminal[i] = Some(term_count);
@@ -209,13 +209,13 @@ pub fn terminal_token_map_dfa(
 
     // P3 (the semantic exactness): for each terminal, compute the ACTUAL lexeme
     // acceptance set (the tokens whose bytes the terminal's lexeme accepts). This
-    // is the ground truth (the no two). The specific terminals (the
-    // token_ranges, the byte patterns) have known sets (the cheap). The complex
+    // is the ground truth (not an approximation). The specific terminals (the
+    // token_ranges, the byte patterns) have known sets (the cheap case). The complex
     // terminals (the regexes) use the DFA matching (the actual acceptance).
     //
     // Then the partition condition (P1+P2) is tested: are the P3 sets pairwise
-    // disjoint + total? If yes, the bridge is a function (the DPDA semantics If no
-    // (two terminals accept the same token), the bridge is a relation (the NPDA,
+    // disjoint and total? If yes, the bridge is a function (the DPDA semantics). If
+    // no (two terminals accept the same token), the bridge is a relation (the NPDA,
     // the nondeterministic choice).
     let mut bridge: Vec<Vec<u32>> = vec![Vec::new(); num_terminals];
     let exprs = grm.lexer_spec().regex_builder.exprset();
@@ -262,14 +262,14 @@ pub fn terminal_token_map_dfa(
     }
 
     // The complex terminals (the regexes): the DFA matching (the actual acceptance).
-    // Done in a separate pass (the no move of the &mut dfa inside the per-terminal loop).
+    // Done in a separate pass (to avoid moving the &mut dfa inside the per-terminal loop).
     if let Some(dfa) = dfa {
         for (i, &csym) in terminals.iter().enumerate() {
             if !bridge[i].is_empty() {
                 continue; // the specific terminal (the P3 set already computed)
             }
             let lexeme_idx = grm.sym_data(csym).lexeme;
-            let Some(lex) = lexeme_idx else { continue }; // the NULL terminal (the no lexeme)
+            let Some(lex) = lexeme_idx else { continue }; // the NULL terminal (no lexeme)
             let mut selected = grm.lexer_spec().alloc_lexeme_set();
             selected.add(lex);
             let initial = dfa.initial_state(&selected);
@@ -288,7 +288,7 @@ pub fn terminal_token_map_dfa(
         }
     }
 
-    // Sort + dedup each bridge entry (the P3 set, the no form).
+    // Sort and dedup each bridge entry (the P3 set, in sorted form).
     for tokens in bridge.iter_mut() {
         tokens.sort();
         tokens.dedup();
@@ -394,7 +394,7 @@ pub fn bridge_is_exact_dfa(
     dfa: Option<&mut crate::earley::regexvec::RegexVec>,
 ) -> bool {
     let bridge = terminal_token_map_dfa(grm, tok_env, dfa);
-    // The exempt terminals (the NULL / empty productions, the no input) are allowed to have
+    // The exempt terminals (the NULL / empty productions, with no input) are allowed to have
     // empty bridge entries.
     let adapter = PdaGrammar::new(grm);
     let terminals = pushdown_rs::compile::Grammar::terminals(&adapter);
@@ -407,21 +407,21 @@ pub fn bridge_is_exact_dfa(
     bridge_is_exact_from_map(&bridge, vocab_size, tok_env, &exempt)
 }
 
-/// The exactness check over a PRECOMPUTED bridge (the no re-derivation). This
-/// is the independent-register form: given the terminal->token map, verify the
+/// The exactness check over a PRECOMPUTED bridge (without re-derivation). This
+/// is the independent-register form: given the terminal-to-token map, verify the
 /// algorithmic contract WITHOUT recomputing the bridge. A caller that has
-/// already built the bridge (the ParserState)) uses this to avoid the
+/// already built the bridge (the ParserState) uses this to avoid the
 /// double computation.
 ///
-/// The bridge is a RELATION (the token -> the set of terminals), NOT a function.
-/// A token may map to several terminals (the ambiguous case, e.g. the byte `!`
+/// The bridge is a RELATION (a token maps to a set of terminals), not a function.
+/// A token may map to several terminals (the ambiguous case, for example the byte `!`
 /// in two overlapping text ranges). The PDA advance resolves the relation against
 /// the state's allowed terminals (the mask_at_cfg intersection), so global
 /// disjointness is NOT required.
 ///
 /// The only requirement is terminal-totality: every NON-EXEMPT terminal has >= 1
 /// token (an empty terminal entry would zero-mask the PDA when that terminal is
-/// allowed). The exempt terminals (the NULL / empty productions, the no input)
+/// allowed). The exempt terminals (the NULL / empty productions, with no input)
 /// are allowed to be empty.
 pub fn bridge_is_exact_from_map(
     bridge: &[Vec<u32>],
@@ -458,7 +458,7 @@ pub fn export_pda_package(grm: &CGrammar, tok_env: &crate::toktrie::TokEnv) -> R
             bridge_lens.push(b.len() as u32);
             bridge_flat.extend_from_slice(b);
             for _ in b.len()..max_bridge_len {
-                bridge_flat.push(u32::MAX); // the sentinel (the padding, the no valid token)
+                bridge_flat.push(u32::MAX); // the sentinel (padding, not a valid token)
             }
         }
         pkg.vocab_size = vocab_size;
@@ -480,6 +480,83 @@ pub fn export_pda_package(grm: &CGrammar, tok_env: &crate::toktrie::TokEnv) -> R
         }
         pkg.token_to_terminal = Some(token_to_terminal);
     }
+    // The R8 proof: the bridge is bit-exact iff it is a PARTITION of the grammar's
+    // authorized token set. Two conditions, BOTH required (not the prior
+    // disjointness-only check, which passed vacuously for empty entries):
+    //   (disjoint)  no token is in two terminals' sets (not the over-map, the
+    //               byte-collision that admits a token the CFG did not authorize);
+    //   (complete)  every USED, non-nullable terminal has a NON-EMPTY bridge entry
+    //               (not the under-map, the empty entry that disallows every token
+    //               the terminal authorizes — the ComplexRegex / no-preterminal
+    //               terminals that the bridge builders leave empty).
+    // A bridge that is disjoint but incomplete (an empty complex-regex entry) is NOT
+    // exact: it would under-allow. A bridge that is complete but not disjoint is NOT
+    // exact: it would over-allow. Both must hold.
+    {
+        let mut owner = vec![0u32; vocab_size as usize]; // 0 = unowned, else the terminal+1
+        let mut disjoint = true;
+        for (t, tokens) in bridge.iter().enumerate() {
+            for &tok in tokens {
+                let ti = tok as usize;
+                if ti >= vocab_size as usize {
+                    continue;
+                }
+                if owner[ti] != 0 {
+                    disjoint = false; // a token in two terminals' sets (the over-map)
+                    break;
+                }
+                owner[ti] = (t as u32) + 1;
+            }
+        }
+        // The completeness: every used, non-nullable terminal must have a non-empty
+        // bridge entry. A used terminal with an empty entry (the ComplexRegex / the
+        // no-preterminal case) under-allows its tokens (not the PDA mask admitting
+        // them) — the bridge is incomplete, not exact.
+        let adapter = PdaGrammar::new(grm);
+        let terminals = adapter.terminals(); // the CSymIdx list, in local-ID order
+        let nonterminals = adapter.nonterminals(); // the CSymIdx list of nonterminals
+        let mut complete = true;
+        // The set of terminal LOCAL IDs that are used (appear in some production RHS)
+        // and non-nullable. A used, non-nullable terminal with an empty bridge entry
+        // is an incompleteness.
+        let used_local: std::collections::HashSet<u32> = {
+            let mut used = std::collections::HashSet::new();
+            for &lhs in &nonterminals {
+                for &rule in grm.rules_of(lhs) {
+                    for &sym in grm.rhs_symbols(rule) {
+                        if grm.is_terminal(sym) && !grm.is_nullable(sym) {
+                            // Map the CSymIdx to its PDA local terminal ID (the
+                            // adapter's terminals() order). The terminal's local ID is
+                            // its position in the terminals() list.
+                            if let Some(pos) = terminals.iter().position(|&t| t == sym) {
+                                used.insert(pos as u32);
+                            }
+                        }
+                    }
+                }
+            }
+            used
+        };
+        for (t, tokens) in bridge.iter().enumerate() {
+            if used_local.contains(&(t as u32)) && tokens.is_empty() {
+                complete = false; // a used, non-nullable terminal with no tokens (the under-map)
+                break;
+            }
+        }
+        pkg.bridge_exact = disjoint && complete;
+    }
+    // The R2 proof: the grammar's frontier is bounded iff it has no self-embedding
+    // nonterminal (the pushdown-rs cfg_has_self_embedding, the exact CFG test).
+    // The test runs over the PdaGrammar adapter (the pushdown-rs Grammar impl over
+    // the CGrammar), the same adapter compile_pda uses.
+    let adapter = PdaGrammar::new(grm);
+    pkg.bounded = !pushdown_rs::compile::cfg_has_self_embedding(&adapter);
+    // The R2/R8 coverage proof: the grammar's token set is fully determined by the
+    // CFG terminals (with no lexer-augmented tokens such as the numeric int-ranges,
+    // the string regex lexemes, or the %ignore skip). When false, the bridge (even if
+    // disjoint) does not cover the full token set, so the GPU PDA mask is incomplete
+    // and the consumer must use the exact CPU Earley mask.
+    pkg.pure_cfg = !grm.lexer_spec().has_lexer_augmentation();
     Ok(pkg)
 }
 
@@ -487,7 +564,7 @@ pub fn export_pda_package(grm: &CGrammar, tok_env: &crate::toktrie::TokEnv) -> R
 /// group the vocabulary tokens by their PDA displacement (the set of
 /// (in_config, out_config) pairs induced by the token's terminal sequence). Two
 /// tokens are in the same bridge class iff they have the same displacement (the
-/// interchangeable inputs, the no DFA).
+/// interchangeable inputs, without a DFA).
 ///
 /// The `token_terminal` closure maps a token ID to its terminal sequence (the
 /// lexer's output, the single-terminal case for now). The displacement is
@@ -602,16 +679,16 @@ pub enum TerminalKind {
     /// sequence.
     BytePattern(Vec<u8>),
     /// The token-level terminal (the token ID range, the <[32006,32010]> form).
-    /// The preterminal is the token ID (the no byte expansion).
+    /// The preterminal is the token ID (with no byte expansion).
     TokenRange(Vec<std::ops::RangeInclusive<u32>>),
     /// The complex-regex terminal (the Or / the Regex / the ExprRef). The DFA
-    /// matching is required (the no byte pattern, the no token range).
+    /// matching is required (no byte pattern, no token range).
     ComplexRegex,
 }
 
 /// Classify a terminal (the CSymIdx) into its kind (the byte-level / the
 /// token-level / the complex-regex). This is the GNF conversion's first step
-/// (the terminal -> the preterminal mapping).
+/// (the terminal-to-preterminal mapping).
 pub fn classify_terminal(grm: &CGrammar, csym: CSymIdx) -> TerminalKind {
     // The token-level terminal (the token_ranges are populated).
     let ranges = grm.terminal_token_ranges(csym);
@@ -627,28 +704,28 @@ pub fn classify_terminal(grm: &CGrammar, csym: CSymIdx) -> TerminalKind {
             return TerminalKind::BytePattern(bytes);
         }
     }
-    // The complex-regex terminal (the no byte pattern, the no token range).
+    // The complex-regex terminal (no byte pattern, no token range).
     TerminalKind::ComplexRegex
 }
 
-/// The terminal -> the preterminal sequence (the GNF conversion, the second step):
+/// The terminal-to-preterminal sequence (the GNF conversion, the second step):
 /// the byte-level terminals expand to their byte sequence (the preterminals), the
-/// token-level terminals stay at the token ID (the no byte expansion), and the
-/// complex-regex terminals use the DFA matching (the no preterminal expansion,
-/// the next increment). This is the terminal -> the preterminal mapping that the
-/// displacement bridge uses (the no DFA, the pure PDA simulation).
+/// token-level terminals stay at the token ID (no byte expansion), and the
+/// complex-regex terminals use the DFA matching (no preterminal expansion, the
+/// next increment). This is the terminal-to-preterminal mapping that the
+/// displacement bridge uses (no DFA, the pure PDA simulation).
 pub fn terminal_preterminals(
     grm: &CGrammar,
     csym: CSymIdx,
 ) -> Option<Vec<u8>> {
     match classify_terminal(grm, csym) {
         TerminalKind::BytePattern(bytes) => Some(bytes),
-        TerminalKind::TokenRange(_) => None, // the token-level (the no byte expansion)
-        TerminalKind::ComplexRegex => None, // the DFA matching (the no increment)
+        TerminalKind::TokenRange(_) => None, // the token-level (no byte expansion)
+        TerminalKind::ComplexRegex => None, // the DFA matching (no increment)
     }
 }
 
-/// The GNF displacement bridge (the no DFA, the pure PDA simulation): for the
+/// The GNF displacement bridge (no DFA, the pure PDA simulation): for the
 /// terminal, compute its preterminal sequence (the byte-level expansion, the
 /// token-level identity), and then compute the displacement of the preterminal
 /// sequence (the PDA's stack transformation). The bridge is the displacement
@@ -666,16 +743,16 @@ pub fn gnf_displacement_bridge<F: Fn(u32) -> Vec<u32> + Sync>(
     token_preterminals: &F,
 ) -> Vec<Vec<u32>> {
     // The displacement is a function of the byte sequence (the preterminal
-    // sequence), NOT the token ID. So group tokens by their byte sequence, and
-    // compute the displacement once per group (the no per-token). This reduces
-    // the O(vocab x displacement_cost) to the O(num_groups x displacement_cost +
-    // vocab) (the num_groups << the vocab).
+    // sequence), not the token ID. So group tokens by their byte sequence, and
+    // compute the displacement once per group (not per token). This reduces
+    // the O(vocab x displacement_cost) to O(num_groups x displacement_cost +
+    // vocab) (num_groups is much smaller than vocab).
     //
     // Step 1: group the tokens by their byte sequence (the preterminal sequence).
     let mut seq_groups: Vec<(Vec<u32>, Vec<u32>)> = Vec::new(); // (byte_seq, token_ids)
     for tok in 0..vocab_size as u32 {
         if eos_tokens.contains(&tok) {
-            continue; // the EOS tokens are excluded (the no part of the grammar)
+            continue; // the EOS tokens are excluded (not part of the grammar)
         }
         let preterminals = token_preterminals(tok);
         match seq_groups.iter_mut().find(|(seq, _)| *seq == preterminals) {
@@ -683,9 +760,9 @@ pub fn gnf_displacement_bridge<F: Fn(u32) -> Vec<u32> + Sync>(
             None => seq_groups.push((preterminals, vec![tok])),
         }
     }
-    // Step 2: compute the displacement once per group (the no per-token). The
-    // displacement computation is parallelized (the rayon, the no shared state):
-    // each group's displacement is independent (the pure function).
+    // Step 2: compute the displacement once per group (not per token). The
+    // displacement computation is parallelized (rayon, with no shared state):
+    // each group's displacement is independent (a pure function).
     let displacements: Vec<Vec<(u32, Vec<u32>, u32, Vec<u32>)>> = {
         use rayon::prelude::*;
         seq_groups.par_iter().map(|(seq, _)| pda.displacement(seq)).collect()
@@ -708,10 +785,10 @@ pub fn gnf_displacement_bridge<F: Fn(u32) -> Vec<u32> + Sync>(
     bridge
 }
 
-/// The GNF displacement bridge for a SUBSET of tokens (the no full vocab, the
+/// The GNF displacement bridge for a SUBSET of tokens (not the full vocab, for
 /// benchmark speed). The `tokens` is the subset of token IDs to compute the
 /// bridge for. The displacement is computed via the PDA's displacement method
-/// (the pure functional, the no temporary state).
+/// (the pure functional, with no temporary state).
 pub fn gnf_displacement_bridge_subset(
     pda: &pushdown_rs::machine::PdaMachine,
     tokens: &[u32],
@@ -738,16 +815,16 @@ pub fn gnf_displacement_bridge_subset(
 }
 
 /// The terminal-indexed hybrid bridge (the CFGzip Theorem 2 for byte terminals, the exact
-/// token-set for token-range terminals, the no the lexer DFA). Returns a `Vec<Vec<u32>>`
+/// token-set for token-range terminals, without the lexer DFA). Returns a `Vec<Vec<u32>>`
 /// indexed by LOCAL terminal ID (the same shape as `terminal_token_map_dfa`), total + disjoint
 /// over the vocabulary.
 ///
 /// A terminal is realized and bridged by the kind that is exact for it:
 ///   - `TokenRange`: the terminal IS an exact token set (the `terminal_token_set` closure).
-///     No displacement is involved (the token-level identity, the no byte expansion).
+///     No displacement is involved (the token-level identity, without byte expansion).
 ///   - `BytePattern` / `ComplexRegex`: the terminal is realized by the tokens whose byte
 ///     sequence has the terminal's displacement signature (the CFGzip Theorem 2, the
-///     displacement partition, the no the lexer DFA).
+///     displacement partition, without the lexer DFA).
 ///
 /// `terminal_token_set(t)` returns the exact token set for a token-range terminal `t` (the
 /// empty for a non-token-range terminal, which is bridged by displacement instead).
@@ -764,10 +841,10 @@ pub fn terminal_hybrid_bridge(
     token_preterminals: &dyn Fn(u32) -> Vec<u32>,
 ) -> Vec<Vec<u32>> {
     let mut bridge: Vec<Vec<u32>> = vec![Vec::new(); num_terminals];
-    // Group the vocabulary tokens by their preterminal (byte) sequence (the cheap key, the no
+    // Group the vocabulary tokens by their preterminal (byte) sequence (the cheap key, without
     // per-token displacement). By the CFGzip Theorem 2, two tokens are displacement-equivalent
     // iff they have the same preterminal (byte) sequence, so this grouping IS the displacement
-    // partition (the no the O(vocab x in_configs x closure) displacement_many that hung on the
+    // partition (without the O(vocab x in_configs x closure) displacement_many that hung on the
     // 248K Qwen vocab).
     let mut seq_to_tokens: std::collections::HashMap<Vec<u32>, Vec<u32>> =
         std::collections::HashMap::new();
@@ -777,7 +854,7 @@ pub fn terminal_hybrid_bridge(
         }
         seq_to_tokens.entry(token_preterminals(tok)).or_default().push(tok);
     }
-    // The token-range terminals: the exact token set (the no displacement, the option (a)).
+    // The token-range terminals: the exact token set (no displacement, the option (a)).
     for t in 0..num_terminals as u32 {
         if let Some(set) = terminal_token_set(t) {
             bridge[t as usize] = set;
@@ -785,18 +862,18 @@ pub fn terminal_hybrid_bridge(
             bridge[t as usize].dedup();
         }
     }
-    // The displacement-bridged terminals (the byte-pattern / the complex-regex, the no the token
+    // The displacement-bridged terminals (the byte-pattern / the complex-regex, not the token
     // range): the terminal is realized by exactly the tokens whose preterminal (byte) sequence
     // equals the terminal's preterminal sequence (the CFGzip Theorem 2, the displacement
-    // equivalence). This is a byte-sequence hash lookup (the O(1)), the no the per-token PDA
+    // equivalence). This is a byte-sequence hash lookup (O(1)), not the per-token PDA
     // displacement simulation.
     for t in 0..num_terminals as u32 {
         if terminal_token_set(t).is_some() {
-            continue; // the token-range terminal (the already bridged by set)
+            continue; // the token-range terminal (already bridged by set)
         }
         let term_seq = terminal_preterminals(t);
         if term_seq.is_empty() {
-            continue; // the no preterminal (the NULL / the token-level terminal, the no byte match)
+            continue; // no preterminal (the NULL / the token-level terminal, no byte match)
         }
         if let Some(toks) = seq_to_tokens.get(&term_seq) {
             bridge[t as usize] = toks.clone();
@@ -828,7 +905,7 @@ mod tests {
     }
 
     /// A multi-byte literal terminal's completing token is the LAST token of its greedy
-    /// tokenization (the no the prefix tokens). The single-byte env: the `ab` bytes tokenize to
+    /// tokenization (not the prefix tokens). The single-byte env: the `ab` bytes tokenize to
     /// [97, 98]; the completing token is 98 (the last).
     #[test]
     fn completing_token_is_last_of_greedy_sequence() {
@@ -867,7 +944,7 @@ mod tests {
     /// exclude them.
     #[test]
     fn negated_token_range_bridge_excludes_the_range() {
-        // The single-byte env has vocab 262 (the 256 bytes 0..=255 + the 6 special
+        // The single-byte env has vocab 262 (the 256 bytes 0..=255 plus the 6 special
         // tokens <|tool|>, <|/tool|>, <|user|>, <|system|>, <|assistant|>, <|end|>).
         // The negated range <[^97,98,99]> (the "not a, b, c") must bridge to every
         // token EXCEPT 97, 98, 99 (the 262 - 3 = 259 tokens).
@@ -887,5 +964,41 @@ mod tests {
         assert!(term.contains(&261), "token 261 (the last special, not excluded) must be in the bridge set");
         // The bridge set size is vocab - 3 (the 262-token vocab minus the 3 excluded).
         assert_eq!(term.len(), 262 - 3, "the bridge set is the vocab minus the excluded range");
+    }
+
+    /// The R8 partition certificate (the bridge_exact = disjoint AND complete): a
+    /// token-range grammar's bridge is a true partition of its authorized tokens
+    /// (every used terminal has a non-empty entry, no token in two entries), so
+    /// export_pda_package reports bridge_exact == true. A regex-leaf grammar's
+    /// bridge is INCOMPLETE (the ComplexRegex terminal has an empty entry, because
+    /// the DFA the bridge builder here does not have), so bridge_exact == false. This is
+    /// the inclusive (the exact bridge certifies) + exclusive (the incomplete bridge
+    /// does not certify) proof of the partition certificate.
+    #[test]
+    fn bridge_exact_is_a_partition_certificate() {
+        use crate::dpda_adapter::export_pda_package;
+        let env = ApproximateTokEnv::single_byte_env();
+        // A pure token-range grammar: the bridge is a true partition (each terminal
+        // maps to its exact token range, disjoint + complete) -> bridge_exact true.
+        let grm_range = cgrammar_of(&env, r#"start: <[97]> <[98]> <[99]>"#);
+        let pkg = export_pda_package(&grm_range, &env).expect("the package");
+        assert!(
+            pkg.bridge_exact,
+            "a pure token-range grammar has a partition bridge (disjoint + complete) -> bridge_exact true"
+        );
+        assert!(pkg.bounded, "a finite sequence grammar is bounded (no self-embedding)");
+
+        // A regex-leaf grammar (the NUMBER, the ComplexRegex terminal): the bridge
+        // builder here has no DFA, so the NUMBER terminal's entry is empty -> the
+        // bridge is INCOMPLETE -> bridge_exact false (the PDA path is off, the CPU
+        // mask is authoritative, not the under-map). This is the conservative
+        // (sound) direction: an unproven bridge never certifies exactness.
+        let grm_num = cgrammar_of(&env, r#"start: "n" NUMBER
+            NUMBER: /[0-9]+/"#);
+        let pkg_num = export_pda_package(&grm_num, &env).expect("the package");
+        assert!(
+            !pkg_num.bridge_exact,
+            "a regex-leaf grammar has an incomplete bridge (the empty ComplexRegex entry, no DFA) -> bridge_exact false (the conservative sound direction)"
+        );
     }
 }

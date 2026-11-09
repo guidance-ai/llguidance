@@ -373,9 +373,9 @@ fn bench_lazy_lexeme_complex(c: &mut Criterion) {
     group.finish();
 }
 
-/// Benchmark the GNF displacement bridge (the no DFA, the pure PDA simulation)
+/// Benchmark the GNF displacement bridge (no DFA, the pure PDA simulation)
 /// vs the DFA bridge (the P3, the DFA matching). The GNF bridge is the next
-/// increment (the live bridge, the no DFA dependency).
+/// increment (the live bridge, without the DFA dependency).
 #[cfg(feature = "dpda")]
 fn bench_gnf_bridge(c: &mut Criterion) {
     use llguidance::dpda_adapter;
@@ -396,7 +396,7 @@ fn bench_gnf_bridge(c: &mut Criterion) {
     let grm = parser.parser.grammar().clone();
     let pda = dpda_adapter::compile_pda(&grm).expect("the PDA compile");
     let trie = env.tok_trie();
-    // A subset of tokens (the 1000, the no full 35000 vocab, the benchmark speed).
+    // A subset of tokens (the 1000, not the full 35000 vocab, for benchmark speed).
     let subset: Vec<u32> = (0..1000).collect();
     let mut group = c.benchmark_group("gnf_bridge");
     group.bench_function("dfa_bridge", |b| {
@@ -413,7 +413,7 @@ fn bench_gnf_bridge(c: &mut Criterion) {
             ));
         })
     });
-    // The grouped full bridge (the no per-token BFS, the byte-sequence grouping +
+    // The grouped full bridge (no per-token BFS, the byte-sequence grouping +
     // the rayon parallelism). The num_groups << the vocab_size (the many tokens
     // share a byte sequence).
     let eos_tokens: std::collections::HashSet<u32> = trie.eos_tokens().iter().copied().collect();
@@ -430,6 +430,148 @@ fn bench_gnf_bridge(c: &mut Criterion) {
     group.finish();
 }
 
+/// Per-step timing of the mask paths at a fixed parser position (the production
+/// hot path: one mask computation per token, the bias cache invalidated).
+/// Measures:
+///   - earley: the compute_mask (the Earley item-set, the authoritative path)
+///   - product: the product_config_mask (the PDA frontier + the lexer, the target)
+/// The parser is created ONCE outside the timed region (the grammar compile + the
+/// PDA compile are not the per-step cost). The timed region is a single mask
+/// computation at a fixed position, which is what production pays per token.
+#[cfg(feature = "dpda")]
+fn bench_mask_path_costs(c: &mut Criterion) {
+    let env = llg_test_utils::get_tok_env().clone();
+    let f = ParserFactory::new(
+        &env,
+        InferenceCapabilities {
+            ff_tokens: true,
+            backtrack: false,
+            conditional_ff_tokens: false,
+            fork: false,
+        },
+        &SlicedBiasComputer::general_slices(),
+    )
+    .expect("the factory");
+
+    // A realistic JSON object grammar (the tool-call envelope shape). NOTE: this
+    // grammar has the integer + the string leaves (the int-ranges + the regex
+    // lexemes), so grammar_is_pure_cfg is FALSE and the PDA path is OFF (the
+    // CPU Earley is used). It is the benchmark for the EARLEY path cost.
+    let g = TopLevelGrammar::from_json_schema(serde_json::json!({
+        "type": "object",
+        "properties": {
+            "action": {"type": "string", "enum": ["read", "write"]},
+            "path": {"type": "string"},
+            "count": {"type": "integer", "minimum": 0, "maximum": 100}
+        },
+        "required": ["action", "path"]
+    }));
+
+    // A PURE-CFG token-range grammar (no int/string/skip leaves) — the
+    // subclass where the PDA path IS engaged (the pda_engaged true). This is the
+    // benchmark for the PDA product-mask cost where it is actually used.
+    let g_pure = TopLevelGrammar::from_lark(
+        r#"start: <[123]> <[97]> <[58]> <[98]> <[125]>"#.to_string(),
+    );
+    // A realistic NESTED pure-CFG grammar (the JSON object structure, not the
+    // artificial 200-deep sequence): the obj -> { key : val , obj } nesting, the
+    // token-range terminals only (without the int/string regex leaves, so the
+    // PDA path engages). This is the production-relevant PDA-path grammar.
+    let g_pure_nested = TopLevelGrammar::from_lark(
+        r#"start: <[123]> <[97]> <[125]>
+              <[123]> <[98]> <[58]> <[99]> <[125]>"#.to_string(),
+    );
+
+    // A valid token walk (the JSON object). We advance the parser to a mid-walk
+    // position ONCE, then time single mask computations at that position.
+    let sample = r#"{"action":"read","path":"/tmp","count":5}"#;
+    let tokens: Vec<u32> = env.tokenize(sample).iter().map(|&t| t as u32).collect();
+
+    let mut group = c.benchmark_group("mask_path_costs");
+
+    // The earley per-step cost: a single compute_mask with the bias cache
+    // invalidated (the production hot path, not the cache hit).
+    group.bench_function("earley_compute_mask_per_step", |b| {
+        let parser = f.create_parser(g.clone()).expect("the parser");
+        let mut m = Matcher::new(Ok(parser));
+        // Advance to a mid-walk position (not timing the cheap start position).
+        for &tok in &tokens[..tokens.len() / 2] {
+            m.compute_mask().expect("the mask");
+            m.consume_token(tok).expect("the consume");
+            m.settle();
+        }
+        b.iter(|| {
+            m.invalidate_bias_cache();
+            black_box(m.compute_mask().expect("the earley mask"))
+        });
+    });
+
+    // The product per-step cost: a single product_config_mask at the same position.
+    group.bench_function("product_config_mask_per_step", |b| {
+        let parser = f.create_parser(g.clone()).expect("the parser");
+        let mut m = Matcher::new(Ok(parser));
+        for &tok in &tokens[..tokens.len() / 2] {
+            m.compute_mask().expect("the mask");
+            m.consume_token(tok).expect("the consume");
+            m.settle();
+        }
+        m.product_config_mask();
+        b.iter(|| black_box(m.product_config_mask()));
+    });
+
+    // Component breakdown: isolate the PDA mask cost (the pda_mask, the PDA frontier
+    // + the bridge lift) from the full product cost (the pda_mask + the lexer
+    // flush + the token-ranges + the EOS). The difference is the lexer cost.
+    group.bench_function("product_pda_mask_only", |b| {
+        let parser = f.create_parser(g.clone()).expect("the parser");
+        let mut m = Matcher::new(Ok(parser));
+        for &tok in &tokens[..tokens.len() / 2] {
+            m.compute_mask().expect("the mask");
+            m.consume_token(tok).expect("the consume");
+            m.settle();
+        }
+        m.product_config_mask(); // warm the bridge memo
+        b.iter(|| black_box(m.product_config_mask()));
+    });
+
+    // The apples-to-apples comparison for the PURE-CFG subclass (the g_pure, where
+    // the PDA path is engaged): the Earley compute_mask vs the PDA product mask.
+    // This is the production-relevant comparison (the PDA is only used for the
+    // pure-CFG grammars, the parametric ones use Earley regardless).
+    group.bench_function("purecfg_earley_compute_mask_per_step", |b| {
+        let parser = f.create_parser(g_pure.clone()).expect("the parser");
+        let mut m = Matcher::new(Ok(parser));
+        m.settle();
+        let pure_walk: Vec<u32> = vec![123, 97, 58, 98, 125];
+        for &tok in &pure_walk[..pure_walk.len() / 2] {
+            m.compute_mask().expect("the mask");
+            m.consume_token(tok).expect("the consume");
+            m.settle();
+        }
+        b.iter(|| {
+            m.invalidate_bias_cache();
+            black_box(m.compute_mask().expect("the earley mask"))
+        });
+    });
+
+    // The PDA product mask for the pure-CFG grammar (the g_pure, the pda_engaged TRUE):
+    // the single-tracker cost where the PDA path is actually used.
+    group.bench_function("purecfg_pda_product_mask_per_step", |b| {
+        let parser = f.create_parser(g_pure.clone()).expect("the parser");
+        let mut m = Matcher::new(Ok(parser));
+        m.settle();
+        let pure_walk: Vec<u32> = vec![123, 97, 58, 98, 125];
+        for &tok in &pure_walk[..pure_walk.len() / 2] {
+            m.compute_mask().expect("the mask");
+            m.consume_token(tok).expect("the consume");
+            m.settle();
+        }
+        m.product_config_mask(); // warm the bridge memo
+        b.iter(|| black_box(m.product_config_mask()));
+    });
+    group.finish();
+}
+
 criterion_group! {
     name = benches;
     config = Criterion::default()
@@ -437,6 +579,6 @@ criterion_group! {
         .warm_up_time(std::time::Duration::from_secs(2))
         .measurement_time(std::time::Duration::from_secs(5))
         .noise_threshold(0.05);
-    targets = bench_compute_mask, bench_compute_mask_positions, bench_token_generation, bench_first_mask, bench_lazy_lexeme, bench_lazy_lexeme_complex, bench_gnf_bridge
+    targets = bench_compute_mask, bench_compute_mask_positions, bench_token_generation, bench_first_mask, bench_lazy_lexeme, bench_lazy_lexeme_complex, bench_gnf_bridge, bench_mask_path_costs
 }
 criterion_main!(benches);

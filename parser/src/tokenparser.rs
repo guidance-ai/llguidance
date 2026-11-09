@@ -541,7 +541,13 @@ impl TokenParser {
         self.check_initialized("compute_mask_immut")?;
         let prefix = if self.can_force_bytes() {
             let (ff_tokens, token_prefix) = self.ff_tokens_immut();
-            if !ff_tokens.is_empty() {
+            // The ff-singleton shortcut is valid ONLY when the lexer is NOT mid-token.
+            // When has_pending_lexeme_bytes() is true (a number or string is being
+            // assembled), the forced bytes are lexer-internal, not a grammar ff-run:
+            // the allowed token set is determined by the int-range/lexeme DFA (the
+            // compute_bias path), not by a singleton grammar-forced token. Taking the
+            // singleton here drops the valid digits (the numeric under-allow regression).
+            if !ff_tokens.is_empty() && !self.parser.has_pending_lexeme_bytes() {
                 let t = ff_tokens[0];
                 let mask = self.tok_trie().singleton_token_set(t);
                 self.last_step_stats = ParserStats::default();
@@ -810,14 +816,13 @@ impl TokenParser {
     /// already-settled `currently_forced_bytes` (the `_immut` non-advancing
     /// read). Everything else is shared.
     fn ff_tokens_impl(&mut self, advance: bool) -> (Vec<TokenId>, Vec<u8>) {
-        // PDA singleton ff: if the PDA allows exactly one terminal AND that
-        // terminal covers exactly one token, the ff is that single token
-        // (the O(1) replacement for the byte-hunt over 256 values).
-        #[cfg(feature = "dpda")]
-        if let Some(forced_tok) = self.parser.pda_forced_token() {
-            return (vec![forced_tok], Vec::new());
-        }
-
+        // The ff-run (the grammar-forced continuation) is ALWAYS computed by the
+        // byte-hunt below (the exact, lexer-aware path). The prior PDA singleton
+        // shortcut (the pda_forced_token -> vec![forced_tok]) truncated multi-token
+        // forced runs (a fully-determined "a" "b" "c" sequence forces the whole run,
+        // not just the first token), so it is removed. The PDA is used for the mask
+        // (the pda_mask, gated on grammar_is_pure_cfg) and the draft projection, not
+        // the ff-run.
         let mut forced_bytes = Vec::new();
         let mut existing_tokens = if self.llm_tokens.is_empty() {
             Vec::new()
@@ -927,6 +932,22 @@ impl TokenParser {
         self.last_step_stats = p_stats.clone();
         self.max_step_stats = self.max_step_stats.max(&p_stats);
         set
+    }
+
+    /// The product-config mask (the PDA-only state-tracking target, the design doc
+    /// section 13): the allowed-token set computed from the single product config
+    /// (the pda_configs frontier + the lexer state), with NO Earley item-set. It is
+    /// the PDA terminal mask (the CFG structure projected to tokens via the bridge)
+    /// UNION the lexer token-range contributions UNION the EOS token — the same
+    /// components compute_bias assembles, but the grammar-structure half comes from
+    /// the PDA frontier (the single tracker) instead of the Earley item-set.
+    ///
+    /// Proven equal to compute_bias by the differential oracle (the
+    /// product_config_mask_equals_compute_bias test), which is the correctness gate
+    /// before wiring it in as the mask source.
+    #[cfg(feature = "dpda")]
+    pub fn product_config_mask(&mut self) -> SimpleVob {
+        self.parser.product_config_mask(&*self.bias_computer)
     }
 
     fn log_final(&mut self, token_prefix: &[u8], allowed_tokens: &SimpleVob) {

@@ -335,7 +335,7 @@ mod tests {
         // After one step, the PDA should be in a valid state (not necessarily accepting).
         assert!(ctrl < pda.num_states, "the ctrl state is in range after a step");
         // The stack after the advance is well-formed: non-empty + every entry is a
-        // valid stack symbol (the no out-of-range stack symbol, the PDA stack invariant).
+        // valid stack symbol (no out-of-range stack symbol, the PDA stack invariant).
         assert!(!stack.is_empty(), "the PDA stack is non-empty after a step");
         for &sym in &stack {
             assert!(sym < pda.num_stack_syms, "every PDA stack symbol is in range");
@@ -391,9 +391,9 @@ mod tests {
         // The no-DFA bridge (the terminal_token_map) is NOT semantically exact (the P3
         // fails): the specific terminals (the byte patterns) may overlap (the P1
         // violation), and the complex terminals (the regexes) get empty entries
-        // (the no DFA matching). So the bridge_is_exact check returns false (the
+        // (without DFA matching). So the bridge_is_exact check returns false (the
         // P1+P2 fail), and the PDA path is disabled (the legacy path runs).
-        // This is the correct behavior (the no compromise on accuracy).
+        // This is the correct behavior (no compromise on accuracy).
         let exact = llguidance::dpda_adapter::bridge_is_exact(&grm, 256, f.tok_env());
         println!(
             "JSON bridge (no-DFA): {} inputs, exact={} (the PDA path is {})",
@@ -427,7 +427,7 @@ mod tests {
         // The no-DFA bridge (the terminal_token_map) is NOT semantically exact (the P3
         // fails): the specific terminals (the byte patterns) may overlap (the P1
         // violation), and the complex terminals (the regexes) get empty entries
-        // (the no DFA matching). So the bridge_is_exact check returns false (the
+        // (without DFA matching). So the bridge_is_exact check returns false (the
         // P1+P2 fail), and the PDA path is disabled (the legacy path runs).
         let exact2 = llguidance::dpda_adapter::bridge_is_exact(&grm2, 256, f.tok_env());
         println!(
@@ -476,6 +476,55 @@ mod tests {
         // After the full sequence, the PDA should be in the accepting state.
         assert!(m.is_accepting().expect("the accepting check"),
             "the PDA must be accepting after the valid sequence");
+    }
+
+    /// PROOF (the acceptance differential, the inclusive + exclusive): the public
+    /// is_accepting (the PDA path when engaged, the Earley path otherwise) must
+    /// agree with the ground-truth acceptance at EVERY step of a walk. The
+    /// ground truth: a *prefix* of a valid string is NOT accepting (more input is
+    /// needed), the *complete* string IS accepting. This proves the acceptance
+    /// decision is exact (not the PDA accepting early on a prefix, not the
+    /// Earley missing a complete string) — the inclusive (accepts when complete) +
+    /// the exclusive (rejects when incomplete) property, at every step.
+    #[test]
+    fn pda_is_accepting_matches_ground_truth_at_every_step() {
+        let env = ApproximateTokEnv::single_byte_env();
+        let f = ParserFactory::new(
+            &env,
+            InferenceCapabilities {
+                ff_tokens: true,
+                backtrack: false,
+                conditional_ff_tokens: false,
+                fork: false,
+            },
+            &SlicedBiasComputer::general_slices(),
+        )
+        .expect("the factory");
+        // The sequence grammar: 'a' 'b' 'c' (the 97, 98, 99). The PDA is engaged
+        // (the deterministic + the exact bridge + the pure-CFG, without the regex
+        // leaves), so is_accepting routes to the PDA path.
+        let g = TopLevelGrammar::from_lark(r#"start: "a" "b" "c""#.to_string());
+        let parser = f.create_parser(g.clone()).expect("the parser");
+        let mut m = Matcher::new(Ok(parser));
+        m.settle();
+
+        // The ground truth at each step: after k committed tokens (k < 3), the
+        // string is incomplete -> NOT accepting. After all 3 (k == 3), complete ->
+        // accepting. The public is_accepting must match this at every step.
+        let full: Vec<u32> = vec![97, 98, 99];
+        for k in 0..=full.len() {
+            // The matcher has committed full[0..k] (the k=0 is the fresh start).
+            let expected_accepting = (k == full.len());
+            let actual = m.is_accepting().expect("the accepting check");
+            assert_eq!(
+                actual, expected_accepting,
+                "after {k} committed token(s) the acceptance must be {expected_accepting} (the prefix is incomplete until all 3 are committed); got {actual}"
+            );
+            if k < full.len() {
+                m.consume_token(full[k]).expect("the consume");
+                m.settle();
+            }
+        }
     }
 
     /// P11 sync: walk an INVALID token and and verify the matcher rejects it.
@@ -640,7 +689,7 @@ mod tests {
         }
     }
 
-    /// The parity test: the GNF displacement bridge (the no DFA, the pure PDA
+    /// The parity test: the GNF displacement bridge (no DFA, the pure PDA
     /// simulation) must be a valid partition (the total + the disjoint) and must
     /// be consistent with the DFA bridge (the tokens in the same GNF class have
     /// the same DFA terminal, or the GNF class is a subset of the DFA class).
@@ -670,7 +719,7 @@ mod tests {
 
         // The DFA bridge (the terminal -> the tokens, the P3 computation).
         let dfa_bridge = dpda_adapter::terminal_token_map(&grm, f.tok_env());
-        // The GNF bridge (the displacement partition, the no DFA).
+        // The GNF bridge (the displacement partition, without the DFA).
         let pda = dpda_adapter::compile_pda(&grm).expect("the PDA compile");
         let trie = f.tok_env().tok_trie();
         let vocab_size = trie.vocab_size();
@@ -761,7 +810,7 @@ mod tests {
         let eos: std::collections::HashSet<u32> = trie.eos_tokens().iter().copied().collect();
         for idx in 0..vocab_size {
             if eos.contains(&(idx as u32)) {
-                // The EOS tokens are excluded (the no coverage).
+                // The EOS tokens are excluded (no coverage).
                 assert_eq!(coverage[idx], 0, "the EOS token {} must NOT be covered", idx);
             } else {
                 // The non-EOS tokens are covered exactly once (the partition).
@@ -779,7 +828,7 @@ mod tests {
 
     /// The displacement monoid (the identity + the associativity) for the actual
     /// PDA (the compiled from the CGrammar). This is the key algebraic property
-    /// that makes the displacement a functional atom (the no temporary state,
+    /// that makes the displacement a functional atom (no temporary state,
     /// the pure function). The identity is the empty sequence (the D(()) = the
     /// identity relation). The associativity is the D(t1 ++ t2 ++ t3) =
     /// (D(t3) o D(t2)) o D(t1).
@@ -845,7 +894,7 @@ mod tests {
     /// actual PDA (the compiled from the CGrammar): if t1 ~ t2 (the same
     /// displacement), then for any continuation u, u ++ t1 ~ u ++ t2 (the same
     /// displacement). This is the key property that makes the displacement a
-    /// valid bridge (the no token is in two classes).
+    /// valid bridge (no token is in two classes).
     #[test]
     fn displacement_congruence_for_actual_pda() {
         use llguidance::dpda_adapter;
@@ -872,7 +921,7 @@ mod tests {
         let t1 = vec![0u32];
         let t2 = vec![0u32];
         assert_eq!(pda.displacement(&t1), pda.displacement(&t2), "the t1 ~ t2 (the same sequence)");
-        // A continuation u (the no the same as t1/t2).
+        // A continuation u (not the same as t1/t2).
         let u = vec![1u32, 0u32];
         let ut1: Vec<u32> = u.iter().chain(t1.iter()).copied().collect();
         let ut2: Vec<u32> = u.iter().chain(t2.iter()).copied().collect();
@@ -934,7 +983,7 @@ mod tests {
 
             // The CPU oracle: a fresh Matcher, the sequential consume_token walk.
             // Count how many tokens commit before the first rejection (the legal
-            // prefix length). This is the Earley authority (the no PDA involved).
+            // prefix length). This is the Earley authority (no PDA involved).
             let oracle_parser = f.create_parser(g.clone()).expect("the oracle parser");
             let mut oracle = Matcher::new(Ok(oracle_parser));
             oracle.settle();

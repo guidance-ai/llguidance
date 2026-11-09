@@ -1224,7 +1224,7 @@ impl CGrammar {
     pub fn is_nullable(&self, sym: CSymIdx) -> bool {
         self.sym_data(sym).is_nullable
     }
-    /// The symbols after the dot position within the same rule (the the beta of an
+    /// The symbols after the dot position within the same rule (the beta of an
     /// LR item). Empty for a complete item (the dot at the NULL terminator).
     pub fn rhs_after_dot(&self, dot_ptr: RhsPtr) -> &[CSymIdx] {
         let idx = dot_ptr.as_index();
@@ -1247,7 +1247,7 @@ impl CGrammar {
         }
         (lhs, idx - start)
     }
-    /// The terminal's precomputed token ranges (the the codebook source, the the
+    /// The terminal's precomputed token ranges (the codebook source, the
     /// LexemeSpec.token_ranges). Reuses the CGrammar's own extracted data.
     pub fn terminal_token_ranges(&self, terminal: CSymIdx) -> &[std::ops::RangeInclusive<toktrie::TokenId>] {
         let Some(lex) = self.sym_data(terminal).lexeme else {
@@ -1255,8 +1255,8 @@ impl CGrammar {
         };
         &self.lexer_spec().lexeme_spec(lex).token_ranges
     }
-    /// The terminal symbols whose lexeme is the given LexemeIdx (the the
-    /// lexeme -> terminal mapping, the the token spanner bridge).
+    /// The terminal symbols whose lexeme is the given LexemeIdx (the
+    /// lexeme-to-terminal mapping, the token spanner bridge).
     pub fn terminal_csymbols_of_lexeme(&self, lexeme_idx: LexemeIdx) -> Vec<CSymIdx> {
         let mut out = Vec::new();
         for i in 0..self.num_symbols() {

@@ -182,7 +182,11 @@ fn test_lark_syntax_general() {
     lark_err_test(r#"start: <[100-200,100-200-300]>"#, "invalid token range");
     lark_err_test(r#"start: <[,]>"#, "empty token range");
     lark_err_test(r#"start: <[200-100]>"#, "invalid token range");
-    lark_err_test(r#"start: <[200 - 100]>"#, "lexer error");
+    // The SpecialToken regex now admits interior whitespace (the delta change,
+    // lexer.rs `<[^<>]+>`), so the spaced inverted range lexes as a single
+    // special token and is rejected by the SEMANTIC range check (inverted), not
+    // by the lexer. Both the spaced and unspaced forms yield "invalid token range".
+    lark_err_test(r#"start: <[200 - 100]>"#, "invalid token range");
     lark_ok(r#"start: <[*]>"#);
     lark_err_test(
         r#"start: <[^*]>"#,

@@ -46,7 +46,7 @@ mod tests {
         let grm_path = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/grammar.lark"));
         if !grm_path.exists() {
             eprintln!("grammar.lark not found (skipping the production-grammar bench)");
-            // The fallback: a trivial grammar (the the test still compiles, the the no the
+            // The fallback: a trivial grammar (so the test still compiles, without the
             // production input).
             return TopLevelGrammar::from_lark(r#"start: <[100]> <[200]>"#.to_string());
         }
@@ -341,7 +341,7 @@ mod tests {
         let Some(f) = production_factory() else { return; };
         let g = production_grammar();
 
-        // Build a sequence (the legacy parser, the no PDA mask).
+        // Build a sequence (the legacy parser, without the PDA mask).
         std::env::remove_var("LLG_PDA_OVER_ALLOW");
         let seq = build_long_sequence(&f, &g, 200);
         let seq_len = seq.len();
@@ -351,7 +351,7 @@ mod tests {
             return;
         }
 
-        // Measure the legacy mask time at various depths (the no PDA mask).
+        // Measure the legacy mask time at various depths (without the PDA mask).
         let checkpoints = vec![10, 50, 100, seq_len.saturating_sub(10)];
         let mut legacy_results = Vec::new();
         for &cp in &checkpoints {

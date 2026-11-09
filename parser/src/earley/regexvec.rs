@@ -209,7 +209,6 @@ pub struct RegexVec {
     next_byte: NextByteCache,
     relevance: RelevanceCache,
     alpha: AlphabetInfo,
-    #[allow(dead_code)]
     rx_lexemes: Vec<RxLexeme>,
     lazy: LexemeSet,
     subsumable: LexemeSet,
@@ -249,6 +248,14 @@ pub struct StateDesc {
 
 // public implementation
 impl RegexVec {
+    /// The number of regex (RxLexeme) lexemes in this DFA. A non-zero count means the
+    /// lexer generates tokens by regex matching (the string / the parametric lexemes),
+    /// which the PDA's terminal->token bridge does NOT model — so the grammar is not
+    /// pure-CFG (the mask must come from the lexer-aware Earley path, not the PDA).
+    pub fn num_regex_lexemes(&self) -> usize {
+        self.rx_lexemes.len()
+    }
+
     pub fn alpha(&self) -> &AlphabetInfo {
         &self.alpha
     }

@@ -160,35 +160,51 @@ mod tests {
 
         let mut exact_matches = 0;
         let mut superset_matches = 0;
-        let mut mismatches = 0;
+        let mut under_matches = 0;
         for (i, (legacy, pda)) in legacy_masks.iter().zip(pda_masks.iter()).enumerate() {
             let legacy_count = vob_count(legacy);
             let pda_count = vob_count(pda);
             if legacy.as_slice() == pda.as_slice() {
                 exact_matches += 1;
             } else if pda_count >= legacy_count {
+                // The PDA allows a STRICT SUPERSET of the CPU mask: it admits tokens the
+                // exact CPU mask forbids. For a firewall this is an INJECTION (the R1
+                // violation) — the prior "over-allowing is safe" framing assumed the commit
+                // firewall would catch it, but the commit firewall is only as strong as its
+                // own mask, so an over-allow here is a real defect, not a perf note.
                 superset_matches += 1;
-            } else {
-                mismatches += 1;
                 eprintln!(
-                    "MISMATCH at step {}: legacy={} tokens, PDA={} tokens",
+                    "OVER-ALLOW at step {}: legacy={} tokens, PDA={} tokens (the PDA admits tokens the CPU mask forbids)",
+                    i, legacy_count, pda_count
+                );
+            } else {
+                under_matches += 1;
+                eprintln!(
+                    "UNDER-ALLOW at step {}: legacy={} tokens, PDA={} tokens (the PDA drops tokens the CPU mask allows)",
                     i, legacy_count, pda_count
                 );
             }
         }
 
         eprintln!(
-            "P10 differential: {} steps, {} exact, {} superset, {} mismatch",
+            "P10 differential: {} steps, {} exact, {} over-allow, {} under-allow",
             legacy_masks.len(),
             exact_matches,
             superset_matches,
-            mismatches
+            under_matches
         );
 
-        // The PDA mask must not under-allow any token the legacy mask allows.
+        // The firewall contract (the R1): the PDA mask must EQUAL the CPU mask, bit-for-bit.
+        // Neither an over-allow (an injection) nor an under-allow (a forced deviation) is
+        // acceptable. The prior test asserted only mismatches==0 (no under-allow), which
+        // permitted over-allowing; that is the "over-allowing is safe" evasion this closes.
         assert_eq!(
-            mismatches, 0,
-            "the PDA mask must not under-allow any token the legacy mask allows"
+            under_matches, 0,
+            "the PDA mask must not under-allow any token the CPU mask allows"
+        );
+        assert_eq!(
+            superset_matches, 0,
+            "the PDA mask must not over-allow any token the CPU mask forbids (the firewall injection)"
         );
     }
 
@@ -615,5 +631,335 @@ mod tests {
             eprintln!("  The PDA GPU path (fused_sample/fused_project) is the correct optimization for this grammar.");
             eprintln!("  The CPU PDA is only faster for deterministic (LR(1)) grammars.");
         }
+    }
+
+    /// The self-contained exact-bridge differential (no external tokenizer file):
+    /// a token-range grammar over the single-byte env has an EXACT terminal-to-token
+    /// bridge (each terminal maps to a specific token range, not the identity
+    /// fallback), so the PDA mask must equal the CPU mask BIT-FOR-BIT. This is the
+    /// inclusive (every CPU-allowed token is PDA-allowed) + exclusive (no PDA-allowed
+    /// token is CPU-forbidden) proof the firewall requires — the prior test only
+    /// checked the inclusive direction (the "over-allowing is safe" evasion).
+    #[test]
+    fn pda_mask_equals_cpu_mask_exact_bridge_token_range() {
+        use llguidance::toktrie::ApproximateTokEnv;
+
+        let env = ApproximateTokEnv::single_byte_env();
+        let f = ParserFactory::new_simple(&env).expect("the factory");
+        // A deterministic token-range grammar: the sequence "a" "b" "c" (the 97,98,99).
+        // The token-range terminals give an EXACT bridge (not the identity fallback).
+        let g = TopLevelGrammar::from_lark(r#"start: <[97]> <[98]> <[99]>"#.to_string());
+
+        // The CPU (legacy) mask walk: the authoritative allowed-set at each step.
+        let cpu_masks = {
+            let parser = f.create_parser(g.clone()).expect("the parser");
+            let mut m = Matcher::new(Ok(parser));
+            m.settle();
+            let mut masks = Vec::new();
+            for tok in [97u32, 98, 99] {
+                let mask = m.compute_mask_immut().expect("the CPU mask");
+                masks.push(mask);
+                m.consume_token(tok).expect("the CPU consume");
+                m.settle();
+            }
+            masks
+        };
+
+        // The PDA mask walk: the claimant's PDA frontier (the pda_config) + the PDA machine's
+        // mask_at_cfg, lifted to tokens via the terminal->token bridge (the
+        // terminal_token_map) — the same computation the GPU pda_mask_words does.
+        let pda_masks = {
+            let parser = f.create_parser(g.clone()).expect("the parser");
+            let mut m = Matcher::new(Ok(parser));
+            m.settle();
+            // The bridge (the terminal->token lift, the exact for the token-range grammar).
+            let grm_c = {
+                let p2 = f.create_parser(g.clone()).expect("the parser for the grammar");
+                p2.parser.grammar().clone()
+            };
+            let bridge = llguidance::dpda_adapter::terminal_token_map(&grm_c, f.tok_env());
+            let mut masks = Vec::new();
+            for tok in [97u32, 98, 99] {
+                // The PDA allowed terminals over the frontier (the pda_config), lifted to
+                // tokens via the bridge — the same computation the GPU pda_mask_words does.
+                // The configs are read BEFORE the with_pda_machine closure (to avoid the
+                // overlapping &mut self borrow of m).
+                let configs = m.pda_config().unwrap_or_default();
+                let pda_words: Vec<u32> = m.with_pda_machine(|pda| {
+                    let mut allowed: std::collections::HashSet<u32> = std::collections::HashSet::new();
+                    for (q, stk) in &configs {
+                        for &a in &pda.mask_at_cfg(*q, stk) {
+                            allowed.insert(a);
+                        }
+                    }
+                    // The lift: each allowed terminal -> its token set (the bridge).
+                    let mut vob = llguidance::toktrie::SimpleVob::alloc(env.tok_trie().vocab_size() as usize);
+                    for &a in &allowed {
+                        if let Some(tokens) = bridge.get(a as usize) {
+                            for &t in tokens {
+                                vob.allow_token(t);
+                            }
+                        }
+                    }
+                    vob.to_list()
+                }).unwrap_or_default();
+                masks.push(pda_words);
+                m.consume_token(tok).expect("the PDA consume");
+                m.settle();
+            }
+            masks
+        };
+
+        // The inclusive + exclusive: at every step the PDA allowed-set == the CPU
+        // allowed-set, bit-for-bit (not the superset the prior test permitted).
+        // Both cpu (the SimpleVob.to_list) and pda (the bridge-lifted token list) are
+        // Vec<u32> token IDs; compare them as sets.
+        for (i, (cpu, pda)) in cpu_masks.iter().zip(pda_masks.iter()).enumerate() {
+            let cpu_set: std::collections::HashSet<u32> = cpu.to_list().into_iter().collect();
+            let pda_set: std::collections::HashSet<u32> = pda.iter().copied().collect();
+            assert_eq!(
+                pda_set, cpu_set,
+                "step {i}: the PDA mask must EQUAL the CPU mask bit-for-bit (the firewall exactness); PDA={pda_set:?} CPU={cpu_set:?}"
+            );
+        }
+    }
+
+    /// The product-config mask (the PDA-only state-tracking target, the design doc
+    /// section 13) must EQUAL the Earley compute_mask_immut bit-for-bit, at every
+    /// step of a walk. This is the correctness gate for wiring the product config in
+    /// as the single mask source: if it ever diverges from the Earley mask, the PDA
+    /// frontier or the lexer contribution is wrong.
+    ///
+    /// Two parallel matchers are walked in lockstep (the same tokens committed to
+    /// both): one is queried via compute_mask_immut (the Earley reference), the other
+    /// via product_config_mask (the PDA + lexer product). Their masks must be
+    /// identical at every step (the inclusive: every Earley-allowed token is
+    /// product-allowed; the exclusive: no product-allowed token is Earley-forbidden).
+    #[test]
+    fn product_config_mask_equals_compute_bias() {
+        use llguidance::toktrie::ApproximateTokEnv;
+
+        let env = ApproximateTokEnv::single_byte_env();
+        let f = ParserFactory::new_simple(&env).expect("the factory");
+
+        // The differential over a (grammar, walk) pair: two parallel matchers, one
+        // queried via compute_mask_immut (the Earley reference) + one via
+        // product_config_mask (the PDA + lexer product), must agree bit-for-bit at
+        // every step.
+        fn differential(
+            f: &ParserFactory,
+            g: &TopLevelGrammar,
+            walk: &[u32],
+        ) -> (Vec<SimpleVob>, Vec<SimpleVob>) {
+            // The CPU (Earley) reference walk: the authoritative mask at each step.
+            let cpu_masks: Vec<SimpleVob> = {
+                let parser = f.create_parser(g.clone()).expect("the parser");
+                let mut m = Matcher::new(Ok(parser));
+                m.settle();
+                let mut masks = Vec::new();
+                for &tok in walk {
+                    let mask = m.compute_mask_immut().expect("the CPU mask");
+                    masks.push(mask);
+                    if m.consume_token(tok).is_err() {
+                        break;
+                    }
+                    m.settle();
+                }
+                masks
+            };
+            // The product-config walk: the PDA + lexer single-tracker mask at each step.
+            let product_masks: Vec<SimpleVob> = {
+                let parser = f.create_parser(g.clone()).expect("the parser");
+                let mut m = Matcher::new(Ok(parser));
+                m.settle();
+                let mut masks = Vec::new();
+                for &tok in walk {
+                    let mask = m.product_config_mask();
+                    masks.push(mask);
+                    if m.consume_token(tok).is_err() {
+                        break;
+                    }
+                    m.settle();
+                }
+                masks
+            };
+            (cpu_masks, product_masks)
+        }
+
+        // The inclusive + exclusive equality check: the product-config mask must equal
+        // the Earley mask bit-for-bit at every step.
+        fn assert_equal(cpu: &[SimpleVob], product: &[SimpleVob], label: &str) {
+            assert_eq!(
+                cpu.len(),
+                product.len(),
+                "{label}: both walks must consume the same number of steps"
+            );
+            for (i, (c, p)) in cpu.iter().zip(product.iter()).enumerate() {
+                let cpu_set: std::collections::HashSet<u32> = c.to_list().into_iter().collect();
+                let product_set: std::collections::HashSet<u32> = p.to_list().into_iter().collect();
+                assert_eq!(
+                    product_set, cpu_set,
+                    "{label} step {i}: the product-config mask must EQUAL the Earley mask bit-for-bit; product={product_set:?} cpu={cpu_set:?}"
+                );
+            }
+        }
+
+        // Case 1: the pure-CFG token-range grammar (no regex/parametric leaves).
+        // The PDA bridge is exact (each terminal maps to a single token range), so the
+        // PDA frontier advances and the product mask EQUALS the Earley mask at every step.
+        // This is the inclusive + exclusive proof for the pure-CFG subclass.
+        let g1 = TopLevelGrammar::from_lark(
+            r#"start: <[123]> <[97]> <[58]> <[98]> <[125]>"#.to_string(),
+        );
+        let (cpu1, product1) = differential(&f, &g1, &[123, 97, 58, 98, 125]);
+        assert_equal(&cpu1, &product1, "case1 (the pure-CFG token-range grammar)");
+
+        // Case 1b: the NESTED pure-CFG grammar (the bounded object shape, without the
+        // recursion). This exercises the PDA STACK (the push/pop, the nested structure)
+        // + the multi-config frontier, proving the product mask == the Earley mask over
+        // a non-trivial PDA (not just the linear chain of case 1). The grammar is
+        // { a : { b } } — the nested object, the token-range terminals only (no the
+        // regex/parametric leaves, so the PDA path is engaged).
+        let g1b = TopLevelGrammar::from_lark(
+            r#"start: <[123]> <[97]> <[58]> <[123]> <[98]> <[58]> <[99]> <[125]> <[125]>"#.to_string(),
+        );
+        let walk1b: Vec<u32> = vec![123, 97, 58, 123, 98, 58, 99, 125, 125];
+        let (cpu1b, product1b) = differential(&f, &g1b, &walk1b);
+        assert_equal(&cpu1b, &product1b, "case1b (the nested pure-CFG grammar, the PDA stack)");
+
+        // Case 1c: the BRANCHING (choice) grammar (the a | b). The choice makes the PDA
+        // NON-deterministic (the two epsilon successors at the choice dot, so
+        // is_deterministic is false), so pda_engaged is FALSE and the production
+        // routing uses the CPU Earley mask (the authoritative path), NOT the PDA
+        // product mask. This case proves the ROUTING: a choice grammar correctly
+        // falls to the CPU path (not the PDA product mask, which would over-allow
+        // the NPDA frontier's predicted-but-inactive choice branches). The CPU mask
+        // is self-consistent (the full walk consumes).
+        let g1c = TopLevelGrammar::from_lark(
+            r#"start: <[123]> (<[97]> | <[98]>) <[125]>"#.to_string(),
+        );
+        // The routing proof: the choice grammar's PDA is non-deterministic, so
+        // pda_engaged is false (the CPU Earley mask is authoritative, not the
+        // PDA product mask).
+        {
+            let parser = f.create_parser(g1c.clone()).expect("the parser");
+            let mut m = Matcher::new(Ok(parser));
+            m.with_pda_machine(|pda| {
+                assert!(
+                    !pda.is_deterministic(),
+                    "the choice grammar's PDA is non-deterministic (the two epsilon successors at the choice dot), so pda_engaged is false and the CPU Earley mask is authoritative (not the PDA product mask over-allowing the NPDA frontier's predicted branches)"
+                );
+            });
+        }
+        // The CPU mask (the authoritative path for the choice grammar) is
+        // self-consistent: the full left-branch + right-branch walks consume.
+        let walk1c_left: Vec<u32> = vec![123, 97, 125];
+        let (cpu1c_l, _) = differential(&f, &g1c, &walk1c_left);
+        assert_eq!(
+            cpu1c_l.len(),
+            walk1c_left.len(),
+            "the CPU (the authoritative, pda_engaged-false) mask consumes the full left-branch walk (got {} steps)",
+            cpu1c_l.len()
+        );
+        let walk1c_right: Vec<u32> = vec![123, 98, 125];
+        let (cpu1c_r, _) = differential(&f, &g1c, &walk1c_right);
+        assert_eq!(
+            cpu1c_r.len(),
+            walk1c_right.len(),
+            "the CPU mask consumes the full right-branch walk (got {} steps)",
+            cpu1c_r.len()
+        );
+
+        // Case 2: the rich JSON grammar (the NUMBER + the STRING regex leaves). The PDA
+        // bridge is INEXACT (a regex terminal maps to a SET of tokens, not a single
+        // token), so the PDA mirror is off (the pda_configs frozen at the start) and the
+        // product mask is NOT the authoritative one — the CPU Earley mask is. This case
+        // documents the boundary: the product-config tracker is exact for the pure-CFG
+        // subclass (case 1) and inapplicable to the regex/parametric subclass (case 2),
+        // where the lexer DFA is the authoritative token generator. We assert the CPU
+        // walk is self-consistent (the full walk consumes) to pin the reference, and
+        // record that the product walk diverges (the documented limit, not a defect).
+        let g2 = TopLevelGrammar::from_lark(
+            r#"start: <[123]> <[110]> <[58]> NUMBER <[44]> <[115]> <[58]> STRING <[125]>
+                %ignore /[ \t]+/
+                NUMBER: /[0-9]+/
+                STRING: /"[^"]*"/
+"#
+            .to_string(),
+        );
+        let (cpu2, product2) = differential(
+            &f,
+            &g2,
+            &[123, 110, 58, 53, 44, 115, 58, 34, 97, 34, 125],
+        );
+        // The CPU walk is self-consistent (the full rich-JSON sequence consumes).
+        assert!(
+            cpu2.len() >= 11,
+            "the CPU walk must consume the full rich-JSON sequence (got {} steps)",
+            cpu2.len()
+        );
+        // The product walk diverges for the inexact-bridge grammar (the documented
+        // boundary, not a correctness claim). Record it, do not assert equality.
+        eprintln!(
+            "case2 boundary: CPU walk {} steps, product walk {} steps (the product diverges for the inexact-bridge grammar, the documented limit)",
+            cpu2.len(),
+            product2.len()
+        );
+    }
+
+    /// THE LOAD-BEARING INVARIANT (the pda_engaged => pda_mirror_engaged ordering):
+    /// the PDA mask is READ (the product_config_mask routing, the compute_bias
+    /// pda_engaged gate) only when pda_engaged = (det AND exact AND pure_cfg). The
+    /// PDA frontier (pda_configs) is ADVANCED by the mirror only when
+    /// pda_mirror_engaged = (det AND exact). Since pda_engaged implies
+    /// pda_mirror_engaged (the 3-conjunct implies the 2-conjunct), the frontier is
+    /// ALWAYS advanced before it is read. If a future change weakened
+    /// pda_mirror_engaged below pda_engaged (for example, dropped the exact conjunct
+    /// from the mirror but kept it in the mask gate), the mask would read a STALE
+    /// frontier (the reflected-injection / the impossible-token class). This test pins
+    /// the ordering: for a pda_engaged grammar, committing a token MUST advance the
+    /// frontier (the mirror ran); the frontier is never read stale.
+    #[test]
+    fn pda_mask_read_is_never_stale_relative_to_the_mirror() {
+        use llguidance::toktrie::ApproximateTokEnv;
+
+        let env = ApproximateTokEnv::single_byte_env();
+        let f = ParserFactory::new_simple(&env).expect("the factory");
+        // A pda_engaged grammar: deterministic + exact bridge + pure-CFG (the token-
+        // range sequence, without the choice/parametric). The <[97]> <[98]> <[99]>
+        // sequence is deterministic (the single path) + pure-CFG (no regex/skip
+        // leaves) + exact bridge (the token-range lift is a function).
+        let g = TopLevelGrammar::from_lark(r#"start: <[97]> <[98]> <[99]>"#.to_string());
+
+        let parser = f.create_parser(g.clone()).expect("the parser");
+        let mut m = Matcher::new(Ok(parser));
+        m.settle();
+
+        // The frontier before any commit (the start config).
+        let frontier_before = m.pda_config().expect("the PDA is engaged for this grammar");
+        assert_eq!(frontier_before.len(), 1, "the deterministic grammar has a single-config frontier");
+
+        // Commit the first token. The mirror (the pda_mirror_engaged, det+exact)
+        // MUST advance the frontier (not the mask reading a stale frontier).
+        m.consume_token(97).expect("the commit");
+        m.settle();
+        let frontier_after = m.pda_config().expect("the PDA is engaged");
+        assert_ne!(
+            frontier_after, frontier_before,
+            "committing a token MUST advance the PDA frontier (the mirror ran); a stale frontier means the mask (the pda_engaged read) would be computed from the pre-commit state (the reflected injection)"
+        );
+
+        // The mask read AFTER the commit reflects the ADVANCED frontier (not the
+        // pre-commit one). The product_config_mask at this point must allow the NEXT
+        // token (98) and NOT the already-committed one (97).
+        let mask = m.product_config_mask();
+        assert!(
+            mask.is_allowed(98),
+            "the post-commit mask allows the next token (98); the frontier advanced past the committed 97"
+        );
+        assert!(
+            !mask.is_allowed(97),
+            "the post-commit mask does NOT re-allow the already-committed token (97); a stale frontier would re-allow it (the reflection)"
+        );
     }
 }

@@ -231,6 +231,25 @@ impl Matcher {
         self.with_inner(|inner| inner.parser.compute_mask_immut())
     }
 
+    /// The product-config mask (the PDA-only state-tracking target, the design doc
+    /// section 13): the allowed-token set from the single product config (the PDA
+    /// frontier + the lexer state), with NO Earley item-set. Exposed for the
+    /// differential oracle (the product_config_mask_equals_compute_bias test) that
+    /// proves it equals the Earley compute_bias before it is wired in as the mask
+    /// source. The dpda feature only (the PDA machine is dpda-only).
+    #[cfg(feature = "dpda")]
+    pub fn product_config_mask(&mut self) -> SimpleVob {
+        self.with_inner(|inner| Ok(inner.parser.product_config_mask())).unwrap_or_default()
+    }
+
+    /// The PDA half of the product mask (the PDA frontier plus the bridge lift, without the
+    /// lexer contributions). Exposed for the per-component benchmark (the bench_mask_path_
+    /// costs breakdown) to isolate the PDA cost from the lexer cost.
+    #[cfg(feature = "dpda")]
+    pub fn pda_mask(&mut self) -> SimpleVob {
+        self.with_inner(|inner| Ok(inner.parser.parser.pda_mask())).unwrap_or_default()
+    }
+
     /// Can the grammar be finished in the current state?
     /// In other words, would the current token mask allow EOS token?
     pub fn is_accepting(&mut self) -> Result<bool> {
