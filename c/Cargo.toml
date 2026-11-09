@@ -8,6 +8,7 @@ rust-version.workspace = true
 [lib]
 name = "llguidance"
 crate-type = ["staticlib", "cdylib"]
+doc = false
 
 [features]
 default = ["rayon"]
