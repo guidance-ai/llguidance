@@ -1,6 +1,6 @@
 use crate::{json::schema::OptSchemaExt, regex_to_lark, HashMap, HashSet};
 use anyhow::{anyhow, bail, Result};
-use derivre::{Regex, RegexAst, RegexBuilder};
+use derivre::{NextByte, Regex, RegexAst, RegexBuilder};
 
 use super::{
     context::Context,
@@ -18,6 +18,18 @@ pub struct SharedContext {
 #[derive(Default)]
 pub struct PatternPropertyCache {
     inner: HashMap<String, Regex>,
+    #[cfg(test)]
+    stats: DisjointStats,
+}
+
+/// Work done by `check_disjoint()`; the unit tests use it.
+#[cfg(test)]
+#[derive(Default)]
+struct DisjointStats {
+    /// Number of pairs checked with derivre.
+    derivre_checks: usize,
+    /// Largest number of nodes that one pair check added to the parsed regexes.
+    max_added_nodes: usize,
 }
 
 const CHECK_LIMIT: u64 = 10_000;
@@ -37,27 +49,87 @@ impl PatternPropertyCache {
         Ok(res)
     }
 
+    /// Literal bytes that every match of `regex` starts with; empty when there is
+    /// none (e.g. the regex is unanchored) or the regex can't be built cheaply.
+    fn forced_prefix(&mut self, regex: &str) -> Vec<u8> {
+        const MAX_PREFIX: usize = 256;
+        let lark_regex = regex_to_lark(regex, "dw");
+        if !self.inner.contains_key(lark_regex.as_str()) {
+            let mut builder = RegexBuilder::new();
+            let rx = builder
+                .mk_regex_for_serach(lark_regex.as_str())
+                .and_then(|e| builder.to_regex_limited(e, CHECK_LIMIT));
+            match rx {
+                Ok(rx) => {
+                    self.inner.insert(lark_regex.clone(), rx);
+                }
+                Err(_) => return vec![],
+            }
+        }
+        let rx = self.inner.get_mut(lark_regex.as_str()).unwrap();
+        let mut state = rx.initial_state();
+        let mut prefix = vec![];
+        while prefix.len() < MAX_PREFIX {
+            match rx.next_byte(state) {
+                NextByte::ForcedByte(b) => {
+                    prefix.push(b);
+                    state = rx.transition(state, b);
+                }
+                _ => break,
+            }
+        }
+        prefix
+    }
+
     pub fn check_disjoint(&mut self, regexes: &[&String]) -> Result<()> {
-        // TODO cache something?
-        let mut builder = RegexBuilder::new();
+        // Parse every regex once; this also reports syntax errors up front.
+        let mut base = RegexBuilder::new();
         let erefs = regexes
             .iter()
             .map(|regex| {
                 let regex = regex_to_lark(regex, "dw");
-                builder.mk_regex_for_serach(regex.as_str())
+                base.mk_regex_for_serach(regex.as_str())
             })
             .collect::<Result<Vec<_>>>()?;
+        #[cfg(test)]
+        let parsed_nodes = base.exprset().len();
+        let prefixes = if regexes.len() > 1 {
+            regexes
+                .iter()
+                .map(|r| self.forced_prefix(r))
+                .collect::<Vec<_>>()
+        } else {
+            vec![]
+        };
         for (ai, a) in erefs.iter().enumerate() {
             for (bi, b) in erefs.iter().enumerate() {
                 if ai >= bi {
                     continue;
                 }
+                // Every match of `a` starts with prefixes[ai] and every match of `b`
+                // with prefixes[bi]; when neither is a prefix of the other, no string
+                // matches both, so skip the (much more expensive) derivre check.
+                let (pa, pb) = (&prefixes[ai], &prefixes[bi]);
+                let n = pa.len().min(pb.len());
+                if pa[..n] != pb[..n] {
+                    continue;
+                }
+                // Build the intersection in a copy of `base`: to_regex_limited() clones
+                // the whole ExprSet, so adding every pair's And node to one shared
+                // builder made each check O(pairs so far) and the loop O(N^4).
+                let mut builder = base.clone();
                 let intersect = builder.mk(&RegexAst::And(vec![
                     RegexAst::ExprRef(*a),
                     RegexAst::ExprRef(*b),
                 ]))?;
+                #[cfg(test)]
+                {
+                    let added = builder.exprset().len() - parsed_nodes;
+                    self.stats.derivre_checks += 1;
+                    self.stats.max_added_nodes = self.stats.max_added_nodes.max(added);
+                }
                 let mut rx = builder
-                    .to_regex_limited(intersect, CHECK_LIMIT)
+                    .into_regex_limited(intersect, CHECK_LIMIT)
                     .map_err(|_| {
                         anyhow!(
                             "can't determine if patternProperty regexes /{}/ and /{}/ are disjoint",
@@ -195,5 +267,81 @@ impl BuiltSchema {
             warnings: Vec::new(),
             pattern_cache: PatternPropertyCache::default(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn check(cache: &mut PatternPropertyCache, keys: &[String]) -> Result<()> {
+        let keys = keys.iter().collect::<Vec<_>>();
+        cache.check_disjoint(&keys)
+    }
+
+    #[test]
+    fn forced_prefix_examples() {
+        let mut cache = PatternPropertyCache::default();
+        for (regex, prefix) in [
+            ("^p1_[a-z]+$", "p1_"),
+            ("^key12$", "key12"),
+            ("^x(a|b)$", "x"),
+            ("^(ab|ac)d", "a"),
+            ("^é", "é"),
+            ("foo", ""),
+            ("^a?b", ""),
+            ("[a-z]+_1$", ""),
+        ] {
+            assert_eq!(
+                cache.forced_prefix(regex),
+                prefix.as_bytes(),
+                "forced prefix of /{regex}/"
+            );
+        }
+    }
+
+    #[test]
+    fn distinct_literal_prefixes_need_no_derivre_check() {
+        let mut cache = PatternPropertyCache::default();
+        let keys = (0..400)
+            .map(|i| format!("^p{i}_[a-z]+$"))
+            .collect::<Vec<_>>();
+        check(&mut cache, &keys).unwrap();
+        assert_eq!(cache.stats.derivre_checks, 0);
+    }
+
+    #[test]
+    fn prefix_disjoint_pair_beyond_fuel_is_accepted() {
+        // Each key spells the same 250 "x" bytes in 5 different ways, so derivre
+        // keeps 5 branches at every step. The derivre check of this pair needs more
+        // than CHECK_LIMIT fuel and fails with "can't determine if ... are
+        // disjoint". The forced prefixes ("x" * 250 + "A" and "x" * 250 + "B")
+        // prove that the pair is disjoint, so the check passes.
+        let key = |c: char| {
+            let alts = (1..=5)
+                .map(|i| format!("x{{{i}}}x{{{}}}{c}{i}", 250 - i))
+                .collect::<Vec<_>>();
+            format!("^({})$", alts.join("|"))
+        };
+        let mut cache = PatternPropertyCache::default();
+        check(&mut cache, &[key('A'), key('B')]).unwrap();
+    }
+
+    #[test]
+    fn pair_checks_do_not_accumulate_nodes() {
+        // These keys have no forced literal prefix, so every pair needs a derivre
+        // check. Each check must start from the parsed regexes alone. When the
+        // checks share one growing builder, each one copies the nodes of all the
+        // checks before it, and the total work grows as N^4.
+        let n = 60;
+        let mut cache = PatternPropertyCache::default();
+        let keys = (0..n).map(|i| format!("^[a-z]+_{i}$")).collect::<Vec<_>>();
+        check(&mut cache, &keys).unwrap();
+        assert_eq!(cache.stats.derivre_checks, n * (n - 1) / 2);
+        assert!(
+            cache.stats.max_added_nodes <= 1,
+            "one pair check added {} nodes",
+            cache.stats.max_added_nodes
+        );
     }
 }
