@@ -16,7 +16,7 @@ fn main() {
             .expect("Failed to read cbindgen.toml");
 
         let bindings = cbindgen::Builder::new()
-            .with_crate(&crate_dir)
+            .with_crate_and_name(&crate_dir, "llguidance")
             .with_config(config)
             .generate()
             .expect("Failed to generate C bindings");
