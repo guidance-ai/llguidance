@@ -3352,7 +3352,9 @@
   "Github_hard---o18633.json": {},
   "Github_hard---o18948.json": {},
   "Github_hard---o19113.json": {},
-  "Github_hard---o19187.json": {},
+  "Github_hard---o19187.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Github_hard---o19225.json": {},
   "Github_hard---o19336.json": {
     "json_error": "Unimplemented keys: [\"dependencies\"]"
@@ -5258,7 +5260,9 @@
   "Github_medium---o13.json": {},
   "Github_medium---o13093.json": {},
   "Github_medium---o13095.json": {},
-  "Github_medium---o13101.json": {},
+  "Github_medium---o13101.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64\n  while processing https://raw.githubusercontent.com/qiicr/dcmqi/master/doc/schemas/common-schema.json#/definitions/US"
+  },
   "Github_medium---o13110.json": {},
   "Github_medium---o13131.json": {
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing json-schema:///#/definitions/field"
@@ -7273,7 +7277,9 @@
     "json_error": "Unknown format: full-date"
   },
   "Github_medium---o83272.json": {},
-  "Github_medium---o83275.json": {},
+  "Github_medium---o83275.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Github_medium---o83276.json": {},
   "Github_medium---o83277.json": {},
   "Github_medium---o83282.json": {},
@@ -13136,7 +13142,9 @@
   "Snowplow---sp_149_Normalized.json": {},
   "Snowplow---sp_14_Normalized.json": {},
   "Snowplow---sp_150_Normalized.json": {},
-  "Snowplow---sp_151_Normalized.json": {},
+  "Snowplow---sp_151_Normalized.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Snowplow---sp_152_Normalized.json": {},
   "Snowplow---sp_153_Normalized.json": {},
   "Snowplow---sp_154_Normalized.json": {},
@@ -13146,7 +13154,9 @@
   "Snowplow---sp_158_Normalized.json": {},
   "Snowplow---sp_159_Normalized.json": {},
   "Snowplow---sp_15_Normalized.json": {},
-  "Snowplow---sp_160_Normalized.json": {},
+  "Snowplow---sp_160_Normalized.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Snowplow---sp_161_Normalized.json": {},
   "Snowplow---sp_162_Normalized.json": {},
   "Snowplow---sp_163_Normalized.json": {
@@ -13161,7 +13171,9 @@
   "Snowplow---sp_16_Normalized.json": {},
   "Snowplow---sp_170_Normalized.json": {},
   "Snowplow---sp_171_Normalized.json": {},
-  "Snowplow---sp_172_Normalized.json": {},
+  "Snowplow---sp_172_Normalized.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Snowplow---sp_173_Normalized.json": {},
   "Snowplow---sp_174_Normalized.json": {},
   "Snowplow---sp_175_Normalized.json": {},
@@ -13169,7 +13181,9 @@
   "Snowplow---sp_177_Normalized.json": {},
   "Snowplow---sp_178_Normalized.json": {},
   "Snowplow---sp_179_Normalized.json": {},
-  "Snowplow---sp_17_Normalized.json": {},
+  "Snowplow---sp_17_Normalized.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Snowplow---sp_180_Normalized.json": {},
   "Snowplow---sp_181_Normalized.json": {},
   "Snowplow---sp_182_Normalized.json": {},
@@ -13180,7 +13194,9 @@
   "Snowplow---sp_187_Normalized.json": {},
   "Snowplow---sp_188_Normalized.json": {},
   "Snowplow---sp_189_Normalized.json": {},
-  "Snowplow---sp_18_Normalized.json": {},
+  "Snowplow---sp_18_Normalized.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Snowplow---sp_190_Normalized.json": {},
   "Snowplow---sp_191_Normalized.json": {},
   "Snowplow---sp_192_Normalized.json": {},
@@ -13230,7 +13246,9 @@
   "Snowplow---sp_238_Normalized.json": {},
   "Snowplow---sp_23_Normalized.json": {},
   "Snowplow---sp_240_Normalized.json": {},
-  "Snowplow---sp_241_Normalized.json": {},
+  "Snowplow---sp_241_Normalized.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Snowplow---sp_242_Normalized.json": {},
   "Snowplow---sp_243_Normalized.json": {},
   "Snowplow---sp_244_Normalized.json": {},
@@ -13301,7 +13319,9 @@
   "Snowplow---sp_299_Normalized.json": {},
   "Snowplow---sp_29_Normalized.json": {},
   "Snowplow---sp_2_Normalized.json": {},
-  "Snowplow---sp_300_Normalized.json": {},
+  "Snowplow---sp_300_Normalized.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Snowplow---sp_301_Normalized.json": {},
   "Snowplow---sp_302_Normalized.json": {},
   "Snowplow---sp_303_Normalized.json": {},
@@ -13449,7 +13469,9 @@
   "Snowplow---sp_414_Normalized.json": {},
   "Snowplow---sp_415_Normalized.json": {},
   "Snowplow---sp_416_Normalized.json": {},
-  "Snowplow---sp_417_Normalized.json": {},
+  "Snowplow---sp_417_Normalized.json": {
+    "json_error": "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
+  },
   "Snowplow---sp_418_Normalized.json": {},
   "Snowplow---sp_419_Normalized.json": {},
   "Snowplow---sp_41_Normalized.json": {},
