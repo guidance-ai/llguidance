@@ -19,6 +19,21 @@ pub mod context {
 use std::{any::type_name_of_val, sync::Arc};
 
 use serde_json::Value;
+
+#[derive(Debug)]
+struct UnsatisfiableSchemaError {
+    message: String,
+}
+
+impl std::fmt::Display for UnsatisfiableSchemaError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Unsatisfiable schema: {}", self.message)
+    }
+}
+
+#[cfg(feature = "lark")]
+pub(crate) use numeric::numeric_regex;
+
 pub fn json_merge(a: &mut Value, b: &Value) {
     match (a, b) {
         (Value::Object(a), Value::Object(b)) => {

@@ -60,10 +60,15 @@ Number features (for both integer and number):
 - `exclusiveMaximum`
 - `multipleOf`
 
-For `integer` schemas, decimal bounds are retained exactly, including values
-outside signed 64-bit range. Integer-bound compilation supports up to 38 integer
-digits; larger bounds return an error instead of being rounded or clamped.
-Unbounded integer schemas do not impose a digit limit on generated values.
+Integer bounds are normalized through binary64 (`f64`). At magnitudes of `2^53`
+or greater, the compiler requires a signed 64-bit integer literal. The bound
+and any one-unit adjustment for an exclusive bound must survive conversion
+through `f64` back to `i64`. This includes the full inclusive
+range from `-9223372036854775808` to `9223372036854775807`. Other bounds at
+these magnitudes give a compilation error, including `minimum` of
+`9007199254740993` and `exclusiveMinimum` of `9007199254740992`.
+Fractional and exponent literals are read as binary64. Omitting a bound leaves
+the generated integers unbounded in that direction.
 
 ## Departures from JSON schema semantics
 

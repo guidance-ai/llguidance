@@ -7,7 +7,7 @@ use std::mem;
 
 use super::context::{Context, Draft, PreContext, ResourceRef};
 use super::formats::lookup_format;
-use super::numeric::{Decimal, NumberBound};
+use super::numeric::Decimal;
 use super::shared_context::BuiltSchema;
 
 const TYPES: [&str; 6] = ["null", "boolean", "number", "string", "array", "object"];
@@ -95,17 +95,31 @@ pub enum Schema {
 
 #[derive(Debug, Clone, Default)]
 pub struct NumberSchema {
-    pub minimum: Option<NumberBound>,
-    pub maximum: Option<NumberBound>,
-    pub exclusive_minimum: Option<NumberBound>,
-    pub exclusive_maximum: Option<NumberBound>,
+    pub minimum: Option<f64>,
+    pub maximum: Option<f64>,
+    pub exclusive_minimum: Option<f64>,
+    pub exclusive_maximum: Option<f64>,
     pub integer: bool,
+    // A later intersection can turn a number schema into an integer schema.
+    pub has_unsupported_integer_bound: bool,
     pub multiple_of: Option<Decimal>,
 }
 
+fn unsupported_integer_bound(value: &Value, adjustment: i64) -> bool {
+    let Some(bound) = value.as_f64().filter(|n| n.abs() >= (1_u64 << 53) as f64) else {
+        return false;
+    };
+    let Some(integer) = value.as_i64() else {
+        return true;
+    };
+    // Match the cast in normalize_integer_bounds, including the round trip for i64::MAX.
+    integer != bound as i64
+        || integer.checked_add(adjustment) != Some((bound + adjustment as f64) as i64)
+}
+
 impl NumberSchema {
-    pub fn get_minimum(&self) -> (Option<&NumberBound>, bool) {
-        match (self.minimum.as_ref(), self.exclusive_minimum.as_ref()) {
+    pub fn get_minimum(&self) -> (Option<f64>, bool) {
+        match (self.minimum, self.exclusive_minimum) {
             (Some(min), Some(xmin)) => {
                 if xmin >= min {
                     (Some(xmin), true)
@@ -119,8 +133,8 @@ impl NumberSchema {
         }
     }
 
-    pub fn get_maximum(&self) -> (Option<&NumberBound>, bool) {
-        match (self.maximum.as_ref(), self.exclusive_maximum.as_ref()) {
+    pub fn get_maximum(&self) -> (Option<f64>, bool) {
+        match (self.maximum, self.exclusive_maximum) {
             (Some(max), Some(xmax)) => {
                 if xmax <= max {
                     (Some(xmax), true)
@@ -326,6 +340,8 @@ impl Schema {
                 exclusive_minimum: opt_max(n1.exclusive_minimum, n2.exclusive_minimum),
                 exclusive_maximum: opt_min(n1.exclusive_maximum, n2.exclusive_maximum),
                 integer: n1.integer || n2.integer,
+                has_unsupported_integer_bound: n1.has_unsupported_integer_bound
+                    || n2.has_unsupported_integer_bound,
                 multiple_of: match (n1.multiple_of, n2.multiple_of) {
                     (None, None) => None,
                     (None, Some(m)) | (Some(m), None) => Some(m),
@@ -817,13 +833,19 @@ fn compile_const(instance: &Value) -> Result<Schema> {
         Value::Null => Ok(Schema::Null),
         Value::Bool(b) => Ok(Schema::Boolean(Some(*b))),
         Value::Number(n) => {
-            let value = NumberBound::new(n.clone())?;
+            let value = n.as_f64().ok_or_else(|| {
+                anyhow!(
+                    "Expected f64 for numeric const, got {}",
+                    limited_str(instance)
+                )
+            })?;
             Ok(Schema::Number(NumberSchema {
-                minimum: Some(value.clone()),
+                minimum: Some(value),
                 maximum: Some(value),
                 exclusive_minimum: None,
                 exclusive_maximum: None,
-                integer: !n.to_string().contains(['.', 'e', 'E']),
+                integer: n.is_i64(),
+                has_unsupported_integer_bound: unsupported_integer_bound(instance, 0),
                 multiple_of: None,
             }))
         }
@@ -885,7 +907,7 @@ fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Resu
     match tp {
         "null" => Ok(Schema::Null),
         "boolean" => Ok(Schema::Boolean(None)),
-        "number" | "integer" => compile_numeric(schema, tp == "integer"),
+        "number" | "integer" => compile_numeric(schema, tp == "integer").map(Schema::Number),
         "string" => compile_string(ctx, schema),
         "array" => compile_array(ctx, schema),
         "object" => compile_object(ctx, schema),
@@ -893,31 +915,65 @@ fn compile_type(ctx: &Context, tp: &str, schema: &HashMap<&str, &Value>) -> Resu
     }
 }
 
-fn compile_numeric(schema: &HashMap<&str, &Value>, integer: bool) -> Result<Schema> {
+pub(crate) fn compile_numeric(
+    schema: &HashMap<&str, &Value>,
+    integer: bool,
+) -> Result<NumberSchema> {
     let minimum = schema.get("minimum").copied();
     let maximum = schema.get("maximum").copied();
     let exclusive_minimum = schema.get("exclusiveMinimum").copied();
     let exclusive_maximum = schema.get("exclusiveMaximum").copied();
     let multiple_of = schema.get("multipleOf").copied();
 
-    let bound = |value: &Value, name: &str| -> Result<NumberBound> {
-        let number = value
-            .as_number()
-            .ok_or_else(|| anyhow!("Expected number for '{name}', got {}", limited_str(value)))?;
-        NumberBound::new(number.clone())
+    let min_adjustment = i64::from(exclusive_minimum == Some(&Value::Bool(true)));
+    let max_adjustment = -i64::from(exclusive_maximum == Some(&Value::Bool(true)));
+    let has_unsupported_integer_bound = [
+        (minimum, min_adjustment),
+        (maximum, max_adjustment),
+        (exclusive_minimum, 1),
+        (exclusive_maximum, -1),
+    ]
+    .into_iter()
+    .any(|(bound, adjustment)| bound.is_some_and(|v| unsupported_integer_bound(v, adjustment)));
+
+    let minimum = match minimum {
+        None => None,
+        Some(val) => Some(
+            val.as_f64()
+                .ok_or_else(|| anyhow!("Expected f64 for 'minimum', got {}", limited_str(val)))?,
+        ),
     };
-    let minimum = minimum.map(|v| bound(v, "minimum")).transpose()?;
-    let maximum = maximum.map(|v| bound(v, "maximum")).transpose()?;
-    // TODO: use ctx.draft to determine which exclusive bound syntax to accept.
+    let maximum = match maximum {
+        None => None,
+        Some(val) => Some(
+            val.as_f64()
+                .ok_or_else(|| anyhow!("Expected f64 for 'maximum', got {}", limited_str(val)))?,
+        ),
+    };
+    // TODO: actually use ctx.draft to determine which style of exclusiveMinimum/Maximum to use
     let exclusive_minimum = match exclusive_minimum {
+        // Draft4-style boolean values
         None | Some(Value::Bool(false)) => None,
-        Some(Value::Bool(true)) => minimum.clone(),
-        Some(value) => Some(bound(value, "exclusiveMinimum")?),
+        Some(Value::Bool(true)) => minimum,
+        // Draft2020-12-style numeric values
+        Some(value) => Some(value.as_f64().ok_or_else(|| {
+            anyhow!(
+                "Expected f64 for 'exclusiveMinimum', got {}",
+                limited_str(value)
+            )
+        })?),
     };
     let exclusive_maximum = match exclusive_maximum {
+        // Draft4-style boolean values
         None | Some(Value::Bool(false)) => None,
-        Some(Value::Bool(true)) => maximum.clone(),
-        Some(value) => Some(bound(value, "exclusiveMaximum")?),
+        Some(Value::Bool(true)) => maximum,
+        // Draft2020-12-style numeric values
+        Some(value) => Some(value.as_f64().ok_or_else(|| {
+            anyhow!(
+                "Expected f64 for 'exclusiveMaximum', got {}",
+                limited_str(value)
+            )
+        })?),
     };
     let multiple_of = match multiple_of {
         None => None,
@@ -929,14 +985,15 @@ fn compile_numeric(schema: &HashMap<&str, &Value>, integer: bool) -> Result<Sche
             Some(Decimal::try_from(f.abs())?)
         }
     };
-    Ok(Schema::Number(NumberSchema {
+    Ok(NumberSchema {
         minimum,
         maximum,
         exclusive_minimum,
         exclusive_maximum,
         integer,
+        has_unsupported_integer_bound,
         multiple_of,
-    }))
+    })
 }
 
 fn compile_string(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schema> {

@@ -1,0 +1,109 @@
+use llg_test_utils::{lark_err_test, lark_str_test_many_quiet};
+use llguidance::api::RegexExt;
+use rstest::rstest;
+use serde_json::{json, Value};
+
+fn grammar(keyword: &str, schema: &Value) -> String {
+    format!("start: {keyword} {schema}")
+}
+
+#[rstest]
+#[case::integer(json!({"type": "integer"}), &["0", "-7", "123456789"], &["01", "+1", "1.5", "1e3", "FINAL_REJECT:-"])]
+#[case::integer_range(json!({"type": "integer", "minimum": 1, "maximum": 7}), &["1", "7"], &["0", "8", "-1", "10"])]
+#[case::full_i64_range(
+    json!({"type": "integer", "minimum": i64::MIN, "maximum": i64::MAX}),
+    &["-9223372036854775808", "0", "9223372036854775807"],
+    &["-9223372036854775809", "9223372036854775808"]
+)]
+#[case::minimum_i64_min(
+    json!({"type": "integer", "minimum": i64::MIN}),
+    &["-9223372036854775808", "10000000000000000000"],
+    &["-9223372036854775809"]
+)]
+#[case::minimum_i64_max(
+    json!({"type": "integer", "minimum": i64::MAX}),
+    &["9223372036854775807", "9999999999999999999", "10000000000000000000"],
+    &["FINAL_REJECT:9223372036854775806"]
+)]
+#[case::maximum_i64_min(
+    json!({"type": "integer", "maximum": i64::MIN}),
+    &["-9223372036854775808", "-10000000000000000000"],
+    &["FINAL_REJECT:-9223372036854775807"]
+)]
+#[case::exact_large_inclusive(
+    json!({"type": "integer", "minimum": 1_i64 << 53, "maximum": (1_i64 << 53) + 2}),
+    &["9007199254740992", "9007199254740993", "9007199254740994"],
+    &["9007199254740991", "9007199254740995"]
+)]
+#[case::exact_large_exclusive(
+    json!({"type": "integer", "exclusiveMaximum": 1_i64 << 53}),
+    &["9007199254740991"],
+    &["9007199254740992"]
+)]
+#[case::integer_exclusive_multiple(json!({"type": "integer", "exclusiveMinimum": 0, "multipleOf": 10}), &["10", "2500"], &["0", "-10", "FINAL_REJECT:15"])]
+#[case::integer_draft4_exclusive(json!({"type": "integer", "minimum": 0, "exclusiveMinimum": true}), &["1"], &["0"])]
+#[case::number(json!({"type": "number"}), &["0", "-0.5", "3.25", "1e3", "2E-7"], &["FINAL_REJECT:1.", ".5", "+1", "01"])]
+#[case::number_range(json!({"type": "number", "minimum": -17.3, "maximum": 33.721}), &["-17.3", "0", "33.7", "33.721"], &["-17.31", "33.7211", "34"])]
+#[case::number_exclusive(json!({"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}), &["0.5", "0.999"], &["FINAL_REJECT:0", "1", "-0.5"])]
+#[case::number_multiple(json!({"type": "number", "multipleOf": 0.5}), &["0", "1.5", "-2"], &["1.25"])]
+fn numbers_match_like_json(
+    #[case] schema: Value,
+    #[case] valid: &[&str],
+    #[case] invalid: &[&str],
+) {
+    for keyword in ["%json", "%regex"] {
+        lark_str_test_many_quiet(&grammar(keyword, &schema), valid, invalid);
+    }
+}
+
+#[rstest]
+#[case::empty_integer_range(json!({"type": "integer", "minimum": 5, "maximum": 1}), "Unsatisfiable schema")]
+#[case::no_integer_in_range(json!({"type": "integer", "minimum": 1.2, "maximum": 1.8}), "contains no integer values")]
+#[case::rounded_integer(json!({"type": "integer", "minimum": 9_007_199_254_740_993_i64}), "Unsupported integer bound")]
+#[case::large_exclusive(json!({"type": "integer", "exclusiveMinimum": 1_i64 << 53}), "Unsupported integer bound")]
+#[case::large_draft4_exclusive(json!({"type": "integer", "minimum": i64::MIN, "exclusiveMinimum": true}), "Unsupported integer bound")]
+#[case::above_i64_max(json!({"type": "integer", "maximum": 1_u64 << 63}), "Unsupported integer bound")]
+#[case::below_i64_min(serde_json::from_str(r#"{"type":"integer","minimum":-9223372036854775809}"#).unwrap(), "Unsupported integer bound")]
+#[case::multiple_of_too_precise(json!({"type": "number", "multipleOf": 0.12345678912}), "too many digits")]
+#[case::null_minimum(json!({"type": "integer", "minimum": null}), "Expected f64 for 'minimum'")]
+#[case::string_minimum(json!({"type": "integer", "minimum": "1"}), "Expected f64 for 'minimum'")]
+#[case::null_multiple_of(json!({"type": "number", "multipleOf": null}), "Expected f64 for 'multipleOf'")]
+fn number_errors_match_json(#[case] schema: Value, #[case] error: &str) {
+    for keyword in ["%json", "%regex"] {
+        lark_err_test(&grammar(keyword, &schema), error);
+    }
+}
+
+#[rstest]
+#[case::all_of(json!({"type": "integer", "allOf": [{"minimum": 9_007_199_254_740_993_i64}]}))]
+#[case::any_of(json!({"anyOf": [{"type": "integer", "maximum": 1_u64 << 63}, {"type": "null"}]}))]
+#[case::const_value(json!({"type": "integer", "const": 9_007_199_254_740_993_i64}))]
+fn unsupported_integer_bound_in_schema(#[case] schema: Value) {
+    lark_err_test(&grammar("%json", &schema), "Unsupported integer bound");
+}
+
+#[rstest]
+#[case::excluded(r#"%regex {"type": "integer", "minimum": 1, "maximum": 7} & ~/7/"#, &["1", "6"], &["7", "0"])]
+#[case::concatenated(r#""(" %regex {"type": "number", "maximum": 1} ")""#, &["(0.5)", "(-3)"], &["(2)", "FINAL_REJECT:(0.5"])]
+fn numbers_are_terminals(#[case] terminal: &str, #[case] valid: &[&str], #[case] invalid: &[&str]) {
+    lark_str_test_many_quiet(&format!("start: VALUE\nVALUE: {terminal}"), valid, invalid);
+}
+
+#[rstest]
+#[case::substring(json!({"substring_words": "a b"}), &["a b"])]
+#[case::number(json!({"type": "integer", "maximum": 7}), &["7"])]
+fn serialized_regexes_compile_again(#[case] regex: Value, #[case] valid: &[&str]) {
+    let regex: RegexExt = serde_json::from_value(regex).unwrap();
+    let serialized = serde_json::to_value(&regex).unwrap();
+    lark_str_test_many_quiet(&grammar("%regex", &serialized), valid, &[]);
+}
+
+#[rstest]
+#[case::unsupported_type(json!({"type": "boolean"}), "unsupported %regex type")]
+#[case::unknown_keyword(json!({"type": "integer", "foo": 1}), "unknown field `foo`")]
+#[case::keyword_without_type(json!({"minimum": 1}), "requires \"type\"")]
+#[case::keyword_with_substring(json!({"substring_words": "a b", "minimum": 1}), "requires \"type\"")]
+#[case::mixed_with_substring(json!({"type": "integer", "substring_words": "a b"}), "only one field can be set on %regex")]
+fn invalid_number_regexes_are_rejected(#[case] schema: Value, #[case] error: &str) {
+    lark_err_test(&grammar("%regex", &schema), error);
+}

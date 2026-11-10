@@ -185,7 +185,7 @@ impl Compiler {
                     };
                     self.mk_regex("regex", rx)
                 }
-                Value::RegexExt(s) => compile_lark_regex(&mut self.builder, s),
+                Value::RegexExt(s) => compile_lark_regex(&mut self.builder, *s),
                 Value::SpecialToken(s) => {
                     bail!("special tokens (like {:?}) cannot be used in terminals", s);
                 }
@@ -807,11 +807,42 @@ fn compile_lark_regex(builder: &mut GrammarBuilder, l: RegexExt) -> Result<Regex
     if l.substring_chars.is_some() {
         fields_set.push("substring_chars");
     }
+    let numeric: serde_json::Map<String, serde_json::Value> = [
+        ("type", &l.number_type),
+        ("minimum", &l.minimum),
+        ("maximum", &l.maximum),
+        ("exclusiveMinimum", &l.exclusive_minimum),
+        ("exclusiveMaximum", &l.exclusive_maximum),
+        ("multipleOf", &l.multiple_of),
+    ]
+    .into_iter()
+    .filter_map(|(key, value)| Some((key.to_string(), value.clone()?)))
+    .collect();
+    let integer = if numeric.is_empty() {
+        None
+    } else {
+        let kind = l
+            .number_type
+            .as_ref()
+            .ok_or_else(|| anyhow!("numeric %regex requires \"type\""))?;
+        let integer = match kind.as_str() {
+            Some("integer") => true,
+            Some("number") => false,
+            _ => bail!("unsupported %regex type: {kind}"),
+        };
+        fields_set.push("type");
+        Some(integer)
+    };
     if fields_set.is_empty() {
         bail!("no fields set on %regex");
     }
     if fields_set.len() > 1 {
         bail!("only one field can be set on %regex; got {:?}", fields_set);
+    }
+
+    if let Some(integer) = integer {
+        let ast = crate::json::numeric_regex(&numeric, integer)?;
+        return builder.regex.add_ast(ast);
     }
 
     let bld = &mut builder.regex.spec.regex_builder;

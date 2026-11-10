@@ -99,7 +99,7 @@ pub enum LexemeValue {
     None,
     String(String),
     Json(Value),
-    Regex(RegexExt),
+    Regex(Box<RegexExt>),
 }
 
 impl LexemeValue {
@@ -334,7 +334,7 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
                     let (lexeme_value, n_bytes) = if token == Token::KwRegex {
                         let (v, n) = parse_json_prefix(inp_slice)
                             .map_err(|e| anyhow!("failed to parse %regex: {}", e))?;
-                        (LexemeValue::Regex(v), n)
+                        (LexemeValue::Regex(Box::new(v)), n)
                     } else {
                         let (v, n) = parse_json_prefix(inp_slice)
                             .map_err(|e| anyhow!("failed to parse {:?}: {}", raw_value, e))?;

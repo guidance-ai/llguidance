@@ -213,6 +213,52 @@ pub struct RegexExt {
     pub substring_words: Option<String>,
     /// Similar to `substring_chunks: s.split('')`
     pub substring_chars: Option<String>,
+    /// `"number"` or `"integer"`; the remaining fields follow JSON schema.
+    #[serde(
+        rename = "type",
+        default,
+        deserialize_with = "keep_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub number_type: Option<Value>,
+    #[serde(
+        default,
+        deserialize_with = "keep_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub minimum: Option<Value>,
+    #[serde(
+        default,
+        deserialize_with = "keep_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub maximum: Option<Value>,
+    #[serde(
+        rename = "exclusiveMinimum",
+        default,
+        deserialize_with = "keep_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub exclusive_minimum: Option<Value>,
+    #[serde(
+        rename = "exclusiveMaximum",
+        default,
+        deserialize_with = "keep_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub exclusive_maximum: Option<Value>,
+    #[serde(
+        rename = "multipleOf",
+        default,
+        deserialize_with = "keep_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub multiple_of: Option<Value>,
+}
+
+// A plain Option reads `null` as absent; keep it so it is rejected as an invalid value.
+fn keep_null<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<Value>, D::Error> {
+    Value::deserialize(d).map(Some)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
