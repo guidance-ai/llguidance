@@ -54,3 +54,11 @@ fn numbers_are_terminals(#[case] terminal: &str, #[case] valid: &[&str], #[case]
 fn invalid_number_regexes_are_rejected(#[case] schema: Value, #[case] error: &str) {
     lark_err_test(&grammar("%regex", &schema), error);
 }
+
+#[test]
+fn duplicate_number_keywords_are_rejected() {
+    lark_err_test(
+        r#"start: %regex {"type": "integer", "minimum": 10, "minimum": 0}"#,
+        "duplicate field `minimum`",
+    );
+}
