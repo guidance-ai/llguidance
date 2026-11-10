@@ -223,8 +223,30 @@ struct SubstringFields {
 
 impl<'de> Deserialize<'de> for RegexExt {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let map = Map::deserialize(d)?;
+        let map = d.deserialize_map(UniqueKeys)?;
         RegexExt::from_map(map).map_err(de::Error::custom)
+    }
+}
+
+/// Reads a JSON object like `Map`, but rejects repeated keys instead of keeping the last one.
+struct UniqueKeys;
+
+impl<'de> de::Visitor<'de> for UniqueKeys {
+    type Value = Map<String, serde_json::Value>;
+
+    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str("a JSON object")
+    }
+
+    fn visit_map<A: de::MapAccess<'de>>(self, mut access: A) -> Result<Self::Value, A::Error> {
+        let mut map = Map::new();
+        while let Some((key, value)) = access.next_entry::<String, serde_json::Value>()? {
+            if map.contains_key(&key) {
+                return Err(de::Error::custom(format!("duplicate field `{key}`")));
+            }
+            map.insert(key, value);
+        }
+        Ok(map)
     }
 }
 
