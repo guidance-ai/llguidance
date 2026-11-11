@@ -100,4 +100,13 @@ impl<'a> Context<'a> {
 
         Ok(self.as_resource_ref(content))
     }
+
+    /// Looks up the target of a `$ref`, and returns it with a context in which
+    /// to compile it. Without the `referencing` feature, each reference points
+    /// into the root document, which has one base, so the context is a copy of
+    /// this one.
+    pub fn lookup_ref_target(&'a self, reference: &str) -> Result<(ResourceRef<'a>, Context<'a>)> {
+        let resource = self.lookup_resource(reference)?;
+        Ok((resource, self.clone()))
+    }
 }

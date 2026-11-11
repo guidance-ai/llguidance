@@ -733,8 +733,10 @@ fn compile_contents_simple(ctx: &Context, schemadict: HashMap<&str, &Value>) -> 
 fn define_ref(ctx: &Context, ref_uri: &str) -> Result<()> {
     if !ctx.been_seen(ref_uri) {
         ctx.mark_seen(ref_uri);
-        let resource = ctx.lookup_resource(ref_uri)?;
-        let resolved_schema = compile_resource(ctx, resource)?;
+        // Compile the target in its own resource, so that relative references
+        // inside it resolve against that resource's base URI.
+        let (resource, target_ctx) = ctx.lookup_ref_target(ref_uri)?;
+        let resolved_schema = compile_contents(&target_ctx, resource.contents())?;
         ctx.insert_ref(ref_uri, resolved_schema);
     }
     Ok(())
