@@ -2748,6 +2748,7 @@ dependencies = [
  "anyhow",
  "hf-hub",
  "log",
+ "tempfile",
  "toktrie",
  "toktrie_hf_tokenizers",
 ]

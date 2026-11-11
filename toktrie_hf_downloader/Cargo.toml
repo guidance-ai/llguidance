@@ -13,3 +13,6 @@ toktrie_hf_tokenizers = { workspace = true }
 anyhow = "1.0.95"
 log = "0.4.25"
 hf-hub = "0.4.2"
+
+[dev-dependencies]
+tempfile = "3"
