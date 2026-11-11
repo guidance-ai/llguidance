@@ -35,5 +35,24 @@ jobs:
       run: cargo check --no-default-features
       working-directory: parser
 
-    - name: Check cbindgen
-      run: cargo check -p llguidance --features generate-header && git diff --exit-code parser/llguidance.h
+  cbindgen:
+    name: Check cbindgen
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        # Pinned to a toolchain that has -Zunpretty=expanded. Update at will.
+        toolchain: nightly-2026-11-08
+
+    - name: Regenerate header
+      run: cargo +nightly run -p llg_header_gen
+
+    - name: Check header is up to date
+      run: git diff --exit-code c/llguidance.h

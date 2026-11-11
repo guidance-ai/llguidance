@@ -5,7 +5,7 @@ edition = "2021"
 default-run = "json_stats"
 
 [dependencies]
-llguidance = { workspace = true }
+llguidance = { workspace = true, default-features = true }
 toktrie_hf_tokenizers = { workspace = true }
 toktrie_hf_downloader = { workspace = true }
 llg_test_utils = { workspace = true }
