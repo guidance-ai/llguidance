@@ -4,6 +4,7 @@ use derivre::RegexAst;
 use indexmap::{IndexMap, IndexSet};
 use serde_json::Value;
 use std::mem;
+use std::rc::Rc;
 
 use super::context::{Context, Draft, PreContext, ResourceRef};
 use super::formats::lookup_format;
@@ -91,6 +92,13 @@ pub enum Schema {
     AnyOf(Vec<Schema>),
     OneOf(Vec<Schema>),
     Ref(String),
+    /// A sub-schema that several parents use, so that a copy of a parent does not
+    /// copy it. It is created where a schema is copied once per use: in `distribute`
+    /// (`anyOf`/`oneOf`), in `define_ref`, for the `additionalProperties` and
+    /// `patternProperties` fallbacks of Object∩Object, for `items` in Array∩Array,
+    /// and for the pattern schemas in `compile_object`.
+    /// The compiler builds its grammar once (see `Compiler::gen_json_shared`).
+    Shared(Rc<Schema>),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -198,6 +206,38 @@ impl Schema {
         matches!(self, Schema::Unsatisfiable(_))
     }
 
+    /// Before a schema is copied once per use (into each alternative of an
+    /// `anyOf`/`oneOf`, or for each `$ref` to a definition), move its compound
+    /// sub-schemas (property values, items, ...) behind an `Rc`, so that the copies
+    /// are shallow and share those sub-schemas instead of duplicating them;
+    /// otherwise nesting such schemas costs 2^depth.
+    fn share_children(self) -> Schema {
+        match self {
+            Schema::Object(mut obj) => {
+                obj.properties.values_mut().for_each(share_slot);
+                obj.pattern_properties.values_mut().for_each(share_slot);
+                if let Some(ap) = obj.additional_properties.as_mut() {
+                    share_slot(ap);
+                }
+                Schema::Object(obj)
+            }
+            Schema::Array(mut arr) => {
+                arr.prefix_items.iter_mut().for_each(share_slot);
+                if let Some(items) = arr.items.as_mut() {
+                    share_slot(items);
+                }
+                Schema::Array(arr)
+            }
+            Schema::AnyOf(options) => {
+                Schema::AnyOf(options.into_iter().map(Schema::share_children).collect())
+            }
+            Schema::OneOf(options) => {
+                Schema::OneOf(options.into_iter().map(Schema::share_children).collect())
+            }
+            other => other,
+        }
+    }
+
     /// Shallowly normalize the schema, removing any unnecessary nesting or empty options.
     fn normalize(self, ctx: &Context) -> Schema {
         match self {
@@ -267,10 +307,14 @@ impl Schema {
     }
 
     /// Intersect two schemas, returning a new (normalized) schema that represents the intersection of the two.
-    fn intersect(self, other: Schema, ctx: &Context, stack_level: usize) -> Result<Schema> {
+    fn intersect(mut self, mut other: Schema, ctx: &Context, stack_level: usize) -> Result<Schema> {
         ctx.increment()?;
         if stack_level > ctx.options.max_stack_level {
             bail!("Schema intersection stack level exceeded");
+        }
+        // Done out of line, in place: this function's stack frame bounds the recursion depth.
+        if unshare_operands(&mut self, &mut other) {
+            return Ok(self);
         }
 
         let merged = match (self, other) {
@@ -284,31 +328,18 @@ impl Schema {
             (schema0, Schema::Ref(uri)) => {
                 intersect_ref(ctx, &uri, schema0, false, stack_level + 1)?
             }
-            (Schema::OneOf(options), schema1) => Schema::OneOf(
-                options
-                    .into_iter()
-                    .map(|opt| opt.intersect(schema1.clone(), ctx, stack_level + 1))
-                    .collect::<Result<Vec<_>>>()?,
-            ),
-
-            (schema0, Schema::OneOf(options)) => Schema::OneOf(
-                options
-                    .into_iter()
-                    .map(|opt| schema0.clone().intersect(opt, ctx, stack_level + 1))
-                    .collect::<Result<Vec<_>>>()?,
-            ),
-            (Schema::AnyOf(options), schema1) => Schema::AnyOf(
-                options
-                    .into_iter()
-                    .map(|opt| opt.intersect(schema1.clone(), ctx, stack_level + 1))
-                    .collect::<Result<Vec<_>>>()?,
-            ),
-            (schema0, Schema::AnyOf(options)) => Schema::AnyOf(
-                options
-                    .into_iter()
-                    .map(|opt| schema0.clone().intersect(opt, ctx, stack_level + 1))
-                    .collect::<Result<Vec<_>>>()?,
-            ),
+            (Schema::OneOf(options), schema1) => {
+                Schema::OneOf(distribute(options, schema1, true, ctx, stack_level)?)
+            }
+            (schema0, Schema::OneOf(options)) => {
+                Schema::OneOf(distribute(options, schema0, false, ctx, stack_level)?)
+            }
+            (Schema::AnyOf(options), schema1) => {
+                Schema::AnyOf(distribute(options, schema1, true, ctx, stack_level)?)
+            }
+            (schema0, Schema::AnyOf(options)) => {
+                Schema::AnyOf(distribute(options, schema0, false, ctx, stack_level)?)
+            }
             (Schema::Null, Schema::Null) => Schema::Null,
             (Schema::Boolean(value1), Schema::Boolean(value2)) => {
                 if value1 == value2 || value2.is_none() {
@@ -343,73 +374,9 @@ impl Schema {
                 },
             }),
 
-            (Schema::Array(mut a1), Schema::Array(mut a2)) => Schema::Array(ArraySchema {
-                min_items: a1.min_items.max(a2.min_items),
-                max_items: opt_min(a1.max_items, a2.max_items),
-                prefix_items: {
-                    let len = a1.prefix_items.len().max(a2.prefix_items.len());
-                    a1.prefix_items.resize_with(len, || a1.items.schema());
-                    a2.prefix_items.resize_with(len, || a2.items.schema());
-                    a1.prefix_items
-                        .into_iter()
-                        .zip(a2.prefix_items)
-                        .map(|(item1, item2)| item1.intersect(item2, ctx, stack_level + 1))
-                        .collect::<Result<Vec<_>>>()?
-                },
-                items: match (a1.items, a2.items) {
-                    (None, None) => None,
-                    (None, Some(item)) | (Some(item), None) => Some(item),
-                    (Some(item1), Some(item2)) => {
-                        Some(Box::new(item1.intersect(*item2, ctx, stack_level + 1)?))
-                    }
-                },
-            }),
-
-            (Schema::Object(mut o1), Schema::Object(o2)) => {
-                let mut properties = IndexMap::new();
-                for (key, prop1) in std::mem::take(&mut o1.properties).into_iter() {
-                    let prop2 = ctx.property_schema(&o2, &key)?;
-                    properties.insert(key, prop1.intersect(prop2.clone(), ctx, stack_level + 1)?);
-                }
-                for (key, prop2) in o2.properties.into_iter() {
-                    if properties.contains_key(&key) {
-                        continue;
-                    }
-                    let prop1 = ctx.property_schema(&o1, &key)?;
-                    properties.insert(key, prop1.clone().intersect(prop2, ctx, stack_level + 1)?);
-                }
-                let mut required = o1.required;
-                required.extend(o2.required);
-
-                let pattern_properties = intersect_pattern_properties(
-                    o1.pattern_properties,
-                    o2.pattern_properties,
-                    &o1.additional_properties,
-                    &o2.additional_properties,
-                    ctx,
-                    stack_level,
-                )?;
-
-                let additional_properties =
-                    match (o1.additional_properties, o2.additional_properties) {
-                        (None, None) => None,
-                        (None, Some(p)) | (Some(p), None) => Some(p),
-                        (Some(p1), Some(p2)) => {
-                            Some(Box::new((*p1).intersect(*p2, ctx, stack_level + 1)?))
-                        }
-                    };
-
-                let min_properties = o1.min_properties.max(o2.min_properties);
-                let max_properties = opt_min(o1.max_properties, o2.max_properties);
-
-                mk_object_schema(ObjectSchema {
-                    properties,
-                    pattern_properties,
-                    additional_properties,
-                    required,
-                    min_properties,
-                    max_properties,
-                })
+            (Schema::Array(a1), Schema::Array(a2)) => intersect_arrays(a1, a2, ctx, stack_level)?,
+            (Schema::Object(o1), Schema::Object(o2)) => {
+                intersect_objects(o1, o2, ctx, stack_level)?
             }
 
             //TODO: get types for error message
@@ -420,6 +387,8 @@ impl Schema {
 
     fn is_verifiably_disjoint_from(&self, other: &Schema, ctx: &Context) -> bool {
         match (self, other) {
+            (Schema::Shared(a), _) => a.is_verifiably_disjoint_from(other, ctx),
+            (_, Schema::Shared(b)) => self.is_verifiably_disjoint_from(b, ctx),
             (Schema::Unsatisfiable(_), _) => true,
             (_, Schema::Unsatisfiable(_)) => true,
             (Schema::Any, _) => false,
@@ -502,7 +471,9 @@ impl Schema {
                     .iter()
                     .map(|value| compile_resource(ctx, ctx.as_resource_ref(value)))
                     .collect::<Result<Vec<_>>>()?;
-                result = result.intersect(Schema::AnyOf(options), ctx, 0)?;
+                // normalize first: an `anyOf` with a `true`/`{}` alternative is `true`
+                // and must not copy `result` into each alternative
+                result = result.intersect(Schema::AnyOf(options).normalize(ctx), ctx, 0)?;
             }
             "oneOf" => {
                 let one_of = v
@@ -735,9 +706,100 @@ fn define_ref(ctx: &Context, ref_uri: &str) -> Result<()> {
         ctx.mark_seen(ref_uri);
         let resource = ctx.lookup_resource(ref_uri)?;
         let resolved_schema = compile_resource(ctx, resource)?;
-        ctx.insert_ref(ref_uri, resolved_schema);
+        // `intersect_ref` copies the definition for every use with sibling keywords;
+        // share its compound children so those copies are shallow and share a grammar.
+        ctx.insert_ref(ref_uri, resolved_schema.share_children());
     }
     Ok(())
+}
+
+/// Array∩Array. Kept out of `intersect` to keep its stack frame small for deep recursion.
+#[inline(never)]
+fn intersect_arrays(
+    mut a1: ArraySchema,
+    mut a2: ArraySchema,
+    ctx: &Context,
+    stack_level: usize,
+) -> Result<Schema> {
+    // `items` is copied once per missing prefix item; share it first
+    share_array_items(&mut a1);
+    share_array_items(&mut a2);
+    let len = a1.prefix_items.len().max(a2.prefix_items.len());
+    a1.prefix_items.resize_with(len, || a1.items.schema());
+    a2.prefix_items.resize_with(len, || a2.items.schema());
+    let prefix_items = a1
+        .prefix_items
+        .into_iter()
+        .zip(a2.prefix_items)
+        .map(|(item1, item2)| item1.intersect(item2, ctx, stack_level + 1))
+        .collect::<Result<Vec<_>>>()?;
+    let items = match (a1.items, a2.items) {
+        (None, None) => None,
+        (None, Some(item)) | (Some(item), None) => Some(item),
+        (Some(item1), Some(item2)) => {
+            Some(Box::new(item1.intersect(*item2, ctx, stack_level + 1)?))
+        }
+    };
+    Ok(Schema::Array(ArraySchema {
+        min_items: a1.min_items.max(a2.min_items),
+        max_items: opt_min(a1.max_items, a2.max_items),
+        prefix_items,
+        items,
+    }))
+}
+
+/// Object∩Object. Kept out of `intersect` to keep its stack frame small for deep recursion.
+#[inline(never)]
+fn intersect_objects(
+    mut o1: ObjectSchema,
+    mut o2: ObjectSchema,
+    ctx: &Context,
+    stack_level: usize,
+) -> Result<Schema> {
+    // `property_schema()` of one side is copied once per key of the other side
+    share_object_fallbacks(&mut o1);
+    share_object_fallbacks(&mut o2);
+    let mut properties = IndexMap::new();
+    for (key, prop1) in std::mem::take(&mut o1.properties).into_iter() {
+        let prop2 = ctx.property_schema(&o2, &key)?;
+        properties.insert(key, prop1.intersect(prop2.clone(), ctx, stack_level + 1)?);
+    }
+    for (key, prop2) in o2.properties.into_iter() {
+        if properties.contains_key(&key) {
+            continue;
+        }
+        let prop1 = ctx.property_schema(&o1, &key)?;
+        properties.insert(key, prop1.clone().intersect(prop2, ctx, stack_level + 1)?);
+    }
+    let mut required = o1.required;
+    required.extend(o2.required);
+
+    let pattern_properties = intersect_pattern_properties(
+        o1.pattern_properties,
+        o2.pattern_properties,
+        &o1.additional_properties,
+        &o2.additional_properties,
+        ctx,
+        stack_level,
+    )?;
+
+    let additional_properties = match (o1.additional_properties, o2.additional_properties) {
+        (None, None) => None,
+        (None, Some(p)) | (Some(p), None) => Some(p),
+        (Some(p1), Some(p2)) => Some(Box::new((*p1).intersect(*p2, ctx, stack_level + 1)?)),
+    };
+
+    let min_properties = o1.min_properties.max(o2.min_properties);
+    let max_properties = opt_min(o1.max_properties, o2.max_properties);
+
+    Ok(mk_object_schema(ObjectSchema {
+        properties,
+        pattern_properties,
+        additional_properties,
+        required,
+        min_properties,
+        max_properties,
+    }))
 }
 
 /// Merge pattern properties from two object schemas during intersection.
@@ -783,6 +845,92 @@ fn intersect_pattern_properties(
         ctx.check_disjoint_pattern_properties(&keys)?;
     }
     Ok(result)
+}
+
+/// Puts a compound schema (object, array, `anyOf`, `oneOf`) behind an `Rc`, so that
+/// copies of the parent share it. Other schemas are cheap to copy and stay inline.
+/// The children of the shared schema are shared too (down to the first `Shared`
+/// node), so that `Rc::unwrap_or_clone` in `unshare_operands` copies only one level
+/// when the shared schema meets an operand other than `Any`.
+fn share_slot(slot: &mut Schema) {
+    if matches!(
+        slot,
+        Schema::Object(_) | Schema::Array(_) | Schema::AnyOf(_) | Schema::OneOf(_)
+    ) {
+        let inner = mem::replace(slot, Schema::Any);
+        *slot = Schema::Shared(Rc::new(inner.share_children()));
+    }
+}
+
+/// Shares the schemas that `property_schema()` returns for a key that is not in
+/// `properties` (the `patternProperties` values and `additionalProperties`),
+/// because Object∩Object copies them once per property of the other side.
+#[inline(never)]
+fn share_object_fallbacks(o: &mut ObjectSchema) {
+    o.pattern_properties.values_mut().for_each(share_slot);
+    if let Some(ap) = o.additional_properties.as_mut() {
+        share_slot(ap);
+    }
+}
+
+/// Shares `items`, because Array∩Array copies it once for each prefix item that
+/// the other side has and this side does not.
+#[inline(never)]
+fn share_array_items(a: &mut ArraySchema) {
+    if let Some(items) = a.items.as_mut() {
+        share_slot(items);
+    }
+}
+
+/// Handles `Schema::Shared` operands of `intersect`. A shared sub-schema stays shared
+/// when the other operand is `Any` or the same `Rc` (intersection is idempotent):
+/// the result is left in `a` and `true` is returned. Otherwise each shared operand
+/// is unwrapped with `Rc::unwrap_or_clone`, which copies the inner schema when the
+/// `Rc` has other owners. `share_slot` shares the children of every shared schema,
+/// so that copy is one level deep; `false` is returned.
+#[inline(never)]
+fn unshare_operands(a: &mut Schema, b: &mut Schema) -> bool {
+    match (&*a, &*b) {
+        (Schema::Shared(_), Schema::Any) => return true,
+        (Schema::Any, Schema::Shared(_)) => {
+            mem::swap(a, b);
+            return true;
+        }
+        (Schema::Shared(x), Schema::Shared(y)) if Rc::ptr_eq(x, y) => return true,
+        _ => {}
+    }
+    for s in [a, b] {
+        if matches!(s, Schema::Shared(_)) {
+            if let Schema::Shared(rc) = mem::replace(s, Schema::Any) {
+                *s = Rc::unwrap_or_clone(rc);
+            }
+        }
+    }
+    false
+}
+
+/// Intersect `other` with each of `options` (an `anyOf`/`oneOf`). `other` is copied into
+/// every alternative, so its compound children are shared first (`share_children`):
+/// copying them would double the schema, and its grammar, at each nesting level.
+#[inline(never)]
+fn distribute(
+    options: Vec<Schema>,
+    other: Schema,
+    options_first: bool,
+    ctx: &Context,
+    stack_level: usize,
+) -> Result<Vec<Schema>> {
+    let other = other.share_children();
+    options
+        .into_iter()
+        .map(|opt| {
+            if options_first {
+                opt.intersect(other.clone(), ctx, stack_level + 1)
+            } else {
+                other.clone().intersect(opt, ctx, stack_level + 1)
+            }
+        })
+        .collect()
 }
 
 fn intersect_ref(
@@ -1114,7 +1262,9 @@ fn compile_object(ctx: &Context, schema: &HashMap<&str, &Value>) -> Result<Schem
     let max_properties = get_usize(schema, "maxProperties")?;
 
     let mut properties = compile_prop_map(ctx, "properties", properties)?;
-    let pattern_properties = compile_prop_map(ctx, "patternProperties", pattern_properties)?;
+    let mut pattern_properties = compile_prop_map(ctx, "patternProperties", pattern_properties)?;
+    // each pattern schema is copied once per matching named property; share it first
+    pattern_properties.values_mut().for_each(share_slot);
     ctx.check_disjoint_pattern_properties(&pattern_properties.keys().collect::<Vec<_>>())?;
 
     // Per JSON Schema spec, a named property must validate against BOTH its
