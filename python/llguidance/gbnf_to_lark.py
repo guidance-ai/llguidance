@@ -221,7 +221,7 @@ class GrammarParser:
                         pos, f"Invalid \\u escape sequence: \\u{hex_value}"
                     )
                 pos = pos.advance(5)
-                return f"\\u{hex_value.lstrip('0')}", pos
+                return f"\\u{hex_value}", pos
             elif c == "U":
                 hex_value = pos.peek(9)[1:9]
                 if len(hex_value) != 8 or not is_all_hex(hex_value):
@@ -229,7 +229,12 @@ class GrammarParser:
                         pos, f"Invalid \\U escape sequence: \\U{hex_value}"
                     )
                 pos = pos.advance(9)
-                return f"\\U{hex_value.lstrip('0')}", pos
+                code_point = int(hex_value, 16)
+                if code_point > 0x10FFFF or 0xD800 <= code_point <= 0xDFFF:
+                    raise GbnfToLarkError(pos, "Invalid Unicode code point")
+                if code_point <= 0xFFFF:
+                    return f"\\u{code_point:04x}", pos
+                return chr(code_point), pos
             else:
                 raise GbnfToLarkError(pos, f"Invalid escape sequence \\{c}")
         elif pos.current() == "":
