@@ -34,13 +34,25 @@ pub trait TokenizerEnv: Send {
                 .position(|&x| x == ff)
                 .unwrap_or(s.len() - idx);
             if normal_len != 0 {
-                let new_tokens = self.tokenize_bytes(&s[idx..idx + normal_len]);
-                for (idx, t) in new_tokens.iter().enumerate() {
-                    if trie.is_special_token(*t) {
-                        num_fixed_tokens = result.len() + idx + 1;
+                let slice = &s[idx..idx + normal_len];
+                let mut pos = 0;
+                for t in self.tokenize_bytes(slice) {
+                    let tok_bytes = trie.token(t);
+                    if trie.is_special_token(t) && slice[pos..].starts_with(&tok_bytes[1..]) {
+                        result.extend_from_slice(&trie.greedy_tokenize(&tok_bytes[1..]));
+                        pos += tok_bytes.len() - 1;
+                    } else if !trie.is_special_token(t) && slice[pos..].starts_with(tok_bytes) {
+                        result.push(t);
+                        pos += tok_bytes.len();
+                    } else {
+                        result.extend_from_slice(&trie.greedy_tokenize(&slice[pos..]));
+                        pos = slice.len();
+                        break;
                     }
                 }
-                result.extend_from_slice(&new_tokens);
+                if pos < slice.len() {
+                    result.extend_from_slice(&trie.greedy_tokenize(&slice[pos..]));
+                }
                 idx += normal_len;
             }
             idx += 1; // skip ff
