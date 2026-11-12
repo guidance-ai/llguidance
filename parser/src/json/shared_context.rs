@@ -1,6 +1,6 @@
 use crate::{json::schema::OptSchemaExt, regex_to_lark, HashMap, HashSet};
 use anyhow::{anyhow, bail, Result};
-use derivre::{NextByte, Regex, RegexAst, RegexBuilder};
+use derivre::{ExprRef, NextByte, Regex, RegexAst, RegexBuilder};
 
 use super::{
     context::Context,
@@ -18,21 +18,36 @@ pub struct SharedContext {
 #[derive(Default)]
 pub struct PatternPropertyCache {
     inner: HashMap<String, Regex>,
-    #[cfg(test)]
-    stats: DisjointStats,
-}
-
-/// Work done by `check_disjoint()`; the unit tests use it.
-#[cfg(test)]
-#[derive(Default)]
-struct DisjointStats {
-    /// Number of pairs checked with derivre.
-    derivre_checks: usize,
-    /// Largest number of nodes that one pair check added to the parsed regexes.
-    max_added_nodes: usize,
 }
 
 const CHECK_LIMIT: u64 = 10_000;
+
+/// Pairs `(a, b)`, `a < b`, in order, whose regexes need a derivre check; `prefixes`
+/// holds the forced prefix of each regex. Every match of a regex starts with its
+/// forced prefix, so when neither prefix of a pair is a prefix of the other, no string
+/// matches both regexes, and the pair needs no check.
+fn pairs_to_check(prefixes: &[Vec<u8>]) -> impl Iterator<Item = (usize, usize)> + '_ {
+    (0..prefixes.len())
+        .flat_map(move |a| (a + 1..prefixes.len()).map(move |b| (a, b)))
+        .filter(move |&(a, b)| {
+            let (pa, pb) = (&prefixes[a], &prefixes[b]);
+            let n = pa.len().min(pb.len());
+            pa[..n] == pb[..n]
+        })
+}
+
+/// Builds the intersection of `a` and `b` in a copy of `base`, and leaves `base`
+/// unchanged, so each pair check copies only the parsed regexes and one `And` node.
+/// Do not build the intersections of all pairs in one builder: each check copies the
+/// whole `ExprSet`, so the total work would grow as N^4 in the number of regexes.
+fn intersection(base: &RegexBuilder, a: ExprRef, b: ExprRef) -> Result<(RegexBuilder, ExprRef)> {
+    let mut builder = base.clone();
+    let both = builder.mk(&RegexAst::And(vec![
+        RegexAst::ExprRef(a),
+        RegexAst::ExprRef(b),
+    ]))?;
+    Ok((builder, both))
+}
 
 impl PatternPropertyCache {
     pub fn is_match(&mut self, regex: &str, value: &str) -> Result<bool> {
@@ -91,59 +106,28 @@ impl PatternPropertyCache {
                 base.mk_regex_for_serach(regex.as_str())
             })
             .collect::<Result<Vec<_>>>()?;
-        #[cfg(test)]
-        let parsed_nodes = base.exprset().len();
-        let prefixes = if regexes.len() > 1 {
-            regexes
-                .iter()
-                .map(|r| self.forced_prefix(r))
-                .collect::<Vec<_>>()
-        } else {
-            vec![]
-        };
-        for (ai, a) in erefs.iter().enumerate() {
-            for (bi, b) in erefs.iter().enumerate() {
-                if ai >= bi {
-                    continue;
-                }
-                // Every match of `a` starts with prefixes[ai] and every match of `b`
-                // with prefixes[bi]; when neither is a prefix of the other, no string
-                // matches both, so skip the (much more expensive) derivre check.
-                let (pa, pb) = (&prefixes[ai], &prefixes[bi]);
-                let n = pa.len().min(pb.len());
-                if pa[..n] != pb[..n] {
-                    continue;
-                }
-                // Build the intersection in a copy of `base`: to_regex_limited() clones
-                // the whole ExprSet, so adding every pair's And node to one shared
-                // builder made each check O(pairs so far) and the loop O(N^4).
-                let mut builder = base.clone();
-                let intersect = builder.mk(&RegexAst::And(vec![
-                    RegexAst::ExprRef(*a),
-                    RegexAst::ExprRef(*b),
-                ]))?;
-                #[cfg(test)]
-                {
-                    let added = builder.exprset().len() - parsed_nodes;
-                    self.stats.derivre_checks += 1;
-                    self.stats.max_added_nodes = self.stats.max_added_nodes.max(added);
-                }
-                let mut rx = builder
-                    .into_regex_limited(intersect, CHECK_LIMIT)
-                    .map_err(|_| {
-                        anyhow!(
-                            "can't determine if patternProperty regexes /{}/ and /{}/ are disjoint",
-                            regex_to_lark(regexes[ai], ""),
-                            regex_to_lark(regexes[bi], "")
-                        )
-                    })?;
-                if !rx.always_empty() {
-                    return Err(anyhow!(
-                        "patternProperty regexes /{}/ and /{}/ are not disjoint",
-                        regex_to_lark(regexes[ai], ""),
-                        regex_to_lark(regexes[bi], "")
-                    ));
-                }
+        if regexes.len() < 2 {
+            return Ok(());
+        }
+        let prefixes = regexes
+            .iter()
+            .map(|r| self.forced_prefix(r))
+            .collect::<Vec<_>>();
+        for (a, b) in pairs_to_check(&prefixes) {
+            let (builder, both) = intersection(&base, erefs[a], erefs[b])?;
+            let mut rx = builder.into_regex_limited(both, CHECK_LIMIT).map_err(|_| {
+                anyhow!(
+                    "can't determine if patternProperty regexes /{}/ and /{}/ are disjoint",
+                    regex_to_lark(regexes[a], ""),
+                    regex_to_lark(regexes[b], "")
+                )
+            })?;
+            if !rx.always_empty() {
+                return Err(anyhow!(
+                    "patternProperty regexes /{}/ and /{}/ are not disjoint",
+                    regex_to_lark(regexes[a], ""),
+                    regex_to_lark(regexes[b], "")
+                ));
             }
         }
 
@@ -301,13 +285,31 @@ mod tests {
     }
 
     #[test]
+    fn pairs_to_check_skips_pairs_with_distinct_prefixes() {
+        let prefixes = [&b"p1_"[..], b"p10_", b"q", b""].map(|p| p.to_vec());
+        assert_eq!(
+            pairs_to_check(&prefixes).collect::<Vec<_>>(),
+            vec![(0, 3), (1, 3), (2, 3)]
+        );
+        let prefixes = [&b"p1"[..], b"p10", b"p1"].map(|p| p.to_vec());
+        assert_eq!(
+            pairs_to_check(&prefixes).collect::<Vec<_>>(),
+            vec![(0, 1), (0, 2), (1, 2)]
+        );
+    }
+
+    #[test]
     fn distinct_literal_prefixes_need_no_derivre_check() {
         let mut cache = PatternPropertyCache::default();
         let keys = (0..400)
             .map(|i| format!("^p{i}_[a-z]+$"))
             .collect::<Vec<_>>();
+        let prefixes = keys
+            .iter()
+            .map(|k| cache.forced_prefix(k))
+            .collect::<Vec<_>>();
+        assert_eq!(pairs_to_check(&prefixes).count(), 0);
         check(&mut cache, &keys).unwrap();
-        assert_eq!(cache.stats.derivre_checks, 0);
     }
 
     #[test]
@@ -328,20 +330,37 @@ mod tests {
     }
 
     #[test]
-    fn pair_checks_do_not_accumulate_nodes() {
+    fn keys_without_prefix_need_every_pair_checked() {
         // These keys have no forced literal prefix, so every pair needs a derivre
-        // check. Each check must start from the parsed regexes alone. When the
-        // checks share one growing builder, each one copies the nodes of all the
-        // checks before it, and the total work grows as N^4.
+        // check, and each check must find the pair disjoint.
         let n = 60;
         let mut cache = PatternPropertyCache::default();
         let keys = (0..n).map(|i| format!("^[a-z]+_{i}$")).collect::<Vec<_>>();
+        let prefixes = keys
+            .iter()
+            .map(|k| cache.forced_prefix(k))
+            .collect::<Vec<_>>();
+        assert_eq!(pairs_to_check(&prefixes).count(), n * (n - 1) / 2);
         check(&mut cache, &keys).unwrap();
-        assert_eq!(cache.stats.derivre_checks, n * (n - 1) / 2);
-        assert!(
-            cache.stats.max_added_nodes <= 1,
-            "one pair check added {} nodes",
-            cache.stats.max_added_nodes
-        );
+    }
+
+    #[test]
+    fn intersection_of_parsed_regexes() {
+        let mut base = RegexBuilder::new();
+        let mut parse = |r: &str| {
+            base.mk_regex_for_serach(regex_to_lark(r, "dw").as_str())
+                .unwrap()
+        };
+        let one = parse("^[a-z]+_1$");
+        let two = parse("^[a-z]+_2$");
+        let digit = parse("^[a-z]+_[0-9]$");
+        let parsed = base.exprset().len();
+        for (a, b, disjoint) in [(one, two, true), (one, digit, false), (two, digit, false)] {
+            let (builder, both) = intersection(&base, a, b).unwrap();
+            // Each copy holds the parsed regexes and at most one new node.
+            assert!(builder.exprset().len() <= parsed + 1);
+            let mut rx = builder.into_regex_limited(both, CHECK_LIMIT).unwrap();
+            assert_eq!(rx.always_empty(), disjoint);
+        }
     }
 }
