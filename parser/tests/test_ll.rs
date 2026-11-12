@@ -1436,3 +1436,18 @@ fn test_stop_crash() {
         &["", " wait‧ times‧.‧\n‧Best‧=‧3‧≺EOS≻"],
     );
 }
+
+#[test]
+fn test_ll_unannotated_nested_lark_keeps_outer_temperature() {
+    // A nested Lark grammar with the same (empty) skip shares the outer
+    // lexeme class; resolving it must not reset annotated outer lexemes.
+    check_lark_grammar(
+        r#"start: j ";" s "."
+           j: %lark {
+             start: /[0-9]+/
+           }
+           s[temperature=0.7]: /[a-z]+/
+        "#,
+        &["", "1‧;‧abc‧."],
+    );
+}
