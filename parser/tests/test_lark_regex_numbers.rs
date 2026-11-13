@@ -1,5 +1,4 @@
 use llg_test_utils::{lark_err_test, lark_str_test_many_quiet};
-use llguidance::api::RegexExt;
 use rstest::rstest;
 use serde_json::{json, Value};
 
@@ -47,15 +46,6 @@ fn numbers_are_terminals(#[case] terminal: &str, #[case] valid: &[&str], #[case]
 }
 
 #[rstest]
-#[case::substring(json!({"substring_words": "a b"}), &["a b"])]
-#[case::number(json!({"type": "integer", "maximum": 7}), &["7"])]
-fn serialized_regexes_compile_again(#[case] regex: Value, #[case] valid: &[&str]) {
-    let regex: RegexExt = serde_json::from_value(regex).unwrap();
-    let serialized = serde_json::to_value(&regex).unwrap();
-    lark_str_test_many_quiet(&grammar("%regex", &serialized), valid, &[]);
-}
-
-#[rstest]
 #[case::unsupported_type(json!({"type": "boolean"}), "unsupported %regex type")]
 #[case::unknown_keyword(json!({"type": "integer", "foo": 1}), "unknown field `foo`")]
 #[case::keyword_without_type(json!({"minimum": 1}), "requires \"type\"")]
@@ -63,4 +53,12 @@ fn serialized_regexes_compile_again(#[case] regex: Value, #[case] valid: &[&str]
 #[case::mixed_with_substring(json!({"type": "integer", "substring_words": "a b"}), "only one field can be set on %regex")]
 fn invalid_number_regexes_are_rejected(#[case] schema: Value, #[case] error: &str) {
     lark_err_test(&grammar("%regex", &schema), error);
+}
+
+#[test]
+fn duplicate_number_keywords_are_rejected() {
+    lark_err_test(
+        r#"start: %regex {"type": "integer", "minimum": 10, "minimum": 0}"#,
+        "duplicate field `minimum`",
+    );
 }

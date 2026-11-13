@@ -1,7 +1,8 @@
-use crate::{
-    api::RegexExt,
-    earley::{ParamCond, ParamExpr},
-};
+use anyhow::{anyhow, bail, Result};
+use serde::{Deserialize, Deserializer};
+use serde_json::Map;
+
+use crate::earley::{ParamCond, ParamExpr};
 
 use super::lexer::Location;
 
@@ -154,7 +155,7 @@ pub enum Value {
     /// Configuration for the specialized ordered-interval matcher.
     IntRanges(serde_json::Value),
     NestedLark(Vec<Item>),
-    RegexExt(Box<RegexExt>),
+    RegexExt(RegexExt),
     #[allow(dead_code)]
     TemplateUsage {
         name: String,
@@ -180,5 +181,111 @@ impl Rule {
             Some(_) => true,
             None => false,
         }
+    }
+}
+
+/// The JSON object after `%regex`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(try_from = "RegexFields")]
+pub enum RegexExt {
+    Substring(Substring),
+    Number {
+        integer: bool,
+        keywords: Map<String, serde_json::Value>,
+    },
+}
+
+/// Matches any (possibly empty) contiguous sequence of chunks.
+#[derive(Debug, Clone)]
+pub enum Substring {
+    Chunks(Vec<String>),
+    /// Chunks from `s.split(/\s+/)`
+    Words(String),
+    /// Chunks from `s.split('')`
+    Chars(String),
+}
+
+/// The `%regex` JSON as written; `RegexExt::try_from` validates it.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RegexFields {
+    substring_chunks: Option<Vec<String>>,
+    substring_words: Option<String>,
+    substring_chars: Option<String>,
+    #[serde(rename = "type", default, deserialize_with = "keep_null")]
+    kind: Option<serde_json::Value>,
+    #[serde(default, deserialize_with = "keep_null")]
+    minimum: Option<serde_json::Value>,
+    #[serde(default, deserialize_with = "keep_null")]
+    maximum: Option<serde_json::Value>,
+    #[serde(rename = "exclusiveMinimum", default, deserialize_with = "keep_null")]
+    exclusive_minimum: Option<serde_json::Value>,
+    #[serde(rename = "exclusiveMaximum", default, deserialize_with = "keep_null")]
+    exclusive_maximum: Option<serde_json::Value>,
+    #[serde(rename = "multipleOf", default, deserialize_with = "keep_null")]
+    multiple_of: Option<serde_json::Value>,
+}
+
+// A plain Option reads `null` as absent; keep it so it is rejected as an invalid value.
+fn keep_null<'de, D: Deserializer<'de>>(d: D) -> Result<Option<serde_json::Value>, D::Error> {
+    serde_json::Value::deserialize(d).map(Some)
+}
+
+impl TryFrom<RegexFields> for RegexExt {
+    type Error = anyhow::Error;
+
+    fn try_from(fields: RegexFields) -> Result<Self> {
+        let substrings: Vec<&str> = [
+            ("substring_chunks", fields.substring_chunks.is_some()),
+            ("substring_words", fields.substring_words.is_some()),
+            ("substring_chars", fields.substring_chars.is_some()),
+        ]
+        .into_iter()
+        .filter_map(|(key, set)| set.then_some(key))
+        .collect();
+
+        let keywords: Map<String, serde_json::Value> = [
+            ("type", &fields.kind),
+            ("minimum", &fields.minimum),
+            ("maximum", &fields.maximum),
+            ("exclusiveMinimum", &fields.exclusive_minimum),
+            ("exclusiveMaximum", &fields.exclusive_maximum),
+            ("multipleOf", &fields.multiple_of),
+        ]
+        .into_iter()
+        .filter_map(|(key, value)| Some((key.to_string(), value.clone()?)))
+        .collect();
+
+        if !keywords.is_empty() {
+            let kind = fields
+                .kind
+                .as_ref()
+                .ok_or_else(|| anyhow!("numeric %regex requires \"type\""))?;
+            let integer = match kind.as_str() {
+                Some("integer") => true,
+                Some("number") => false,
+                _ => bail!("unsupported %regex type: {kind}"),
+            };
+            if !substrings.is_empty() {
+                bail!(
+                    "only one field can be set on %regex; got {:?}",
+                    [substrings, vec!["type"]].concat()
+                );
+            }
+            return Ok(RegexExt::Number { integer, keywords });
+        }
+
+        let substring = match (
+            fields.substring_chunks,
+            fields.substring_words,
+            fields.substring_chars,
+        ) {
+            (Some(chunks), None, None) => Substring::Chunks(chunks),
+            (None, Some(words), None) => Substring::Words(words),
+            (None, None, Some(chars)) => Substring::Chars(chars),
+            (None, None, None) => bail!("no fields set on %regex"),
+            _ => bail!("only one field can be set on %regex; got {substrings:?}"),
+        };
+        Ok(RegexExt::Substring(substring))
     }
 }

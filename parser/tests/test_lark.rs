@@ -271,6 +271,11 @@ fn test_lark_syntax_perc() {
     );
 
     lark_err_test(r#" start: %regex {  } "#, "no fields set on %regex");
+
+    lark_err_test(
+        r#" start: %regex { "substring_words": "a", "substring_words": "b" } "#,
+        "duplicate field `substring_words`",
+    );
 }
 
 #[test]
