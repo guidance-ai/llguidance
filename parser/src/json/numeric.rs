@@ -166,14 +166,7 @@ pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
                     rx_int_range(Some(0), None)?,
                 ]))
             } else {
-                let max_value = "9"
-                    .repeat(num_digits(left))
-                    .parse::<i64>()
-                    .map_err(|e| anyhow!("Failed to parse max value for left {}: {}", left, e))?;
-                Ok(mk_or(vec![
-                    rx_int_range(Some(left), Some(max_value))?,
-                    format!("[1-9][0-9]{{{},}}", num_digits(left)),
-                ]))
+                Ok(rx_unsigned_range(left as u64, None))
             }
         }
         (None, Some(right)) => {
@@ -183,7 +176,10 @@ pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
                     rx_int_range(None, Some(-1))?,
                 ]))
             } else {
-                Ok(format!("-{}", rx_int_range(Some(-right), None)?))
+                Ok(format!(
+                    "-{}",
+                    rx_unsigned_range(right.unsigned_abs(), None)
+                ))
             }
         }
         (Some(left), Some(right)) => {
@@ -196,70 +192,69 @@ pub fn rx_int_range(left: Option<i64>, right: Option<i64>) -> Result<String> {
             }
             if left < 0 {
                 if right < 0 {
-                    Ok(format!("(-{})", rx_int_range(Some(-right), Some(-left))?))
+                    Ok(format!(
+                        "(-{})",
+                        rx_unsigned_range(right.unsigned_abs(), Some(left.unsigned_abs()))
+                    ))
                 } else {
                     Ok(format!(
                         "(-{}|{})",
-                        rx_int_range(Some(0), Some(-left))?,
-                        rx_int_range(Some(0), Some(right))?
+                        rx_unsigned_range(0, Some(left.unsigned_abs())),
+                        rx_unsigned_range(0, Some(right as u64))
                     ))
                 }
-            } else if num_digits(left) == num_digits(right) {
-                let l = left.to_string();
-                let r = right.to_string();
-                if left == right {
-                    return Ok(format!("({l})"));
-                }
-
-                let lpref = &l[..l.len() - 1];
-                let lx = &l[l.len() - 1..];
-                let rpref = &r[..r.len() - 1];
-                let rx = &r[r.len() - 1..];
-
-                if lpref == rpref {
-                    return Ok(format!("({lpref}[{lx}-{rx}])"));
-                }
-
-                let mut left_rec = lpref.parse::<i64>().unwrap_or(0);
-                let mut right_rec = rpref.parse::<i64>().unwrap_or(0);
-                if left_rec >= right_rec {
-                    return Err(anyhow!(
-                        "Invalid recursive range: left_rec ({}) must be less than right_rec ({})",
-                        left_rec,
-                        right_rec
-                    ));
-                }
-
-                let mut parts = Vec::new();
-
-                if lx != "0" {
-                    left_rec += 1;
-                    parts.push(format!("{lpref}[{lx}-9]"));
-                }
-
-                if rx != "9" {
-                    right_rec -= 1;
-                    parts.push(format!("{rpref}[0-{rx}]"));
-                }
-
-                if left_rec <= right_rec {
-                    let inner = rx_int_range(Some(left_rec), Some(right_rec))?;
-                    parts.push(format!("{inner}[0-9]"));
-                }
-
-                Ok(mk_or(parts))
             } else {
-                let break_point = 10_i64
-                    .checked_pow(num_digits(left) as u32)
-                    .ok_or_else(|| anyhow!("Overflow when calculating break point"))?
-                    - 1;
-                Ok(mk_or(vec![
-                    rx_int_range(Some(left), Some(break_point))?,
-                    rx_int_range(Some(break_point + 1), Some(right))?,
-                ]))
+                Ok(rx_unsigned_range(left as u64, Some(right as u64)))
             }
         }
     }
+}
+
+// Magnitudes of i64 endpoints have at most 19 digits, so their next power of ten fits in u64.
+fn rx_unsigned_range(left: u64, right: Option<u64>) -> String {
+    let l = left.to_string();
+    let digits = l.len();
+    let Some(right) = right else {
+        let max_value = 10_u64.pow(digits as u32) - 1;
+        return mk_or(vec![
+            rx_unsigned_range(left, Some(max_value)),
+            format!("[1-9][0-9]{{{digits},}}"),
+        ]);
+    };
+    if left == right {
+        return format!("({l})");
+    }
+    let r = right.to_string();
+    if digits != r.len() {
+        let next = 10_u64.pow(digits as u32);
+        return mk_or(vec![
+            rx_unsigned_range(left, Some(next - 1)),
+            rx_unsigned_range(next, Some(right)),
+        ]);
+    }
+
+    let (lpref, lx) = l.split_at(digits - 1);
+    let (rpref, rx) = r.split_at(digits - 1);
+    if lpref == rpref {
+        return format!("({lpref}[{lx}-{rx}])");
+    }
+
+    let mut left_rec = left / 10;
+    let mut right_rec = right / 10;
+    let mut parts = Vec::new();
+    if lx != "0" {
+        left_rec += 1;
+        parts.push(format!("{lpref}[{lx}-9]"));
+    }
+    if rx != "9" {
+        right_rec -= 1;
+        parts.push(format!("{rpref}[0-{rx}]"));
+    }
+    if left_rec <= right_rec {
+        let inner = rx_unsigned_range(left_rec, Some(right_rec));
+        parts.push(format!("{inner}[0-9]"));
+    }
+    mk_or(parts)
 }
 
 fn lexi_x_to_9(x: &str, incl: bool) -> Result<String> {
