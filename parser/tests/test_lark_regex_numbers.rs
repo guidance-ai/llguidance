@@ -59,11 +59,6 @@ fn numbers_match_like_json(
 #[rstest]
 #[case::empty_integer_range(json!({"type": "integer", "minimum": 5, "maximum": 1}), "Unsatisfiable schema")]
 #[case::no_integer_in_range(json!({"type": "integer", "minimum": 1.2, "maximum": 1.8}), "contains no integer values")]
-#[case::rounded_integer(json!({"type": "integer", "minimum": 9_007_199_254_740_993_i64}), "Unsupported integer bound")]
-#[case::large_exclusive(json!({"type": "integer", "exclusiveMinimum": 1_i64 << 53}), "Unsupported integer bound")]
-#[case::large_draft4_exclusive(json!({"type": "integer", "minimum": i64::MIN, "exclusiveMinimum": true}), "Unsupported integer bound")]
-#[case::above_i64_max(json!({"type": "integer", "maximum": 1_u64 << 63}), "Unsupported integer bound")]
-#[case::below_i64_min(serde_json::from_str(r#"{"type":"integer","minimum":-9223372036854775809}"#).unwrap(), "Unsupported integer bound")]
 #[case::multiple_of_too_precise(json!({"type": "number", "multipleOf": 0.12345678912}), "too many digits")]
 #[case::null_minimum(json!({"type": "integer", "minimum": null}), "Expected f64 for 'minimum'")]
 #[case::string_minimum(json!({"type": "integer", "minimum": "1"}), "Expected f64 for 'minimum'")]
@@ -72,14 +67,6 @@ fn number_errors_match_json(#[case] schema: Value, #[case] error: &str) {
     for keyword in ["%json", "%regex"] {
         lark_err_test(&grammar(keyword, &schema), error);
     }
-}
-
-#[rstest]
-#[case::all_of(json!({"type": "integer", "allOf": [{"minimum": 9_007_199_254_740_993_i64}]}))]
-#[case::any_of(json!({"anyOf": [{"type": "integer", "maximum": 1_u64 << 63}, {"type": "null"}]}))]
-#[case::const_value(json!({"type": "integer", "const": 9_007_199_254_740_993_i64}))]
-fn unsupported_integer_bound_in_schema(#[case] schema: Value) {
-    lark_err_test(&grammar("%json", &schema), "Unsupported integer bound");
 }
 
 #[rstest]

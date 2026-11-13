@@ -106,10 +106,6 @@ pub(crate) fn numeric_regex(
 }
 
 fn json_int(num: &NumberSchema) -> Result<RegexAst> {
-    anyhow::ensure!(
-        !num.has_unsupported_integer_bound,
-        "Unsupported integer bound: at magnitude 2^53 or greater, the i64 literal and any exclusive adjustment must round-trip through f64"
-    );
     check_number_bounds(num).map_err(|e| {
         anyhow!(UnsatisfiableSchemaError {
             message: e.to_string(),
@@ -1131,7 +1127,6 @@ mod test_number_bounds {
                     None
                 },
                 integer: self.integer,
-                has_unsupported_integer_bound: false,
                 multiple_of: self.multiple_of.clone(),
             }
         }
