@@ -2,7 +2,7 @@ use std::{fmt::Display, hint::black_box, panic::AssertUnwindSafe, sync::Arc, tim
 
 use crate::{
     api::{GrammarInit, ParserLimits, StopReason},
-    earley::{BiasComputer, Parser, ParserError, ParserStats},
+    earley::{BiasComputer, CGrammar, Parser, ParserError, ParserStats},
     infoln, panic_utils, warn, CancellationHandle, Instant, Logger, ParserFactory,
 };
 use anyhow::{ensure, Result};
@@ -92,6 +92,57 @@ impl TokenParser {
             limits.clone(),
             factory.extra_lexemes(),
         )?;
+        Self::init_compiled(
+            factory,
+            compiled_grammar,
+            max_tokens,
+            logger,
+            inference_caps,
+            limits,
+            compute_mask_start_time,
+        )
+    }
+
+    /// Construct request state from a grammar prepared for this factory.
+    pub(crate) fn from_compiled(
+        factory: &ParserFactory,
+        grammar: Arc<CGrammar>,
+        max_tokens: Option<usize>,
+        logger: Logger,
+        inference_caps: InferenceCapabilities,
+        limits: ParserLimits,
+    ) -> Result<Self> {
+        panic_utils::catch_unwind(AssertUnwindSafe(|| {
+            Self::init_compiled(
+                factory,
+                grammar,
+                max_tokens.unwrap_or(usize::MAX),
+                logger,
+                inference_caps,
+                limits,
+                Instant::now(),
+            )
+        }))
+    }
+
+    fn init_compiled(
+        factory: &ParserFactory,
+        compiled_grammar: Arc<CGrammar>,
+        max_tokens: usize,
+        logger: Logger,
+        inference_caps: InferenceCapabilities,
+        limits: ParserLimits,
+        compute_mask_start_time: Instant,
+    ) -> Result<Self> {
+        let token_env = factory.tok_env().clone();
+        ensure!(
+            token_env.tokenize_is_canonical() || !inference_caps.ff_tokens,
+            "ff_tokens requires canonical tokenization"
+        );
+        ensure!(
+            !inference_caps.backtrack || inference_caps.ff_tokens,
+            "backtrack requires ff_tokens"
+        );
         let parser = Parser::new(
             token_env.clone(),
             compiled_grammar,

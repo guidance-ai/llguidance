@@ -20,9 +20,10 @@ struct CompileCtx {
 
 impl CompileCtx {
     fn run_one(&mut self, input: GrammarWithLexer) -> Result<(SymIdx, LexemeClass)> {
+        let string_slot = input.string_slot;
         let builder = std::mem::take(&mut self.builder).unwrap();
 
-        let res = if let Some(lark) = input.lark_grammar {
+        let mut res = if let Some(lark) = input.lark_grammar {
             #[cfg(feature = "lark")]
             {
                 use crate::lark::lark_to_llguidance;
@@ -43,6 +44,13 @@ impl CompileCtx {
             bail!("grammar must have either lark_grammar or json_schema");
         };
 
+        if let Some(name) = string_slot {
+            let original = res.builder.grammar.single_lexeme(res.start_node)?;
+            let slot = res.builder.regex.spec.declare_string_slot(name, original)?;
+            res.builder
+                .grammar
+                .replace_root_lexeme(res.start_node, slot)?;
+        }
         res.builder.check_limits()?;
 
         let grammar_id = res.builder.grammar.sym_props(res.start_node).grammar_id;

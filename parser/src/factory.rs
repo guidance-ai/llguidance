@@ -5,7 +5,7 @@ use toktrie::{InferenceCapabilities, TokEnv};
 
 use crate::{
     api::{GrammarInit, ParserLimits, TopLevelGrammar},
-    earley::{perf::ParserPerfCounters, SlicedBiasComputer},
+    earley::{perf::ParserPerfCounters, CGrammar, SlicedBiasComputer},
     Logger, TokenParser,
 };
 
@@ -127,6 +127,22 @@ impl ParserFactory {
         limits: ParserLimits,
     ) -> Result<TokenParser> {
         TokenParser::from_init(self, grammar_init, logger, inference_caps, limits)
+    }
+
+    pub(crate) fn create_parser_from_compiled(
+        &self,
+        grammar: Arc<CGrammar>,
+        max_tokens: Option<usize>,
+        limits: ParserLimits,
+    ) -> Result<TokenParser> {
+        TokenParser::from_compiled(
+            self,
+            grammar,
+            max_tokens,
+            Logger::new(self.buffer_log_level, self.stderr_log_level),
+            self.inference_caps.clone(),
+            limits,
+        )
     }
 
     pub fn create_parser_from_init(

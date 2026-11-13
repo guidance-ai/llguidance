@@ -225,6 +225,27 @@ class LLInterpreter:
         """
 
 
+class LLGrammarTemplate:
+    """Compile a grammar once; specialize declared JSON-string slots per request.
+
+    Bindings replace fallback constraints and admit canonical JSON string spellings.
+    Omitted bindings retain fallbacks. Empty lists, unknown slots and inputs
+    exceeding aggregate budgets raise ValueError. Values are literal strings,
+    never grammar source. Templates may be shared between threads.
+    """
+    def __new__(
+        cls, tokenizer: LLTokenizer, grammar: Union[str, Dict[str, Any]], *,
+        limits: Optional[LLParserLimits] = None,
+        max_binding_values: int = 10_000,
+        max_binding_bytes: int = 1_048_576,
+    ) -> "LLGrammarTemplate": ...
+
+    @property
+    def slot_names(self) -> List[str]: ...
+
+    def new_matcher(self, bindings: Optional[Dict[str, List[str]]] = None) -> "LLMatcher": ...
+
+
 class LLMatcher:
 
     def __new__(
