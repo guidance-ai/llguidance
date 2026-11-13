@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, Result};
-use serde::{de, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer};
 use serde_json::Map;
 
 use crate::earley::{ParamCond, ParamExpr};
@@ -185,7 +185,8 @@ impl Rule {
 }
 
 /// The JSON object after `%regex`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(try_from = "RegexFields")]
 pub enum RegexExt {
     Substring(Substring),
     Number {
@@ -204,68 +205,61 @@ pub enum Substring {
     Chars(String),
 }
 
-const SUBSTRING_KEYS: [&str; 3] = ["substring_chunks", "substring_words", "substring_chars"];
-const NUMBER_KEYS: [&str; 6] = [
-    "type",
-    "minimum",
-    "maximum",
-    "exclusiveMinimum",
-    "exclusiveMaximum",
-    "multipleOf",
-];
-
+/// The `%regex` JSON as written; `RegexExt::try_from` validates it.
 #[derive(Deserialize)]
-struct SubstringFields {
+#[serde(deny_unknown_fields)]
+struct RegexFields {
     substring_chunks: Option<Vec<String>>,
     substring_words: Option<String>,
     substring_chars: Option<String>,
+    #[serde(rename = "type", default, deserialize_with = "keep_null")]
+    kind: Option<serde_json::Value>,
+    #[serde(default, deserialize_with = "keep_null")]
+    minimum: Option<serde_json::Value>,
+    #[serde(default, deserialize_with = "keep_null")]
+    maximum: Option<serde_json::Value>,
+    #[serde(rename = "exclusiveMinimum", default, deserialize_with = "keep_null")]
+    exclusive_minimum: Option<serde_json::Value>,
+    #[serde(rename = "exclusiveMaximum", default, deserialize_with = "keep_null")]
+    exclusive_maximum: Option<serde_json::Value>,
+    #[serde(rename = "multipleOf", default, deserialize_with = "keep_null")]
+    multiple_of: Option<serde_json::Value>,
 }
 
-impl<'de> Deserialize<'de> for RegexExt {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let map = d.deserialize_map(UniqueKeys)?;
-        RegexExt::from_map(map).map_err(de::Error::custom)
-    }
+// A plain Option reads `null` as absent; keep it so it is rejected as an invalid value.
+fn keep_null<'de, D: Deserializer<'de>>(d: D) -> Result<Option<serde_json::Value>, D::Error> {
+    serde_json::Value::deserialize(d).map(Some)
 }
 
-/// Reads a JSON object like `Map`, but rejects repeated keys instead of keeping the last one.
-struct UniqueKeys;
+impl TryFrom<RegexFields> for RegexExt {
+    type Error = anyhow::Error;
 
-impl<'de> de::Visitor<'de> for UniqueKeys {
-    type Value = Map<String, serde_json::Value>;
+    fn try_from(fields: RegexFields) -> Result<Self> {
+        let substrings: Vec<&str> = [
+            ("substring_chunks", fields.substring_chunks.is_some()),
+            ("substring_words", fields.substring_words.is_some()),
+            ("substring_chars", fields.substring_chars.is_some()),
+        ]
+        .into_iter()
+        .filter_map(|(key, set)| set.then_some(key))
+        .collect();
 
-    fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.write_str("a JSON object")
-    }
+        let keywords: Map<String, serde_json::Value> = [
+            ("type", &fields.kind),
+            ("minimum", &fields.minimum),
+            ("maximum", &fields.maximum),
+            ("exclusiveMinimum", &fields.exclusive_minimum),
+            ("exclusiveMaximum", &fields.exclusive_maximum),
+            ("multipleOf", &fields.multiple_of),
+        ]
+        .into_iter()
+        .filter_map(|(key, value)| Some((key.to_string(), value.clone()?)))
+        .collect();
 
-    fn visit_map<A: de::MapAccess<'de>>(self, mut access: A) -> Result<Self::Value, A::Error> {
-        let mut map = Map::new();
-        while let Some((key, value)) = access.next_entry::<String, serde_json::Value>()? {
-            if map.contains_key(&key) {
-                return Err(de::Error::custom(format!("duplicate field `{key}`")));
-            }
-            map.insert(key, value);
-        }
-        Ok(map)
-    }
-}
-
-impl RegexExt {
-    fn from_map(map: Map<String, serde_json::Value>) -> Result<Self> {
-        if let Some(key) = map.keys().find(|key| {
-            !SUBSTRING_KEYS.contains(&key.as_str()) && !NUMBER_KEYS.contains(&key.as_str())
-        }) {
-            bail!("unknown field `{key}`");
-        }
-        // Null substring fields count as unset, as with a plain `Option`.
-        let substrings: Vec<&str> = SUBSTRING_KEYS
-            .into_iter()
-            .filter(|key| map.get(*key).is_some_and(|value| !value.is_null()))
-            .collect();
-
-        if NUMBER_KEYS.iter().any(|key| map.contains_key(*key)) {
-            let kind = map
-                .get("type")
+        if !keywords.is_empty() {
+            let kind = fields
+                .kind
+                .as_ref()
                 .ok_or_else(|| anyhow!("numeric %regex requires \"type\""))?;
             let integer = match kind.as_str() {
                 Some("integer") => true,
@@ -278,13 +272,9 @@ impl RegexExt {
                     [substrings, vec!["type"]].concat()
                 );
             }
-            return Ok(RegexExt::Number {
-                integer,
-                keywords: map,
-            });
+            return Ok(RegexExt::Number { integer, keywords });
         }
 
-        let fields = SubstringFields::deserialize(serde_json::Value::Object(map))?;
         let substring = match (
             fields.substring_chunks,
             fields.substring_words,
