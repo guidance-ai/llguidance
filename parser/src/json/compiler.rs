@@ -758,8 +758,9 @@ impl Compiler {
                 }
             }
 
-            // A non-empty `literal ∩ regex` is just the literal. Emitting it as
-            // one keeps the lexer from rebuilding the regex while matching.
+            // The emptiness check above passed, so if `ast` intersects a literal
+            // with other regexes, it matches exactly that literal. Emit the
+            // literal itself so the lexer does not have to match the intersection.
             if let Some(lit) = and_literal(&ast) {
                 ast = RegexAst::Literal(lit.to_string());
             }
