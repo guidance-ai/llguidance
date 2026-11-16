@@ -758,6 +758,12 @@ impl Compiler {
                 }
             }
 
+            // A non-empty `literal ∩ regex` is just the literal. Emitting it as
+            // one keeps the lexer from rebuilding the regex while matching.
+            if let Some(lit) = and_literal(&ast) {
+                ast = RegexAst::Literal(lit.to_string());
+            }
+
             ast = self.json_quote(ast);
 
             Ok(ast)
@@ -964,6 +970,15 @@ impl Compiler {
 
         grammars.push(self.builder.string("]"));
         Ok(self.builder.join(&grammars))
+    }
+}
+
+/// The literal in an intersection (possibly nested), if any.
+fn and_literal(ast: &RegexAst) -> Option<&str> {
+    match ast {
+        RegexAst::Literal(s) => Some(s),
+        RegexAst::And(args) => args.iter().find_map(and_literal),
+        _ => None,
     }
 }
 
