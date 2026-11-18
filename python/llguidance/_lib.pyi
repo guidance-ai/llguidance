@@ -400,6 +400,8 @@ class LLMatcher:
         Consume a list of tokens.
         Returns true on success.
         If it returns false, the matcher is in an error state (either from previous errors or it has just entered it).
+        Once the matcher has stopped without an error, a list of only EOS tokens is accepted;
+        these EOS tokens are not recorded, so they don't count for rollback().
         """
 
     def validate_tokens(self, tokens: List[TokenId]) -> int:

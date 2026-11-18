@@ -527,7 +527,16 @@ impl LLMatcher {
     }
 
     fn consume_tokens(&mut self, tokens: Vec<TokenId>) -> bool {
-        self.inner.consume_tokens(&tokens).is_ok()
+        // accept EOS after a normal stop, like consume_token()
+        let eos = self.tok_env.tok_trie().eos_tokens();
+        if self.inner.is_stopped()
+            && !self.inner.is_error()
+            && tokens.iter().all(|t| eos.contains(t))
+        {
+            true
+        } else {
+            self.inner.consume_tokens(&tokens).is_ok()
+        }
     }
 
     fn rollback(&mut self, num_tokens: usize) -> bool {
