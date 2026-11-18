@@ -563,6 +563,28 @@ fn number_multipleof_noninteger(#[case] test_value: f64, #[case] expected_pass: 
     json_schema_check(schema, &json!(test_value), expected_pass);
 }
 
+#[rstest]
+#[case(0.07, 0.14, true)]
+#[case(0.07, 0.7, true)]
+#[case(0.07, 7.0, true)]
+#[case(0.07, -0.21, true)]
+#[case(0.07, 0.15, false)]
+#[case(0.07, 1.0, false)]
+#[case(0.57, 1.14, true)]
+#[case(0.57, 1.15, false)]
+#[case(0.0003, 0.0009, true)]
+#[case(0.0003, 3.0, true)]
+#[case(0.0003, 0.001, false)]
+fn number_multipleof_decimal(
+    #[case] multiple_of: f64,
+    #[case] test_value: f64,
+    #[case] expected_pass: bool,
+) {
+    // 0.07 * 10 * 10 is not exactly 7.0 in binary floating point
+    let schema = &json!({"type":"number", "multipleOf": multiple_of});
+    json_schema_check(schema, &json!(test_value), expected_pass);
+}
+
 /*
 Not clear if this should work
 #[rstest]
