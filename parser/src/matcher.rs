@@ -52,7 +52,7 @@ impl Matcher {
         self
     }
 
-    pub(crate) fn enable_cancellation(&mut self) {
+    pub fn enable_cancellation(&mut self) {
         if self.1.is_some() {
             return;
         }

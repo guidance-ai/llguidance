@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "c",
     "python_ext",
     "parser",
     "sample_parser",
@@ -13,6 +14,7 @@ members = [
 ]
 # just exclude python_ext since it doesn't build without maturin
 default-members = [
+    "c",
     "parser",
     "sample_parser",
     "json_stats",
@@ -25,7 +27,7 @@ default-members = [
 resolver = "2"
 
 [workspace.package]
-rust-version="1.87"
+rust-version = "1.87"
 
 [profile.release]
 debug = 1

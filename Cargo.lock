@@ -1414,7 +1414,6 @@ name = "llguidance"
 version = "1.9.1"
 dependencies = [
  "anyhow",
- "cbindgen",
  "criterion",
  "derivre",
  "indexmap",
@@ -1423,7 +1422,6 @@ dependencies = [
  "lazy_static",
  "llg_test_utils",
  "rand",
- "rayon",
  "referencing",
  "regex",
  "regex-syntax",
@@ -1433,6 +1431,17 @@ dependencies = [
  "serde_json",
  "toktrie",
  "toktrie_hf_downloader",
+]
+
+[[package]]
+name = "llguidance_c"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cbindgen",
+ "llguidance",
+ "rayon",
+ "serde_json",
 ]
 
 [[package]]
