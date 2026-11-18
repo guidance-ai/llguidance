@@ -8,6 +8,49 @@ use crate::{
 use anyhow::{ensure, Result};
 use toktrie::{InferenceCapabilities, SimpleVob, TokEnv, TokenId, INVALID_TOKEN};
 
+/// Whether a fast-forward observation can describe the current token span.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FastForwardStatus {
+    /// The parser is active and tokenization is canonical. The span may be empty.
+    Ready,
+    /// Fast-forward tokens are unavailable with a non-canonical tokenizer.
+    NonCanonical,
+    /// The parser has stopped normally. No tokens are available.
+    Stopped,
+}
+
+/// A noncommitting observation of the currently available fast-forward tokens.
+///
+/// Counts describe this returned span, not cumulative observations, consumed tokens,
+/// or sampling operations. Repeated observations can describe the same span.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FastForwardObservation {
+    pub status: FastForwardStatus,
+    pub tokens: Vec<TokenId>,
+    /// Bytes decoded from exactly `tokens` using [`toktrie::TokTrie::decode`].
+    /// This includes special-token spellings and excludes already consumed tokens
+    /// and bytes retained for token healing. It need not be valid UTF-8.
+    pub token_bytes: Vec<u8>,
+}
+
+impl FastForwardObservation {
+    pub fn token_count(&self) -> usize {
+        self.tokens.len()
+    }
+
+    pub fn byte_count(&self) -> usize {
+        self.token_bytes.len()
+    }
+
+    fn empty(status: FastForwardStatus) -> Self {
+        Self {
+            status,
+            tokens: Vec::new(),
+            token_bytes: Vec::new(),
+        }
+    }
+}
+
 /// Token-level parser that drives a single constrained-generation session.
 ///
 /// Created by [`ParserFactory::create_parser()`] and typically wrapped in a
@@ -940,6 +983,44 @@ impl TokenParser {
             self.ff_tokens_cache = Some(r.clone());
         }
         r.0
+    }
+
+    /// Observe fast-forward tokens and their decoded bytes without consuming them.
+    ///
+    /// Like [`Self::compute_ff_tokens`], this may force bytes speculatively and populate
+    /// caches, but does not advance committed token history. A ready, empty span does
+    /// not imply a semantic choice point: token healing can retain forced bytes.
+    /// Errors and cancellation are returned separately from an empty observation.
+    pub fn observe_ff_tokens(&mut self) -> Result<FastForwardObservation> {
+        self.check_cancellation()?;
+        if self.stopped() {
+            if !self.stop_reason.is_ok() {
+                return Err(self.anyhow_error());
+            }
+            return Ok(FastForwardObservation::empty(FastForwardStatus::Stopped));
+        }
+        self.check_initialized("observe_ff_tokens")?;
+        if let Some(error) = self.parser.get_error() {
+            return Err(self.stop_for_parser_error("", error));
+        }
+        if !self.token_env.tokenize_is_canonical() {
+            return Ok(FastForwardObservation::empty(
+                FastForwardStatus::NonCanonical,
+            ));
+        }
+
+        let tokens = self.compute_ff_tokens();
+        self.check_cancellation()?;
+        if let Some(error) = self.parser.get_error() {
+            return Err(self.stop_for_parser_error("", error));
+        }
+        let token_bytes = self.tok_trie().decode(&tokens);
+        self.check_cancellation()?;
+        Ok(FastForwardObservation {
+            status: FastForwardStatus::Ready,
+            tokens,
+            token_bytes,
+        })
     }
 
     /// Compute and then consume fast-forward tokens.
