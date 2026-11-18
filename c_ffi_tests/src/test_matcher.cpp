@@ -403,6 +403,16 @@ BOOST_AUTO_TEST_CASE(validate_tokens_partial) {
       llg_matcher_validate_tokens(matcher.get(), tokens, std::size(tokens)), 1);
 }
 
+BOOST_AUTO_TEST_CASE(validate_tokens_out_of_range) {
+  MatcherContext ctx;
+  auto matcher = ctx.make_matcher("regex", "[a-z]+");
+  const uint32_t tokens[] = {97, 98, 1000000, 99};
+
+  BOOST_CHECK_EQUAL(
+      llg_matcher_validate_tokens(matcher.get(), tokens, std::size(tokens)), 2);
+  check_matcher_has_no_error(matcher.get());
+}
+
 BOOST_AUTO_TEST_CASE(compute_ff_tokens) {
   MatcherContext ctx;
   auto matcher = ctx.make_matcher("regex", "hello");

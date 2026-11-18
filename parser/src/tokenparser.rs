@@ -462,18 +462,16 @@ impl TokenParser {
         }
         self.check_initialized("validate_tokens_raw")?;
 
+        // a token id out of range is not valid, like any token the grammar rejects
+        let n_vocab = self.tok_trie().vocab_size();
+        let n_in_range = tokens
+            .iter()
+            .position(|&t| t as usize >= n_vocab)
+            .unwrap_or(tokens.len());
+        let tokens = &tokens[..n_in_range];
+
         if tokens.is_empty() {
             return Ok(0);
-        }
-
-        let n_vocab = self.tok_trie().vocab_size();
-        for &t in tokens {
-            if t as usize >= n_vocab {
-                return Err(self.stop(
-                    &format!("token id {t} out of range"),
-                    StopReason::InternalError,
-                ));
-            }
         }
 
         let n_valid = self.parser.validate_tokens(tokens);

@@ -83,6 +83,11 @@ fn test_ff_tokens() {
     let n = parser.validate_tokens_raw(&[29879, 311, 1111]).unwrap();
     assert_eq!(n, 3);
 
+    // an id out of range is not valid, and doesn't stop the parser
+    let oor = PARSER_FACTORY_PHI.tok_env().tok_trie().vocab_size() as u32;
+    assert_eq!(parser.validate_tokens_raw(&[366, oor, 1111]).unwrap(), 1);
+    assert_eq!(parser.validate_tokens_raw(&[oor]).unwrap(), 0);
+
     consume(&mut parser, 29879);
 
     let t = parser.compute_ff_tokens();
