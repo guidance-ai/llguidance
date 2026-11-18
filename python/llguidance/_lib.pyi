@@ -365,6 +365,7 @@ class LLMatcher:
     def rollback(self, num_tokens: int) -> bool:
         """
         Rollback the last num_tokens consumed.
+        Includes EOS tokens accepted by consume_token() after the matcher stopped.
         """
 
     def reset(self) -> bool:

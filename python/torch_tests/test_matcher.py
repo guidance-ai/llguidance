@@ -525,6 +525,84 @@ def test_rollback() -> None:
     assert m2.is_stopped() and m2.is_accepting() and not m2.is_error()
 
 
+@pytest.mark.parametrize(
+    ("with_eos", "num_tokens"),
+    [(False, count) for count in range(1, 5)] + [(True, count) for count in range(1, 6)],
+)
+@pytest.mark.parametrize("one_at_a_time", [False, True])
+def test_rollback_mask_matches_fresh_prefix(num_tokens: int, with_eos: bool, one_at_a_time: bool) -> None:
+    tok = tokenizer()
+    tokens = tok.tokenize_str("abac")
+    consumed = tokens + ([tok.eos_token] if with_eos else [])
+    grammar = LLMatcher.grammar_from_regex("abac")
+    m = LLMatcher(tok, grammar)
+    if one_at_a_time:
+        for token in consumed:
+            assert m.consume_token(token)
+    else:
+        assert m.consume_tokens(consumed)
+    assert m.rollback(num_tokens)
+
+    prefix = consumed[:-num_tokens]
+    fresh = LLMatcher(tok, grammar)
+    if one_at_a_time:
+        for token in prefix:
+            assert fresh.consume_token(token)
+    else:
+        assert fresh.consume_tokens(prefix)
+    for _ in range(2):
+        assert m.compute_bitmask() == fresh.compute_bitmask()
+        actual = allocate_token_bitmask(1, tok.vocab_size)
+        expected = allocate_token_bitmask(1, tok.vocab_size)
+        llguidance.numpy.fill_next_token_bitmask(m, actual, 0)
+        llguidance.numpy.fill_next_token_bitmask(fresh, expected, 0)
+        np.testing.assert_array_equal(actual, expected)
+    assert not m.is_error()
+    assert m.consume_tokens(tokens[len(prefix):])
+    assert m.is_accepting()
+
+
+def test_rollback_repeated_stopped_eos_and_clone() -> None:
+    tok = tokenizer()
+    grammar = LLMatcher.grammar_from_regex("abac")
+    m = LLMatcher(tok, grammar)
+    for token in tok.tokenize_str("abac"):
+        assert m.consume_token(token)
+    for _ in range(2):
+        assert m.consume_token(tok.eos_token)
+
+    clone = m.deep_copy()
+    assert clone.rollback(3)
+    fresh = LLMatcher(tok, grammar)
+    assert fresh.consume_tokens(tok.tokenize_str("aba"))
+    assert clone.compute_bitmask() == fresh.compute_bitmask()
+
+    completed_mask = m.compute_bitmask()
+    assert m.rollback(0)
+    for _ in range(2):
+        assert m.rollback(1)
+        assert m.compute_bitmask() == completed_mask
+    assert m.rollback(1)
+    assert m.compute_bitmask() == fresh.compute_bitmask()
+    assert m.consume_token(ord("c"))
+    assert m.is_accepting()
+
+
+def test_reset_clears_stopped_eos_history() -> None:
+    tok = tokenizer()
+    grammar = LLMatcher.grammar_from_regex("abac")
+    m = LLMatcher(tok, grammar)
+    for token in tok.tokenize_str("abac"):
+        assert m.consume_token(token)
+    assert m.consume_token(tok.eos_token)
+    assert m.reset()
+    assert m.consume_tokens(tok.tokenize_str("abac"))
+    assert m.rollback(1)
+    fresh = LLMatcher(tok, grammar)
+    assert fresh.consume_tokens(tok.tokenize_str("aba"))
+    assert m.compute_bitmask() == fresh.compute_bitmask()
+
+
 def check_ff(m: LLMatcher, expected: str) -> None:
     assert m.compute_ff_bytes() == expected.encode(), "FF bytes mismatch"
     assert m.compute_ff_tokens() == tokenizer().tokenize_str(expected)

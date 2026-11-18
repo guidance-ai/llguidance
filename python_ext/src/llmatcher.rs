@@ -20,6 +20,9 @@ use crate::pyjson::{str_or_dict_to_value, stringify_if_needed, to_json_value};
 struct LLMatcher {
     inner: Matcher,
     tok_env: TokEnv,
+    // Python accepts EOS after stop without advancing the inner matcher.
+    // Rollback must undo these accepted tokens before undoing parser tokens.
+    stopped_eos_tokens: usize,
 }
 
 #[pyclass(frozen)]
@@ -286,6 +289,7 @@ impl LLMatcher {
                 .eos_tokens()
                 .contains(&sampled_token)
         {
+            self.stopped_eos_tokens += 1;
             true
         } else {
             self.inner.consume_token(sampled_token).is_ok()
@@ -351,6 +355,7 @@ impl LLMatcher {
         LLMatcher {
             inner,
             tok_env: fact.tok_env().clone(),
+            stopped_eos_tokens: 0,
         }
     }
 
@@ -452,6 +457,7 @@ impl LLMatcher {
         Self {
             inner: self.inner.clone(),
             tok_env: self.tok_env.clone(),
+            stopped_eos_tokens: self.stopped_eos_tokens,
         }
     }
 
@@ -531,11 +537,24 @@ impl LLMatcher {
     }
 
     fn rollback(&mut self, num_tokens: usize) -> bool {
-        self.inner.rollback(num_tokens).is_ok()
+        let stopped_eos_tokens = num_tokens.min(self.stopped_eos_tokens);
+        if self
+            .inner
+            .rollback(num_tokens - stopped_eos_tokens)
+            .is_err()
+        {
+            return false;
+        }
+        self.stopped_eos_tokens -= stopped_eos_tokens;
+        true
     }
 
     fn reset(&mut self) -> bool {
-        self.inner.reset().is_ok()
+        if self.inner.reset().is_err() {
+            return false;
+        }
+        self.stopped_eos_tokens = 0;
+        true
     }
 
     fn compute_ff_tokens(&mut self) -> Vec<TokenId> {
