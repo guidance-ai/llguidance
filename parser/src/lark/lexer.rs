@@ -3,10 +3,9 @@ use std::{
     rc::Rc,
 };
 
-use crate::{
-    api::{RegexExt, SkipSpec},
-    HashMap,
-};
+use crate::{api::SkipSpec, HashMap};
+
+use super::ast::RegexExt;
 use anyhow::{anyhow, bail, Result};
 use derivre::RegexAst;
 use serde::de;
@@ -99,7 +98,7 @@ pub enum LexemeValue {
     None,
     String(String),
     Json(Value),
-    Regex(Box<RegexExt>),
+    Regex(RegexExt),
 }
 
 impl LexemeValue {
@@ -334,7 +333,7 @@ pub fn lex_lark(input: &str) -> Result<Vec<Lexeme>> {
                     let (lexeme_value, n_bytes) = if token == Token::KwRegex {
                         let (v, n) = parse_json_prefix(inp_slice)
                             .map_err(|e| anyhow!("failed to parse %regex: {}", e))?;
-                        (LexemeValue::Regex(Box::new(v)), n)
+                        (LexemeValue::Regex(v), n)
                     } else {
                         let (v, n) = parse_json_prefix(inp_slice)
                             .map_err(|e| anyhow!("failed to parse {:?}: {}", raw_value, e))?;
