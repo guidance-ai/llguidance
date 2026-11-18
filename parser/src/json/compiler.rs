@@ -758,6 +758,13 @@ impl Compiler {
                 }
             }
 
+            // The emptiness check above passed, so if `ast` intersects a literal
+            // with other regexes, it matches exactly that literal. Emit the
+            // literal itself so the lexer does not have to match the intersection.
+            if let Some(lit) = and_literal(&ast) {
+                ast = RegexAst::Literal(lit.to_string());
+            }
+
             ast = self.json_quote(ast);
 
             Ok(ast)
@@ -964,6 +971,15 @@ impl Compiler {
 
         grammars.push(self.builder.string("]"));
         Ok(self.builder.join(&grammars))
+    }
+}
+
+/// The literal in an intersection (possibly nested), if any.
+fn and_literal(ast: &RegexAst) -> Option<&str> {
+    match ast {
+        RegexAst::Literal(s) => Some(s),
+        RegexAst::And(args) => args.iter().find_map(and_literal),
+        _ => None,
     }
 }
 
