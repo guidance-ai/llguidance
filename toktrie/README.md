@@ -5,11 +5,11 @@ This crate provides a utility library for working with tokens and token tries.
 ## Byte stack interface
 
 The constraints are typically expressed on strings or bytes, not tokens.
-To compute the set of tokens that match a string constraint, one needs go through all the possible tokens
+To compute the set of tokens that match a string constraint, one needs to go through all the possible tokens
 and apply the constraint.
-An efficient way to do this is walk a prefix tree (trie) of all tokens.
+An efficient way to do this is to walk a prefix tree (trie) of all tokens.
 This library implements this trie and exposes a way of filtering when provided with a constraint
-implementing the [following interface](./src/toktree.rs#L60)
+implementing the [following interface](./src/toktree.rs#L70)
 
 ```rust
 pub trait Recognizer {
@@ -29,8 +29,6 @@ pub trait Recognizer {
 }
 ```
 
-The `AiciRecognizer` struct converts `Recognizer` to `AiciCtrl`.
-
 ## Functional byte interface
 
 The following interface can be transformed into `Recognizer` using `StackRecognizer` struct.
@@ -45,9 +43,6 @@ pub trait FunctionalRecognizer<S: Copy> {
     fn byte_allowed(&self, state: S, byte: u8) -> bool;
 }
 ```
-
-These three layers add up to about 40k of compiled code (Wasm).
-
 
 ## Contributing
 
