@@ -204,7 +204,7 @@ class GrammarParser:
                 raise GbnfToLarkError(pos, "Incomplete escape sequence")
             pos = pos.advance()
             c = pos.current()
-            if c in '"\\[]nrt':
+            if c in '"\\[]-nrt':
                 return "\\" + c, pos.advance()
             elif c == "x":
                 hex_value = pos.peek(3)[1:3]
@@ -269,6 +269,9 @@ class GrammarParser:
             c, pos = self._parse_char(pos)
             if c == '"':
                 break
+            if c in (r"\[", r"\]", r"\-"):
+                # These escapes are needed in regex classes, but not in strings.
+                c = c[1:]
             r += c
 
         return LiteralNode(r), pos

@@ -106,6 +106,21 @@ def test_gbnf_unicode_escapes(spelling: str, expected: str, character_class: boo
     check_grammar(grammar, [expected], ["Z"])
 
 
+@pytest.mark.parametrize(
+    "expression, passing, failing",
+    [
+        pytest.param(r"[a\-z]", ["a", "-", "z"], ["b"], id="escaped-hyphen-class"),
+        pytest.param(r'"a\-z"', ["a-z"], [r"a\-z"], id="escaped-hyphen-literal"),
+        pytest.param(r'"a\[b\]"', ["a[b]"], ["ab"], id="escaped-brackets-literal"),
+        pytest.param(r"[\[\]a]", ["[", "]", "a"], ["b"], id="escaped-brackets-class"),
+        pytest.param("[a-z]", ["a", "b", "z"], ["-", "A"], id="ordinary-range"),
+    ],
+)
+def test_gbnf_escaped_punctuation(expression: str, passing: List[str], failing: List[str]) -> None:
+    grammar = grammar_from("gbnf", f"root ::= {expression}")
+    check_grammar(grammar, passing, failing)
+
+
 def test_json() -> None:
     grm = LLMatcher.grammar_from_json_schema({"type": "object"},
                                              {"whitespace_flexible": False})
