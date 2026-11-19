@@ -7,6 +7,7 @@ use derivre::{ExprRef, JsonQuoteOptions, RegexAst};
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::rc::Rc;
 
 use super::numeric::number_regex;
 use super::schema::{build_schema, ArraySchema, ObjectSchema, OptSchemaExt, Schema};
@@ -70,6 +71,10 @@ struct Compiler {
     general_unicode_string_cache: HashMap<(usize, Option<usize>), ExprRef>,
     item_separator_cache: Option<NodeRef>,
     key_separator_cache: Option<NodeRef>,
+    /// Grammar of each `Schema::Shared` node, built once; keyed by the `Rc` pointer
+    /// (the `Rc` is kept alive so the address is not reused). An unsatisfiable
+    /// sub-schema is remembered by its message.
+    shared_cache: HashMap<*const Schema, (Rc<Schema>, std::result::Result<NodeRef, String>)>,
 }
 
 impl Default for JsonCompileOptions {
@@ -146,6 +151,7 @@ impl Compiler {
             item_separator_cache: None,
             key_separator_cache: None,
             pattern_cache: PatternPropertyCache::default(),
+            shared_cache: HashMap::default(),
         }
     }
 
@@ -201,11 +207,40 @@ impl Compiler {
             Schema::AnyOf(options) => self.process_any_of(options),
             Schema::OneOf(options) => self.process_one_of(options),
             Schema::Ref(uri) => self.get_definition(uri),
+            Schema::Shared(inner) => self.gen_json_shared(inner),
 
             Schema::Null | Schema::Boolean(_) | Schema::String(_) | Schema::Number(_) => {
                 unreachable!("should be handled in regex_compile()")
             }
         }
+    }
+
+    /// Build the grammar of a `Schema::Shared` sub-schema once, and reuse it for every
+    /// parent that holds the same `Rc`. An unsatisfiable result is cached too, so that
+    /// each parent can still drop an optional property or an `anyOf` option.
+    /// The cache keeps only the outermost message of an unsatisfiable error: a later
+    /// use reports that message without the context chain of the first use.
+    fn gen_json_shared(&mut self, schema: &Rc<Schema>) -> Result<NodeRef> {
+        let key = Rc::as_ptr(schema);
+        if let Some((_, r)) = self.shared_cache.get(&key) {
+            return match r {
+                Ok(node) => Ok(*node),
+                Err(message) => Err(anyhow!(UnsatisfiableSchemaError {
+                    message: message.clone(),
+                })),
+            };
+        }
+        let r = self.gen_json(schema);
+        let cached = match &r {
+            Ok(node) => Ok(*node),
+            Err(e) => match e.downcast_ref::<UnsatisfiableSchemaError>() {
+                Some(u) => Err(u.message.clone()),
+                // other errors abort the compilation; nothing to remember
+                None => return r,
+            },
+        };
+        self.shared_cache.insert(key, (Rc::clone(schema), cached));
+        r
     }
 
     fn process_one_of(&mut self, options: &[Schema]) -> Result<NodeRef> {
@@ -667,6 +702,7 @@ impl Compiler {
             Schema::Number(num) => Some(number_regex(num)?),
 
             Schema::String(opts) => return self.gen_json_string(opts.clone()).map(Some),
+            Schema::Shared(inner) => return self.regex_compile(inner),
 
             Schema::Any
             | Schema::Unsatisfiable(_)

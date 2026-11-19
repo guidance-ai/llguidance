@@ -8366,7 +8366,7 @@
   },
   "Github_ultra---o48404.json": {},
   "Github_ultra---o48661.json": {
-    "json_error": "schema too large"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "Github_ultra---o48781.json": {
     "json_error": "Unknown format: color"
@@ -11794,7 +11794,7 @@
     "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf\n  while processing https://json.schemastore.org/testenvironments.json#/definitions/config"
   },
   "JsonSchemaStore---theme.json": {
-    "json_error": "Schema intersection stack level exceeded"
+    "json_error": "oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf"
   },
   "JsonSchemaStore---tikibase.schema.json": {},
   "JsonSchemaStore---tizen_workspace.json": {},
