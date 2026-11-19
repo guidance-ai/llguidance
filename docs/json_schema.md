@@ -60,6 +60,16 @@ Number features (for both integer and number):
 - `exclusiveMaximum`
 - `multipleOf`
 
+Integer bounds are normalized through binary64 (`f64`) and then converted to
+signed 64-bit integers (`i64`). At magnitudes of `2^53` or greater, exact bounds
+and one-unit adjustments for exclusive bounds are not guaranteed. For example,
+`minimum` of `9007199254740993` rounds to `9007199254740992`, and
+`exclusiveMinimum` of `9007199254740992` loses its one-unit adjustment.
+Bounds outside the signed 64-bit range are clamped during conversion to `i64`.
+The full inclusive range from `-9223372036854775808` to `9223372036854775807`
+is supported. Omitting a bound leaves the generated integers unbounded in
+that direction.
+
 ## Departures from JSON schema semantics
 
 - order of object properties is fixed, see below

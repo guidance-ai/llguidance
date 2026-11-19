@@ -10,6 +10,36 @@ fn grammar(keyword: &str, schema: &Value) -> String {
 #[rstest]
 #[case::integer(json!({"type": "integer"}), &["0", "-7", "123456789"], &["01", "+1", "1.5", "1e3", "FINAL_REJECT:-"])]
 #[case::integer_range(json!({"type": "integer", "minimum": 1, "maximum": 7}), &["1", "7"], &["0", "8", "-1", "10"])]
+#[case::full_i64_range(
+    json!({"type": "integer", "minimum": i64::MIN, "maximum": i64::MAX}),
+    &["-9223372036854775808", "0", "9223372036854775807"],
+    &["-9223372036854775809", "9223372036854775808"]
+)]
+#[case::minimum_i64_min(
+    json!({"type": "integer", "minimum": i64::MIN}),
+    &["-9223372036854775808", "10000000000000000000"],
+    &["-9223372036854775809"]
+)]
+#[case::minimum_i64_max(
+    json!({"type": "integer", "minimum": i64::MAX}),
+    &["9223372036854775807", "9999999999999999999", "10000000000000000000"],
+    &["FINAL_REJECT:9223372036854775806"]
+)]
+#[case::maximum_i64_min(
+    json!({"type": "integer", "maximum": i64::MIN}),
+    &["-9223372036854775808", "-10000000000000000000"],
+    &["FINAL_REJECT:-9223372036854775807"]
+)]
+#[case::exact_large_inclusive(
+    json!({"type": "integer", "minimum": 1_i64 << 53, "maximum": (1_i64 << 53) + 2}),
+    &["9007199254740992", "9007199254740993", "9007199254740994"],
+    &["9007199254740991", "9007199254740995"]
+)]
+#[case::exact_large_exclusive(
+    json!({"type": "integer", "exclusiveMaximum": 1_i64 << 53}),
+    &["9007199254740991"],
+    &["9007199254740992"]
+)]
 #[case::integer_exclusive_multiple(json!({"type": "integer", "exclusiveMinimum": 0, "multipleOf": 10}), &["10", "2500"], &["0", "-10", "FINAL_REJECT:15"])]
 #[case::integer_draft4_exclusive(json!({"type": "integer", "minimum": 0, "exclusiveMinimum": true}), &["1"], &["0"])]
 #[case::number(json!({"type": "number"}), &["0", "-0.5", "3.25", "1e3", "2E-7"], &["FINAL_REJECT:1.", ".5", "+1", "01"])]
