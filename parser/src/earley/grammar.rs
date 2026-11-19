@@ -855,18 +855,22 @@ impl Grammar {
                     bail!("unknown grammar {}", opts.grammar);
                 };
 
-                let temp = opts.temperature.unwrap_or(0.0);
-                if let Some(&existing) = temperatures.get(&cls) {
-                    if existing != temp {
-                        bail!(
-                            "temperature mismatch for nested grammar {:?}: {} vs {}",
-                            opts.grammar,
-                            existing,
-                            temp
-                        );
+                // Only an annotated reference sets its class's temperature. The
+                // class may be shared with the outer grammar (same skip), so an
+                // unannotated reference must leave its lexemes' temperatures alone.
+                if let Some(temp) = opts.temperature {
+                    if let Some(&existing) = temperatures.get(&cls) {
+                        if existing != temp {
+                            bail!(
+                                "temperature mismatch for nested grammar {:?}: {} vs {}",
+                                opts.grammar,
+                                existing,
+                                temp
+                            );
+                        }
                     }
+                    temperatures.insert(cls, temp);
                 }
-                temperatures.insert(cls, temp);
             }
         }
         for (lhs, rhs) in rules {
