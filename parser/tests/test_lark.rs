@@ -1251,6 +1251,67 @@ fn test_json_pattern_properties() {
 }
 
 #[test]
+fn test_json_pattern_properties_literal_prefixes() {
+    // Distinct literal prefixes ("p1_" vs "p10_") are disjoint without a derivre check.
+    json_test_many(
+        &json!({
+            "type": "object",
+            "patternProperties": {
+                "^p1_[a-z]+$": { "type": "integer" },
+                "^p10_[a-z]+$": { "type": "string" },
+            },
+            "additionalProperties": false,
+        }),
+        &[
+            json!({}),
+            json!({"p1_ab": 1}),
+            json!({"p10_ab": "x", "p1_c": 2}),
+        ],
+        &[
+            json!({"p1_ab": "x"}),
+            json!({"p10_ab": 1}),
+            json!({"p2_ab": 1}),
+        ],
+    );
+    // One prefix extends the other ("p1" / "p10"): still checked, and they overlap.
+    json_err_test(
+        &json!({
+            "type": "object",
+            "patternProperties": {
+                "^p1": { "type": "integer" },
+                "^p10": { "type": "string" },
+            },
+        }),
+        "patternProperty regexes /^p1/ and /^p10/ are not disjoint",
+    );
+    // Same prefix, disjoint tails: still checked by derivre, and accepted.
+    json_test_many(
+        &json!({
+            "type": "object",
+            "patternProperties": {
+                "^x(a|b)$": { "type": "integer" },
+                "^x(c|d)$": { "type": "string" },
+            },
+        }),
+        &[json!({"xa": 1, "xc": "s"})],
+        &[json!({"xa": "s"}), json!({"xd": 1})],
+    );
+    // The first overlapping pair (in key order) is the one reported.
+    json_err_test(
+        &json!({
+            "type": "object",
+            "patternProperties": {
+                "^a": { "type": "integer" },
+                "^b": { "type": "integer" },
+                "^ab": { "type": "integer" },
+                "^bc": { "type": "integer" },
+            },
+        }),
+        "patternProperty regexes /^a/ and /^ab/ are not disjoint",
+    );
+}
+
+#[test]
 fn test_json_min_max_properties() {
     json_err_test(
         &json!({
