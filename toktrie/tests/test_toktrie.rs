@@ -44,7 +44,7 @@ mod common;
 use common::*;
 
 use toktrie::recognizer::StackRecognizer;
-use toktrie::TokenId;
+use toktrie::{TokRxInfo, TokTrie, TokenId};
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
@@ -89,6 +89,37 @@ fn test_decode() {
 
     // Empty tokens are decoded as "<[id]>" markers (they represent special/padding tokens).
     assert_eq!(trie.decode(&[0, 15]), b"<[0]>cat");
+}
+
+#[test]
+fn test_decode_single_ff_byte_token() {
+    // A token whose bytes are a single 0xFF must decode back to that byte.
+    // 0xFF is also the SPECIAL_TOKEN_MARKER, so a naive `t[0] == MARKER` check
+    // mistakes this 1-byte token for a special token and decodes it to "".
+    // See https://github.com/guidance-ai/llguidance/issues/248
+    let words = vec![
+        b"".to_vec(),  // 0: empty/padding
+        b"a".to_vec(), // 1 (also EOS)
+        vec![0xFFu8],  // 2: single 0xFF byte
+    ];
+    let info = TokRxInfo {
+        vocab_size: 3,
+        tok_eos: 1,
+        tok_bos: None,
+        tok_pad: None,
+        tok_unk: None,
+        tok_end_of_turn: None,
+    };
+    let trie = TokTrie::from(&info, &words);
+
+    // The token bytes round-trip through token().
+    assert_eq!(trie.token(2), &[0xFFu8]);
+
+    // decode() must return the raw 0xFF byte, not an empty string.
+    assert_eq!(trie.decode(&[2]), vec![0xFFu8]);
+
+    // Interleaved with a normal token, the 0xFF byte is preserved.
+    assert_eq!(trie.decode(&[1, 2]), vec![b'a', 0xFFu8]);
 }
 
 #[test]
