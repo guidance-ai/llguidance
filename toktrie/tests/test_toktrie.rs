@@ -44,7 +44,7 @@ mod common;
 use common::*;
 
 use toktrie::recognizer::StackRecognizer;
-use toktrie::TokenId;
+use toktrie::{TokRxInfo, TokTrie, TokenId};
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
@@ -351,4 +351,32 @@ fn test_sorted_tokens() {
     // Note: token 0 (empty) is absent — it has no bytes so it's not in the trie.
     // "bat"(10) comes after "band"(12) because 't' > 'n' in byte order.
     // "cat"(15) comes after "card"(17) because 't' > 'r' in byte order.
+}
+
+#[test]
+fn test_get_special_tokens() {
+    // Single-byte tokens plus a few special tokens (prefixed with the marker byte).
+    let mut words: Vec<Vec<u8>> = (0..=255u8).map(|b| vec![b]).collect();
+    let specials = ["<s>", "</s>", "<|end|>", "<|system|>", "<|user|>"];
+    for name in specials {
+        let mut w = vec![TokTrie::SPECIAL_TOKEN_MARKER];
+        w.extend_from_slice(name.as_bytes());
+        words.push(w);
+    }
+    let info = TokRxInfo::new(words.len() as u32, 256);
+    let trie = TokTrie::from(&info, &words);
+
+    // Every special token is listed, and nothing else.
+    let mut found = trie.get_special_tokens();
+    found.sort();
+    let expected: Vec<TokenId> = (256..256 + specials.len() as TokenId).collect();
+    assert_eq!(found, expected);
+
+    // A vocabulary with the marker byte as a regular token, but no special tokens.
+    let words: Vec<Vec<u8>> = (0..=255u8).map(|b| vec![b]).collect();
+    let trie = TokTrie::from(&TokRxInfo::new(256, 0), &words);
+    assert!(trie.get_special_tokens().is_empty());
+
+    // A vocabulary without the marker byte at all.
+    assert!(build_test_trie().get_special_tokens().is_empty());
 }

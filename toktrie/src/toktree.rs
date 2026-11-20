@@ -599,9 +599,9 @@ impl TokTrie {
 
     pub fn get_special_tokens(&self) -> Vec<TokenId> {
         let mut res = Vec::new();
-        let pref_node = self
-            .child_at_byte(self.root(), TokTrie::SPECIAL_TOKEN_MARKER)
-            .expect("missing special token prefix");
+        let Some(pref_node) = self.child_at_byte(self.root(), TokTrie::SPECIAL_TOKEN_MARKER) else {
+            return res;
+        };
         let mut stack = vec![pref_node];
         while let Some(n) = stack.pop() {
             for c in self.node_children(n) {
@@ -614,7 +614,6 @@ impl TokTrie {
                 stack.push(c);
             }
         }
-        res.remove(0);
         res
     }
 

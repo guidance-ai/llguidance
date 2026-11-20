@@ -1,6 +1,12 @@
-use llguidance::substring::chunk_into_words;
+use llguidance::{
+    api::TopLevelGrammar,
+    substring::chunk_into_words,
+    toktrie::{ApproximateTokEnv, TokEnv, TokRxInfo, TokTrie},
+    ParserFactory,
+};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use serde_json::json;
+use std::sync::Arc;
 
 use llg_test_utils::*;
 
@@ -227,6 +233,39 @@ fn test_lark_syntax_general() {
     "#,
         "lexer error",
     );
+}
+
+fn unknown_special_token_error(env: &TokEnv) -> String {
+    let mut factory = ParserFactory::new_simple(env).unwrap();
+    factory.quiet();
+    let grm = TopLevelGrammar::from_lark("start: <|foobarbaz|>".to_string());
+    match factory.create_parser(grm) {
+        Ok(_) => panic!("expected an error"),
+        Err(e) => e.to_string(),
+    }
+}
+
+#[test]
+fn test_unknown_special_token_lists_available_tokens() {
+    let err = unknown_special_token_error(&ApproximateTokEnv::single_byte_env());
+    assert!(err.contains("unknown special token"), "{err}");
+    for name in [
+        "<|tool|>",
+        "<|/tool|>",
+        "<|user|>",
+        "<|system|>",
+        "<|assistant|>",
+    ] {
+        assert!(err.contains(name), "{name} missing from: {err}");
+    }
+
+    // A tokenizer without any special tokens reports the error instead of panicking.
+    let words = (0..=255u8).map(|b| vec![b]).collect::<Vec<_>>();
+    let trie = TokTrie::from(&TokRxInfo::new(256, 0), &words);
+    let env: TokEnv = Arc::new(ApproximateTokEnv::new(trie));
+    let err = unknown_special_token_error(&env);
+    assert!(err.contains("unknown special token"), "{err}");
+    assert!(!err.contains("panic"), "{err}");
 }
 
 #[test]
