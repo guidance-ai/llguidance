@@ -786,3 +786,45 @@ def test_multi_eos_wrapper_override() -> None:
     tok2 = LLTokenizer(wrapper, eos_token=[256, 257])  # type: ignore[arg-type]
     assert tok2.eos_token == 256
     assert tok2.eos_tokens == [256, 257]
+
+
+def test_consume_tokens_eos_after_stop() -> None:
+    grm = "start: /[aA][bB][cC]/"
+    eos = tokenizer().eos_token
+    abc = tokenizer().tokenize_str("abc")
+
+    m = matcher(grm)
+    assert m.consume_tokens(abc)
+    assert m.is_stopped()
+    assert m.consume_tokens([eos])
+    assert m.consume_tokens([eos, eos])
+    assert not m.is_error()
+    assert m.stop_reason() == "NoExtension"
+    # the EOS tokens weren't recorded, so this removes "c"
+    assert m.rollback(1)
+    assert not m.is_accepting()
+
+    # only EOS is accepted after a stop
+    m = matcher(grm)
+    assert m.consume_tokens(abc)
+    assert not m.consume_tokens([eos] + abc[:1])
+    assert m.is_error()
+
+    # EOS before the grammar is done is still an error
+    m = matcher(grm)
+    assert not m.consume_tokens([eos])
+    assert m.is_error()
+
+    # EOS in the same call as the tokens that stop the grammar is recorded
+    m = matcher(grm)
+    assert m.consume_tokens(abc + [eos])
+    assert m.stop_reason() == "EndOfSentence"
+    assert m.rollback(1)
+    assert not m.is_stopped()
+    assert m.is_accepting()
+
+    # a matcher in an error state doesn't report success
+    m = matcher(grm)
+    assert not m.consume_tokens(tokenizer().tokenize_str("x"))
+    assert not m.consume_tokens([])
+    assert not m.consume_tokens([eos])
