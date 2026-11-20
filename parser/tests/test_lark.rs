@@ -831,9 +831,9 @@ fn test_json_additional_property_keys_validate_unicode_scalars() {
     );
 }
 
-/// Rejects additional-property keys that are escaped spellings of declared property names.
+/// Rejects additional-property keys that are escaped spellings of declared ASCII property names.
 #[test]
-fn test_json_additional_property_keys_exclude_escaped_property_names() {
+fn test_json_additional_property_keys_exclude_escaped_ascii_property_names() {
     lark_str_test_many(
         r#"start: %json {
             "type": "object",
@@ -859,7 +859,11 @@ fn test_json_additional_property_keys_exclude_escaped_property_names() {
             r#"{"a\u000Ab":"x"}"#,
         ],
     );
+}
 
+/// Rejects escaped spellings of declared non-ASCII property names as additional-property keys.
+#[test]
+fn test_json_additional_property_keys_exclude_escaped_non_ascii_property_names() {
     lark_str_test_many(
         r#"start: %json {
             "type": "object",
@@ -873,7 +877,11 @@ fn test_json_additional_property_keys_exclude_escaped_property_names() {
             r#"{"\ud83d\ude00":"x"}"#,
         ],
     );
+}
 
+/// Rejects escaped spellings of declared non-ASCII names with general Unicode escapes enabled.
+#[test]
+fn test_json_additional_property_keys_exclude_escaped_names_with_general_unicode_escapes() {
     lark_str_test_many(
         r#"start: %json {
             "type": "object",
