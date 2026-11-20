@@ -604,10 +604,14 @@ def test_consume_token_error() -> None:
     assert m3.is_error()
     assert "out of range" in m3.get_error()
 
-    n = m4.validate_tokens(tokens[0:3] + [tokenizer().vocab_size + 100])
-    assert n == 0  # questionable
-    assert m3.is_error()
-    assert "out of range" in m3.get_error()
+    # validating doesn't change state: an id out of range is just not valid
+    oor = tokenizer().vocab_size + 100
+    assert m4.validate_tokens(tokens[0:3] + [oor]) == 3
+    assert not m4.is_error()
+    assert m4.validate_tokens([oor] + tokens[0:3]) == 0
+    assert m4.validate_tokens(tokens[0:1] + [oor] + tokens[1:3]) == 1
+    assert m4.try_consume_tokens(tokens[0:3] + [oor]) == 3
+    assert not m4.is_error()
 
 
 def test_struct_tag_0() -> None:
