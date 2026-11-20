@@ -55,6 +55,14 @@ const UNICODE_SCALAR_ESCAPE_REGEX: &str = concat!(
     r"|[dD][89aAbB][0-9a-fA-F]{2}\\u[dD][c-fC-F][0-9a-fA-F]{2})"
 );
 
+// Match a `\uXXXX` escape of a Unicode scalar outside ASCII: a non-surrogate BMP
+// code point from U+0080, or a surrogate pair.
+const NON_ASCII_ESCAPE_REGEX: &str = concat!(
+    r"\\u(?:00[89a-fA-F][0-9a-fA-F]|0[1-9a-fA-F][0-9a-fA-F]{2}",
+    r"|[1-9a-ce-fA-CE-F][0-9a-fA-F]{3}|[dD][0-7][0-9a-fA-F]{2}",
+    r"|[dD][89aAbB][0-9a-fA-F]{2}\\u[dD][c-fC-F][0-9a-fA-F]{2})"
+);
+
 struct Compiler {
     builder: GrammarBuilder,
     options: JsonCompileOptions,
@@ -68,6 +76,10 @@ struct Compiler {
     general_unicode_scalar_cache: Option<ExprRef>,
     /// Reuse compiled Unicode-string expressions for identical decoded length bounds.
     general_unicode_string_cache: HashMap<(usize, Option<usize>), ExprRef>,
+    /// Reuse the per-character spellings used to exclude declared property names.
+    name_char_spellings_cache: HashMap<char, ExprRef>,
+    /// Reuse the compiled regex for additional-property keys.
+    additional_key_cache: Option<ExprRef>,
     item_separator_cache: Option<NodeRef>,
     key_separator_cache: Option<NodeRef>,
 }
@@ -143,6 +155,8 @@ impl Compiler {
             string_cache: None,
             general_unicode_scalar_cache: None,
             general_unicode_string_cache: HashMap::default(),
+            name_char_spellings_cache: HashMap::default(),
+            additional_key_cache: None,
             item_separator_cache: None,
             key_separator_cache: None,
             pattern_cache: PatternPropertyCache::default(),
@@ -287,6 +301,122 @@ impl Compiler {
         Ok(node)
     }
 
+    /// Matches every spelling of the JSON string `name` that an additional-property
+    /// key can use: each character unescaped, as a short escape, or as `\uXXXX`.
+    ///
+    /// Additional-property keys exclude this regex, so a key such as `"\u0061"`
+    /// cannot bypass the schema of a declared property `"a"`.
+    fn json_name_spellings(&mut self, name: &str) -> Result<ExprRef> {
+        let mut parts = vec![RegexAst::Literal("\"".to_string())];
+        for c in name.chars() {
+            parts.push(RegexAst::ExprRef(self.json_char_spellings(c)?));
+        }
+        parts.push(RegexAst::Literal("\"".to_string()));
+        self.builder.regex.add_ast(RegexAst::Concat(parts))
+    }
+
+    fn json_char_spellings(&mut self, c: char) -> Result<ExprRef> {
+        if let Some(expr) = self.name_char_spellings_cache.get(&c) {
+            return Ok(*expr);
+        }
+        let lit = |s: &str| RegexAst::Literal(s.to_string());
+        // The character itself, or its short escape for characters JSON must escape
+        let plain = if matches!(c, '"' | '\\' | '\u{0}'..='\u{1f}' | '\u{7f}') {
+            self.json_quote_raw(lit(&c.to_string()))
+        } else {
+            lit(&c.to_string())
+        };
+        // The \uXXXX form (a surrogate pair outside the BMP), with case-insensitive hex
+        let mut escaped = vec![];
+        let mut digits = String::new();
+        let mut units = [0u16; 2];
+        for unit in c.encode_utf16(&mut units).iter() {
+            digits.push_str("\\u");
+            for h in format!("{unit:04x}").chars() {
+                if h.is_ascii_digit() {
+                    digits.push(h);
+                } else {
+                    escaped.push(lit(&std::mem::take(&mut digits)));
+                    escaped.push(RegexAst::Or(vec![
+                        lit(&h.to_string()),
+                        lit(&h.to_ascii_uppercase().to_string()),
+                    ]));
+                }
+            }
+        }
+        escaped.push(lit(&digits));
+        let expr = self
+            .builder
+            .regex
+            .add_ast(RegexAst::Or(vec![plain, RegexAst::Concat(escaped)]))?;
+        self.name_char_spellings_cache.insert(c, expr);
+        Ok(expr)
+    }
+
+    /// Matches a quoted additional-property key. A `\uXXXX` escape is allowed only
+    /// for a character outside ASCII, or for an ASCII character with no other allowed
+    /// spelling, so each printable ASCII character has one spelling.
+    fn additional_key_regex(&mut self) -> Result<ExprRef> {
+        if let Some(expr) = self.additional_key_cache {
+            return Ok(expr);
+        }
+        let allowed_escapes = self
+            .options
+            .json_allowed_escapes
+            .as_deref()
+            .unwrap_or(DEFAULT_JSON_ALLOWED_ESCAPES)
+            .to_string();
+        let mut alts = vec![r#"[^"\\\x00-\x1F\x7F]"#.to_string()];
+        let mut ascii_escapes = vec![];
+        for b in (0u8..0x20).chain([b'"', b'\\', 0x7F]) {
+            let short = match b {
+                b'"' => Some('"'),
+                b'\\' => Some('\\'),
+                0x08 => Some('b'),
+                0x0C => Some('f'),
+                b'\n' => Some('n'),
+                b'\r' => Some('r'),
+                b'\t' => Some('t'),
+                _ => None,
+            };
+            match short {
+                Some('\\') if allowed_escapes.contains('\\') => alts.push(r"\\\\".to_string()),
+                Some(e) if allowed_escapes.contains(e) => alts.push(format!(r"\\{e}")),
+                _ => ascii_escapes.push(b),
+            }
+        }
+        if allowed_escapes.contains('u') {
+            // One alternative per high hex digit, e.g. `\\u00(?:0[0-7bBeEfF]|1[0-9a-fA-F])`
+            let mut by_high: Vec<(u8, String)> = vec![];
+            for b in ascii_escapes {
+                let low = format!("{:x}", b & 0xF);
+                let low = if b & 0xF >= 10 {
+                    format!("{low}{}", low.to_ascii_uppercase())
+                } else {
+                    low
+                };
+                match by_high.iter_mut().find(|(high, _)| *high == b >> 4) {
+                    Some((_, lows)) => lows.push_str(&low),
+                    None => by_high.push((b >> 4, low)),
+                }
+            }
+            let groups: Vec<String> = by_high
+                .iter()
+                .map(|(high, lows)| format!("{high:x}[{lows}]"))
+                .collect();
+            if !groups.is_empty() {
+                alts.push(format!(r"\\u00(?:{})", groups.join("|")));
+            }
+            alts.push(NON_ASCII_ESCAPE_REGEX.to_string());
+        }
+        let expr = self
+            .builder
+            .regex
+            .regex(&format!(r#""(?:{})*""#, alts.join("|")))?;
+        self.additional_key_cache = Some(expr);
+        Ok(expr)
+    }
+
     fn item_separator(&mut self) -> Result<NodeRef> {
         if let Some(node) = self.item_separator_cache {
             return Ok(node);
@@ -380,7 +510,7 @@ impl Compiler {
                     None => return Err(e),
                     // Property is optional; don't raise UnsatisfiableSchemaError but mark name as taken
                     Some(_) if !is_required => {
-                        taken_names.push(quoted_name);
+                        taken_names.push(name.to_string());
                         continue;
                     }
                     // Property is required; add context and propagate UnsatisfiableSchemaError
@@ -391,8 +521,8 @@ impl Compiler {
                     }
                 },
             };
+            taken_names.push(name.to_string());
             let name = self.builder.string(&quoted_name);
-            taken_names.push(quoted_name);
             let item = self.builder.join(&[name, colon, property]);
             items.push((item, is_required));
             if is_required {
@@ -479,8 +609,17 @@ impl Compiler {
 
         let mut taken_name_ids = taken_names
             .iter()
-            .map(|n| self.builder.regex.literal(n.to_string()))
-            .collect::<Vec<_>>();
+            .map(|n| {
+                // Additional-property keys spell printable ASCII only as itself
+                if n.chars()
+                    .all(|c| matches!(c, ' '..='~') && c != '"' && c != '\\')
+                {
+                    Ok(self.builder.regex.literal(format!("\"{n}\"")))
+                } else {
+                    self.json_name_spellings(n)
+                }
+            })
+            .collect::<Result<Vec<_>>>()?;
 
         let mut pattern_options = vec![];
         for (pattern, schema) in obj.pattern_properties.iter() {
@@ -532,8 +671,7 @@ impl Compiler {
                 } else {
                     let taken = self.builder.regex.select(taken_name_ids);
                     let not_taken = self.builder.regex.not(taken);
-                    let valid_ast = self.json_general_unicode_string(0, None)?;
-                    let valid = self.builder.regex.add_ast(valid_ast)?;
+                    let valid = self.additional_key_regex()?;
                     let valid_and_not_taken = self.builder.regex.and(vec![valid, not_taken]);
                     self.builder.lexeme(valid_and_not_taken)
                 };
@@ -638,6 +776,15 @@ impl Compiler {
     }
 
     fn json_quote(&self, ast: RegexAst) -> RegexAst {
+        self.json_quote_with_mode(ast, false)
+    }
+
+    /// Like `json_quote`, but without the surrounding quotes.
+    fn json_quote_raw(&self, ast: RegexAst) -> RegexAst {
+        self.json_quote_with_mode(ast, true)
+    }
+
+    fn json_quote_with_mode(&self, ast: RegexAst, raw_mode: bool) -> RegexAst {
         let allowed_escapes = self
             .options
             .json_allowed_escapes
@@ -647,7 +794,7 @@ impl Compiler {
             Box::new(ast),
             JsonQuoteOptions {
                 allowed_escapes,
-                raw_mode: false,
+                raw_mode,
             },
         )
     }
