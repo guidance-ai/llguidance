@@ -27,6 +27,10 @@ include_version = false
 [export]
 exclude = ["NodeRef"]
 
+[parse.expand]
+crates = ["llguidance"]
+features = ["ffi-export-symbols"]
+
 [fn]
 must_use = "LLGUIDANCE_NODISCARD"
 

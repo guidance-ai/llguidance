@@ -8,7 +8,7 @@ repository = "https://github.com/guidance-ai/llguidance"
 rust-version.workspace = true
 
 [dependencies]
-llguidance = { workspace = true }
+llguidance = { workspace = true, default-features = true }
 toktrie_hf_tokenizers = { workspace = true }
 toktrie_tiktoken = { workspace = true }
 bytemuck = "1.21.0"

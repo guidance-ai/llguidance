@@ -1,10 +1,12 @@
 [workspace]
 members = [
+    "c",
     "python_ext",
     "parser",
     "sample_parser",
     "json_stats",
     "json_schema_test_suite",
+    "llg_header_gen",
     "llg_test_utils",
     "toktrie",
     "toktrie_hf_tokenizers",
@@ -13,6 +15,7 @@ members = [
 ]
 # just exclude python_ext since it doesn't build without maturin
 default-members = [
+    "c",
     "parser",
     "sample_parser",
     "json_stats",
@@ -25,7 +28,7 @@ default-members = [
 resolver = "2"
 
 [workspace.package]
-rust-version="1.87"
+rust-version = "1.87"
 
 [profile.release]
 debug = 1
@@ -43,7 +46,7 @@ opt-level = 3
 
 [workspace.dependencies]
 toktrie = { path = "toktrie" }
-llguidance = { path = "parser" }
+llguidance = { path = "parser", default-features = false }
 llg_test_utils = { path = "llg_test_utils" }
 toktrie_hf_tokenizers = { path = "toktrie_hf_tokenizers" }
 toktrie_hf_downloader = { path = "toktrie_hf_downloader" }
