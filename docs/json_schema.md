@@ -11,6 +11,52 @@ However, we've successfully processed schemas up to 4 MB in size.
 For features that are not fully supported, we provide percentages of support among
 the 11k [maskbench](https://github.com/guidance-ai/jsonschemabench/tree/main/maskbench) schemas.
 
+## Inspecting normalization and lowering
+
+`LLMatcher.inspect_json_schema` provides a diagnostic view of the actual
+normalization and JSON-lowering path. It returns a JSON-encoded versioned
+envelope rather than the input wrapper returned by `grammar_from_json_schema`:
+
+```python
+import json
+from llguidance import LLMatcher
+
+diagnostic = json.loads(LLMatcher.inspect_json_schema({
+    "allOf": [
+        {"type": "number", "minimum": 3},
+        {"maximum": 8},
+    ]
+}))
+print(diagnostic["normalized"]["root"])
+print(diagnostic["normalized"]["definitions"])
+print(diagnostic["grammar"])
+print(diagnostic["lexer"])
+```
+
+Version 1 includes the normalized root, a sorted map of reference definitions,
+effective compiler options, warning messages with occurrence counts, and paired
+grammar and lexer text from the same lowering. Definitions retain reference
+nodes instead of expanding cycles. Object property order is preserved.
+
+The stage is **before tokenization and grammar optimization**. The diagnostic
+does not include tokenizer-specific masks or certify the behavior of an
+external structured-output service. Debug strings are unstable, are not
+round-trip JSON Schema, and are not promised to be executable Lark. Existing
+lexer renderers limit expressions to 512 characters; the envelope explicitly
+marks that debug text may be truncated. Use both the grammar and lexer fields,
+since terminals carry constraints that rule names alone do not explain.
+
+Python option precedence is unchanged: defaults, embedded `x-guidance`, then
+explicit overrides. The input objects are not modified. The underlying Rust
+method follows `json_to_llg_with_overrides`, where an embedded option object
+replaces the supplied Rust defaults. Normalization or lowering errors raise
+`ValueError` in Python without returning a partial diagnostic. An unsatisfiable
+schema is therefore still an error, and lenient warnings remain visible.
+
+The optional `limits` argument uses `LLParserLimits` for lowering. Existing
+schema normalization depth/size limits still apply. This diagnostic is a
+debugging aid, not a stable traversable internal representation.
+
 ## Supported JSON schema features
 
 Following JSON schema features are supported.
