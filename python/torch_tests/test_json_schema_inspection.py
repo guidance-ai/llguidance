@@ -3,16 +3,22 @@
 import copy
 import json
 import re
+from typing import Any, Dict, Optional, Union
 
 import pytest
 from llguidance import LLMatcher, LLTokenizer
+from llguidance._lib import JsonCompileOptions
 
 
-def inspect(schema, defaults=None, overrides=None):
+def inspect(
+    schema: Union[str, Dict[str, Any]],
+    defaults: Optional[JsonCompileOptions] = None,
+    overrides: Optional[JsonCompileOptions] = None,
+) -> Any:
     return json.loads(LLMatcher.inspect_json_schema(schema, defaults, overrides))
 
 
-def test_normalization_combines_bounds():
+def test_normalization_combines_bounds() -> None:
     result = inspect({"allOf": [{"type": "number", "minimum": 3}, {"maximum": 8}]})
     assert result["version"] == 1
     root = result["normalized"]["root"]
@@ -26,7 +32,7 @@ def test_normalization_combines_bounds():
     assert result["lexer"]
 
 
-def test_recursive_definitions_are_retained_without_expansion():
+def test_recursive_definitions_are_retained_without_expansion() -> None:
     schema = {
         "$defs": {
             "node": {"type": "object", "properties": {"next": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/node"}]}}}
@@ -42,13 +48,13 @@ def test_recursive_definitions_are_retained_without_expansion():
     assert len(json.dumps(result)) < 100_000
 
 
-def test_lexer_exposes_constraints_missing_from_rule_names():
+def test_lexer_exposes_constraints_missing_from_rule_names() -> None:
     result = inspect({"type": "string", "pattern": "^proof[0-9]+$"})
     assert "proof" in result["lexer"]
     assert result["grammar"]
 
 
-def test_order_input_and_generation_are_unchanged():
+def test_order_input_and_generation_are_unchanged() -> None:
     schema = {
         "type": "object",
         "properties": {"z_last_alphabetically": {"type": "integer"}, "a_first_alphabetically": {"type": "string"}},
@@ -70,10 +76,10 @@ def test_order_input_and_generation_are_unchanged():
     assert after.validate_tokens(tokens) == len(tokens)
 
 
-def test_python_option_precedence_matches_wrapper():
+def test_python_option_precedence_matches_wrapper() -> None:
     schema = {"type": "string", "x-guidance": {"whitespace_flexible": True}}
-    defaults = {"whitespace_flexible": False, "item_separator": ", "}
-    overrides = {"whitespace_flexible": False}
+    defaults: JsonCompileOptions = {"whitespace_flexible": False, "item_separator": ", "}
+    overrides: JsonCompileOptions = {"whitespace_flexible": False}
     before = copy.deepcopy((schema, defaults, overrides))
     result = inspect(schema, defaults, overrides)
     assert (schema, defaults, overrides) == before
@@ -83,7 +89,7 @@ def test_python_option_precedence_matches_wrapper():
     assert LLMatcher.validate_grammar(grammar) == ""
 
 
-def test_warnings_are_retained():
+def test_warnings_are_retained() -> None:
     schema = {"type": "string", "format": "unimplemented-format", "x-guidance": {"lenient": True}}
     result = inspect(schema)
     error, ordinary_warnings = LLMatcher.validate_grammar_with_warnings(LLMatcher.grammar_from_json_schema(schema))
@@ -103,7 +109,7 @@ def test_warnings_are_retained():
         {"x-guidance": {"whitespace_pattern": None, "json_allowed_escapes": None}, "type": "string"},
     ],
 )
-def test_supported_schemas_and_serialized_input(schema):
+def test_supported_schemas_and_serialized_input(schema: Any) -> None:
     assert inspect(json.dumps(schema))["grammar"]
 
 
@@ -121,18 +127,18 @@ def test_supported_schemas_and_serialized_input(schema):
         {"x-guidance": {"whitespace_flexible": None}},
     ],
 )
-def test_errors_are_not_hidden(schema):
+def test_errors_are_not_hidden(schema: Any) -> None:
     error, _ = LLMatcher.validate_grammar_with_warnings(LLMatcher.grammar_from_json_schema(json.dumps(schema)))
     assert error
     with pytest.raises(ValueError):
         inspect(json.dumps(schema))
 
 
-def test_invalid_json_raises_value_error():
+def test_invalid_json_raises_value_error() -> None:
     with pytest.raises(ValueError):
         inspect("{")
 
 
-def test_boolean_schema_with_options_keeps_existing_error():
+def test_boolean_schema_with_options_keeps_existing_error() -> None:
     with pytest.raises(ValueError, match="Expecting object schema"):
         inspect("true", {"lenient": True})
