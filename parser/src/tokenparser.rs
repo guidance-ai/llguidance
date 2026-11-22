@@ -8,6 +8,30 @@ use crate::{
 use anyhow::{ensure, Result};
 use toktrie::{InferenceCapabilities, SimpleVob, TokEnv, TokenId, INVALID_TOKEN};
 
+/// The smallest window of forced bytes that compute_mask() tokenizes in a long forced run
+/// (see TokenParser::ff_tokens_for_mask()).
+const FF_WINDOW_MIN_BYTES: usize = 1024;
+
+/// Bytes added to twice the longest token length to give the margin at the end of the window.
+const FF_WINDOW_EXTRA_MARGIN: usize = 16;
+
+/// The number of bytes that bytes_dbg() shows.
+const MAX_DBG_BYTES: usize = 64;
+
+/// A log form of `bytes` that stays short for a long forced run: its length and its first
+/// MAX_DBG_BYTES bytes.
+fn bytes_dbg(bytes: &[u8]) -> String {
+    if bytes.len() <= MAX_DBG_BYTES {
+        format!("{:?}", String::from_utf8_lossy(bytes))
+    } else {
+        format!(
+            "{:?}… ({} bytes)",
+            String::from_utf8_lossy(&bytes[..MAX_DBG_BYTES]),
+            bytes.len()
+        )
+    }
+}
+
 /// Token-level parser that drives a single constrained-generation session.
 ///
 /// Created by [`ParserFactory::create_parser()`] and typically wrapped in a
@@ -510,8 +534,13 @@ impl TokenParser {
             let (ff_tokens, token_prefix) = self
                 .ff_tokens_cache
                 .take()
-                .unwrap_or_else(|| self.ff_tokens());
+                .unwrap_or_else(|| self.ff_tokens_for_mask());
             if !ff_tokens.is_empty() {
+                // The force can stop on an error (for example, the item limit). Then the
+                // forced token cannot be consumed: return the error now, not at the next token.
+                if let Some(err) = self.parser.get_error() {
+                    return Err(self.stop_for_parser_error("", err));
+                }
                 let t = ff_tokens[0];
                 infoln!(self, "forcing ff_token by mask: {}", t);
                 let mask = self.tok_trie().singleton_token_set(t);
@@ -695,19 +724,26 @@ impl TokenParser {
     pub fn force_bytes(&mut self) -> Vec<u8> {
         self.parser.force_bytes();
         let mut trg = Vec::new();
-        self.compute_ff_bytes_inner(&mut trg);
+        self.compute_ff_bytes_inner(&mut trg, usize::MAX);
         trg
     }
 
     fn compute_ff_bytes_to(&mut self, trg: &mut Vec<u8>) {
-        // PERF: in some cases, this may be long
+        self.compute_ff_bytes_to_limit(trg, usize::MAX);
+    }
+
+    /// Like compute_ff_bytes_to(), but appends at most `limit` of the parser's forced bytes.
+    /// Returns true when it cut the forced bytes.
+    fn compute_ff_bytes_to_limit(&mut self, trg: &mut Vec<u8>, limit: usize) -> bool {
+        // The Earley force runs to the end of the forced run. It runs once per run (and
+        // again after a rollback): later calls in the same run reuse its bytes.
         if self.can_force_bytes() {
             self.parser.force_bytes();
         }
-        self.compute_ff_bytes_inner(trg);
+        self.compute_ff_bytes_inner(trg, limit)
     }
 
-    fn compute_ff_bytes_inner(&mut self, trg: &mut Vec<u8>) {
+    fn compute_ff_bytes_inner(&mut self, trg: &mut Vec<u8>, limit: usize) -> bool {
         // handle grm_prefix we might have injected
         if self.llm_bytes.len() < self.grm_prefix.len() {
             let inject = &self.grm_prefix[self.llm_bytes.len()..];
@@ -719,13 +755,63 @@ impl TokenParser {
             );
         }
 
-        trg.extend_from_slice(self.parser.currently_forced_bytes());
+        let forced = self.parser.currently_forced_bytes();
+        if forced.len() <= limit {
+            trg.extend_from_slice(forced);
+            return false;
+        }
+        // Move the cut back to the start of a UTF-8 character. A character has at most
+        // 3 continuation bytes, so move back at most 3 bytes: a run of non-UTF-8
+        // continuation bytes must not empty the window.
+        let mut cut = limit;
+        while limit - cut < 3 && cut > 0 && (forced[cut] & 0xC0) == 0x80 {
+            cut -= 1;
+        }
+        trg.extend_from_slice(&forced[..cut]);
+        true
+    }
+
+    /// ff_tokens() for compute_mask(). A mask needs only the first forced token, so this
+    /// tokenizes a window of the forced bytes, not the whole forced run (which can be
+    /// megabytes long). The result is a prefix of what ff_tokens() returns.
+    ///
+    /// The window holds `max(FF_WINDOW_MIN_BYTES, 4 * margin)` bytes, with
+    /// `margin = 2 * max_token_len + FF_WINDOW_EXTRA_MARGIN`. When the forced run is
+    /// longer than the window, the tokens in the last `margin` bytes of the window are
+    /// dropped, because they can merge with the forced bytes after the cut.
+    fn ff_tokens_for_mask(&mut self) -> (Vec<TokenId>, Vec<u8>) {
+        let margin = 2 * self.token_env.tok_trie().max_token_len() + FF_WINDOW_EXTRA_MARGIN;
+        let window = std::cmp::max(FF_WINDOW_MIN_BYTES, 4 * margin);
+        self.ff_tokens_limited(Some((window, margin)))
+    }
+
+    /// Drops tokens from the end until they cover at least `margin` bytes, but keeps the
+    /// first `num_fixed` tokens (special tokens, and the existing token).
+    fn chop_window_tail(
+        &self,
+        mut tokens: Vec<TokenId>,
+        num_fixed: usize,
+        margin: usize,
+    ) -> Vec<TokenId> {
+        let trie = self.token_env.tok_trie();
+        let mut dropped = 0;
+        while tokens.len() > num_fixed && dropped < margin {
+            dropped += trie.token_len(tokens.pop().unwrap());
+        }
+        tokens
     }
 
     /// Converts forced bytes into tokens.
     /// Also returns any bytes that need to be prefix of the
     /// next sampled token (token healing).
     fn ff_tokens(&mut self) -> (Vec<TokenId>, Vec<u8>) {
+        self.ff_tokens_limited(None)
+    }
+
+    /// With `window: None`, this is ff_tokens(). With `window: Some((limit, margin))`, it
+    /// tokenizes at most `limit` forced bytes. If it cuts the forced bytes, it returns only
+    /// the tokens that are certain (see ff_tokens_for_mask()), and no token prefix.
+    fn ff_tokens_limited(&mut self, window: Option<(usize, usize)>) -> (Vec<TokenId>, Vec<u8>) {
         let mut forced_bytes = Vec::new();
         let mut existing_tokens = if self.llm_tokens.is_empty() {
             Vec::new()
@@ -737,7 +823,13 @@ impl TokenParser {
         };
         let num_existing_bytes = forced_bytes.len();
 
-        self.compute_ff_bytes_to(&mut forced_bytes);
+        let truncated = match window {
+            Some((limit, _)) => self.compute_ff_bytes_to_limit(&mut forced_bytes, limit),
+            None => {
+                self.compute_ff_bytes_to(&mut forced_bytes);
+                false
+            }
+        };
         if self.parser.check_cancelled().is_err() {
             return (Vec::new(), Vec::new());
         }
@@ -746,6 +838,17 @@ impl TokenParser {
 
         let do_force =
             forced_bytes.len() > num_existing_bytes && self.token_env.tokenize_is_canonical();
+        // A cut window holds at least `limit - 3` bytes, and the mask path forces only with
+        // a canonical tokenizer, so a cut window always has bytes to tokenize. If it has
+        // none, fall back to the full computation: the bytes after the cut must not be
+        // ignored.
+        debug_assert!(
+            !truncated || do_force,
+            "forced-token window gave no bytes to tokenize"
+        );
+        if truncated && !do_force {
+            return self.ff_tokens_limited(None);
+        }
         if do_force {
             let t0 = Instant::now();
             let (mut tokens, mut num_fixed) = self.token_env.tokenize_bytes_marker(&forced_bytes);
@@ -766,26 +869,34 @@ impl TokenParser {
                     .tokenize_bytes_marker(&forced_bytes[num_existing_bytes..]);
                 infoln!(
                     self,
-                    "re-tokenized: {} from: {:?}",
+                    "re-tokenized: {} from: {}",
                     trie.tokens_dbg(&tokens),
-                    &forced_bytes[num_existing_bytes..]
+                    bytes_dbg(&forced_bytes[num_existing_bytes..])
                 );
                 existing_tokens.clear();
             } else {
                 num_fixed = std::cmp::max(existing_tokens.len(), num_fixed);
             }
 
-            let (mut grm_tokens, chop_bytes) = self.tokenize_and_chop(tokens, num_fixed);
+            let (mut grm_tokens, chop_bytes) = match window {
+                // The recognizer-based chop in tokenize_and_chop() is valid only at the
+                // true end of the forced run, not at a cut.
+                Some((_, margin)) if truncated => {
+                    (self.chop_window_tail(tokens, num_fixed, margin), 0)
+                }
+                _ => self.tokenize_and_chop(tokens, num_fixed),
+            };
             assert!(grm_tokens.starts_with(&existing_tokens));
             grm_tokens.drain(..existing_tokens.len());
 
             let trie = self.token_env.tok_trie();
             infoln!(
                 self,
-                "forced: {} bytes:{:?} tokens:{:?}",
+                "forced: {} ({} tokens) bytes: {}{}",
                 trie.tokens_dbg(&grm_tokens),
-                &forced_bytes[num_existing_bytes..],
-                grm_tokens
+                grm_tokens.len(),
+                bytes_dbg(&forced_bytes[num_existing_bytes..]),
+                if truncated { " (window)" } else { "" }
             );
             token_prefix = forced_bytes[forced_bytes.len() - chop_bytes..].to_vec();
 
@@ -799,6 +910,10 @@ impl TokenParser {
                     token_prefix.len()
                 );
                 return (grm_tokens, token_prefix);
+            } else if truncated {
+                // No token in the window is certain (for example, the window holds
+                // only bytes that tokenize_bytes_marker() skips): tokenize the whole run.
+                return self.ff_tokens_limited(None);
             } else {
                 infoln!(self, "no fixed tokens; prefix len {}", token_prefix.len());
             }
