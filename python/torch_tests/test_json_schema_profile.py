@@ -4,24 +4,22 @@ import copy
 import json
 import re
 from pathlib import Path
+from typing import Any, List
 
 import pytest
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
 from referencing import Registry
-from referencing.exceptions import NoSuchResource
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_PATH = ROOT / "schemas/llguidance-json-schema-2020-12-v1.json"
 PROFILE = json.loads(PROFILE_PATH.read_text())
 
 
-def no_retrieval(uri):
-    raise NoSuchResource(ref=uri)
+# An empty Registry raises NoSuchResource for every unknown URI, so validation
+# never falls back to jsonschema's remote retrieval.
+VALIDATOR = Draft202012Validator(PROFILE, registry=Registry())
 
-
-VALIDATOR = Draft202012Validator(PROFILE, registry=Registry(retrieve=no_retrieval))
-
-ACCEPTED = [
+ACCEPTED: List[Any] = [
     True,
     False,
     {},
@@ -47,7 +45,7 @@ ACCEPTED = [
     },
     {"format": "unknown"},
 ]
-REJECTED = [
+REJECTED: List[Any] = [
     None,
     [],
     "string",
@@ -89,24 +87,24 @@ REJECTED = [
 ]
 
 
-def test_profile_is_valid_2020_12_schema():
+def test_profile_is_valid_2020_12_schema() -> None:
     Draft202012Validator.check_schema(PROFILE)
 
 
 @pytest.mark.parametrize("schema", ACCEPTED)
-def test_accepts_structural_fixtures_without_mutation(schema):
+def test_accepts_structural_fixtures_without_mutation(schema: Any) -> None:
     original = copy.deepcopy(schema)
     VALIDATOR.validate(schema)
     assert schema == original
 
 
 @pytest.mark.parametrize("schema", REJECTED)
-def test_rejects_malformed_or_out_of_profile_fixtures(schema):
+def test_rejects_malformed_or_out_of_profile_fixtures(schema: Any) -> None:
     assert not VALIDATOR.is_valid(schema)
 
 
-def test_all_profile_references_resolve_locally():
-    def visit(value):
+def test_all_profile_references_resolve_locally() -> None:
+    def visit(value: Any) -> None:
         if isinstance(value, dict):
             if isinstance(value.get("$ref"), str):
                 ref = value["$ref"]
@@ -124,7 +122,7 @@ def test_all_profile_references_resolve_locally():
     visit(PROFILE)
 
 
-def test_supported_keyword_and_option_inventories_need_review_when_changed():
+def test_supported_keyword_and_option_inventories_need_review_when_changed() -> None:
     # Maintenance tripwire: an upstream addition requires reviewing this
     # profile and its limitations rather than silently drifting.
     source = (ROOT / "parser/src/json/schema.rs").read_text()
@@ -163,7 +161,7 @@ def test_supported_keyword_and_option_inventories_need_review_when_changed():
         ({"type": "object", "properties": {"child": {"type": "string", "x-guidance": {}}}}, False, True),
     ],
 )
-def test_compiler_boundary(schema, preflight_ok, compiles):
+def test_compiler_boundary(schema: Any, preflight_ok: bool, compiles: bool) -> None:
     from llguidance import LLMatcher
 
     assert VALIDATOR.is_valid(schema) is preflight_ok
