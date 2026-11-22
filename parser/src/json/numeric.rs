@@ -289,7 +289,7 @@ fn lexi_x_to_9(x: &str, incl: bool) -> Result<String> {
             Ok(mk_or(parts))
         }
     } else if x.is_empty() {
-        Ok("[0-9]*[1-9]".to_string())
+        Ok("[0-9]*[1-9][0-9]*".to_string())
     } else {
         let x0 = x
             .chars()
@@ -315,7 +315,7 @@ fn lexi_x_to_9(x: &str, incl: bool) -> Result<String> {
 fn lexi_0_to_x(x: &str, incl: bool) -> Result<String> {
     if x.is_empty() {
         if incl {
-            Ok("".to_string())
+            Ok("0*".to_string())
         } else {
             Err(anyhow!("Inclusive flag must be true for an empty string"))
         }
@@ -492,7 +492,12 @@ pub fn rx_float_range(
             }
             let rx = if left == right {
                 if left_inclusive && right_inclusive {
-                    Ok(format!("({})", escape(&float_to_str(left))))
+                    let s = escape(&float_to_str(left));
+                    if s.contains('.') {
+                        Ok(format!("({s}0*)"))
+                    } else {
+                        Ok(format!("({s}(\\.0+)?)"))
+                    }
                 } else {
                     Err(anyhow!(
                         "Empty range when left equals right and not both inclusive"
@@ -849,26 +854,37 @@ mod test_ranges {
         for x in test_cases {
             for offset in [0.0, -eps1, eps1, -eps2, eps2, 1.0, -1.0].iter() {
                 let n = x + offset;
-                let matches = re.is_match(&n.to_string());
                 let left_cond =
                     left.is_none() || left.unwrap() < n || (left.unwrap() == n && left_inclusive);
                 let right_cond = right.is_none()
                     || right.unwrap() > n
                     || (right.unwrap() == n && right_inclusive);
                 let expected = left_cond && right_cond;
-                if expected != matches {
-                    let lket = if left_inclusive { "[" } else { "(" };
-                    let rket = if right_inclusive { "]" } else { ")" };
-                    let range_str = match (left, right) {
-                        (Some(l), Some(r)) => format!("{lket}{l}, {r}{rket}"),
-                        (Some(l), None) => format!("{lket}{l}, ∞)"),
-                        (None, Some(r)) => format!("(-∞, {r}{rket}"),
-                        (None, None) => "(-∞, ∞)".to_string(),
-                    };
-                    if matches {
-                        panic!("{n} not in range {range_str} but matches {rx:?}");
-                    } else {
-                        panic!("{n} in range {range_str} but does not match {rx:?}");
+                let s = n.to_string();
+                let mut candidates = vec![s.clone()];
+                if s.contains('.') {
+                    candidates.push(format!("{s}0"));
+                    candidates.push(format!("{s}00"));
+                } else {
+                    candidates.push(format!("{s}.0"));
+                    candidates.push(format!("{s}.00"));
+                }
+                for cand in candidates {
+                    let matches = re.is_match(&cand);
+                    if expected != matches {
+                        let lket = if left_inclusive { "[" } else { "(" };
+                        let rket = if right_inclusive { "]" } else { ")" };
+                        let range_str = match (left, right) {
+                            (Some(l), Some(r)) => format!("{lket}{l}, {r}{rket}"),
+                            (Some(l), None) => format!("{lket}{l}, ∞)"),
+                            (None, Some(r)) => format!("(-∞, {r}{rket}"),
+                            (None, None) => "(-∞, ∞)".to_string(),
+                        };
+                        if matches {
+                            panic!("{cand} ({n}) not in range {range_str} but matches {rx:?}");
+                        } else {
+                            panic!("{cand} ({n}) in range {range_str} but does not match {rx:?}");
+                        }
                     }
                 }
             }
@@ -1016,6 +1032,111 @@ mod test_ranges {
         for value in ["00", "00.0", "-00", "-00.0", ".0", "-.0", "0.", "-0."] {
             assert!(!inclusive.is_match(value), "{value}");
             assert!(!exclusive.is_match(value), "{value}");
+        }
+    }
+
+    #[test]
+    fn test_float_range_trailing_zeros() {
+        let cases: &[(_, _, _, _, &[&str], &[&str])] = &[
+            (
+                Some(0.0),
+                None,
+                false,
+                false,
+                &["0.10", "0.050", "1.20", "1.00"],
+                &["0", "0.0", "0.00", "-0.0", "-0.10", "1."],
+            ),
+            (
+                None,
+                Some(0.0),
+                false,
+                false,
+                &["-0.10", "-0.050", "-1.20", "-1.00"],
+                &["0", "0.0", "-0", "-0.0", "-0.00", "0.10", "-1."],
+            ),
+            (
+                Some(1.5),
+                None,
+                false,
+                false,
+                &["1.510", "1.60", "2.00"],
+                &["1.5", "1.50", "1.500", "1.49"],
+            ),
+            (
+                None,
+                Some(5.5),
+                false,
+                true,
+                &["5.5", "5.50", "5.500", "5.40", "-5.50"],
+                &["5.501", "5.510", "5."],
+            ),
+            (
+                Some(0.0),
+                Some(0.15),
+                true,
+                true,
+                &["0.00", "0.10", "0.15", "0.150", "0.1500"],
+                &["0.151", "0.1501", "-0.01"],
+            ),
+            (
+                Some(1.2),
+                Some(1.5),
+                true,
+                true,
+                &["1.2", "1.20", "1.200", "1.250", "1.5", "1.50", "1.500"],
+                &["1.19", "1.51", "1.501"],
+            ),
+            (
+                Some(1.2),
+                Some(1.25),
+                true,
+                true,
+                &["1.2", "1.20", "1.200", "1.20010", "1.25", "1.250"],
+                &["1.19", "1.251", "1.2501"],
+            ),
+            (
+                Some(-5.5),
+                None,
+                true,
+                false,
+                &["-5.5", "-5.50", "-5.500", "0.0", "1.20"],
+                &["-5.501", "-5.51", "-5."],
+            ),
+            (
+                Some(1.5),
+                Some(1.5),
+                true,
+                true,
+                &["1.5", "1.50", "1.500"],
+                &["1.51", "1.49", "1.501", "1."],
+            ),
+            (
+                Some(1.0),
+                Some(1.0),
+                true,
+                true,
+                &["1", "1.0", "1.00"],
+                &["1.1", "0.9", "1."],
+            ),
+            (
+                Some(-2.5),
+                Some(-2.5),
+                true,
+                true,
+                &["-2.5", "-2.50", "-2.500"],
+                &["-2.51", "-2.49", "2.5"],
+            ),
+        ];
+
+        for &(left, right, left_inc, right_inc, valid, invalid) in cases {
+            let rx = rx_float_range(left, right, left_inc, right_inc).unwrap();
+            let re = Regex::new(&format!("^{rx}$")).unwrap();
+            for v in valid {
+                assert!(re.is_match(v), "expected {v} to match {rx:?}");
+            }
+            for v in invalid {
+                assert!(!re.is_match(v), "expected {v} NOT to match {rx:?}");
+            }
         }
     }
 }

@@ -1308,4 +1308,63 @@ mod tests {
             Value::String("nrbtf\\\"".to_string())
         );
     }
+
+    #[test]
+    fn number_bounds_accept_trailing_zeros() {
+        let tok_env = crate::toktrie::ApproximateTokEnv::single_byte_env();
+        let mut factory = crate::ParserFactory::new_simple(&tok_env).unwrap();
+        factory.quiet();
+
+        let matches_schema = |schema: Value, input: &str| -> bool {
+            let grm = TopLevelGrammar::from_json_schema(schema);
+            let mut matcher = crate::Matcher::new(factory.create_parser(grm));
+            assert!(
+                !matcher.is_error(),
+                "parser error: {:?}",
+                matcher.get_error()
+            );
+            for tok in tok_env.tokenize(input) {
+                let mask = matcher.compute_mask().unwrap();
+                if !mask.is_allowed(tok) || matcher.consume_token(tok).is_err() {
+                    return false;
+                }
+            }
+            matcher.is_accepting().unwrap_or(false)
+        };
+
+        let cases: &[(Value, &[&str], &[&str])] = &[
+            (
+                json!({"type": "number", "exclusiveMinimum": 0}),
+                &["0.1", "0.10", "0.050"],
+                &["0", "0.0", "0.00"],
+            ),
+            (
+                json!({"type": "number", "minimum": 1.0, "maximum": 5.5}),
+                &["1.0", "5.5", "5.50", "5.500"],
+                &["5.51", "0.99"],
+            ),
+            (
+                json!({"type": "number", "minimum": 1.5, "maximum": 1.5}),
+                &["1.5", "1.50", "1.500"],
+                &["1.51", "1.49"],
+            ),
+            (
+                json!({"type": "number", "minimum": 1.0, "maximum": 1.0}),
+                &["1", "1.0", "1.00"],
+                &["1.1", "0.9"],
+            ),
+        ];
+
+        for (schema, valid, invalid) in cases {
+            for input in *valid {
+                assert!(matches_schema(schema.clone(), input), "{input} vs {schema}");
+            }
+            for input in *invalid {
+                assert!(
+                    !matches_schema(schema.clone(), input),
+                    "{input} unexpectedly matched {schema}"
+                );
+            }
+        }
+    }
 }
