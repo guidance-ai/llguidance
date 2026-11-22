@@ -13,8 +13,8 @@ fn grammar(keyword: &str, schema: &Value) -> String {
 #[case::integer_exclusive_multiple(json!({"type": "integer", "exclusiveMinimum": 0, "multipleOf": 10}), &["10", "2500"], &["0", "-10", "FINAL_REJECT:15"])]
 #[case::integer_draft4_exclusive(json!({"type": "integer", "minimum": 0, "exclusiveMinimum": true}), &["1"], &["0"])]
 #[case::number(json!({"type": "number"}), &["0", "-0.5", "3.25", "1e3", "2E-7"], &["FINAL_REJECT:1.", ".5", "+1", "01"])]
-#[case::number_range(json!({"type": "number", "minimum": -17.3, "maximum": 33.721}), &["-17.3", "0", "33.7", "33.721"], &["-17.31", "33.7211", "34"])]
-#[case::number_exclusive(json!({"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}), &["0.5", "0.999"], &["FINAL_REJECT:0", "1", "-0.5"])]
+#[case::number_range(json!({"type": "number", "minimum": -17.3, "maximum": 33.721}), &["-17.3", "-17.30", "0", "33.7", "33.721", "33.7210"], &["-17.31", "33.7211", "34"])]
+#[case::number_exclusive(json!({"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1}), &["0.5", "0.50", "0.050", "0.999"], &["FINAL_REJECT:0", "1", "-0.5"])]
 #[case::number_multiple(json!({"type": "number", "multipleOf": 0.5}), &["0", "1.5", "-2"], &["1.25"])]
 fn numbers_match_like_json(
     #[case] schema: Value,
