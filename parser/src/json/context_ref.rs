@@ -101,6 +101,30 @@ impl<'a> Context<'a> {
         let resolved = self.resolver.lookup(reference)?;
         Ok(self.as_resource_ref(resolved.contents()))
     }
+
+    /// Looks up the target of a `$ref`, and returns it with a context in which
+    /// to compile it.
+    ///
+    /// The base URI of the returned context is the schema resource that holds
+    /// the target, as the lookup found it. The lookup already applies the
+    /// target's own `$id`, so the caller must not call `in_subresource` on the
+    /// target again. Relative references inside the target then resolve
+    /// against the target's resource, not against the referring resource.
+    pub fn lookup_ref_target(&self, reference: &str) -> Result<(ResourceRef<'a>, Context<'a>)> {
+        let (contents, resolver, _) = self.resolver.lookup(reference)?.into_inner();
+        let resource = self
+            .draft
+            .detect(contents)
+            .unwrap_or(DEFAULT_DRAFT)
+            .create_resource_ref(contents);
+        let ctx = Context {
+            resolver,
+            draft: resource.draft(),
+            shared: Rc::clone(&self.shared),
+            options: self.options.clone(),
+        };
+        Ok((resource, ctx))
+    }
 }
 
 impl referencing::Retrieve for RetrieveWrapper {

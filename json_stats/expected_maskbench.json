@@ -5967,9 +5967,7 @@
   "Github_medium---o43991.json": {},
   "Github_medium---o43994.json": {},
   "Github_medium---o44008.json": {},
-  "Github_medium---o44063.json": {
-    "json_error": "Resource 'json-schema:///schema/lemon' is not present in a registry and retrieving it failed: Retrieving external resources is not supported once the registry is populated"
-  },
+  "Github_medium---o44063.json": {},
   "Github_medium---o44135.json": {},
   "Github_medium---o44194.json": {},
   "Github_medium---o44203.json": {
@@ -6084,7 +6082,7 @@
   "Github_medium---o47921.json": {},
   "Github_medium---o47943.json": {},
   "Github_medium---o47944.json": {
-    "json_error": "Resource 'json-schema:///schema/resource' is not present in a registry and retrieving it failed: Retrieving external resources is not supported once the registry is populated"
+    "validation_error": "test #0: token not accepted at ⟦T‧00‧:‧00‧:‧00‧Z‧\",\"‧email‧_field‧\":\"‧example‧@example‧.com‧\",\"‧string‧_field‧\":\"‧Sample‧ text‧.\",\"‧uuid‧_field‧\":\"‧447‧248‧31‧-b‧f‧66‧-‧4‧bc‧2‧-‧865‧f‧-e‧2‧c‧4‧c‧2‧b‧14‧c‧78‧\"},\"‧another‧-resource⟧ * ⟦\":⟧ * ⟦{}‧,\"‧underscore‧d⟧ mask: TokenSet: 123226/128256; ALL EXCEPT EOS ⟨\"⟩ ≺HEX[a1]≻ ≺HEX[a2]≻ ≺HEX[a3]≻ ≺HEX[a4]≻ ≺HEX[a5]≻ ≺HEX[a6]≻ ≺HEX[a7]≻ ≺HEX[a8]≻ ≺HEX[a9]≻ ≺HEX[aa]≻ ≺HEX[ab]≻ ≺HEX[ac]≻ ≺HEX[ae]≻ ≺HEX[af]≻ ≺HEX[b0]≻ ≺HEX[b1]≻ ≺HEX[b2]≻ ≺HEX[b3]≻ ≺HEX[b4]≻ ≺HEX[b5]≻ ≺HEX[b6]≻ ≺HEX[b7]≻ ≺HEX[b8]≻ ≺HEX[b9]≻ ≺HEX[ba]≻ ≺HEX[bb]≻ ≺HEX[bc]≻ ≺HEX[bd]≻ ≺HEX[be]≻ ≺HEX[bf]≻ ≺HEX[c0]≻ ≺HEX[c1]≻ ≺HEX[f5]≻ ≺HEX[f6]≻ ≺HEX[f7]≻ ≺HEX[f8]≻ ≺HEX[f9]≻ ≺HEX[fa]≻ ≺HEX[fb]≻ ≺HEX[fc]≻ ≺HEX[fd]≻ ≺HEX[fe]≻ ≺HEX[ff]≻ ⟨\\0⟩ ⟨\\u{1}⟩ ⟨\\u{2}⟩ ⟨\\u{3}⟩ ⟨\\u{4}⟩ ..."
   },
   "Github_medium---o47952.json": {
     "json_error": "Unknown format: url"
@@ -6833,9 +6831,7 @@
   "Github_medium---o69138.json": {},
   "Github_medium---o69158.json": {},
   "Github_medium---o69161.json": {},
-  "Github_medium---o69202.json": {
-    "json_error": "Resource 'json-schema:///schemata/app' is not present in a registry and retrieving it failed: Retrieving external resources is not supported once the registry is populated"
-  },
+  "Github_medium---o69202.json": {},
   "Github_medium---o69204.json": {},
   "Github_medium---o69248.json": {
     "json_error": "Unimplemented keys: [\"not\"]"
@@ -8529,7 +8525,7 @@
   "Github_ultra---o8640.json": {},
   "Github_ultra---o90698.json": {},
   "Github_ultra---o91126.json": {
-    "json_error": "Resource 'json-schema:///schemata/account' is not present in a registry and retrieving it failed: Retrieving external resources is not supported once the registry is populated"
+    "json_error": "Unsatisfiable schema: Regex is empty:  (And (SearchRegex /^git@heroku\\.com:[a-z][a-z0-9-]{3,30}\\.git$/) (Regex /(?P<scheme>[a-zA-Z][a-zA-Z0-9+\\-.]*):(?:\\/\\/(?:(?P<userinfo>(?:[a-zA-Z0-9\\-._~!$&'()*+,;=:]|%[0-9a-fA-F]{2})*)@)?(?P<host>\\[(?:(?:(?:(?:[0-9a-fA-F]{1,4}:){6}|::(?:[0-9a-fA-F]{1,4}:){0,5}|(?:[0-9a-fA-F]{1,4})?::(?:[0-9a-fA-F]{1,4}:){0,4}|(?:(?:[0-9a-fA-F]{1,4}:){0,1}[0-9a-fA-F]{1,4})?::(?:[0-9a-fA-F]{1,4}:){0,3}|(?:(?:[0-9a-fA-F]{1,4}:){0,2}[0-9a-fA-F]{1,4})?::(?:[0-9a-fA-F]{1,4}:){0,2}|(?:(?:[0-9a-fA-F]{1,4}:){0,3}[0-9a-fA-F]{1,4})?::[0-9a-fA-F]{1,4}:|(?:(?:[0-9a-fA-F]{1,4}:){0,4}[0-9a-fA-F]{1,4})?::)(?P<ls32>[0-9a-fA-F]{1,4}:[0-9a-fA-F]{1,4}|(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])))|(?:((?:[0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4})?::(?P<h16_2>[0-9a-fA-F]{1,4}))|(?:((?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4})?::)|v[0-9a-fA-F]+\\.[a-zA-Z0-9\\-._~!$&'()*+,;=:]+)\\]|(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9.. (664 more)"
   },
   "Github_ultra---o9354.json": {
     "json_error": "Unknown format: topic"
