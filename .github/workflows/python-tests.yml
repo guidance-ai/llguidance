@@ -52,8 +52,8 @@ jobs:
           echo "python_flags=" >> "$GITHUB_OUTPUT"
         fi
 
-    - name: Run torch tests
-      run: python ${{ steps.gil.outputs.python_flags }} -m pytest -v python/torch_tests/
+    - name: Run Python tests
+      run: python ${{ steps.gil.outputs.python_flags }} -m pytest -v python/torch_tests/ python/tests/
 
     - name: Clone guidance
       run: git clone -b main https://github.com/guidance-ai/guidance tmp/guidance

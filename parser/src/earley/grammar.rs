@@ -405,6 +405,44 @@ impl Display for ParamCond {
 }
 
 impl Grammar {
+    pub(crate) fn single_lexeme(&self, root: SymIdx) -> Result<LexemeIdx> {
+        let mut idx = root;
+        let mut visited = HashSet::default();
+        loop {
+            ensure!(visited.insert(idx), "recursive string slot fallback");
+            let symbol = self.sym_data(idx);
+            ensure!(
+                symbol.gen_grammar.is_none()
+                    && !symbol.props.parametric
+                    && symbol.props.capture_name.is_none()
+                    && symbol.props.stop_capture_name.is_none()
+                    && symbol.props.max_tokens == usize::MAX
+                    && symbol.props.temperature == 0.0,
+                "unsupported string slot fallback properties"
+            );
+            if let Some(lexeme) = symbol.lexeme {
+                return Ok(lexeme);
+            }
+            ensure!(
+                symbol.rules.len() == 1
+                    && symbol.rules[0].rhs.len() == 1
+                    && symbol.rules[0].condition == ParamCond::True
+                    && symbol.rules[0].rhs[0].1.is_null(),
+                "string slot fallback must reduce to one lexeme"
+            );
+            idx = symbol.rules[0].rhs[0].0;
+        }
+    }
+
+    pub(crate) fn replace_root_lexeme(&mut self, root: SymIdx, lexeme: LexemeIdx) -> Result<()> {
+        let mut props = self.sym_props(root).clone();
+        props.is_start = false;
+        let leaf = self.fresh_symbol_ext("slot_value", props);
+        self.sym_data_mut(leaf).lexeme = Some(lexeme);
+        self.sym_data_mut(root).rules.clear();
+        self.sym_data_mut(root).lexeme = None;
+        self.add_rule(root, vec![leaf])
+    }
     pub fn new(name: Option<String>) -> Self {
         Grammar {
             name,
@@ -1144,6 +1182,17 @@ pub struct CGrammar {
 const RULE_SHIFT: usize = 2;
 
 impl CGrammar {
+    /// Reuse compiled rule tables, specializing only lexical definitions.
+    /// Copies the tables and regex arena without rerunning the structural compiler.
+    pub(crate) fn with_string_bindings(
+        &self,
+        bindings: &HashMap<String, Vec<String>>,
+        limits: &ParserLimits,
+    ) -> Result<Self> {
+        let mut bound = self.clone();
+        bound.lexer_spec.bind_string_slots(bindings, limits)?;
+        Ok(bound)
+    }
     pub fn parametric(&self) -> bool {
         self.parametric
     }

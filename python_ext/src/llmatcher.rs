@@ -22,6 +22,68 @@ struct LLMatcher {
     tok_env: TokEnv,
 }
 
+/// Prepared grammar with immutable named string slots and declared fallbacks.
+#[pyclass(frozen)]
+struct LLGrammarTemplate {
+    inner: llguidance::GrammarTemplate,
+    tokenizer: LLTokenizer,
+}
+
+#[pymethods]
+impl LLGrammarTemplate {
+    #[new]
+    #[pyo3(signature = (tokenizer, grammar, *, limits=None, max_binding_values=10_000, max_binding_bytes=1_048_576))]
+    fn py_new(
+        tokenizer: &LLTokenizer,
+        grammar: Bound<'_, PyAny>,
+        limits: Option<&LLParserLimits>,
+        max_binding_values: usize,
+        max_binding_bytes: usize,
+        py: Python<'_>,
+    ) -> PyResult<Self> {
+        let (_, input) = extract_grammar(grammar).map_err(val_error)?;
+        let inner = py
+            .detach(|| {
+                llguidance::GrammarTemplate::new(
+                    tokenizer.shared_factory(),
+                    input,
+                    LLParserLimits::from_option(limits),
+                    llguidance::StringSlotLimits {
+                        max_values: max_binding_values,
+                        max_bytes: max_binding_bytes,
+                    },
+                )
+            })
+            .map_err(val_error)?;
+        Ok(Self {
+            inner,
+            tokenizer: tokenizer.clone(),
+        })
+    }
+
+    #[getter]
+    fn slot_names(&self) -> Vec<String> {
+        self.inner.slot_names()
+    }
+
+    #[pyo3(signature = (bindings=None))]
+    fn new_matcher(
+        &self,
+        bindings: Option<std::collections::HashMap<String, Vec<String>>>,
+        py: Python<'_>,
+    ) -> PyResult<LLMatcher> {
+        let bindings: llguidance::HashMap<_, _> =
+            bindings.unwrap_or_default().into_iter().collect();
+        let parser = py
+            .detach(|| self.inner.new_parser(&bindings))
+            .map_err(val_error)?;
+        Ok(LLMatcher {
+            inner: Matcher::new(Ok(parser)),
+            tok_env: self.tokenizer.tok_env().clone(),
+        })
+    }
+}
+
 #[pyclass(frozen)]
 struct LLExecutor {
     pool: rayon::ThreadPool,
@@ -572,6 +634,7 @@ impl LLMatcher {
 }
 
 pub(crate) fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<LLGrammarTemplate>()?;
     m.add_class::<LLMatcher>()?;
     m.add_class::<LLExecutor>()?;
     Ok(())

@@ -300,6 +300,10 @@ impl LLTokenizer {
     pub fn tok_trie(&self) -> &toktrie::TokTrie {
         self.tok_env().tok_trie()
     }
+    pub fn shared_factory(&self) -> Arc<ParserFactory> {
+        self.factory.clone()
+    }
+
     pub fn factory(&self) -> &ParserFactory {
         &self.factory
     }
