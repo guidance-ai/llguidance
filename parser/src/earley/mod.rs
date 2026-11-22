@@ -15,5 +15,7 @@ pub use grammar::{
     BitIdx, CGrammar, CSymIdx, Grammar, ParamCond, ParamExpr, ParamRef, ParamValue, SymIdx,
     SymbolProps,
 };
+#[cfg(feature = "completion-stats")]
+pub use parser::CompletionStats;
 pub use parser::{BiasComputer, Parser, ParserError, ParserMetrics, ParserRecognizer, ParserStats};
 pub use slicer::SlicedBiasComputer;
