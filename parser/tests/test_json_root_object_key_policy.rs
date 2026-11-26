@@ -73,10 +73,14 @@ fn named_root_reference_cache_does_not_restrict_the_same_definition_when_nested(
     json_schema_check(&schema, &json!({"valid":1}), true);
     json_schema_check(
         &schema,
-        &json!({"next":{"lengthy":3,"valid":2},"valid":1}),
+        &json!({"valid":1,"next":{"valid":2,"lengthy":3}}),
         true,
     );
-    json_schema_check(&schema, &json!({"lengthy":3,"valid":1}), false);
+    let root_with_long_name = json!({"valid":1,"lengthy":3});
+    json_schema_check(&schema, &root_with_long_name, false);
+    let mut unrestricted = schema;
+    unrestricted.as_object_mut().unwrap().remove("x-guidance");
+    json_schema_check(&unrestricted, &root_with_long_name, true);
 }
 
 #[test]
