@@ -176,3 +176,42 @@ E.g., if a schema contains both `"properties"` and `"allOf"` (which has another 
 These semantics extend even to applicators that violate the typical [keyword independence](https://json-schema.org/draft/2020-12/json-schema-core#section-10.1) semantics of JSON keywords.
 
 E.g., even though the behavior of `additionalProperties` is defined in terms of `"properties"` and `"patternProperties"` its position in a schema determines its precedence independently of the location of `"properties"`. If it applies to a property defined in a subschema of `"allOf"` or `"anyOf"`, whether it applies before or after said definition is determined by its position relative to the `"allOf"` or `"anyOf"` keyword.
+
+## Optional root named-key generation policy
+
+`JsonCompileOptions::root_object_key_policy` can restrict generated root objects
+when an application needs a finite set of declared parameter names. For example:
+
+```json
+{
+  "type": "object",
+  "properties": { "city": { "type": "string" } },
+  "required": ["city"],
+  "x-guidance": { "root_object_key_policy": { "min": 1, "max": 256 } }
+}
+```
+
+This policy generates only names explicitly listed in the normalized root
+object's `properties` or `required`, and only when the decoded name's UTF-8 byte
+length is inside the inclusive bounds. It disables dynamic root-name generation
+from `patternProperties` or `additionalProperties`; values of the declared names
+still satisfy the original property/pattern/additional-property intersection.
+Nested objects and array items retain their original schema language, including
+when a root reference is reused inside a nested value. Root alternatives are
+filtered by the same policy without changing reference scopes or anchors.
+
+This is a generation sublanguage, not a JSON Schema validation keyword or a
+claim of general dynamic-name generation. With no policy, existing compilation
+and option serialization are unchanged. `min` may be zero; `min > max` is an
+invalid configuration. Byte bounds describe decoded names, not their escaped
+JSON spellings or their number of Unicode scalar values.
+
+The original normalized schema is compiled first, including pending referenced
+values. Unsupported, malformed, resource-limited or originally empty schemas
+keep their original errors. Only when that succeeds can restricted generation
+fail with `RootObjectKeyPolicyError`, a distinct error which does not assert
+that the original schema is unsatisfiable. The preflight and restricted grammar
+share the caller's builder limits, caches and resolved references; no schema is
+retrieved a second time. Existing unsupported cardinality combinations remain
+unsupported. Declared fields retain the compiler's schema order and original
+value constraints.

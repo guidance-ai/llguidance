@@ -19,9 +19,23 @@ use crate::{GrammarBuilder, NodeRef};
 // TODO: array maxItems etc limits
 // TODO: schemastore/src/schemas/json/BizTalkServerApplicationSchema.json - this breaks 1M fuel on lexer, why?!
 
+/// A generation policy for root objects: emit only keys declared in properties
+/// or required, with decoded UTF-8 byte lengths within these bounds. Nested
+/// JSON objects retain their original schema language, including dynamic keys.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RootObjectKeyPolicy {
+    pub min: usize,
+    pub max: usize,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct JsonCompileOptions {
+    /// Restrict root objects to declared names within decoded UTF-8 byte bounds.
+    /// This is an opt-in generation sublanguage, not a JSON Schema assertion.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub root_object_key_policy: Option<RootObjectKeyPolicy>,
     pub item_separator: String,
     pub key_separator: String,
     pub whitespace_flexible: bool,
@@ -42,6 +56,20 @@ pub struct JsonCompileOptions {
 fn json_dumps(target: &serde_json::Value) -> String {
     serde_json::to_string(target).unwrap()
 }
+
+/// The original schema compiled, but its language has no instances under the
+/// explicitly selected root generation policy. This is not semantic schema
+/// unsatisfiability and must not be pruned by callers classifying that error.
+#[derive(Debug)]
+pub struct RootObjectKeyPolicyError {
+    message: String,
+}
+impl std::fmt::Display for RootObjectKeyPolicyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Root object key generation policy: {}", self.message)
+    }
+}
+impl std::error::Error for RootObjectKeyPolicyError {}
 
 // Keep both JSON string paths aligned with Derivre's regular escape policy.
 const DEFAULT_JSON_ALLOWED_ESCAPES: &str = "nrbtf\\\"u";
@@ -75,6 +103,7 @@ struct Compiler {
 impl Default for JsonCompileOptions {
     fn default() -> Self {
         Self {
+            root_object_key_policy: None,
             item_separator: ",".to_string(),
             key_separator: ":".to_string(),
             whitespace_pattern: None,
@@ -168,12 +197,56 @@ impl Compiler {
             self.builder.add_warning(w);
         }
 
-        let root = self.gen_json(&built.schema)?;
-        self.builder.set_start_node(root);
+        if let Some(bounds) = self.options.root_object_key_policy {
+            if bounds.min > bounds.max {
+                bail!("root object key byte bounds require min <= max");
+            }
+        }
 
+        if self.options.root_object_key_policy.is_some() {
+            // Classify the original normalized schema with the original compiler
+            // before applying a spelling policy. Reuse this builder's actual
+            // options, URI resolution, caches and remaining resource limits.
+            // No schema is reparsed/retrieved and no byte-token parser is built.
+            let _ = self.gen_json(&built.schema)?;
+            self.complete_definitions(&built.definitions)?;
+            self.builder.check_limits()?;
+        }
+
+        let root_result = if let Some(bounds) = self.options.root_object_key_policy {
+            let root = self.gen_json_root(
+                &built.schema,
+                &built.definitions,
+                bounds,
+                &mut HashMap::default(),
+                0,
+            );
+            // A policy error must not hide unsupported or invalid values in
+            // referenced definitions that the original compiler still owns.
+            match root {
+                Err(error) if !error.is::<RootObjectKeyPolicyError>() => return Err(error),
+                result => result,
+            }
+        } else {
+            // Preserve the default compiler's original immediate error order.
+            Ok(self.gen_json(&built.schema)?)
+        };
+
+        if let Ok(root) = &root_result {
+            self.builder.set_start_node(*root);
+        }
+        self.complete_definitions(&built.definitions)?;
+
+        if self.options.root_object_key_policy.is_some() {
+            self.builder.check_limits()?;
+        }
+        let _ = root_result?;
+        Ok(self.builder.finalize(id))
+    }
+
+    fn complete_definitions(&mut self, definitions: &HashMap<String, Schema>) -> Result<()> {
         while let Some((path, pl)) = self.pending_definitions.pop() {
-            let schema = built
-                .definitions
+            let schema = definitions
                 .get(&path)
                 .ok_or_else(|| anyhow!("Definition not found: {}", path))?;
             let compiled = self.gen_json(schema).map_err(|e| {
@@ -182,8 +255,112 @@ impl Compiler {
             })?;
             self.builder.set_placeholder(pl, compiled);
         }
+        Ok(())
+    }
 
-        Ok(self.builder.finalize(id))
+    // Root-only compilation follows normalized schema references without moving
+    // the source root or changing URI/anchor semantics. Root placeholders are
+    // deliberately separate from nested definitions compiled by get_definition.
+    fn gen_json_root(
+        &mut self,
+        schema: &Schema,
+        definitions: &HashMap<String, Schema>,
+        bounds: RootObjectKeyPolicy,
+        roots: &mut HashMap<String, NodeRef>,
+        depth: usize,
+    ) -> Result<NodeRef> {
+        self.builder.check_limits()?;
+        if depth > super::schema::SchemaBuilderOptions::default().max_stack_level {
+            bail!("root key encoding reference/alternative stack limit exceeded");
+        }
+        match schema {
+            Schema::Ref(uri) => {
+                if let Some(node) = roots.get(uri) {
+                    return Ok(*node);
+                }
+                let referenced = definitions
+                    .get(uri)
+                    .ok_or_else(|| anyhow!("Definition not found: {}", uri))?;
+                let placeholder = self.builder.new_node(uri);
+                roots.insert(uri.clone(), placeholder);
+                match self.gen_json_root(referenced, definitions, bounds, roots, depth + 1) {
+                    Ok(node) => {
+                        self.builder.set_placeholder(placeholder, node);
+                        Ok(placeholder)
+                    }
+                    Err(error) => {
+                        roots.remove(uri);
+                        Err(error)
+                    }
+                }
+            }
+            Schema::Object(object) => self.gen_json_object(object, Some(bounds)),
+            Schema::Any => {
+                let num = number_regex(&NumberSchema::default())?;
+                let tf = self.builder.regex.regex("true|false")?;
+                let nodes = vec![
+                    self.builder.string("null"),
+                    self.builder.lexeme(tf),
+                    self.ast_lexeme(num)?,
+                    self.json_simple_string()?,
+                    self.gen_json_array(&ArraySchema {
+                        min_items: 0,
+                        max_items: None,
+                        prefix_items: vec![],
+                        items: Schema::any_box(),
+                    })?,
+                    self.gen_json_object(
+                        &ObjectSchema {
+                            min_properties: 0,
+                            max_properties: None,
+                            properties: IndexMap::new(),
+                            pattern_properties: IndexMap::new(),
+                            additional_properties: Schema::any_box(),
+                            required: IndexSet::new(),
+                        },
+                        Some(bounds),
+                    )?,
+                ];
+                Ok(self.builder.select(&nodes))
+            }
+            Schema::AnyOf(options) | Schema::OneOf(options) => {
+                if matches!(schema, Schema::OneOf(_)) {
+                    if !(self.options.coerce_one_of || self.options.lenient) {
+                        bail!("oneOf constraints are not supported. Enable 'coerce_one_of' option to approximate oneOf with anyOf");
+                    }
+                    self.builder.add_warning("oneOf not fully supported, falling back to anyOf. This may cause validation errors in some cases.".to_string());
+                }
+                let mut nodes = Vec::new();
+                let mut errors = Vec::new();
+                let mut policy_errors = Vec::new();
+                for option in options {
+                    match self.gen_json_root(option, definitions, bounds, roots, depth + 1) {
+                        Ok(node) => nodes.push(node),
+                        Err(error) if error.is::<RootObjectKeyPolicyError>() => {
+                            policy_errors.push(error)
+                        }
+                        Err(error) if error.is::<UnsatisfiableSchemaError>() => errors.push(error),
+                        Err(error) => return Err(error),
+                    }
+                }
+                self.builder.check_limits()?;
+                if !nodes.is_empty() {
+                    return Ok(self.builder.select(&nodes));
+                }
+                if let Some(error) = policy_errors.pop() {
+                    return Err(error);
+                }
+                let error = anyhow!(UnsatisfiableSchemaError {
+                    message: "All original root schema alternatives are unsatisfiable".to_string()
+                });
+                Err(if let Some(source) = errors.pop() {
+                    error.context(source)
+                } else {
+                    error
+                })
+            }
+            _ => self.gen_json(schema),
+        }
     }
 
     fn gen_json(&mut self, json_schema: &Schema) -> Result<NodeRef> {
@@ -197,7 +374,7 @@ impl Compiler {
             })),
 
             Schema::Array(arr) => self.gen_json_array(arr),
-            Schema::Object(obj) => self.gen_json_object(obj),
+            Schema::Object(obj) => self.gen_json_object(obj, None),
             Schema::AnyOf(options) => self.process_any_of(options),
             Schema::OneOf(options) => self.process_one_of(options),
             Schema::Ref(uri) => self.get_definition(uri),
@@ -337,21 +514,28 @@ impl Compiler {
                 prefix_items: vec![],
                 items: Schema::any_box(),
             })?,
-            self.gen_json_object(&ObjectSchema {
-                properties: IndexMap::new(),
-                additional_properties: Schema::any_box(),
-                required: IndexSet::new(),
-                pattern_properties: IndexMap::new(),
-                min_properties: 0,
-                max_properties: None,
-            })?,
+            self.gen_json_object(
+                &ObjectSchema {
+                    properties: IndexMap::new(),
+                    additional_properties: Schema::any_box(),
+                    required: IndexSet::new(),
+                    pattern_properties: IndexMap::new(),
+                    min_properties: 0,
+                    max_properties: None,
+                },
+                None,
+            )?,
         ];
         let inner = self.builder.select(&options);
         self.builder.set_placeholder(json_any, inner);
         Ok(json_any)
     }
 
-    fn gen_json_object(&mut self, obj: &ObjectSchema) -> Result<NodeRef> {
+    fn gen_json_object(
+        &mut self,
+        obj: &ObjectSchema,
+        key_bounds: Option<RootObjectKeyPolicy>,
+    ) -> Result<NodeRef> {
         let mut taken_names: Vec<String> = vec![];
         let mut unquoted_taken_names: Vec<String> = vec![];
         let mut items: Vec<(NodeRef, bool)> = vec![];
@@ -360,6 +544,7 @@ impl Compiler {
 
         let mut num_required = 0;
         let mut num_optional = 0;
+        let mut policy_error = None;
 
         for name in obj.properties.keys().chain(
             obj.required
@@ -391,6 +576,22 @@ impl Compiler {
                     }
                 },
             };
+            if let Some(bounds) = key_bounds {
+                if name.len() < bounds.min || name.len() > bounds.max {
+                    if is_required {
+                        policy_error = Some(anyhow!(RootObjectKeyPolicyError {
+                            message: format!(
+                                "required root key has {} UTF-8 bytes outside {}..={}",
+                                name.len(),
+                                bounds.min,
+                                bounds.max
+                            )
+                        }));
+                    }
+                    taken_names.push(quoted_name);
+                    continue;
+                }
+            }
             let name = self.builder.string(&quoted_name);
             taken_names.push(quoted_name);
             let item = self.builder.join(&[name, colon, property]);
@@ -400,6 +601,15 @@ impl Compiler {
             } else {
                 num_optional += 1;
             }
+        }
+
+        if key_bounds.is_some() {
+            // Original root/value/reference capability and emptiness were
+            // established by the complete unmodified compilation preflight.
+            if let Some(error) = policy_error {
+                return Err(error);
+            }
+            return self.named_object_fields(&items, obj.min_properties, obj.max_properties);
         }
 
         let min_properties = obj.min_properties.saturating_sub(num_required);
@@ -556,6 +766,86 @@ impl Compiler {
         }
 
         self.object_fields(&items)
+    }
+
+    // Compile a finite set of declared root fields in schema order. Values were
+    // compiled against the original property/pattern/additional intersection.
+    // This opt-in path neither generates nor tries to solve dynamic key names.
+    fn named_object_fields(
+        &mut self,
+        items: &[(NodeRef, bool)],
+        min: usize,
+        max: Option<usize>,
+    ) -> Result<NodeRef> {
+        let maximum = max.unwrap_or(items.len()).min(items.len());
+        let required = items.iter().filter(|(_, required)| *required).count();
+        if min > maximum || required > maximum {
+            return Err(anyhow!(RootObjectKeyPolicyError {
+                message: "named root key policy cannot satisfy min/maxProperties".to_string()
+            }));
+        }
+        let comma = self.item_separator()?;
+        let empty = self.builder.string("");
+        let inner = if min <= required && maximum == items.len() {
+            // Same optional/required sequence language as ordered_sequence,
+            // built iteratively so the new policy does not add recursive stack.
+            let mut plain = empty;
+            let mut prefixed = empty;
+            for &(item, mandatory) in items.iter().rev() {
+                self.builder.check_limits()?;
+                let take_plain = self.builder.join(&[item, prefixed]);
+                let take_prefixed = self.builder.join(&[comma, item, prefixed]);
+                if mandatory {
+                    plain = take_plain;
+                    prefixed = take_prefixed;
+                } else {
+                    plain = self.builder.select(&[take_plain, plain]);
+                    prefixed = self.builder.select(&[take_prefixed, prefixed]);
+                }
+            }
+            plain
+        } else {
+            // Each row contains the grammar for each exact suffix field count.
+            // Backend grammar/fuel guards bound construction; no exponential
+            // subset enumeration and no recursion are introduced.
+            let mut suffix = vec![Some(empty)];
+            for &(item, mandatory) in items.iter().rev() {
+                let limit = suffix.len().min(maximum);
+                let mut next = vec![None; limit + 1];
+                for (count, slot) in next.iter_mut().enumerate() {
+                    self.builder.check_limits()?;
+                    let mut choices = Vec::new();
+                    if let Some(Some(skip)) = suffix.get(count).filter(|_| !mandatory) {
+                        choices.push(*skip);
+                    }
+                    if let Some(Some(tail)) =
+                        count.checked_sub(1).and_then(|index| suffix.get(index))
+                    {
+                        choices.push(if count == 1 {
+                            item
+                        } else {
+                            self.builder.join(&[item, comma, *tail])
+                        });
+                    }
+                    if !choices.is_empty() {
+                        *slot = Some(self.builder.select(&choices));
+                    }
+                }
+                suffix = next;
+            }
+            let choices = suffix.into_iter().skip(min).flatten().collect::<Vec<_>>();
+            if choices.is_empty() {
+                return Err(anyhow!(RootObjectKeyPolicyError {
+                    message: "named root key policy has no admitted declared-field combination"
+                        .to_string()
+                }));
+            }
+            self.builder.select(&choices)
+        };
+        self.builder.check_limits()?;
+        let open = self.builder.string("{");
+        let close = self.builder.string("}");
+        Ok(self.builder.join(&[open, inner, close]))
     }
 
     fn object_fields(&mut self, items: &[(NodeRef, bool)]) -> Result<NodeRef> {
@@ -1307,5 +1597,224 @@ mod tests {
             schema["x-guidance"]["json_allowed_escapes"],
             Value::String("nrbtf\\\"".to_string())
         );
+    }
+}
+
+#[cfg(test)]
+mod root_key_encoding_tests {
+    use super::*;
+    use crate::api::ParserLimits;
+
+    fn bounded() -> JsonCompileOptions {
+        JsonCompileOptions {
+            root_object_key_policy: Some(RootObjectKeyPolicy { min: 1, max: 256 }),
+            ..Default::default()
+        }
+    }
+    fn compile(options: &JsonCompileOptions, schema: Value) -> Result<GrammarResult> {
+        options.json_to_llg(GrammarBuilder::new(None, ParserLimits::default()), schema)
+    }
+
+    fn failure<T>(result: Result<T>) -> anyhow::Error {
+        match result {
+            Err(error) => error,
+            Ok(_) => panic!("expected compiler error"),
+        }
+    }
+
+    #[test]
+    fn root_key_bounds_follow_references_without_restricting_nested_values_or_defaults() {
+        let invalid = json!({"$id":"https://example.invalid/root","$defs":{"Args":{"type":"object","properties":{"":{"type":"integer"}},"required":[""],"additionalProperties":false}},"$ref":"#/$defs/Args"});
+        assert!(compile(&JsonCompileOptions::default(), invalid.clone()).is_ok());
+        assert!(
+            compile(&bounded(), invalid).is_err_and(|error| error.is::<RootObjectKeyPolicyError>())
+        );
+        for key in ["x".repeat(257), "é".repeat(129)] {
+            let invalid = json!({"const":{key:1}});
+            assert!(compile(&bounded(), invalid)
+                .is_err_and(|error| error.is::<RootObjectKeyPolicyError>()));
+        }
+        let nested = json!({"$id":"https://example.invalid/root","$defs":{"Args":{"type":"object","properties":{"outer":{"const":{"":1}}},"required":["outer"],"additionalProperties":false}},"$ref":"#/$defs/Args"});
+        assert!(compile(&bounded(), nested).is_ok());
+        assert!(compile(&bounded(), json!({"type":"object","patternProperties":{"^$":{"type":"integer"}},"additionalProperties":false,"minProperties":1})).is_err_and(|error| error.is::<RootObjectKeyPolicyError>()));
+        assert!(compile(
+            &bounded(),
+            json!({"anyOf":[{"const":{"":1}},{"const":{"valid":1}}]})
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn root_key_policy_counts_decoded_utf8_bytes_and_preserves_option_serialization() {
+        for (key, allowed) in [
+            ("".to_owned(), false),
+            ("x".repeat(256), true),
+            ("x".repeat(257), false),
+            ("é".repeat(128), true),
+            ("é".repeat(129), false),
+            ("\"&<>\0é".to_owned(), true),
+        ] {
+            let schema = json!({"type":"object","properties":{(key.clone()):{"type":"integer"}},"required":[key],"additionalProperties":false});
+            let result = compile(&bounded(), schema);
+            assert_eq!(result.is_ok(), allowed, "{key:?}");
+            if !allowed {
+                assert!(result.is_err_and(|error| error.is::<RootObjectKeyPolicyError>()));
+            }
+        }
+        assert!(compile(&bounded(), json!({"type":"object","patternProperties":{"^a$":{"type":"integer"}},"additionalProperties":false,"minProperties":2})).is_err_and(|error| error.is::<RootObjectKeyPolicyError>()));
+        assert!(compile(&bounded(), json!({"type":"object","properties":{"a":{"type":"integer"},"b":{"type":"integer"}},"required":["a","b"],"minProperties":2,"maxProperties":2})).is_ok());
+        assert!(compile(&bounded(), json!({"type":"object","properties":{"a":{"type":"integer"}},"patternProperties":{"^a$":false},"required":["a"]})).is_err_and(|error| error.is::<UnsatisfiableSchemaError>()));
+        assert!(serde_json::to_value(JsonCompileOptions::default())
+            .unwrap()
+            .get("root_object_key_policy")
+            .is_none());
+        let original = bounded();
+        let cloned = original.clone();
+        let encoded = serde_json::to_value(cloned).unwrap();
+        assert_eq!(original.root_object_key_policy.unwrap().min, 1);
+        let decoded: JsonCompileOptions = serde_json::from_value(encoded).unwrap();
+        assert_eq!(decoded.root_object_key_policy.unwrap().max, 256);
+        assert!(compile(&decoded, json!({"const":{"":1}}))
+            .is_err_and(|error| error.is::<RootObjectKeyPolicyError>()));
+    }
+    #[test]
+    fn root_key_policy_preserves_unsupported_values_before_name_capability_errors() {
+        let unsupported = json!({"oneOf":[{"type":"number"},{"type":"integer"}]});
+        for required in [false, true] {
+            for referenced in [false, true] {
+                let mut schema = json!({"$id":"https://example.invalid/policy-errors","$defs":{"Value":unsupported},"type":"object","properties":{"":if referenced {json!({"$ref":"#/$defs/Value"})} else {unsupported.clone()}},"additionalProperties":false});
+                if required {
+                    schema["required"] = json!([""]);
+                }
+                let original = failure(compile(&JsonCompileOptions::default(), schema.clone()));
+                let constrained = failure(compile(&bounded(), schema));
+                assert!(!constrained.is::<RootObjectKeyPolicyError>());
+                assert!(!constrained.is::<UnsatisfiableSchemaError>());
+                assert_eq!(
+                    original.root_cause().to_string(),
+                    constrained.root_cause().to_string()
+                );
+            }
+        }
+        // A deferred required-name capability error cannot conceal a later
+        // declared field's unsupported schema either.
+        let schema = json!({"type":"object","properties":{"":{"type":"integer"},"later":unsupported},"required":[""]});
+        let error = failure(compile(&bounded(), schema));
+        assert!(!error.is::<RootObjectKeyPolicyError>());
+        assert!(!error.is::<UnsatisfiableSchemaError>());
+    }
+
+    #[test]
+    fn root_key_policy_preserves_dynamic_and_alternative_value_capability_errors() {
+        let unsupported = json!({"oneOf":[{"type":"number"},{"type":"integer"}]});
+        for schema in [
+            json!({"type":"object","additionalProperties":unsupported}),
+            json!({"type":"object","patternProperties":{"^a$":unsupported},"additionalProperties":false,"minProperties":1}),
+            json!({"anyOf":[{"type":"object","properties":{"":unsupported},"required":[""]},{"const":{"valid":1}}]}),
+        ] {
+            let original = failure(compile(&JsonCompileOptions::default(), schema.clone()));
+            let constrained = failure(compile(&bounded(), schema));
+            assert!(!constrained.is::<RootObjectKeyPolicyError>());
+            assert!(!constrained.is::<UnsatisfiableSchemaError>());
+            assert_eq!(
+                original.root_cause().to_string(),
+                constrained.root_cause().to_string()
+            );
+        }
+    }
+    #[test]
+    fn root_key_policy_preserves_original_empty_cardinality_and_alternatives() {
+        let cases = [
+            json!({"type":"object","additionalProperties":false,"minProperties":1}),
+            json!({"type":"object","properties":{"ok":false},"additionalProperties":false,"minProperties":1}),
+            json!({"type":"object","minProperties":2,"maxProperties":1}),
+            json!({"anyOf":[false,{"type":"object","additionalProperties":false,"minProperties":1}]}),
+        ];
+        for schema in cases {
+            let original = failure(compile(&JsonCompileOptions::default(), schema.clone()));
+            let policy = failure(compile(&bounded(), schema));
+            assert!(original.is::<UnsatisfiableSchemaError>());
+            assert!(policy.is::<UnsatisfiableSchemaError>());
+            assert!(!policy.is::<RootObjectKeyPolicyError>());
+            assert_eq!(
+                original.root_cause().to_string(),
+                policy.root_cause().to_string()
+            );
+        }
+        let unsupported = json!({"type":"object","properties":{"a":{"type":"integer"},"b":{"type":"integer"}},"minProperties":2,"maxProperties":2});
+        let original = failure(compile(&JsonCompileOptions::default(), unsupported.clone()));
+        let policy = failure(compile(&bounded(), unsupported));
+        assert!(!policy.is::<RootObjectKeyPolicyError>());
+        assert!(!policy.is::<UnsatisfiableSchemaError>());
+        assert_eq!(
+            original.root_cause().to_string(),
+            policy.root_cause().to_string()
+        );
+        let empty_only_under_policy = json!({"type":"object","properties":{"":{"type":"integer"}},"required":[""],"additionalProperties":false});
+        assert!(compile(
+            &JsonCompileOptions::default(),
+            empty_only_under_policy.clone()
+        )
+        .is_ok());
+        assert!(compile(&bounded(), empty_only_under_policy)
+            .is_err_and(|error| error.is::<RootObjectKeyPolicyError>()));
+    }
+    #[test]
+    fn invalid_root_key_policy_precedes_an_originally_false_schema() {
+        let options = JsonCompileOptions {
+            root_object_key_policy: Some(RootObjectKeyPolicy { min: 2, max: 1 }),
+            ..Default::default()
+        };
+        let error = failure(compile(&options, json!(false)));
+        assert!(!error.is::<UnsatisfiableSchemaError>());
+        assert!(!error.is::<RootObjectKeyPolicyError>());
+        assert_eq!(
+            error.to_string(),
+            "root object key byte bounds require min <= max"
+        );
+    }
+    #[test]
+    fn root_policy_preserves_builder_resource_errors_before_capability_errors() {
+        let limits = ParserLimits {
+            max_grammar_size: 0,
+            ..Default::default()
+        };
+        let result =
+            bounded().json_to_llg(GrammarBuilder::new(None, limits), json!({"const":{"":1}}));
+        let error = failure(result);
+        assert!(!error.is::<RootObjectKeyPolicyError>());
+        assert!(!error.is::<UnsatisfiableSchemaError>());
+        assert!(error.to_string().contains("grammar"), "{error:#}");
+    }
+
+    #[cfg(feature = "referencing")]
+    #[test]
+    fn root_policy_reuses_resolved_external_references_without_retrieval() {
+        use std::sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        };
+        struct Retriever(Arc<AtomicUsize>);
+        impl crate::json::Retrieve for Retriever {
+            fn retrieve(&self, _: &str) -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+                self.0.fetch_add(1, Ordering::Relaxed);
+                Ok(
+                    json!({"type":"object","properties":{"valid":{"type":"integer"}},"required":["valid"],"additionalProperties":false}),
+                )
+            }
+        }
+        let calls = Arc::new(AtomicUsize::new(0));
+        let options = JsonCompileOptions {
+            retriever: Some(crate::json::RetrieveWrapper::new(Arc::new(Retriever(
+                calls.clone(),
+            )))),
+            ..bounded()
+        };
+        compile(
+            &options,
+            json!({"$ref":"https://example.com/root-arguments"}),
+        )
+        .unwrap();
+        assert_eq!(calls.load(Ordering::Relaxed), 1);
     }
 }

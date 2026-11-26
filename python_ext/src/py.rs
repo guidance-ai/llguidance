@@ -420,6 +420,7 @@ impl JsonCompiler {
     fn compile(&self, schema: &str, check: bool) -> PyResult<String> {
         let mut schema: Value = serde_json::from_str(schema).map_err(val_error)?;
         let compile_options = JsonCompileOptions {
+            root_object_key_policy: None,
             item_separator: self.item_separator.clone(),
             key_separator: self.key_separator.clone(),
             whitespace_flexible: self.whitespace_flexible,
