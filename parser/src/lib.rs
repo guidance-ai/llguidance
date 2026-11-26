@@ -71,7 +71,7 @@ mod regex_rewrite;
 pub mod substring;
 pub use grammar_builder::{GrammarBuilder, NodeRef};
 pub use json::compiler::JsonCompileOptions;
-pub use json::json_merge;
+pub use json::{json_merge, UnsatisfiableSchemaError};
 pub use stop_controller::StopController;
 pub use tokenizer_json::token_bytes_from_tokenizer_json;
 

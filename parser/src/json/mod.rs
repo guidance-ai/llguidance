@@ -20,8 +20,14 @@ use std::{any::type_name_of_val, sync::Arc};
 
 use serde_json::Value;
 
+/// The JSON Schema compiler determined that a schema branch admits no instances.
+///
+/// Callers can downcast compilation errors to this type instead of matching error
+/// messages. Invalid schemas, unsupported constraints and resource-limit failures
+/// use other error types. This does not imply that every unsatisfiable schema can
+/// be recognized by the compiler.
 #[derive(Debug)]
-struct UnsatisfiableSchemaError {
+pub struct UnsatisfiableSchemaError {
     message: String,
 }
 
